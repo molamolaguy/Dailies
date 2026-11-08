@@ -160,3 +160,34 @@ test('zone ids are canonicalised to the spelling Java accepts', () => {
   assert.equal(core.normalizeZone('america/new_york'), 'America/New_York');
   assert.equal(core.normalizeZone('EUROPE/LONDON'), 'Europe/London');
 });
+
+test('scheduleKeyShift keeps plays on the most-overlapping day when a wrong reset is corrected', () => {
+  inZone('America/New_York', () => {
+    // "00:00 local" corrected to "00:00 UTC" (7 PM New York): the old Nov 8 local day overlaps the
+    // Nov 8 UTC puzzle for 19 of its 24 hours, so history must not move.
+    const ref = new Date('2026-11-09T01:00:00Z'); // 8 PM New York, after the UTC reset
+    assert.equal(core.scheduleKeyShift({ resetTime: '00:00', resetZone: 'local' }, { resetTime: '00:00', resetZone: 'utc' }, ref), 0);
+    assert.equal(core.scheduleKeyShift({ resetTime: '00:00', resetZone: 'local' }, { resetTime: '09:00', resetZone: 'local' }, ref), 0);
+    // Same instant, different label still shifts exactly.
+    assert.equal(core.scheduleKeyShift({ resetTime: '19:00', resetZone: 'local' }, { resetTime: '00:00', resetZone: 'utc' }, ref), 1);
+  });
+});
+
+test('isFailedShareResult spots unsolved results', () => {
+  const failed = [
+    'Wordle 1,238 X/6\n\n⬛🟨⬛⬛⬛\n⬛⬛⬛⬛⬛',
+    'Wordle 1,238 x/6*',
+    'Framed #900\n🎥 🟥 🟥 🟥 🟥 🟥 🟥\nNext time!',
+    'Connections\nPuzzle #500\n🟨🟩🟨🟨\n🟦🟦🟪🟦\n🟩🟨🟩🟩\n🟪🟪🟦🟪',
+    'Better luck tomorrow — Globle #12'
+  ];
+  const solved = [
+    'Wordle 1,238 3/6\n\n⬛🟨⬛⬛⬛\n🟩🟩🟩🟩🟩',
+    'Connections\nPuzzle #500\n🟨🟩🟨🟨\n🟨🟨🟨🟨\n🟩🟩🟩🟩\n🟦🟦🟦🟦\n🟪🟪🟪🟪',
+    'Nerdle 900 4/6 nerdlegame.com',
+    'Box 4x/6 tiles',
+    ''
+  ];
+  failed.forEach((t) => assert.equal(core.isFailedShareResult(t), true, t));
+  solved.forEach((t) => assert.equal(core.isFailedShareResult(t), false, t));
+});

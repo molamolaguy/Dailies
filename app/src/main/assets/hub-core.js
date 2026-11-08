@@ -98,9 +98,11 @@
    */
   function zonedWallTimeToDate(y, m, d, h, mi, tz) {
     const guess = Date.UTC(y, m - 1, d, h, mi, 0, 0);
-    // Offsets from either side of any transition near this wall time give both candidates.
-    const c1 = guess - zoneOffsetMs(guess - 12 * 3600000, tz);
-    const c2 = guess - zoneOffsetMs(guess + 12 * 3600000, tz);
+    // Offsets from either side of any transition near this wall time give both candidates. The probes
+    // are 26 h out because UTC offsets reach +14 h (e.g. Pacific/Chatham +13:45 in summer): a 12 h
+    // probe can land past the transition and miss one candidate.
+    const c1 = guess - zoneOffsetMs(guess - 26 * 3600000, tz);
+    const c2 = guess - zoneOffsetMs(guess + 26 * 3600000, tz);
     const matches = (t) => {
       const p = zoneParts(new Date(t), tz);
       return p.y === y && p.m === m && p.d === d && p.h === h && p.mi === mi;
@@ -158,10 +160,14 @@
       return new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() + dayOffset, h, m, 0, 0));
     }
     const t = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + dayOffset, h, m, 0, 0);
-    // Repeated fall-back hour: JS picks the earlier instant, java.util.Calendar the later one.
-    const later = new Date(t.getTime() + 3600000);
-    if (later.getHours() === t.getHours() && later.getMinutes() === t.getMinutes() && later.getDate() === t.getDate()) {
-      return later;
+    // Repeated fall-back time: JS picks the earlier instant, java.util.Calendar the later one. The
+    // repeat lasts as long as the offset drop (1 h usually, 30 min on Lord Howe Island), so measure it.
+    const drop = (new Date(t.getTime() + 3 * 3600000).getTimezoneOffset() - t.getTimezoneOffset()) * 60000;
+    if (drop > 0) {
+      const later = new Date(t.getTime() + drop);
+      if (later.getHours() === t.getHours() && later.getMinutes() === t.getMinutes() && later.getDate() === t.getDate()) {
+        return later;
+      }
     }
     return t;
   }
@@ -232,7 +238,11 @@
    * Measured just after the new schedule's next reset so both keys name the same puzzle.
    */
   function scheduleKeyShift(from, to, refDate) {
-    const probe = new Date(getNextResetDate(to.resetTime, to.resetZone, refDate).getTime() + 60000);
+    // Probe the middle of the new schedule's current cycle: the old cycle that contains it is the one
+    // that overlaps the new cycle the most. When both schedules reset at the same instant this is
+    // the exact correspondence; when the user corrects a wrong reset time it keeps each logged play
+    // on the puzzle that was live for most of that old day (instead of always moving forward).
+    const probe = new Date(getNextResetDate(to.resetTime, to.resetZone, refDate).getTime() - 12 * 3600000);
     const a = cycleKeyToDay(getCycleDateKey(from.resetTime, from.resetZone, probe));
     const b = cycleKeyToDay(getCycleDateKey(to.resetTime, to.resetZone, probe));
     if (a === null || b === null) return 0;
@@ -403,7 +413,26 @@
     return Boolean(mentionsGame && STRICT_COUNTED_RE.test(t));
   }
 
+  // A share result that says the puzzle was NOT solved ("X/6", "Next time", Connections with four
+  // mistakes). Auto-logging records these as Missed (with the score) instead of Solved.
+  const FAILED_FRACTION_RE = /(?<![0-9A-Za-z_/])x[ \t ]*\/[ \t ]*[0-9]{1,2}(?![0-9/])/i;
+  const FAILED_PHRASE_RE = /(?<![A-Za-z0-9_])(?:next time|better luck|not solved|unsolved|did not solve|didn[’']t solve|failed|out of (?:guesses|tries|lives))(?![A-Za-z0-9_])/i;
+  const GROUP_SQUARES = new Set(['\u{1F7E8}', '\u{1F7E9}', '\u{1F7E6}', '\u{1F7EA}']); // yellow green blue purple
+  function isFailedShareResult(text) {
+    const t = String(text || '').trim();
+    if (!t) return false;
+    if (FAILED_FRACTION_RE.test(t) || FAILED_PHRASE_RE.test(t)) return true;
+    // Connections-style grid: rows of four group colours; a mixed row is a mistake, four ends the game.
+    let mixedRows = 0;
+    t.split('\n').forEach((line) => {
+      const cells = Array.from(line.replace(/[ \t ️]/g, ''));
+      if (cells.length === 4 && cells.every((c) => GROUP_SQUARES.has(c)) && new Set(cells).size > 1) mixedRows += 1;
+    });
+    return mixedRows >= 4;
+  }
+
   return {
+    isFailedShareResult,
     looksLikeShareResult,
     isStrictShareResult,
     isValidTimeZone,

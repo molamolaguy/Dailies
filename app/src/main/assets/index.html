@@ -96,7 +96,7 @@
     <section id="viewDashboard" class="space-y-4">
       <!-- Minimal Status & Filter / Add Bar -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="flex items-center gap-2.5 text-xs text-slate-400">
+        <div class="hub-header-row flex items-center gap-2.5 text-xs text-slate-400">
           <span class="inline-flex items-center gap-1.5 text-sm font-bold text-white tracking-tight mr-1">
             <svg width="22" height="22" viewBox="0 0 108 108" class="rounded-md shrink-0">
               <rect width="108" height="108" rx="26" fill="#141218"/>
@@ -115,7 +115,7 @@
           <span><span aria-hidden="true">🔥</span> <span class="sr-only">Top streak</span> <strong id="kpiTopStreak" class="text-amber-300 font-semibold">0d</strong></span>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="hub-actions-row flex items-center gap-2">
           <div class="flex items-center bg-slate-900/80 border border-slate-800 rounded-xl p-0.5 text-xs">
             <button type="button" data-filter="all" aria-pressed="true" class="filter-tab px-2.5 py-1 rounded-lg bg-slate-800 text-white font-medium">All</button>
             <button type="button" data-filter="ready" aria-pressed="false" class="filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Ready</button>
@@ -147,7 +147,7 @@
       <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-4">
         <div class="space-y-2.5 border-b border-slate-800 pb-3.5">
           <h3 class="text-base font-bold text-white">Completion Calendar</h3>
-          <select id="calendarGameSelect" aria-label="Game" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-semibold"></select>
+          <select id="calendarGameSelect" aria-label="Game" class="cal-select w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-semibold"></select>
         </div>
 
         <!-- Month navigation: icon arrows + one-line month label so nothing wraps on phones -->
@@ -163,7 +163,7 @@
         </div>
 
         <div>
-          <div class="cal-grid mb-1.5">
+          <div id="calendarDowRow" class="cal-grid mb-1.5" aria-hidden="true">
             <div class="cal-dow">S</div><div class="cal-dow">M</div><div class="cal-dow">T</div><div class="cal-dow">W</div><div class="cal-dow">T</div><div class="cal-dow">F</div><div class="cal-dow">S</div>
           </div>
           <div id="calendarDaysGrid" class="cal-grid"></div>
@@ -257,8 +257,8 @@
       <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div class="min-w-0">
-            <h3 class="text-base font-bold text-white flex items-center gap-2 nowrap">
-              <span class="icon-label"><span class="ico ico-schedule section-icon" aria-hidden="true"></span>Gameplay &amp; Time</span>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span class="icon-label" style="justify-content:flex-start"><span class="ico ico-schedule section-icon" aria-hidden="true"></span>Gameplay &amp; Time</span>
             </h3>
           </div>
           <span id="liveClockDisplay" class="shrink-0 tabular px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-[11px] text-emerald-300">--:--:--</span>
@@ -375,10 +375,10 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <label for="inputGameUrl" class="block text-xs font-semibold text-slate-300">Daily Game URL *</label>
-            <span id="scrapeStatusBadge" class="text-[11px] text-indigo-300 hidden">Scraping site metadata...</span>
+            <span id="scrapeStatusBadge" class="text-[11px] text-indigo-300 hidden">Scraping website…</span>
           </div>
           <div class="flex gap-2">
-            <input id="inputGameUrl" type="text" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" required placeholder="Paste a daily game link, e.g. nytimes.com/games/wordle" class="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+            <input id="inputGameUrl" type="text" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" required placeholder="Paste a daily game link, e.g. nytimes.com/games/wordle" class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
             <button id="btnAutoDetectMeta" type="button" class="px-3 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold shrink-0">Scrape Site</button>
           </div>
         </div>
@@ -491,7 +491,7 @@
         </p>
         <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
           <button id="btnCancelDeleteModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
-          <button id="btnConfirmDeleteModal" type="button" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg">Delete</button>
+          <button id="btnConfirmDeleteModal" type="button" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg">Remove</button>
         </div>
       </div>
     </div>
@@ -641,7 +641,7 @@
 
     const TIME_FMT_12 = (() => {
       try {
-        return new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        return new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
       } catch (e) {
         return null;
       }
@@ -1254,7 +1254,9 @@
       const container = document.getElementById('toastContainer');
       if (!container) return;
       while (container.children.length >= 3) {
-        container.firstElementChild.remove();
+        // Make room by dropping the oldest plain toast first, so a pending Undo isn't pushed out.
+        const plain = [...container.children].find((c) => !c.querySelector('[data-toast-action]'));
+        (plain || container.firstElementChild).remove();
       }
       const toast = document.createElement('div');
       const borderClass = tone === 'emerald' ? 'border-emerald-500/50 bg-slate-900/95' : 'border-indigo-500/50 bg-slate-900/95';
@@ -1289,7 +1291,7 @@
       container.appendChild(toast);
       setTimeout(() => {
         if (toast.parentNode) toast.remove();
-      }, opts && opts.actionLabel ? 8000 : 4500);
+      }, opts && opts.actionLabel ? 20000 : 4500);
     }
 
     function isImageIcon(icon) {
@@ -1336,7 +1338,7 @@
       const cls = sizeClass || 'w-6 h-6';
       const s = String(icon || '').trim();
       if (isImageIcon(s)) {
-        const initial = escapeHtml(String(name || 'G').trim().charAt(0).toUpperCase() || 'G');
+        const initial = escapeHtml(iconInitial(name));
         return `<img src="${escapeHtml(iconSrc(s))}" alt="" data-cls="${escapeHtml(cls)}" data-initial="${initial}" class="${escapeHtml(cls)} rounded-md object-contain" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="window.handleFaviconError(this)" />`;
       }
       // No image: Material gamepad graphic (any old text/emoji icon is replaced by it too).
@@ -1361,6 +1363,34 @@
         .replace(/'/g, '&#39;');
     }
 
+    /** First letter/digit of a name for the favicon fallback badge (whole code points, never half an emoji). */
+    function iconInitial(name) {
+      const m = String(name || '').match(/[\p{L}\p{N}]/u);
+      return m ? m[0].toLocaleUpperCase() : 'G';
+    }
+
+    /** "1 day" / "2 days". */
+    function plural(n, one, many) {
+      const num = Number(n) || 0;
+      return `${num} ${num === 1 ? one : (many || one + 's')}`;
+    }
+
+    /** Clock label for a history row: h:mm (no seconds) in the current 12h / 24h setting. */
+    function formatLogTime(dateObj) {
+      const d = dateObj || new Date();
+      return formatLocalClockHM(d.getHours(), d.getMinutes());
+    }
+    /** Re-renders a stored "09:05:03 PM" / "21:05" label in the current 12h / 24h setting. */
+    function normalizeLogTimeLabel(label) {
+      const m = /^\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?\s*[Mm]?\.?\s*$/.exec(String(label || ''));
+      if (!m) return String(label || '');
+      let h = Number(m[1]) % 24;
+      const ap = m[3] ? m[3].toLowerCase() : '';
+      if (ap === 'p' && h < 12) h += 12;
+      if (ap === 'a' && h === 12) h = 0;
+      return formatLocalClockHM(h, Number(m[2]));
+    }
+
     // =========================================================================
     // URL PARSING & NATIVE SCRAPER INTEGRATION
     // =========================================================================
@@ -1368,10 +1398,22 @@
       const s = String(raw || '').trim();
       if (!s) return '';
       const httpMatch = s.match(/https?:\/\/[^\s"'<>]+/i);
-      if (httpMatch) return httpMatch[0];
+      if (httpMatch) return trimUrlPunctuation(httpMatch[0]);
       const domainMatch = s.match(/\b([a-z0-9-]+\.)+[a-z]{2,}(\/[^\s"'<>]*)?/i);
-      if (domainMatch) return domainMatch[0];
+      if (domainMatch) return trimUrlPunctuation(domainMatch[0]);
       return s;
+    }
+
+    /** Drops sentence punctuation stuck to a link in shared text ("…/connections)." -> "…/connections"). */
+    function trimUrlPunctuation(u) {
+      let out = String(u || '');
+      for (;;) {
+        const last = out.slice(-1);
+        if (/[.,;:!?'"\]}>]/.test(last)) { out = out.slice(0, -1); continue; }
+        // A closing bracket is part of the link only if it closes one opened inside it (Wikipedia-style).
+        if (last === ')' && (out.match(/\(/g) || []).length < (out.match(/\)/g) || []).length) { out = out.slice(0, -1); continue; }
+        return out;
+      }
     }
 
     function normalizeUrlKey(rawUrl) {
@@ -1380,7 +1422,9 @@
         if (!c) return '';
         if (!/^https?:\/\//i.test(c)) c = 'https://' + c;
         const u = new URL(c);
-        return u.hostname.replace(/^www\./i, '').toLowerCase() + u.pathname.replace(/\/+$/, '');
+        // "/games/wordle/index.html" and "/games/wordle/" are the same page as "/games/wordle".
+        return u.hostname.replace(/^www\./i, '').toLowerCase()
+          + u.pathname.replace(/\/index\.html?$/i, '').replace(/\/+$/, '');
       } catch (e) {
         return '';
       }
@@ -1389,7 +1433,15 @@
     function findGameByUrl(rawUrl) {
       const key = normalizeUrlKey(rawUrl);
       if (!key) return null;
-      return state.games.find((g) => normalizeUrlKey(g.url) === key) || null;
+      const exact = state.games.find((g) => normalizeUrlKey(g.url) === key);
+      if (exact) return exact;
+      // Two links that match the same built-in catalogue entry are the same game.
+      const known = KnownGames.find(rawUrl);
+      if (!known) return null;
+      return state.games.find((g) => {
+        const k = KnownGames.find(g.url);
+        return Boolean(k && k.host === known.host && (k.path || '') === (known.path || ''));
+      }) || null;
     }
 
     function cleanGameUrl(rawUrl) {
@@ -1492,7 +1544,7 @@
       }
       if (btn) {
         btn.disabled = true;
-        btn.textContent = 'Scraping...';
+        btn.textContent = 'Scraping…';
       }
 
       const resultMeta = Object.assign({}, initialMeta);
@@ -1635,8 +1687,8 @@
         return `
           <article data-card-game-id="${id}" class="glass-card game-card compact">
             <div class="m3-shape-avatar-compact m3-shape-${idx % 6} shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-4 h-4')}</div>
-            <h3 class="gc-title" title="Edit ${escapeHtml(g.name)}" data-action="edit" data-id="${id}" role="button" tabindex="0">${escapeHtml(g.name)}</h3>
-            <span data-role="card-streak" class="gc-streak" aria-label="Streak ${g.streak} days"><span aria-hidden="true">🔥 ${g.streak}d</span></span>
+            <h3 class="gc-title" dir="auto" title="Edit ${escapeHtml(g.name)}" aria-label="Edit ${escapeHtml(g.name)}" data-action="edit" data-id="${id}" role="button" tabindex="0">${escapeHtml(g.name)}</h3>
+            <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>
             <span data-role="card-status-pill" class="status-dot status-${status}" role="img" aria-label="${statusLabel}" title="${statusLabel}"></span>
             <div class="gc-actions">${reorder}${actions}</div>
           </article>`;
@@ -1649,9 +1701,9 @@
           <div class="gc-top">
             <div class="m3-shape-avatar m3-shape-${idx % 6} shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-6 h-6')}</div>
             <div class="gc-main">
-              <h3 class="gc-title" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</h3>
+              <h3 class="gc-title" dir="auto" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</h3>
               <div class="gc-meta">
-                <span data-role="card-streak" class="gc-streak" aria-label="Streak ${g.streak} days"><span aria-hidden="true">🔥 ${g.streak}d</span></span>
+                <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>
                 <span class="gc-sep">·</span>
                 <span data-role="card-reset" class="gc-reset">Resets ${escapeHtml(localResetStr)}</span>
               </div>
@@ -1895,7 +1947,9 @@
     // via Intl is too costly to redo for every game every second).
     const nextResetCache = new Map();
     function msUntilNextResetCached(g, now) {
-      const sig = `${g.resetTime}|${g.resetZone}`;
+      // The device's UTC offset is part of the key: after a time-zone change (travel, or the user
+      // changing it) every cached reset moment is recomputed instead of counting down to the old one.
+      const sig = `${g.resetTime}|${g.resetZone}|${now.getTimezoneOffset()}`;
       let c = nextResetCache.get(g.id);
       if (!c || c.sig !== sig || now.getTime() >= c.at) {
         c = { sig, at: HubCore.getNextResetDate(g.resetTime, g.resetZone, now).getTime() };
@@ -1980,6 +2034,8 @@
       if (!game.dayHistory || typeof game.dayHistory !== 'object') {
         game.dayHistory = {};
       }
+      const undoSnap = snapshotForUndo(game, todayKey);
+      const undoOpts = { actionLabel: 'Undo', onAction: () => restoreUndo(undoSnap) };
 
       if (isCurrentCycle) {
         game.status = validStatus;
@@ -2014,12 +2070,12 @@
         existingRow.outcome = outcomeLabel;
         existingRow.score = displayScore;
         existingRow.streak = game.streak;
-        existingRow.localTime = formatLocalNowTime(new Date());
+        existingRow.localTime = formatLogTime(new Date());
       } else {
         removeTodayLog(game, todayKey);
         state.historyLogs.unshift({
           date: todayKey,
-          localTime: formatLocalNowTime(new Date()),
+          localTime: formatLogTime(new Date()),
           gameId: game.id,
           gameName: game.name,
           icon: game.icon,
@@ -2034,13 +2090,15 @@
       } else if (validStatus === 'completed' && prevStatus !== 'completed') {
         showToast(
           `🔥 ${game.name} Completed!`,
-          `Streak is now ${game.streak} days. Next puzzle resets at ${localResetLabel}.`,
-          'emerald'
+          `Streak is now ${plural(game.streak, 'day')}. Next puzzle resets at ${localResetLabel}.`,
+          'emerald', null, undoOpts
         );
       } else if (validStatus === 'completed') {
-        showToast(`${game.name} Updated`, 'Formatted score snippet saved.', 'indigo');
+        showToast(`${game.name} Updated`, 'Formatted score snippet saved.', 'indigo', null, undoOpts);
       } else {
-        showToast(`${game.name} Marked Missed`, `We will alert you when tomorrow's puzzle resets at ${localResetLabel}.`, 'indigo');
+        showToast(`${game.name} Marked Missed`, alertsWillReach(game)
+          ? `We will alert you when the next puzzle resets at ${localResetLabel}.`
+          : `The next puzzle resets at ${localResetLabel}.`, 'indigo', null, undoOpts);
       }
 
       historyPage = 0;
@@ -2084,6 +2142,48 @@
       return null;
     }
 
+    // Calendar labels follow the device locale: month names, narrow weekday initials and the first
+    // day of the week (e.g. Monday in most of Europe). Falls back to English / Sunday.
+    const CAL_FIRST_DAY = (() => {
+      try {
+        const loc = new Intl.Locale(navigator.language || 'en-US');
+        const info = typeof loc.getWeekInfo === 'function' ? loc.getWeekInfo() : loc.weekInfo;
+        if (info && info.firstDay >= 1 && info.firstDay <= 7) return info.firstDay % 7; // ISO 7 = Sunday -> 0
+      } catch (e) {}
+      return 0;
+    })();
+    function formatCalendarMonthLabel(year, month) {
+      try {
+        return new Intl.DateTimeFormat([], { month: 'long', year: 'numeric' }).format(new Date(year, month, 1));
+      } catch (e) {
+        return `${year}-${String(month + 1).padStart(2, '0')}`;
+      }
+    }
+    function formatCalendarMonthShort(year, month) {
+      try {
+        return new Intl.DateTimeFormat([], { month: 'short' }).format(new Date(year, month, 1));
+      } catch (e) {
+        return String(month + 1);
+      }
+    }
+    let calendarDowSig = '';
+    function renderCalendarWeekdayHeader() {
+      const row = document.getElementById('calendarDowRow');
+      if (!row) return;
+      let names;
+      try {
+        const fmt = new Intl.DateTimeFormat([], { weekday: 'narrow' });
+        // 2023-01-01 was a Sunday.
+        names = Array.from({ length: 7 }, (_, i) => fmt.format(new Date(2023, 0, 1 + ((CAL_FIRST_DAY + i) % 7))));
+      } catch (e) {
+        names = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      }
+      const sig = names.join('|');
+      if (sig === calendarDowSig) return;
+      calendarDowSig = sig;
+      row.innerHTML = names.map((n) => `<div class="cal-dow">${escapeHtml(n)}</div>`).join('');
+    }
+
     function renderGameCalendar() {
       const selectEl = document.getElementById('calendarGameSelect');
       const monthLabelEl = document.getElementById('calendarMonthLabel');
@@ -2117,22 +2217,19 @@
       const selectSig = calGames.map((g) => `${g.id}:${g.name}`).join('|');
       if (selectEl.dataset.sig !== selectSig) {
         selectEl.dataset.sig = selectSig;
-        selectEl.innerHTML = calGames.map((g) => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)}</option>`).join('');
+        selectEl.innerHTML = calGames.map((g) => `<option value="${escapeHtml(g.id)}" dir="auto">${escapeHtml(g.name)}</option>`).join('');
       }
       selectEl.value = selectedCalendarGameId;
 
       const game = calGames.find((g) => g.id === selectedCalendarGameId) || calGames[0];
       recomputeGameStatsFromHistory(game);
 
-      const monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
       if (monthLabelEl) {
-        monthLabelEl.textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
+        monthLabelEl.textContent = formatCalendarMonthLabel(calendarYear, calendarMonth);
       }
+      renderCalendarWeekdayHeader();
 
-      const firstDayWeekIdx = new Date(calendarYear, calendarMonth, 1).getDay();
+      const firstDayWeekIdx = (new Date(calendarYear, calendarMonth, 1).getDay() - CAL_FIRST_DAY + 7) % 7;
       const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
       const todayKey = getCycleDateKey(game.resetTime, game.resetZone);
 
@@ -2177,7 +2274,7 @@
       if (totalPlaysEl) totalPlaysEl.textContent = String(totalPlays);
       if (subPlaysEl) subPlaysEl.innerHTML = `${totalWon} <span class="ico ico-check" aria-hidden="true"></span> ${Math.max(0, totalPlays - totalWon)} <span class="ico ico-close" aria-hidden="true"></span>`;
       if (currentStreakEl) currentStreakEl.textContent = `${game.streak || 0}d`;
-      if (monthCountsEl) monthCountsEl.innerHTML = `${monthNames[calendarMonth].slice(0, 3)}: ${monthCompletedCount} <span class="ico ico-check" aria-hidden="true"></span> ${monthMissedCount} <span class="ico ico-close" aria-hidden="true"></span>`;
+      if (monthCountsEl) monthCountsEl.innerHTML = `${escapeHtml(formatCalendarMonthShort(calendarYear, calendarMonth))}: ${monthCompletedCount} <span class="ico ico-check" aria-hidden="true"></span> ${monthMissedCount} <span class="ico ico-close" aria-hidden="true"></span>`;
     }
 
     function renderStatsAndCharts() {
@@ -2195,7 +2292,7 @@
       const pageLabel = document.getElementById('historyPageLabel');
       if (pageLabel) pageLabel.textContent = `Page ${historyPage + 1} of ${pageCount}`;
       const countLabel = document.getElementById('historyCountLabel');
-      if (countLabel) countLabel.textContent = total ? `${start + 1}–${start + pageRows.length} of ${total} results` : '';
+      if (countLabel) countLabel.textContent = total ? `${start + 1}–${start + pageRows.length} of ${plural(total, 'result')}` : '';
       const prevBtn = document.getElementById('btnHistoryPrev');
       const nextBtn = document.getElementById('btnHistoryNext');
       if (prevBtn) prevBtn.disabled = historyPage === 0;
@@ -2217,15 +2314,15 @@
         } else {
           tbody.innerHTML = pageRows.map((item) => {
             const ok = item.outcome === 'Completed';
-            const when = [formatCycleDateLabel(item.date), item.localTime].filter(Boolean).join(' · ');
+            const when = [formatCycleDateLabel(item.date), normalizeLogTimeLabel(item.localTime)].filter(Boolean).join(' · ');
             const score = String(item.score || '').trim();
             return `
               <div class="hist-row">
                 <div class="hist-head">
                   <span class="hist-icon">${renderGameIconHtml(item.icon, item.gameName, 'w-4 h-4')}</span>
-                  <span class="hist-name">${escapeHtml(item.gameName)}</span>
+                  <span class="hist-name" dir="auto">${escapeHtml(item.gameName)}</span>
                   <span class="hist-badge ${ok ? 'ok' : 'bad'}">${ok ? 'Completed' : 'Missed'}</span>
-                  <span class="hist-streak" aria-label="Streak after: ${escapeHtml(item.streak)} days"><span aria-hidden="true">🔥 ${escapeHtml(item.streak)}d</span></span>
+                  <span class="hist-streak"><span class="sr-only">Streak after: ${escapeHtml(plural(item.streak, 'day'))}</span><span aria-hidden="true">🔥 ${escapeHtml(item.streak)}d</span></span>
                 </div>
                 <p class="hist-date">${escapeHtml(when)}</p>
                 ${score ? `<pre class="hist-score">${escapeHtml(score)}</pre>` : ''}
@@ -2261,6 +2358,13 @@
         if ('Notification' in window) return { enabled: Notification.permission === 'granted' };
       } catch (e) {}
       return { enabled: false };
+    }
+
+    /** True only if a reset alert for `game` can actually reach the user (its toggle and Android's). */
+    function alertsWillReach(game) {
+      if (!game || !game.notifyEnabled) return false;
+      const st = readNotificationStatus();
+      return Boolean(st && st.enabled);
     }
 
     const NOTIF_BTN_OFF_CLASS = 'px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow';
@@ -2325,10 +2429,10 @@
           <div class="alert-row">
             <span class="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">${renderGameIconHtml(g.icon, g.name, "w-5 h-5")}</span>
             <div class="info">
-              <p class="name">${escapeHtml(g.name)}</p>
+              <p class="name" dir="auto">${escapeHtml(g.name)}</p>
               <p class="sub">Resets ${escapeHtml(localResetStr)} · in <span class="sched-countdown tabular" data-sched-id="${escapeHtml(g.id)}">${escapeHtml(nextIn)}</span></p>
             </div>
-            <button type="button" data-action="toggle-notify" data-id="${escapeHtml(g.id)}" class="toggle-chip ${g.notifyEnabled ? 'on' : 'off'}" aria-pressed="${g.notifyEnabled ? 'true' : 'false'}">
+            <button type="button" data-action="toggle-notify" data-id="${escapeHtml(g.id)}" class="toggle-chip ${g.notifyEnabled ? 'on' : 'off'}" aria-label="Reset alert for ${escapeHtml(g.name)}" aria-pressed="${g.notifyEnabled ? 'true' : 'false'}">
               ${g.notifyEnabled ? '<span class="icon-label"><span class="ico ico-bell" aria-hidden="true"></span>On</span>' : '<span class="icon-label"><span class="ico ico-bell_off" aria-hidden="true"></span>Off</span>'}
             </button>
           </div>
@@ -2672,16 +2776,21 @@
       if (!game) return;
       const currentKey = getCycleDateKey(game.resetTime, game.resetZone);
       const wanted = opts && opts.cycleKey;
-      logModalCycleKey = (wanted && wanted !== currentKey && HubCore.DATE_KEY_RE.test(wanted)
-        && cycleKeyToDay(wanted) < cycleKeyToDay(currentKey)) ? wanted : '';
+      const isPast = Boolean(wanted && wanted !== currentKey && HubCore.DATE_KEY_RE.test(wanted)
+        && cycleKeyToDay(wanted) < cycleKeyToDay(currentKey));
+      // Always pinned to the puzzle that is live now (or the past one asked for): if the game resets
+      // while the form is open, Save still logs the puzzle the user was looking at.
+      logModalCycleKey = isPast ? wanted : currentKey;
       document.getElementById('logGameId').value = game.id;
-      document.getElementById('modalLogTitle').textContent = logModalCycleKey
+      document.getElementById('modalLogTitle').textContent = isPast
         ? `Log Result — ${game.name} (${formatCycleDateLabel(logModalCycleKey)})`
         : `Log Result — ${game.name}`;
-      if (logModalCycleKey) {
+      if (isPast) {
         const row = findLogRow(game, logModalCycleKey);
         document.getElementById('inputLogScoreText').value = row && row.outcome === 'Completed' ? String(row.score || '') : '';
-        selectedLogStatus = 'completed';
+        // Editing a past day from the calendar starts from what is recorded for it.
+        selectedLogStatus = (opts && opts.useRecordedStatus && game.dayHistory && game.dayHistory[wanted] === 'missed')
+          ? 'missed' : 'completed';
       } else {
         document.getElementById('inputLogScoreText').value = game.todayScore || '';
         selectedLogStatus = game.status === 'missed' ? 'missed' : 'completed';
@@ -2780,6 +2889,12 @@
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
     }
+    /** "Yesterday's puzzle", or "Puzzle of Thu, Nov 5" when the opened puzzle is older than that. */
+    function formatOpenedPuzzleLabel(openedKey, currentKey) {
+      if (currentKey && HubCore.addDaysToCycleKey(currentKey, -1) === openedKey) return "Yesterday's puzzle";
+      const label = formatCycleDateLabel(openedKey).replace(/,?\s*\d{4}\s*$/, '');
+      return `Puzzle of ${label}`;
+    }
     function showReturnPrompt(game, elapsedMs, cycles) {
       const el = document.getElementById('returnPrompt');
       if (!el) return;
@@ -2789,16 +2904,19 @@
       const chooser = document.getElementById('returnPromptCycle');
       if (chooser) chooser.classList.toggle('hidden', !returnPromptCycles);
       if (returnPromptCycles) {
-        chooser.querySelector('[data-cycle="opened"]').textContent = `${formatCycleDateLabel(returnPromptCycles.opened).split(',')[0]}'s puzzle`;
+        chooser.querySelector('[data-cycle="opened"]').textContent = formatOpenedPuzzleLabel(returnPromptCycles.opened, returnPromptCycles.current);
         setReturnPromptCycle(returnPromptCycles.opened);
       } else {
-        returnPromptCycleKey = '';
+        // Pin the sheet to the puzzle live when it appeared, so tapping Solved after a reset
+        // doesn't log the result against the new puzzle.
+        returnPromptCycleKey = getCycleDateKey(game.resetTime, game.resetZone);
       }
       document.getElementById('returnPromptTitle').textContent = returnPromptCycles
-        ? `${game.name} reset while you played` : `Finished ${game.name}?`;
+        ? `Reset while you played: ${game.name}` : `Finished ${game.name}?`;
+      const streakGoal = game.streak > 0 ? `keep your 🔥 ${plural(game.streak, 'day')} streak` : 'start a streak';
       document.getElementById('returnPromptSub').textContent = elapsedMs > 0
-        ? `Played for ${formatPlayedFor(elapsedMs)} · log it to keep your 🔥 ${game.streak}d streak`
-        : `Log today's result to keep your 🔥 ${game.streak}d streak`;
+        ? `Played for ${formatPlayedFor(elapsedMs)} · log it to ${streakGoal}`
+        : `Log today's result to ${streakGoal}`;
       document.getElementById('returnPromptIcon').innerHTML = renderGameIconHtml(game.icon, game.name, 'w-4 h-4');
       el.classList.remove('hidden');
     }
@@ -3009,7 +3127,7 @@
         selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
         saveState({ syncNow: true });
         renderAll();
-        showToast('Backup Restored', `Imported ${state.games.length} daily games from your backup file.`, 'emerald');
+        showToast('Backup Restored', `Imported ${plural(state.games.length, 'daily game')} from your backup file.`, 'emerald');
       } catch (err) {
         showToast('Import Failed', 'The selected file is not a valid Dailies JSON backup file.', 'indigo');
       }
@@ -3239,7 +3357,7 @@
 
       window.onBackupFileSaved = function (success) {
         if (success) {
-          showToast('Backup File Saved', `Saved ${state.games.length} daily games, settings & score logs to your device.`, 'emerald');
+          showToast('Backup File Saved', `Saved ${plural(state.games.length, 'daily game')}, settings & score logs to your device.`, 'emerald');
         } else {
           showToast('Save Cancelled', 'Backup file export was cancelled or could not be written.', 'indigo');
         }
@@ -3431,7 +3549,9 @@
           showToast(
             `${game.name} Alerts ${game.notifyEnabled ? 'Enabled' : 'Muted'}`,
             game.notifyEnabled
-              ? `You will be notified right when this game resets at ${localReset}.`
+              ? (alertsWillReach(game)
+                ? `You will be notified right when this game resets at ${localReset}.`
+                : `Turned on, but Android notifications for Dailies are off. Tap "Allow Notifications" above to get alerts.`)
               : 'Per-game reset notifications paused for this game.',
             'indigo'
           );
@@ -3474,6 +3594,9 @@
       async function triggerUrlScrape(rawUrl, forceUpdateUrlField, force) {
         const cleaned = cleanGameUrl(rawUrl);
         if (!cleaned) return;
+        // Editing an existing game: fixing its link must never replace the name, reset time or zone
+        // the user already set. Only an explicit "Scrape Site" tap refills the form.
+        if (!force && document.getElementById('editGameId').value) return;
         // A paste fires both "paste" and "input": only the first starts a native scrape.
         if (!force && cleaned === lastAutoScrapedUrl) return;
         lastAutoScrapedUrl = cleaned;
@@ -3607,7 +3730,9 @@
             existing.status = (existing.dayHistory && existing.dayHistory[newCycleKey]) || 'ready';
             recomputeGameStatsFromHistory(existing);
           }
-          showToast(`${name} Updated`, `Reset alert scheduled for ${localResetStr}.`, 'emerald');
+          showToast(`${name} Updated`, (existing && alertsWillReach(existing))
+            ? `Reset alert scheduled for ${localResetStr}.`
+            : `Resets daily at ${localResetStr}.`, 'emerald');
           closeAddModal();
           saveState({ syncNow: true });
           renderVisibleTab();

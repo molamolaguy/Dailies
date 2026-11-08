@@ -61,10 +61,10 @@ object Notifier {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Daily Game Refresh Alerts",
+                "Reset Alerts",
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Notifies you when your tracked daily web games refresh."
+                description = "Notifies you when a daily game you track resets and a new puzzle is out."
                 setSound(null, null)
             }
             val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
