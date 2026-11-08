@@ -2068,8 +2068,6 @@
       if (isCurrentCycle) {
         if (hasScoreContent) {
           game.todayScore = rawFormattedScore;
-        } else if (validStatus === 'completed' && !game.todayScore) {
-          game.todayScore = 'Completed today';
         } else if (validStatus === 'missed' && !hasScoreContent) {
           game.todayScore = '';
         }
@@ -2080,9 +2078,10 @@
 
       const existingRow = findLogRow(game, todayKey);
       const outcomeLabel = validStatus === 'completed' ? 'Completed' : 'Missed';
+      // No placeholder text: the row's Completed / Missed badge already says it.
       const displayScore = validStatus === 'completed'
-        ? (rowScore || 'Completed today')
-        : (hasScoreContent ? rawFormattedScore : 'Missed (streak reset)');
+        ? (rowScore || '')
+        : (hasScoreContent ? rawFormattedScore : '');
 
       if (existingRow) {
         existingRow.gameId = game.id;
