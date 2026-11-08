@@ -1,8 +1,8 @@
-# Dailies 1.0.0: How the App Works
+# Dailies 1.0.1: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.0.0` (`versionCode = 1`)
+- **Version**: `1.0.1` (`versionCode = 2`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **Licence**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -24,7 +24,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 | **Adding games** | Paste or share a link. The app reads the game's name, icon, category and reset time from the page, and checks a built-in list of 12 popular games (Wordle, Connections, Strands, Contexto, Globle, Nerdle, Waffle, FE Guess, Framed, PokeDoku, Travle, Krillion) for known reset times. |
 | **Reset times** | Each reset is stored in the time zone the game publishes it in (your local time, UTC, or a named zone such as `America/New_York`). It's always shown in your phone's local time, with daylight-saving changes handled correctly. |
 | **Game player** | Full-screen player with Hub, Reload, Open in browser, an ad-block shield (with a blocked count) and Log. Supports fullscreen video and canvas, file uploads (Photo Picker), downloads, and "open in app" links. |
-| **Auto-logging** | When you tap a game's **Share** or **Copy** button, the result is captured. Going back to the hub logs it as Solved, with the share text as your score and an **Undo** button. |
+| **Auto-logging** | When you tap a game's **Share** or **Copy** button, the result is captured. Going back to the hub logs it as Solved (or Missed for a failed result such as "X/6"), with the share text as your score and an **Undo** button. |
 | **Ad blocking** | About 302,000 ad, tracker and malware domains, 23,400 URL rules and 43,000 element-hiding rules, built from EasyList, EasyPrivacy, AdGuard Base, HaGeZi Pro and StevenBlack. You can switch it off per site or everywhere. |
 | **Streaks & Log** | A completion calendar per game (best streak, current streak, plays) and the full score history, 5 results per page. Swipe or tap to change pages. |
 | **Reset alerts** | A notification when a game's new puzzle is out, per-game on/off, grouped when several reset at once, and exact timing where Android allows it. |
@@ -117,8 +117,9 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 - **Data & Backup**: **Save Backup (.json)** and **Import Backup (.json or .txt)** through the Android file picker.
 
 ### Undo
-- Auto-logged results and quick actions show a toast with an **Undo** button.
-- Undo works for 10 minutes, and only until that game's puzzle resets, so it can never overwrite a newer day.
+- Auto-logged results, quick actions, manual logs and backup imports show a toast with an **Undo** button. The toast stays up for 20 seconds.
+- Undo is refused once that game's puzzle has reset, so it can never overwrite a newer day.
+- To correct an older day, tap that day in the **Streaks & Log** calendar.
 
 ---
 
@@ -156,7 +157,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 - **`HubStateStore.kt`** saves the full JSON state with no size cap:
   - It writes a temp file and fsyncs it, the current copy becomes `.bak`, then the temp file is renamed into place.
   - Reads fall back to `.bak`.
-  - A failed write is retried on the next save.
+  - A failed write is retried on the next save, and the hub shows a warning if saving keeps failing.
   - The state is flushed when the app goes to the background.
 - **`SafeHttp.kt`**: all metadata and icon downloads go through it.
   - Only http and https to **public** addresses are allowed: no localhost, private, link-local or carrier NAT ranges, checked on every redirect.
@@ -340,3 +341,11 @@ The debug APK is `app/build/outputs/apk/debug/Dailies-debug.apk`.
   - Keyboard focus rings are visible.
   - Small text is bigger.
 - **Performance**: less re-rendering, cached countdown maths and cached calendar dropdowns.
+
+## 8. Fixed in 1.0.1
+
+1.0.1 fixes the problems found in a review of 1.0.0. The full list is in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for developers:
+- `release.yml` now fails if the pushed tag doesn't match `versionName`, and lint errors fail the build (`abortOnError = true`).
+- `SafeHttp` connects directly (no proxy) to the address it checked, so DNS rebinding can't reach the local network; IPv4 addresses embedded in IPv6 (NAT64, 6to4) are checked too.
+- The zone picker only offers zones that Android's own time-zone database knows, so alerts and the hub always agree on the zone.
+- New tests: `BackgroundFixesTest`, `GamePlayerPolicyTest`, `SurrogatesTest`, more `HubStateStore` cases, and new schedule and share fixtures shared by the Kotlin and Node tests.

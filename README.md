@@ -5,8 +5,8 @@ when a new puzzle is out, opens games in a built-in ad-blocking player, logs you
 when you tap a game's Share button, and keeps your streaks and score history: all on your phone, with
 no account and no tracking.
 
-- **Download:** [latest release](../../releases/latest) → `Dailies-1.0.0.apk` (Android 7.0+)
-- **How it works & what's in 1.0.0:** [GUIDE.md](GUIDE.md)
+- **Download:** [latest release](../../releases/latest) → `Dailies-<version>.apk` (Android 7.0+)
+- **How it works & what's new:** [GUIDE.md](GUIDE.md)
 - **Release notes:** [RELEASE_NOTES.md](RELEASE_NOTES.md)
 
 ## Features

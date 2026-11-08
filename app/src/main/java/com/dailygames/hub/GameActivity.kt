@@ -18,7 +18,6 @@ import android.os.Message
 import android.os.SystemClock
 import android.text.TextUtils
 import android.view.Gravity
-import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -380,7 +379,7 @@ class GameActivity : ComponentActivity() {
 
             override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
                 // Never let a dead renderer crash the app (K5); rebuild the page instead of closing.
-                recoverFromRendererGone(view, detail?.didCrash() == true)
+                recoverFromRendererGone(view, Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && detail?.didCrash() == true)
                 return true
             }
         }
@@ -747,9 +746,10 @@ class GameActivity : ComponentActivity() {
         return super.dispatchTouchEvent(ev)
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_UP) lastUserInputAt = SystemClock.elapsedRealtime()
-        return super.dispatchKeyEvent(event)
+    // Key presses (hardware keyboard, D-pad, accessibility) count as user input too.
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        lastUserInputAt = SystemClock.elapsedRealtime()
     }
 
     private fun userActedWithin(ms: Long): Boolean =
