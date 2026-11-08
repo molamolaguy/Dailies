@@ -33,10 +33,19 @@
     if (!css || disabled) return;
     cssText += css;
     try {
-      var connected = style && style.isConnected;
+      if (style && style.isConnected) style.appendChild(document.createTextNode(css));
+      else restore();
+    } catch (e) {}
+  }
+  // A page that removed our <style> (a head re-render, say) gets the full set back. Capped, so a
+  // page that keeps removing it can't make the two of us loop forever.
+  var restores = 0;
+  function restore() {
+    if (disabled || !cssText || (style && style.isConnected) || restores > 50) return;
+    restores++;
+    try {
       ensureStyle();
-      // A page that removed our <style> gets the full set back, not just the newest rules.
-      style.appendChild(document.createTextNode(connected ? css : cssText));
+      style.textContent = cssText;
     } catch (e) {}
   }
   channel.onmessage = function (ev) {
@@ -80,10 +89,13 @@
     for (var i = 0; i < all.length; i++) scan(all[i]);
   }
 
-  try { channel.postMessage(JSON.stringify({ t: 'hello', host: host })); } catch (e) {}
+  // A per-document nonce: the app answers each document's hello once (a reload or the next page on
+  // the same host is a new document and gets its CSS again).
+  var nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  try { channel.postMessage(JSON.stringify({ t: 'hello', host: host, n: nonce })); } catch (e) {}
   try {
     observer = new MutationObserver(function (records) {
-      if (style && cssText && !style.isConnected) addCss('');
+      if (cssText && !(style && style.isConnected)) restore();
       for (var i = 0; i < records.length; i++) {
         var r = records[i];
         if (r.type === 'attributes') scan(r.target);

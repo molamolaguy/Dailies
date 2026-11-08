@@ -93,7 +93,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        stateStore = HubStateStore(File(filesDir, HubStateStore.FILE_NAME))
+        stateStore = HubStateStore(File(filesDir, HubStateStore.FILE_NAME), onWriteResult = { ok ->
+            // Writer thread: tell the hub that saving is failing (e.g. storage full), or works again.
+            runOnUiThread { runJs("window.onHubSaveResult && window.onHubSaveResult($ok)") }
+        })
         Notifier.ensureChannel(this)
         DailyRefreshWorker.scheduleNextReset(this)
 
@@ -411,12 +414,50 @@ class MainActivity : ComponentActivity() {
                     }
                     return@execute
                 } catch (e: Throwable) {
-                    ""
+                    // IOException, or OutOfMemoryError on a huge file: report it, never crash.
+                    showImportError("Could not read that file")
+                    return@execute
                 }
-                val quoted = JSONObject.quote(content)
-                runOnUiThread { runJs("window.onBackupFileImported && window.onBackupFileImported($quoted)") }
+                deliverImportToHub(content)
             }
             shutdown()
+        }
+    }
+
+    private fun showImportError(title: String) {
+        runOnUiThread {
+            runJs("window.showToast && showToast(${JSONObject.quote(title)}, 'The backup could not be imported. Your current data was not changed.', 'indigo')")
+        }
+    }
+
+    /**
+     * Hands an imported backup to the hub in slices: one evaluateJavascript() call with the whole
+     * (up to 50 MB) file quoted into its source could run out of memory and crash the app.
+     */
+    private fun deliverImportToHub(content: String) {
+        try {
+            val chunks = ArrayList<String>((content.length / IMPORT_CHUNK_CHARS) + 1)
+            var i = 0
+            while (i < content.length) {
+                var end = minOf(content.length, i + IMPORT_CHUNK_CHARS)
+                // Never split a surrogate pair across two slices.
+                if (end < content.length && Character.isHighSurrogate(content[end - 1])) end -= 1
+                chunks.add(JSONObject.quote(content.substring(i, end)))
+                i = end
+            }
+            runOnUiThread {
+                try {
+                    runJs("window.__dailiesImportBegin && window.__dailiesImportBegin()")
+                    chunks.forEach { runJs("window.__dailiesImportChunk && window.__dailiesImportChunk($it)") }
+                    chunks.clear()
+                    runJs("window.__dailiesImportEnd ? window.__dailiesImportEnd() : (window.onBackupFileImported && window.onBackupFileImported(\"\"))")
+                } catch (e: Throwable) {
+                    runJs("window.__dailiesImportAbort && window.__dailiesImportAbort()")
+                    showImportError("Backup too large to import")
+                }
+            }
+        } catch (e: Throwable) {
+            showImportError("Backup too large to import")
         }
     }
 
@@ -446,10 +487,13 @@ class MainActivity : ComponentActivity() {
             return
         }
 
-        val shared = SharedLinkParser.extractSharedUrl(intent.action, intent.type, intent.getStringExtra(Intent.EXTRA_TEXT))
+        val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+        val shared = SharedLinkParser.extractSharedUrl(intent.action, intent.type, sharedText)
         if (!shared.isNullOrBlank()) {
             intent.action = Intent.ACTION_MAIN // mark as consumed
-            runJs("window.handleSharedUrl(${JSONObject.quote(shared)})")
+            // The whole text goes along too: a game's share result sent to Dailies is logged, not reopened.
+            val fullText = SharedLinkParser.sharedTextForLogging(sharedText)
+            runJs("window.handleSharedUrl(${JSONObject.quote(shared)}, ${JSONObject.quote(fullText)})")
         }
     }
 
@@ -620,6 +664,10 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun getNotificationStatus(): String = notificationStatusJson()
 
+        /** JSON array of the zone ids java.util.TimeZone knows here, so the picker only offers zones alerts can use. */
+        @JavascriptInterface
+        fun getSupportedTimeZones(): String = org.json.JSONArray(java.util.TimeZone.getAvailableIDs().toList()).toString()
+
         /** Haptic feedback for drag-to-reorder: "start" (lift), "tick" (passed a card), "drop". */
         @JavascriptInterface
         fun performHaptic(kind: String) {
@@ -718,5 +766,7 @@ class MainActivity : ComponentActivity() {
         private const val ASSET_PREFIX = "file:///android_asset/"
         private const val MAX_IMPORT_BYTES = 50 * 1024 * 1024
         private const val BACKUP_TEMP_FILE = "pending_backup_export.json"
+        /** Characters per slice when handing an imported backup to the page. */
+        private const val IMPORT_CHUNK_CHARS = 512 * 1024
     }
 }

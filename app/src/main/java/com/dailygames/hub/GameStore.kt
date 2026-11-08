@@ -17,6 +17,8 @@ interface GameStorage {
     fun getString(key: String): String?
     fun putString(key: String, value: String)
     fun contains(key: String): Boolean
+    fun remove(key: String)
+    fun keys(): Set<String>
 }
 
 /** Android SharedPreferences implementation of [GameStorage]. */
@@ -30,6 +32,12 @@ class SharedPrefsGameStorage(context: Context) : GameStorage {
     }
 
     override fun contains(key: String): Boolean = prefs.contains(key)
+
+    override fun remove(key: String) {
+        prefs.edit().remove(key).apply()
+    }
+
+    override fun keys(): Set<String> = prefs.all.keys.toSet()
 }
 
 /** Pure in-memory implementation of [GameStorage] for unit testing and preview states. */
@@ -43,6 +51,12 @@ class InMemoryGameStorage(initial: Map<String, String> = emptyMap()) : GameStora
     }
 
     override fun contains(key: String): Boolean = map.containsKey(key)
+
+    override fun remove(key: String) {
+        map.remove(key)
+    }
+
+    override fun keys(): Set<String> = map.keys.toSet()
 }
 
 /**
@@ -77,35 +91,47 @@ class GameRepository(
         }
 
         val previousSchedules = mutableMapOf<String, Pair<String, String>>()
+        val previouslyEnabled = mutableMapOf<String, Boolean>()
         val existingGames = load()
         for (i in 0 until existingGames.length()) {
             val eg = existingGames.optJSONObject(i) ?: continue
             val eid = eg.optString("id")
             if (eid.isNotEmpty()) {
                 previousSchedules[eid] = eg.optString("resetTime", "00:00") to eg.optString("resetZone", "local")
+                previouslyEnabled[eid] = eg.optBoolean("notifyEnabled", true)
             }
         }
 
         storage.putString(GameStore.KEY_GAMES, games.toString())
         val now = clock()
+        val currentIds = HashSet<String>()
         for (i in 0 until games.length()) {
             val g = games.optJSONObject(i) ?: continue
             val id = g.optString("id")
             if (id.isEmpty()) continue
+            currentIds += id
 
             val resetTime = g.optString("resetTime", "00:00")
             val resetZone = g.optString("resetZone", "local")
             val prevSchedule = previousSchedules[id]
             val scheduleChanged = prevSchedule != null &&
                 (prevSchedule.first != resetTime || !prevSchedule.second.equals(resetZone, ignoreCase = true))
+            // While alerts were off the anchor may not have moved for days; turning them back on must
+            // not announce a puzzle that came out before that.
+            val alertsReEnabled = previouslyEnabled[id] == false && g.optBoolean("notifyEnabled", true)
 
-            if (!storage.contains(GameStore.NOTIFIED_PREFIX + id) || scheduleChanged) {
+            if (!storage.contains(GameStore.NOTIFIED_PREFIX + id) || scheduleChanged || alertsReEnabled) {
                 storage.putString(
                     GameStore.NOTIFIED_PREFIX + id,
                     GameStore.cycleKey(resetTime, resetZone, now, localTimeZone)
                 )
             }
         }
+        // Forget the anchors of removed games, so re-adding one (often under the same id) starts fresh
+        // instead of inheriting a stale anchor that would fire a "has refreshed" for an old cycle.
+        storage.keys()
+            .filter { it.startsWith(GameStore.NOTIFIED_PREFIX) && it.removePrefix(GameStore.NOTIFIED_PREFIX) !in currentIds }
+            .forEach { storage.remove(it) }
     }
 
     fun lastNotifiedKey(id: String): String? =

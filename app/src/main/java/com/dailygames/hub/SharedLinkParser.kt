@@ -14,4 +14,15 @@ object SharedLinkParser {
         if (text.isEmpty()) return null
         return URL_REGEX.find(text)?.value ?: text
     }
+
+    /**
+     * The full shared text, handed to the hub so a game's share result can be logged. Bounded: share
+     * results are short (the hub's own check rejects anything over 4000 characters).
+     */
+    fun sharedTextForLogging(rawText: String?): String {
+        val text = rawText?.trim().orEmpty()
+        return if (text.length > MAX_SHARED_TEXT) "" else text
+    }
+
+    private const val MAX_SHARED_TEXT = 8000
 }

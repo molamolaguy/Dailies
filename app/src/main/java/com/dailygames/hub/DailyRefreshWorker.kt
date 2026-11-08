@@ -45,11 +45,15 @@ class DailyRefreshProcessor(
             )
             val lastKey = repository.lastNotifiedKey(id)
 
-            if (lastKey == null) {
+            if (lastKey == null || !CYCLE_KEY_RE.matches(lastKey)) {
                 repository.setNotifiedKey(id, currentKey)
                 continue
             }
-            if (lastKey != currentKey) {
+            // Only a cycle that is *newer* than the last notified one is a new puzzle. The key moves
+            // backwards when the user travels west or sets the clock back; that must neither notify nor
+            // rewind the anchor, or the same puzzle would be announced again when the clock catches up.
+            // (Schedule edits re-anchor in GameRepository.sync instead.) ISO dates compare as strings.
+            if (currentKey > lastKey) {
                 if (g.optBoolean("notifyEnabled", true)) {
                     val (title, body) = Notifier.formatRefreshNotification(
                         g.optString("icon", ""),
@@ -61,9 +65,13 @@ class DailyRefreshProcessor(
                 repository.setNotifiedKey(id, currentKey)
             }
         }
+        if (notifiedCount > 0) dispatcher.onBatchComplete()
         return notifiedCount
     }
 
+    private companion object {
+        val CYCLE_KEY_RE = Regex("""\d{4}-\d{2}-\d{2}""")
+    }
 }
 
 /**
@@ -87,9 +95,21 @@ class DailyRefreshWorker(
 
         /** Posts notifications for every game whose cycle has rolled over, then arms the next reset. */
         fun runRefresh(ctx: Context) {
+            val posted = LinkedHashMap<Int, String>()
+            val dispatcher = object : NotificationDispatcher {
+                override fun notifyGameRefresh(gameId: String, title: String, body: String) {
+                    Notifier.postGameNotification(ctx, gameId, title, body, updateSummary = false)
+                        ?.let { posted[it] = title }
+                }
+
+                // One summary for the whole pass, counting this pass's posts directly.
+                override fun onBatchComplete() {
+                    if (posted.isNotEmpty()) Notifier.postGroupSummary(ctx, posted)
+                }
+            }
             val processor = DailyRefreshProcessor(
                 repository = GameStore.repository(ctx),
-                dispatcher = { id, title, body -> Notifier.postGameNotification(ctx, id, title, body) }
+                dispatcher = dispatcher
             )
             processor.processRefresh()
             scheduleNextReset(ctx)

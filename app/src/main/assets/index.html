@@ -96,7 +96,7 @@
     <section id="viewDashboard" class="space-y-4">
       <!-- Minimal Status & Filter / Add Bar -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="flex items-center gap-2.5 text-xs text-slate-400">
+        <div class="hub-header-row flex items-center gap-2.5 text-xs text-slate-400">
           <span class="inline-flex items-center gap-1.5 text-sm font-bold text-white tracking-tight mr-1">
             <svg width="22" height="22" viewBox="0 0 108 108" class="rounded-md shrink-0">
               <rect width="108" height="108" rx="26" fill="#141218"/>
@@ -115,7 +115,7 @@
           <span><span aria-hidden="true">🔥</span> <span class="sr-only">Top streak</span> <strong id="kpiTopStreak" class="text-amber-300 font-semibold">0d</strong></span>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="hub-actions-row flex items-center gap-2">
           <div class="flex items-center bg-slate-900/80 border border-slate-800 rounded-xl p-0.5 text-xs">
             <button type="button" data-filter="all" aria-pressed="true" class="filter-tab px-2.5 py-1 rounded-lg bg-slate-800 text-white font-medium">All</button>
             <button type="button" data-filter="ready" aria-pressed="false" class="filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Ready</button>
@@ -147,7 +147,7 @@
       <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-4">
         <div class="space-y-2.5 border-b border-slate-800 pb-3.5">
           <h3 class="text-base font-bold text-white">Completion Calendar</h3>
-          <select id="calendarGameSelect" aria-label="Game" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-semibold"></select>
+          <select id="calendarGameSelect" aria-label="Game" class="cal-select w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-semibold"></select>
         </div>
 
         <!-- Month navigation: icon arrows + one-line month label so nothing wraps on phones -->
@@ -163,7 +163,7 @@
         </div>
 
         <div>
-          <div class="cal-grid mb-1.5">
+          <div id="calendarDowRow" class="cal-grid mb-1.5" aria-hidden="true">
             <div class="cal-dow">S</div><div class="cal-dow">M</div><div class="cal-dow">T</div><div class="cal-dow">W</div><div class="cal-dow">T</div><div class="cal-dow">F</div><div class="cal-dow">S</div>
           </div>
           <div id="calendarDaysGrid" class="cal-grid"></div>
@@ -178,7 +178,7 @@
         <div class="stat-tiles pt-3 border-t border-slate-800">
           <div class="stat-tile">
             <p class="k">Best streak</p>
-            <p id="calSummaryLongestStreak" class="v text-amber-300">🔥 0d</p>
+            <p id="calSummaryLongestStreak" class="v text-amber-300"><span class="v-emoji" aria-hidden="true">🔥</span>0d</p>
             <p id="calSummaryGameName" class="s">—</p>
           </div>
           <div class="stat-tile">
@@ -257,8 +257,8 @@
       <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div class="min-w-0">
-            <h3 class="text-base font-bold text-white flex items-center gap-2 nowrap">
-              <span class="icon-label"><span class="ico ico-schedule section-icon" aria-hidden="true"></span>Gameplay &amp; Time</span>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span class="icon-label" style="justify-content:flex-start"><span class="ico ico-schedule section-icon" aria-hidden="true"></span>Gameplay &amp; Time</span>
             </h3>
           </div>
           <span id="liveClockDisplay" class="shrink-0 tabular px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-[11px] text-emerald-300">--:--:--</span>
@@ -375,10 +375,10 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <label for="inputGameUrl" class="block text-xs font-semibold text-slate-300">Daily Game URL *</label>
-            <span id="scrapeStatusBadge" class="text-[11px] text-indigo-300 hidden">Scraping site metadata...</span>
+            <span id="scrapeStatusBadge" class="text-[11px] text-indigo-300 hidden">Scraping website…</span>
           </div>
           <div class="flex gap-2">
-            <input id="inputGameUrl" type="text" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" required placeholder="Paste a daily game link, e.g. nytimes.com/games/wordle" class="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+            <input id="inputGameUrl" type="text" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" required placeholder="Paste a daily game link, e.g. nytimes.com/games/wordle" class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
             <button id="btnAutoDetectMeta" type="button" class="px-3 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold shrink-0">Scrape Site</button>
           </div>
         </div>
@@ -491,7 +491,7 @@
         </p>
         <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
           <button id="btnCancelDeleteModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
-          <button id="btnConfirmDeleteModal" type="button" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg">Delete</button>
+          <button id="btnConfirmDeleteModal" type="button" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg">Remove</button>
         </div>
       </div>
     </div>
@@ -641,7 +641,7 @@
 
     const TIME_FMT_12 = (() => {
       try {
-        return new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        return new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
       } catch (e) {
         return null;
       }
@@ -732,9 +732,11 @@
           ? String(g.lastCycleKey)
           : getCycleDateKey(resetTime, resetZone),
         dayHistory: cleanHistory,
+        addedCycleKey: HubCore.DATE_KEY_RE.test(String(g.addedCycleKey || '')) ? String(g.addedCycleKey) : undefined,
         statsBaseline: (g.statsBaseline && typeof g.statsBaseline === 'object') ? g.statsBaseline : undefined
       };
       if (!norm.statsBaseline) delete norm.statsBaseline;
+      if (!norm.addedCycleKey) delete norm.addedCycleKey;
       // Old saves kept bare counters; fold them into a one-time baseline so totals can go down again.
       HubCore.ensureStatsBaseline(norm);
       recomputeGameStatsFromHistory(norm);
@@ -831,6 +833,9 @@
         g.dayHistory = HubCore.shiftDayHistory(g.dayHistory, shift);
         if (HubCore.DATE_KEY_RE.test(String(g.lastCycleKey || ''))) {
           g.lastCycleKey = HubCore.addDaysToCycleKey(g.lastCycleKey, shift);
+        }
+        if (HubCore.DATE_KEY_RE.test(String(g.addedCycleKey || ''))) {
+          g.addedCycleKey = HubCore.addDaysToCycleKey(g.addedCycleKey, shift);
         }
         (logs || []).forEach((l) => {
           // Rows from older versions only carry the game's name.
@@ -983,6 +988,19 @@
       else if (syncWanted) scheduleSyncNative();
       syncWanted = false;
     }
+
+    // Native writes happen in the background; Android reports when they start failing (e.g. the
+    // phone's storage is full) and when they work again, so changes are never silently unsaved.
+    let lastSaveFailToastAt = 0;
+    window.onHubSaveResult = function (ok) {
+      if (ok) {
+        lastSaveFailToastAt = 0;
+        showToast('Saving works again', 'Your latest changes are saved.', 'emerald');
+      } else if (Date.now() - lastSaveFailToastAt > 60000) {
+        lastSaveFailToastAt = Date.now();
+        showToast('Could not save', 'Your latest changes are not saved yet (is the phone\'s storage full?). Export a backup from Settings.', 'indigo');
+      }
+    };
 
     /** Banner shown when saved data exists but couldn't be read; saving stays off until resolved. */
     function showDataProblemBanner() {
@@ -1207,6 +1225,9 @@
         const prevOutcome = g.dayHistory[prevCycleKey] || (g.status === 'completed' ? 'completed' : '');
         if (prevOutcome === 'completed') {
           g.dayHistory[prevCycleKey] = 'completed';
+        } else if (prevCycleKey === g.addedCycleKey) {
+          // The day a game was added isn't tracked unless it was played: adding a game at 11:58 PM
+          // must not start its stats with a "Missed".
         } else {
           g.dayHistory[prevCycleKey] = 'missed';
           appendAutoMissedLog(g, prevCycleKey); // no-op if that day already has a row
@@ -1254,7 +1275,9 @@
       const container = document.getElementById('toastContainer');
       if (!container) return;
       while (container.children.length >= 3) {
-        container.firstElementChild.remove();
+        // Make room by dropping the oldest plain toast first, so a pending Undo isn't pushed out.
+        const plain = [...container.children].find((c) => !c.querySelector('[data-toast-action]'));
+        (plain || container.firstElementChild).remove();
       }
       const toast = document.createElement('div');
       const borderClass = tone === 'emerald' ? 'border-emerald-500/50 bg-slate-900/95' : 'border-indigo-500/50 bg-slate-900/95';
@@ -1289,7 +1312,7 @@
       container.appendChild(toast);
       setTimeout(() => {
         if (toast.parentNode) toast.remove();
-      }, opts && opts.actionLabel ? 8000 : 4500);
+      }, opts && opts.actionLabel ? 20000 : 4500);
     }
 
     function isImageIcon(icon) {
@@ -1336,7 +1359,7 @@
       const cls = sizeClass || 'w-6 h-6';
       const s = String(icon || '').trim();
       if (isImageIcon(s)) {
-        const initial = escapeHtml(String(name || 'G').trim().charAt(0).toUpperCase() || 'G');
+        const initial = escapeHtml(iconInitial(name));
         return `<img src="${escapeHtml(iconSrc(s))}" alt="" data-cls="${escapeHtml(cls)}" data-initial="${initial}" class="${escapeHtml(cls)} rounded-md object-contain" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="window.handleFaviconError(this)" />`;
       }
       // No image: Material gamepad graphic (any old text/emoji icon is replaced by it too).
@@ -1361,6 +1384,34 @@
         .replace(/'/g, '&#39;');
     }
 
+    /** First letter/digit of a name for the favicon fallback badge (whole code points, never half an emoji). */
+    function iconInitial(name) {
+      const m = String(name || '').match(/[\p{L}\p{N}]/u);
+      return m ? m[0].toLocaleUpperCase() : 'G';
+    }
+
+    /** "1 day" / "2 days". */
+    function plural(n, one, many) {
+      const num = Number(n) || 0;
+      return `${num} ${num === 1 ? one : (many || one + 's')}`;
+    }
+
+    /** Clock label for a history row: h:mm (no seconds) in the current 12h / 24h setting. */
+    function formatLogTime(dateObj) {
+      const d = dateObj || new Date();
+      return formatLocalClockHM(d.getHours(), d.getMinutes());
+    }
+    /** Re-renders a stored "09:05:03 PM" / "21:05" label in the current 12h / 24h setting. */
+    function normalizeLogTimeLabel(label) {
+      const m = /^\s*(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp])?\.?\s*[Mm]?\.?\s*$/.exec(String(label || ''));
+      if (!m) return String(label || '');
+      let h = Number(m[1]) % 24;
+      const ap = m[3] ? m[3].toLowerCase() : '';
+      if (ap === 'p' && h < 12) h += 12;
+      if (ap === 'a' && h === 12) h = 0;
+      return formatLocalClockHM(h, Number(m[2]));
+    }
+
     // =========================================================================
     // URL PARSING & NATIVE SCRAPER INTEGRATION
     // =========================================================================
@@ -1368,10 +1419,22 @@
       const s = String(raw || '').trim();
       if (!s) return '';
       const httpMatch = s.match(/https?:\/\/[^\s"'<>]+/i);
-      if (httpMatch) return httpMatch[0];
+      if (httpMatch) return trimUrlPunctuation(httpMatch[0]);
       const domainMatch = s.match(/\b([a-z0-9-]+\.)+[a-z]{2,}(\/[^\s"'<>]*)?/i);
-      if (domainMatch) return domainMatch[0];
+      if (domainMatch) return trimUrlPunctuation(domainMatch[0]);
       return s;
+    }
+
+    /** Drops sentence punctuation stuck to a link in shared text ("…/connections)." -> "…/connections"). */
+    function trimUrlPunctuation(u) {
+      let out = String(u || '');
+      for (;;) {
+        const last = out.slice(-1);
+        if (/[.,;:!?'"\]}>]/.test(last)) { out = out.slice(0, -1); continue; }
+        // A closing bracket is part of the link only if it closes one opened inside it (Wikipedia-style).
+        if (last === ')' && (out.match(/\(/g) || []).length < (out.match(/\)/g) || []).length) { out = out.slice(0, -1); continue; }
+        return out;
+      }
     }
 
     function normalizeUrlKey(rawUrl) {
@@ -1380,7 +1443,9 @@
         if (!c) return '';
         if (!/^https?:\/\//i.test(c)) c = 'https://' + c;
         const u = new URL(c);
-        return u.hostname.replace(/^www\./i, '').toLowerCase() + u.pathname.replace(/\/+$/, '');
+        // "/games/wordle/index.html" and "/games/wordle/" are the same page as "/games/wordle".
+        return u.hostname.replace(/^www\./i, '').toLowerCase()
+          + u.pathname.replace(/\/index\.html?$/i, '').replace(/\/+$/, '');
       } catch (e) {
         return '';
       }
@@ -1389,7 +1454,15 @@
     function findGameByUrl(rawUrl) {
       const key = normalizeUrlKey(rawUrl);
       if (!key) return null;
-      return state.games.find((g) => normalizeUrlKey(g.url) === key) || null;
+      const exact = state.games.find((g) => normalizeUrlKey(g.url) === key);
+      if (exact) return exact;
+      // Two links that match the same built-in catalogue entry are the same game.
+      const known = KnownGames.find(rawUrl);
+      if (!known) return null;
+      return state.games.find((g) => {
+        const k = KnownGames.find(g.url);
+        return Boolean(k && k.host === known.host && (k.path || '') === (known.path || ''));
+      }) || null;
     }
 
     function cleanGameUrl(rawUrl) {
@@ -1492,7 +1565,7 @@
       }
       if (btn) {
         btn.disabled = true;
-        btn.textContent = 'Scraping...';
+        btn.textContent = 'Scraping…';
       }
 
       const resultMeta = Object.assign({}, initialMeta);
@@ -1635,8 +1708,8 @@
         return `
           <article data-card-game-id="${id}" class="glass-card game-card compact">
             <div class="m3-shape-avatar-compact m3-shape-${idx % 6} shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-4 h-4')}</div>
-            <h3 class="gc-title" title="Edit ${escapeHtml(g.name)}" data-action="edit" data-id="${id}" role="button" tabindex="0">${escapeHtml(g.name)}</h3>
-            <span data-role="card-streak" class="gc-streak" aria-label="Streak ${g.streak} days"><span aria-hidden="true">🔥 ${g.streak}d</span></span>
+            <h3 class="gc-title" dir="auto" title="Edit ${escapeHtml(g.name)}" aria-label="Edit ${escapeHtml(g.name)}" data-action="edit" data-id="${id}" role="button" tabindex="0">${escapeHtml(g.name)}</h3>
+            <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>
             <span data-role="card-status-pill" class="status-dot status-${status}" role="img" aria-label="${statusLabel}" title="${statusLabel}"></span>
             <div class="gc-actions">${reorder}${actions}</div>
           </article>`;
@@ -1649,9 +1722,9 @@
           <div class="gc-top">
             <div class="m3-shape-avatar m3-shape-${idx % 6} shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-6 h-6')}</div>
             <div class="gc-main">
-              <h3 class="gc-title" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</h3>
+              <h3 class="gc-title" dir="auto" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</h3>
               <div class="gc-meta">
-                <span data-role="card-streak" class="gc-streak" aria-label="Streak ${g.streak} days"><span aria-hidden="true">🔥 ${g.streak}d</span></span>
+                <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>
                 <span class="gc-sep">·</span>
                 <span data-role="card-reset" class="gc-reset">Resets ${escapeHtml(localResetStr)}</span>
               </div>
@@ -1895,7 +1968,9 @@
     // via Intl is too costly to redo for every game every second).
     const nextResetCache = new Map();
     function msUntilNextResetCached(g, now) {
-      const sig = `${g.resetTime}|${g.resetZone}`;
+      // The device's UTC offset is part of the key: after a time-zone change (travel, or the user
+      // changing it) every cached reset moment is recomputed instead of counting down to the old one.
+      const sig = `${g.resetTime}|${g.resetZone}|${now.getTimezoneOffset()}`;
       let c = nextResetCache.get(g.id);
       if (!c || c.sig !== sig || now.getTime() >= c.at) {
         c = { sig, at: HubCore.getNextResetDate(g.resetTime, g.resetZone, now).getTime() };
@@ -1980,6 +2055,8 @@
       if (!game.dayHistory || typeof game.dayHistory !== 'object') {
         game.dayHistory = {};
       }
+      const undoSnap = snapshotForUndo(game, todayKey);
+      const undoOpts = { actionLabel: 'Undo', onAction: () => restoreUndo(undoSnap) };
 
       if (isCurrentCycle) {
         game.status = validStatus;
@@ -1991,8 +2068,6 @@
       if (isCurrentCycle) {
         if (hasScoreContent) {
           game.todayScore = rawFormattedScore;
-        } else if (validStatus === 'completed' && !game.todayScore) {
-          game.todayScore = 'Completed today';
         } else if (validStatus === 'missed' && !hasScoreContent) {
           game.todayScore = '';
         }
@@ -2003,9 +2078,10 @@
 
       const existingRow = findLogRow(game, todayKey);
       const outcomeLabel = validStatus === 'completed' ? 'Completed' : 'Missed';
+      // No placeholder text: the row's Completed / Missed badge already says it.
       const displayScore = validStatus === 'completed'
-        ? (rowScore || 'Completed today')
-        : (hasScoreContent ? rawFormattedScore : 'Missed (streak reset)');
+        ? (rowScore || '')
+        : (hasScoreContent ? rawFormattedScore : '');
 
       if (existingRow) {
         existingRow.gameId = game.id;
@@ -2014,12 +2090,12 @@
         existingRow.outcome = outcomeLabel;
         existingRow.score = displayScore;
         existingRow.streak = game.streak;
-        existingRow.localTime = formatLocalNowTime(new Date());
+        existingRow.localTime = formatLogTime(new Date());
       } else {
         removeTodayLog(game, todayKey);
         state.historyLogs.unshift({
           date: todayKey,
-          localTime: formatLocalNowTime(new Date()),
+          localTime: formatLogTime(new Date()),
           gameId: game.id,
           gameName: game.name,
           icon: game.icon,
@@ -2034,13 +2110,15 @@
       } else if (validStatus === 'completed' && prevStatus !== 'completed') {
         showToast(
           `🔥 ${game.name} Completed!`,
-          `Streak is now ${game.streak} days. Next puzzle resets at ${localResetLabel}.`,
-          'emerald'
+          `Streak is now ${plural(game.streak, 'day')}. Next puzzle resets at ${localResetLabel}.`,
+          'emerald', null, undoOpts
         );
       } else if (validStatus === 'completed') {
-        showToast(`${game.name} Updated`, 'Formatted score snippet saved.', 'indigo');
+        showToast(`${game.name} Updated`, 'Formatted score snippet saved.', 'indigo', null, undoOpts);
       } else {
-        showToast(`${game.name} Marked Missed`, `We will alert you when tomorrow's puzzle resets at ${localResetLabel}.`, 'indigo');
+        showToast(`${game.name} Marked Missed`, alertsWillReach(game)
+          ? `We will alert you when the next puzzle resets at ${localResetLabel}.`
+          : `The next puzzle resets at ${localResetLabel}.`, 'indigo', null, undoOpts);
       }
 
       historyPage = 0;
@@ -2084,6 +2162,48 @@
       return null;
     }
 
+    // Calendar labels follow the device locale: month names, narrow weekday initials and the first
+    // day of the week (e.g. Monday in most of Europe). Falls back to English / Sunday.
+    const CAL_FIRST_DAY = (() => {
+      try {
+        const loc = new Intl.Locale(navigator.language || 'en-US');
+        const info = typeof loc.getWeekInfo === 'function' ? loc.getWeekInfo() : loc.weekInfo;
+        if (info && info.firstDay >= 1 && info.firstDay <= 7) return info.firstDay % 7; // ISO 7 = Sunday -> 0
+      } catch (e) {}
+      return 0;
+    })();
+    function formatCalendarMonthLabel(year, month) {
+      try {
+        return new Intl.DateTimeFormat([], { month: 'long', year: 'numeric' }).format(new Date(year, month, 1));
+      } catch (e) {
+        return `${year}-${String(month + 1).padStart(2, '0')}`;
+      }
+    }
+    function formatCalendarMonthShort(year, month) {
+      try {
+        return new Intl.DateTimeFormat([], { month: 'short' }).format(new Date(year, month, 1));
+      } catch (e) {
+        return String(month + 1);
+      }
+    }
+    let calendarDowSig = '';
+    function renderCalendarWeekdayHeader() {
+      const row = document.getElementById('calendarDowRow');
+      if (!row) return;
+      let names;
+      try {
+        const fmt = new Intl.DateTimeFormat([], { weekday: 'narrow' });
+        // 2023-01-01 was a Sunday.
+        names = Array.from({ length: 7 }, (_, i) => fmt.format(new Date(2023, 0, 1 + ((CAL_FIRST_DAY + i) % 7))));
+      } catch (e) {
+        names = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      }
+      const sig = names.join('|');
+      if (sig === calendarDowSig) return;
+      calendarDowSig = sig;
+      row.innerHTML = names.map((n) => `<div class="cal-dow">${escapeHtml(n)}</div>`).join('');
+    }
+
     function renderGameCalendar() {
       const selectEl = document.getElementById('calendarGameSelect');
       const monthLabelEl = document.getElementById('calendarMonthLabel');
@@ -2100,9 +2220,11 @@
       if (calGames.length === 0) {
         selectEl.innerHTML = '<option value="">No games loaded</option>';
         selectEl.dataset.sig = '';
+        const forget = document.getElementById('btnForgetRemovedGame');
+        if (forget) forget.classList.add('hidden');
         gridEl.innerHTML = '<div class="col-span-full py-6 text-center text-xs text-slate-400">Add a game on the Daily Hub to view its calendar.</div>';
         if (summaryNameEl) summaryNameEl.textContent = 'No games';
-        if (longestEl) longestEl.textContent = '🔥 0d';
+        if (longestEl) longestEl.innerHTML = '<span class="v-emoji" aria-hidden="true">🔥</span>0d';
         if (totalPlaysEl) totalPlaysEl.textContent = '0';
         if (subPlaysEl) subPlaysEl.textContent = '0 won · 0 missed';
         if (currentStreakEl) currentStreakEl.textContent = '0d';
@@ -2114,25 +2236,28 @@
         selectedCalendarGameId = calGames[0].id;
       }
 
-      const selectSig = calGames.map((g) => `${g.id}:${g.name}`).join('|');
+      const activeIds = new Set(state.games.map((g) => g.id));
+      const selectSig = calGames.map((g) => `${g.id}:${g.name}:${activeIds.has(g.id) ? 1 : 0}`).join('|');
       if (selectEl.dataset.sig !== selectSig) {
         selectEl.dataset.sig = selectSig;
-        selectEl.innerHTML = calGames.map((g) => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)}</option>`).join('');
+        const opt = (g) => `<option value="${escapeHtml(g.id)}" dir="auto">${escapeHtml(g.name)}</option>`;
+        const removed = calGames.filter((g) => !activeIds.has(g.id));
+        // Removed games keep their history, but are listed apart so they aren't mistaken for active ones.
+        selectEl.innerHTML = calGames.filter((g) => activeIds.has(g.id)).map(opt).join('')
+          + (removed.length ? `<optgroup label="Removed games">${removed.map(opt).join('')}</optgroup>` : '');
       }
       selectEl.value = selectedCalendarGameId;
 
       const game = calGames.find((g) => g.id === selectedCalendarGameId) || calGames[0];
       recomputeGameStatsFromHistory(game);
+      const isActiveGame = activeIds.has(game.id);
 
-      const monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
       if (monthLabelEl) {
-        monthLabelEl.textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
+        monthLabelEl.textContent = formatCalendarMonthLabel(calendarYear, calendarMonth);
       }
+      renderCalendarWeekdayHeader();
 
-      const firstDayWeekIdx = new Date(calendarYear, calendarMonth, 1).getDay();
+      const firstDayWeekIdx = (new Date(calendarYear, calendarMonth, 1).getDay() - CAL_FIRST_DAY + 7) % 7;
       const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
       const todayKey = getCycleDateKey(game.resetTime, game.resetZone);
 
@@ -2163,21 +2288,59 @@
         }
         if (isToday) cls += ' today';
         const label = `${game.name} • ${dateKey}${outcome ? ' (' + outcome + ')' : ''}${isToday ? ' • today' : ''}`;
-        cellsHtml += `<div class="${cls}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><span>${d}</span>${mark}</div>`;
+        // Today and past days of a game in the hub can be tapped to log or correct that day.
+        const editable = isActiveGame && cycleKeyToDay(dateKey) <= cycleKeyToDay(todayKey);
+        const editAttrs = editable
+          ? ` data-action="cal-day" data-id="${escapeHtml(game.id)}" data-date="${dateKey}" role="button" tabindex="0"`
+          : '';
+        cellsHtml += `<div class="${cls}"${editAttrs} title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><span>${d}</span>${mark}</div>`;
       }
 
       gridEl.innerHTML = cellsHtml;
+
+      // A removed game's history can be forgotten for good (it stays otherwise, ready for a re-add).
+      let forgetBtn = document.getElementById('btnForgetRemovedGame');
+      if (!forgetBtn) {
+        forgetBtn = document.createElement('button');
+        forgetBtn.id = 'btnForgetRemovedGame';
+        forgetBtn.type = 'button';
+        forgetBtn.className = 'mt-3 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold';
+        forgetBtn.textContent = 'Forget this removed game';
+        forgetBtn.addEventListener('click', () => forgetRemovedGame(selectedCalendarGameId));
+        gridEl.insertAdjacentElement('afterend', forgetBtn);
+      }
+      forgetBtn.classList.toggle('hidden', isActiveGame);
 
       const bestStreak = Math.max(game.bestStreak || 0, game.streak || 0);
       const totalPlays = Math.max(game.totalPlayed || 0, monthCompletedCount + monthMissedCount);
       const totalWon = game.totalWon || 0;
 
       if (summaryNameEl) summaryNameEl.textContent = game.name;
-      if (longestEl) longestEl.textContent = `🔥 ${bestStreak}d`;
+      if (longestEl) longestEl.innerHTML = `<span class="v-emoji" aria-hidden="true">🔥</span>${Number(bestStreak) || 0}d`;
       if (totalPlaysEl) totalPlaysEl.textContent = String(totalPlays);
       if (subPlaysEl) subPlaysEl.innerHTML = `${totalWon} <span class="ico ico-check" aria-hidden="true"></span> ${Math.max(0, totalPlays - totalWon)} <span class="ico ico-close" aria-hidden="true"></span>`;
       if (currentStreakEl) currentStreakEl.textContent = `${game.streak || 0}d`;
-      if (monthCountsEl) monthCountsEl.innerHTML = `${monthNames[calendarMonth].slice(0, 3)}: ${monthCompletedCount} <span class="ico ico-check" aria-hidden="true"></span> ${monthMissedCount} <span class="ico ico-close" aria-hidden="true"></span>`;
+      if (monthCountsEl) monthCountsEl.innerHTML = `${escapeHtml(formatCalendarMonthShort(calendarYear, calendarMonth))}: ${monthCompletedCount} <span class="ico ico-check" aria-hidden="true"></span> ${monthMissedCount} <span class="ico ico-close" aria-hidden="true"></span>`;
+    }
+
+    /** Permanently drops a removed game's kept history and its score-log rows (after confirming). */
+    function forgetRemovedGame(id) {
+      if (!id || state.games.some((g) => g.id === id)) return;
+      const retained = state.retainedGameStats || {};
+      const snap = Object.keys(retained).map((k) => retained[k]).find((r) => r && r.id === id);
+      if (!snap) return;
+      openConfirmModal(`Forget ${snap.name}?`,
+        `This permanently deletes the kept streaks, calendar and score log of "${snap.name}". It can't be undone.`,
+        'Forget', () => {
+          Object.keys(retained).forEach((k) => { if (retained[k] && retained[k].id === id) delete retained[k]; });
+          state.historyLogs = state.historyLogs.filter((l) => !(l && l.gameId === id));
+          invalidateLogIndex();
+          selectedCalendarGameId = state.games[0] ? state.games[0].id : '';
+          historyPage = 0;
+          saveState({ sync: false });
+          renderStatsAndCharts();
+          showToast(`${snap.name} forgotten`, 'Its history was deleted.', 'indigo');
+        });
     }
 
     function renderStatsAndCharts() {
@@ -2195,7 +2358,7 @@
       const pageLabel = document.getElementById('historyPageLabel');
       if (pageLabel) pageLabel.textContent = `Page ${historyPage + 1} of ${pageCount}`;
       const countLabel = document.getElementById('historyCountLabel');
-      if (countLabel) countLabel.textContent = total ? `${start + 1}–${start + pageRows.length} of ${total} results` : '';
+      if (countLabel) countLabel.textContent = total ? `${start + 1}–${start + pageRows.length} of ${plural(total, 'result')}` : '';
       const prevBtn = document.getElementById('btnHistoryPrev');
       const nextBtn = document.getElementById('btnHistoryNext');
       if (prevBtn) prevBtn.disabled = historyPage === 0;
@@ -2217,15 +2380,15 @@
         } else {
           tbody.innerHTML = pageRows.map((item) => {
             const ok = item.outcome === 'Completed';
-            const when = [formatCycleDateLabel(item.date), item.localTime].filter(Boolean).join(' · ');
+            const when = [formatCycleDateLabel(item.date), normalizeLogTimeLabel(item.localTime)].filter(Boolean).join(' · ');
             const score = String(item.score || '').trim();
             return `
               <div class="hist-row">
                 <div class="hist-head">
                   <span class="hist-icon">${renderGameIconHtml(item.icon, item.gameName, 'w-4 h-4')}</span>
-                  <span class="hist-name">${escapeHtml(item.gameName)}</span>
+                  <span class="hist-name" dir="auto">${escapeHtml(item.gameName)}</span>
                   <span class="hist-badge ${ok ? 'ok' : 'bad'}">${ok ? 'Completed' : 'Missed'}</span>
-                  <span class="hist-streak" aria-label="Streak after: ${escapeHtml(item.streak)} days"><span aria-hidden="true">🔥 ${escapeHtml(item.streak)}d</span></span>
+                  <span class="hist-streak"><span class="sr-only">Streak after: ${escapeHtml(plural(item.streak, 'day'))}</span><span aria-hidden="true">🔥 ${escapeHtml(item.streak)}d</span></span>
                 </div>
                 <p class="hist-date">${escapeHtml(when)}</p>
                 ${score ? `<pre class="hist-score">${escapeHtml(score)}</pre>` : ''}
@@ -2261,6 +2424,13 @@
         if ('Notification' in window) return { enabled: Notification.permission === 'granted' };
       } catch (e) {}
       return { enabled: false };
+    }
+
+    /** True only if a reset alert for `game` can actually reach the user (its toggle and Android's). */
+    function alertsWillReach(game) {
+      if (!game || !game.notifyEnabled) return false;
+      const st = readNotificationStatus();
+      return Boolean(st && st.enabled);
     }
 
     const NOTIF_BTN_OFF_CLASS = 'px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow';
@@ -2325,10 +2495,10 @@
           <div class="alert-row">
             <span class="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">${renderGameIconHtml(g.icon, g.name, "w-5 h-5")}</span>
             <div class="info">
-              <p class="name">${escapeHtml(g.name)}</p>
+              <p class="name" dir="auto">${escapeHtml(g.name)}</p>
               <p class="sub">Resets ${escapeHtml(localResetStr)} · in <span class="sched-countdown tabular" data-sched-id="${escapeHtml(g.id)}">${escapeHtml(nextIn)}</span></p>
             </div>
-            <button type="button" data-action="toggle-notify" data-id="${escapeHtml(g.id)}" class="toggle-chip ${g.notifyEnabled ? 'on' : 'off'}" aria-pressed="${g.notifyEnabled ? 'true' : 'false'}">
+            <button type="button" data-action="toggle-notify" data-id="${escapeHtml(g.id)}" class="toggle-chip ${g.notifyEnabled ? 'on' : 'off'}" aria-label="Reset alert for ${escapeHtml(g.name)}" aria-pressed="${g.notifyEnabled ? 'true' : 'false'}">
               ${g.notifyEnabled ? '<span class="icon-label"><span class="ico ico-bell" aria-hidden="true"></span>On</span>' : '<span class="icon-label"><span class="ico ico-bell_off" aria-hidden="true"></span>Off</span>'}
             </button>
           </div>
@@ -2470,6 +2640,8 @@
         }
       } else if (id === 'modalDeleteGame') {
         document.getElementById('deleteGameId').value = '';
+        pendingConfirmAction = null;
+        document.getElementById('btnConfirmDeleteModal').textContent = 'Remove';
       } else if (id === 'modalLogScore') {
         logModalCycleKey = '';
       }
@@ -2510,7 +2682,24 @@
       closeModal('modalDeleteGame');
     }
 
+    // The Remove dialog doubles as a generic "are you sure?" (import, forgetting a removed game).
+    var pendingConfirmAction = null;
+    function openConfirmModal(title, message, confirmLabel, onConfirm) {
+      openModal('modalDeleteGame');
+      document.getElementById('deleteGameId').value = '';
+      document.getElementById('modalDeleteTitle').textContent = title;
+      document.getElementById('modalDeleteMessage').textContent = message;
+      document.getElementById('btnConfirmDeleteModal').textContent = confirmLabel;
+      pendingConfirmAction = onConfirm;
+    }
+
     function confirmDeleteGame() {
+      if (pendingConfirmAction) {
+        const action = pendingConfirmAction;
+        closeDeleteConfirmModal();
+        action();
+        return;
+      }
       const id = document.getElementById('deleteGameId').value;
       const game = state.games.find((g) => g.id === id);
       if (!game) {
@@ -2629,20 +2818,29 @@
         o.textContent = label;
         parent.appendChild(o);
       };
+      // Only zones Android's own TimeZone also knows: reset alerts are timed natively, and an id it
+      // doesn't know (older tz data than the WebView's) would silently fall back to local time there.
+      let nativeZones = null;
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.getSupportedTimeZones === 'function') {
+          nativeZones = new Set(JSON.parse(window.AndroidBridge.getSupportedTimeZones()));
+        }
+      } catch (e) { nativeZones = null; }
+      const usable = (z) => HubCore.isValidTimeZone(z) && (!nativeZones || nativeZones.has(z));
       const common = document.createElement('optgroup');
       common.label = 'Common time zones';
       const mine = deviceTimeZone();
-      if (mine && HubCore.isValidTimeZone(mine) && !COMMON_ZONES.some(([z]) => z === mine)) {
+      if (mine && usable(mine) && !COMMON_ZONES.some(([z]) => z === mine)) {
         add(common, mine, `${mine.split('/').pop().replace(/_/g, ' ')} (this phone's zone)`);
       }
-      COMMON_ZONES.forEach(([z, label]) => { if (HubCore.isValidTimeZone(z)) add(common, z, label); });
+      COMMON_ZONES.forEach(([z, label]) => { if (usable(z)) add(common, z, label); });
       sel.appendChild(common);
       try {
         if (typeof Intl.supportedValuesOf === 'function') {
           const all = document.createElement('optgroup');
           all.label = 'All time zones';
           Intl.supportedValuesOf('timeZone').forEach((z) => {
-            if (z.includes('/') && !COMMON_ZONES.some(([c]) => c === z)) add(all, z, z.replace(/_/g, ' '));
+            if (z.includes('/') && usable(z) && !COMMON_ZONES.some(([c]) => c === z)) add(all, z, z.replace(/_/g, ' '));
           });
           sel.appendChild(all);
         }
@@ -2672,16 +2870,21 @@
       if (!game) return;
       const currentKey = getCycleDateKey(game.resetTime, game.resetZone);
       const wanted = opts && opts.cycleKey;
-      logModalCycleKey = (wanted && wanted !== currentKey && HubCore.DATE_KEY_RE.test(wanted)
-        && cycleKeyToDay(wanted) < cycleKeyToDay(currentKey)) ? wanted : '';
+      const isPast = Boolean(wanted && wanted !== currentKey && HubCore.DATE_KEY_RE.test(wanted)
+        && cycleKeyToDay(wanted) < cycleKeyToDay(currentKey));
+      // Always pinned to the puzzle that is live now (or the past one asked for): if the game resets
+      // while the form is open, Save still logs the puzzle the user was looking at.
+      logModalCycleKey = isPast ? wanted : currentKey;
       document.getElementById('logGameId').value = game.id;
-      document.getElementById('modalLogTitle').textContent = logModalCycleKey
+      document.getElementById('modalLogTitle').textContent = isPast
         ? `Log Result — ${game.name} (${formatCycleDateLabel(logModalCycleKey)})`
         : `Log Result — ${game.name}`;
-      if (logModalCycleKey) {
+      if (isPast) {
         const row = findLogRow(game, logModalCycleKey);
         document.getElementById('inputLogScoreText').value = row && row.outcome === 'Completed' ? String(row.score || '') : '';
-        selectedLogStatus = 'completed';
+        // Editing a past day from the calendar starts from what is recorded for it.
+        selectedLogStatus = (opts && opts.useRecordedStatus && game.dayHistory && game.dayHistory[wanted] === 'missed')
+          ? 'missed' : 'completed';
       } else {
         document.getElementById('inputLogScoreText').value = game.todayScore || '';
         selectedLogStatus = game.status === 'missed' ? 'missed' : 'completed';
@@ -2707,19 +2910,61 @@
     // =========================================================================
     // NATIVE HOOKS (called from MainActivity via evaluateJavascript)
     // =========================================================================
-    window.handleSharedUrl = function (raw) {
+    /** The one hub game a shared text is a result for (it names the game or carries its link), or null. */
+    function sharedResultTarget(text, raw) {
+      if (!text || /^https?:\/\/\S+$/i.test(text)) return null;
+      const byUrl = raw ? findGameByUrl(raw) : null;
+      const lower = text.toLowerCase();
+      const candidates = byUrl ? [byUrl] : state.games.filter((g) => {
+        const name = String(g.name || '').trim().toLowerCase();
+        let host = '';
+        try { host = new URL(g.url).hostname.replace(/^www\./i, '').toLowerCase(); } catch (e) {}
+        return (name.length >= 3 && lower.includes(name)) || (host && lower.includes(host));
+      });
+      const hits = candidates.filter((g) => HubCore.isStrictShareResult(text, g));
+      return hits.length === 1 ? hits[0] : null;
+    }
+
+    /**
+     * Share → Dailies. `raw` is the link found in the shared text (or the text itself), `fullText`
+     * the whole shared text: a game's result shared to the app is logged rather than reopening it.
+     */
+    window.handleSharedUrl = function (raw, fullText) {
+      const text = typeof fullText === 'string' ? fullText.replace(/\r\n/g, '\n').trim() : '';
+      const resultGame = sharedResultTarget(text, raw);
+      if (resultGame) {
+        checkDailyRollovers({ silent: true });
+        switchNavigation('dashboard');
+        if (state.settings && state.settings.autoLogFromShare === false) {
+          openLogModal(resultGame.id);
+          const box = document.getElementById('inputLogScoreText');
+          if (box && !box.value.trim()) box.value = text;
+          return;
+        }
+        if (!autoLogShareResult(resultGame, text, getCycleDateKey(resultGame.resetTime, resultGame.resetZone))) {
+          showToast(`${resultGame.name} already logged`, 'That result is already in your log.', 'indigo');
+        }
+        return;
+      }
       const meta = inferGameMetaFromUrl(raw);
       if (!meta) {
         showToast('Invalid link', 'That doesn\'t look like a web link. Try copying the game URL again.', 'indigo');
         return;
       }
-      switchNavigation('dashboard');
       const dup = findGameByUrl(meta.url);
       if (dup) {
-        showToast(`${dup.name} is already in your hub`, 'Opening it now.', 'indigo');
-        openGameInPlayer(dup.id);
+        switchNavigation('dashboard');
+        showToast(`${dup.name} is already in your hub`, 'No duplicate was added.', 'indigo', null,
+          { actionLabel: 'Play', onAction: () => openGameInPlayer(dup.id) });
         return;
       }
+      // Don't throw away a form the user is in the middle of: let them choose.
+      if (isModalOpen('modalAddGame') || isModalOpen('modalLogScore')) {
+        showToast('Link received', 'Finish or close the open form, or add this link instead.', 'indigo', null,
+          { actionLabel: 'Add link', onAction: () => { switchNavigation('dashboard'); openAddOrEditModal(meta, null); } });
+        return;
+      }
+      switchNavigation('dashboard');
       openAddOrEditModal(meta, null);
     };
 
@@ -2780,6 +3025,12 @@
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
       });
     }
+    /** "Yesterday's puzzle", or "Puzzle of Thu, Nov 5" when the opened puzzle is older than that. */
+    function formatOpenedPuzzleLabel(openedKey, currentKey) {
+      if (currentKey && HubCore.addDaysToCycleKey(currentKey, -1) === openedKey) return "Yesterday's puzzle";
+      const label = formatCycleDateLabel(openedKey).replace(/,?\s*\d{4}\s*$/, '');
+      return `Puzzle of ${label}`;
+    }
     function showReturnPrompt(game, elapsedMs, cycles) {
       const el = document.getElementById('returnPrompt');
       if (!el) return;
@@ -2789,16 +3040,19 @@
       const chooser = document.getElementById('returnPromptCycle');
       if (chooser) chooser.classList.toggle('hidden', !returnPromptCycles);
       if (returnPromptCycles) {
-        chooser.querySelector('[data-cycle="opened"]').textContent = `${formatCycleDateLabel(returnPromptCycles.opened).split(',')[0]}'s puzzle`;
+        chooser.querySelector('[data-cycle="opened"]').textContent = formatOpenedPuzzleLabel(returnPromptCycles.opened, returnPromptCycles.current);
         setReturnPromptCycle(returnPromptCycles.opened);
       } else {
-        returnPromptCycleKey = '';
+        // Pin the sheet to the puzzle live when it appeared, so tapping Solved after a reset
+        // doesn't log the result against the new puzzle.
+        returnPromptCycleKey = getCycleDateKey(game.resetTime, game.resetZone);
       }
       document.getElementById('returnPromptTitle').textContent = returnPromptCycles
-        ? `${game.name} reset while you played` : `Finished ${game.name}?`;
+        ? `Reset while you played: ${game.name}` : `Finished ${game.name}?`;
+      const streakGoal = game.streak > 0 ? `keep your 🔥 ${game.streak}-day streak` : 'start a streak';
       document.getElementById('returnPromptSub').textContent = elapsedMs > 0
-        ? `Played for ${formatPlayedFor(elapsedMs)} · log it to keep your 🔥 ${game.streak}d streak`
-        : `Log today's result to keep your 🔥 ${game.streak}d streak`;
+        ? `Played for ${formatPlayedFor(elapsedMs)} · log it to ${streakGoal}`
+        : `Log today's result to ${streakGoal}`;
       document.getElementById('returnPromptIcon').innerHTML = renderGameIconHtml(game.icon, game.name, 'w-4 h-4');
       el.classList.remove('hidden');
     }
@@ -2868,6 +3122,25 @@
     let returnPromptShareText = '';
 
     /**
+     * Logs a captured share result for `cycleKey` with an Undo toast. A result that says the puzzle
+     * wasn't solved ("X/6", "Next time", four Connections mistakes) is logged as Missed, with its text.
+     * Returns false if exactly this result is already logged.
+     */
+    function autoLogShareResult(game, text, cycleKey) {
+      const outcome = HubCore.isFailedShareResult(text) ? 'missed' : 'completed';
+      const alreadySame = game.dayHistory && game.dayHistory[cycleKey] === outcome
+        && cycleKey === getCycleDateKey(game.resetTime, game.resetZone) && game.todayScore === text;
+      if (alreadySame) return false;
+      const snap = snapshotForUndo(game, cycleKey);
+      recordGameOutcome(game.id, outcome, text, { cycleKey, quiet: true });
+      const firstLine = text.split('\n')[0].slice(0, 60);
+      showToast(outcome === 'missed' ? `${game.name} logged as missed` : `🔥 ${game.name} logged automatically`,
+        firstLine, outcome === 'missed' ? 'indigo' : 'emerald', null,
+        { actionLabel: 'Undo', onAction: () => restoreUndo(snap) });
+      return true;
+    }
+
+    /**
      * Back from the game player. If the player captured a share result (copied or shared inside the
      * game) it is logged automatically against the puzzle that was live when the game was opened.
      */
@@ -2893,15 +3166,7 @@
         return;
       }
       if (captured && autoLog && !resetWhilePlaying) {
-        const cycleKey = currentKey;
-        const alreadySame = game.dayHistory && game.dayHistory[cycleKey] === 'completed'
-          && cycleKey === getCycleDateKey(game.resetTime, game.resetZone) && game.todayScore === captured;
-        if (alreadySame) return;
-        const snap = snapshotForUndo(game, cycleKey);
-        recordGameOutcome(game.id, 'completed', captured, { cycleKey, quiet: true });
-        const firstLine = captured.split('\n')[0].slice(0, 60);
-        showToast(`🔥 ${game.name} logged automatically`, firstLine, 'emerald', null,
-          { actionLabel: 'Undo', onAction: () => restoreUndo(snap) });
+        autoLogShareResult(game, captured, currentKey);
         return;
       }
       returnPromptShareText = captured;
@@ -2968,9 +3233,11 @@
           : null;
         const seenIds = new Set();
         const validatedGames = [];
+        let skipped = 0;
         rawGames.forEach((g, idx) => {
           const norm = normalizeGameObject(g, idx);
-          if (!norm) throw new Error('Invalid game entry at index ' + idx);
+          // One unusable entry (no valid link) is skipped and reported, not a reason to refuse the file.
+          if (!norm) { skipped += 1; return; }
           if (backupIsLegacy) migrateLegacyFlattenedUtc(norm, importedLogs || []);
           norm.id = HubCore.uniqueId(norm.id, seenIds);
           seenIds.add(norm.id);
@@ -2984,32 +3251,83 @@
           recomputeGameStatsFromHistory(norm);
           validatedGames.push(norm);
         });
+        if (!validatedGames.length && rawGames.length) throw new Error('No usable games');
 
-        state.games = validatedGames;
-        historyPage = 0;
-        if (importedLogs) {
-          state.historyLogs = importedLogs;
-        }
-        if (rawSettings) {
-          state.settings = Object.assign(getDefaultSettings(), rawSettings, { autoMarkMissed: true });
-        }
-        if (rawRetained) {
-          state.retainedGameStats = normalizeRetainedMap(rawRetained);
-        }
-        invalidateLogIndex();
-        // An explicit import replaces unreadable data on purpose: saving can resume.
-        if (state.__saveBlocked) {
-          try { if (window.AndroidBridge && window.AndroidBridge.quarantineHubState) window.AndroidBridge.quarantineHubState(); } catch (e) {}
-          state.__saveBlocked = false;
-          const banner = document.getElementById('dataProblemBanner');
-          if (banner) banner.classList.add('hidden');
-        }
-        checkDailyRollovers({ silent: true });
+        // Current games the backup doesn't have: they leave the hub, but their history is kept (as for
+        // a removed game) so re-adding them, or looking them up in Streaks & Log, still works.
+        const importedKeys = new Set();
+        validatedGames.forEach((g) => { importedKeys.add(g.id); importedKeys.add(normalizeUrlKey(g.url)); });
+        const dropped = state.games.filter((g) => !importedKeys.has(g.id) && !importedKeys.has(normalizeUrlKey(g.url)));
 
-        selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
-        saveState({ syncNow: true });
-        renderAll();
-        showToast('Backup Restored', `Imported ${state.games.length} daily games from your backup file.`, 'emerald');
+        const applyImport = () => {
+          const before = serializeState();
+          const droppedIds = new Set(dropped.map((g) => g.id));
+          const keptLogs = importedLogs
+            ? state.historyLogs.filter((l) => l && l.gameId && droppedIds.has(l.gameId))
+            : null;
+          state.games = validatedGames;
+          historyPage = 0;
+          if (importedLogs) {
+            const have = new Set(importedLogs.map((l) => `${l.gameId || ''}|${l.date}`));
+            state.historyLogs = importedLogs.concat(keptLogs.filter((l) => !have.has(`${l.gameId}|${l.date}`)));
+          }
+          if (rawSettings) {
+            state.settings = Object.assign(getDefaultSettings(), rawSettings, { autoMarkMissed: true });
+          }
+          if (rawRetained) {
+            state.retainedGameStats = normalizeRetainedMap(rawRetained);
+          }
+          if (!state.retainedGameStats || typeof state.retainedGameStats !== 'object') state.retainedGameStats = {};
+          dropped.forEach((g) => {
+            const snap = normalizeRetained(Object.assign({}, g, { dayHistory: Object.assign({}, g.dayHistory || {}) }));
+            if (!snap) return;
+            state.retainedGameStats[g.id] = snap;
+            const urlKey = normalizeUrlKey(g.url);
+            if (urlKey) state.retainedGameStats[urlKey] = snap;
+          });
+          invalidateLogIndex();
+          // An explicit import replaces unreadable data on purpose: saving can resume.
+          const wasBlocked = Boolean(state.__saveBlocked);
+          if (state.__saveBlocked) {
+            try { if (window.AndroidBridge && window.AndroidBridge.quarantineHubState) window.AndroidBridge.quarantineHubState(); } catch (e) {}
+            state.__saveBlocked = false;
+            const banner = document.getElementById('dataProblemBanner');
+            if (banner) banner.classList.add('hidden');
+          }
+          checkDailyRollovers({ silent: true });
+
+          selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
+          saveState({ syncNow: true });
+          renderAll();
+          const skippedNote = skipped ? ` Skipped ${plural(skipped, 'entry', 'entries')} without a valid link.` : '';
+          showToast('Backup Restored', `Imported ${plural(state.games.length, 'daily game')} from your backup file.${skippedNote}`, 'emerald', null,
+            wasBlocked ? undefined : {
+              actionLabel: 'Undo',
+              onAction: () => {
+                const prev = parseSavedState(before);
+                if (!prev) return;
+                state = stateFromParsed(prev, 'undo');
+                invalidateLogIndex();
+                selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
+                saveState({ syncNow: true });
+                renderAll();
+                showToast('Import undone', 'Your hub is back to how it was before the import.', 'indigo');
+              }
+            });
+        };
+
+        if (!state.games.length || state.__saveBlocked) {
+          applyImport();
+          return;
+        }
+        const parts = [`This backup has ${plural(validatedGames.length, 'game')}`
+          + (skipped ? ` (${skipped} unusable ${skipped === 1 ? 'entry' : 'entries'} will be skipped)` : '')
+          + `. It replaces the ${plural(state.games.length, 'game')} in your hub`
+          + (importedLogs ? ', your score log' : '') + (rawSettings ? ' and your settings' : '') + '.'];
+        if (dropped.length) {
+          parts.push(`${dropped.map((g) => g.name).slice(0, 5).join(', ')}${dropped.length > 5 ? '…' : ''} ${dropped.length === 1 ? 'isn\'t' : 'aren\'t'} in the backup: ${dropped.length === 1 ? 'it' : 'they'} will be removed, keeping ${dropped.length === 1 ? 'its' : 'their'} history.`);
+        }
+        openConfirmModal('Replace your hub with this backup?', parts.join(' '), 'Import', applyImport);
       } catch (err) {
         showToast('Import Failed', 'The selected file is not a valid Dailies JSON backup file.', 'indigo');
       }
@@ -3239,7 +3557,7 @@
 
       window.onBackupFileSaved = function (success) {
         if (success) {
-          showToast('Backup File Saved', `Saved ${state.games.length} daily games, settings & score logs to your device.`, 'emerald');
+          showToast('Backup File Saved', `Saved ${plural(state.games.length, 'daily game')}, settings & score logs to your device.`, 'emerald');
         } else {
           showToast('Save Cancelled', 'Backup file export was cancelled or could not be written.', 'indigo');
         }
@@ -3247,6 +3565,29 @@
 
       window.onBackupFileImported = function (rawText) {
         validateAndApplyBackup(rawText);
+      };
+      // Large backups arrive from Android in slices (one huge evaluateJavascript call can run out of memory).
+      let importChunks = null;
+      window.__dailiesImportBegin = function () { importChunks = []; };
+      window.__dailiesImportChunk = function (part) { if (importChunks) importChunks.push(String(part || '')); };
+      window.__dailiesImportAbort = function () { importChunks = null; };
+      window.__dailiesImportEnd = function () {
+        const parts = importChunks;
+        importChunks = null;
+        if (!parts) return;
+        if (!parts.length) {
+          showToast('Import Failed', 'That file is empty.', 'indigo');
+          return;
+        }
+        let raw = '';
+        try {
+          raw = parts.join('');
+        } catch (e) {
+          showToast('Backup too large to import', 'Your current data was not changed.', 'indigo');
+          return;
+        }
+        parts.length = 0;
+        validateAndApplyBackup(raw);
       };
 
       const saveBackupToFileHandler = async () => {
@@ -3415,6 +3756,10 @@
           openGameInPlayer(game.id);
         } else if (action === 'log') {
           openLogModal(game.id);
+        } else if (action === 'cal-day') {
+          // Calendar tile: log or correct that day (today, or any past day).
+          const date = target.getAttribute('data-date') || '';
+          if (HubCore.DATE_KEY_RE.test(date)) openLogModal(game.id, { cycleKey: date, useRecordedStatus: true });
         } else if (action === 'edit') {
           openAddOrEditModal(null, game);
         } else if (action === 'delete') {
@@ -3431,7 +3776,9 @@
           showToast(
             `${game.name} Alerts ${game.notifyEnabled ? 'Enabled' : 'Muted'}`,
             game.notifyEnabled
-              ? `You will be notified right when this game resets at ${localReset}.`
+              ? (alertsWillReach(game)
+                ? `You will be notified right when this game resets at ${localReset}.`
+                : `Turned on, but Android notifications for Dailies are off. Tap "Allow Notifications" above to get alerts.`)
               : 'Per-game reset notifications paused for this game.',
             'indigo'
           );
@@ -3474,6 +3821,9 @@
       async function triggerUrlScrape(rawUrl, forceUpdateUrlField, force) {
         const cleaned = cleanGameUrl(rawUrl);
         if (!cleaned) return;
+        // Editing an existing game: fixing its link must never replace the name, reset time or zone
+        // the user already set. Only an explicit "Scrape Site" tap refills the form.
+        if (!force && document.getElementById('editGameId').value) return;
         // A paste fires both "paste" and "input": only the first starts a native scrape.
         if (!force && cleaned === lastAutoScrapedUrl) return;
         lastAutoScrapedUrl = cleaned;
@@ -3607,7 +3957,9 @@
             existing.status = (existing.dayHistory && existing.dayHistory[newCycleKey]) || 'ready';
             recomputeGameStatsFromHistory(existing);
           }
-          showToast(`${name} Updated`, `Reset alert scheduled for ${localResetStr}.`, 'emerald');
+          showToast(`${name} Updated`, (existing && alertsWillReach(existing))
+            ? `Reset alert scheduled for ${localResetStr}.`
+            : `Resets daily at ${localResetStr}.`, 'emerald');
           closeAddModal();
           saveState({ syncNow: true });
           renderVisibleTab();
@@ -3645,6 +3997,7 @@
             totalPlayed: (retained && retained.totalPlayed) || 0,
             totalWon: (retained && retained.totalWon) || 0,
             lastCycleKey: newCycleKey,
+            addedCycleKey: newCycleKey,
             dayHistory: restoredHistory,
             statsBaseline: retained && retained.statsBaseline ? retained.statsBaseline : { played: 0, won: 0, best: 0 }
           };
