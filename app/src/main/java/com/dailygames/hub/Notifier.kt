@@ -13,6 +13,9 @@ import androidx.core.app.NotificationManagerCompat
 /** Abstraction for dispatching game refresh notifications (enables constructor DI in tests). */
 fun interface NotificationDispatcher {
     fun notifyGameRefresh(gameId: String, title: String, body: String)
+
+    /** Called once after a refresh pass has dispatched all of its notifications (e.g. to post a group summary). */
+    fun onBatchComplete() {}
 }
 
 /** Shared notification helper used by both the UI bridge and the background worker. */
@@ -72,14 +75,19 @@ object Notifier {
         }
     }
 
-    /** Posts one notification per game; tapping it opens that game inside Dailies. */
-    fun postGameNotification(ctx: Context, gameId: String, title: String, body: String) {
+    /**
+     * Posts one notification per game; tapping it opens that game inside Dailies. Returns the
+     * notification id it was posted under, or null if notifications are off. With [updateSummary]
+     * false the caller posts the group summary itself once the whole batch is out
+     * ([postGroupSummary]), so the count never depends on the system having registered each post yet.
+     */
+    fun postGameNotification(ctx: Context, gameId: String, title: String, body: String, updateSummary: Boolean = true): Int? {
         ensureChannel(ctx)
         val nm = NotificationManagerCompat.from(ctx)
-        if (!nm.areNotificationsEnabled()) return
+        if (!nm.areNotificationsEnabled()) return null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return
+        ) return null
 
         val notificationId = notificationIdFor(ctx, gameId)
         val launch = Intent(ctx, MainActivity::class.java).apply {
@@ -100,36 +108,51 @@ object Notifier {
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            .setSilent(true)
+            // Not silent: the channel decides (it starts without sound; the user can turn sound or
+            // vibration on in Android settings). Only the children alert, never the summary as well.
+            .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
             .setAutoCancel(true)
             .setContentIntent(pending)
             .setGroup(GROUP_KEY)
             .build()
 
-        try {
+        return try {
             nm.notify(notificationId, notification)
-            postGroupSummaryIfNeeded(ctx, nm)
+            if (updateSummary) postGroupSummary(ctx, mapOf(notificationId to title))
+            notificationId
         } catch (e: SecurityException) {
             // POST_NOTIFICATIONS revoked between the check and the call; nothing to do.
+            null
         }
     }
 
     /**
-     * When several games reset at once, bundle them under one summary instead of a wall of
-     * separate alerts.
+     * The games a group summary lists: the ones already in the shade plus [justPosted] (id -> title),
+     * which the system may not report as active yet. Each id counts once; the summary itself is excluded.
      */
-    private fun postGroupSummaryIfNeeded(ctx: Context, nm: NotificationManagerCompat) {
+    fun summaryEntries(active: List<Pair<Int, CharSequence?>>, justPosted: Map<Int, String>): List<String> {
+        val byId = LinkedHashMap<Int, String>()
+        active.forEach { (id, title) -> if (id != SUMMARY_ID) byId[id] = title?.toString().orEmpty() }
+        justPosted.forEach { (id, title) -> if (id != SUMMARY_ID) byId[id] = title }
+        return byId.values.toList()
+    }
+
+    /**
+     * When several games are ready at once, bundle them under one summary instead of a wall of
+     * separate alerts. [justPosted] (id -> title) are the notifications this pass has just posted.
+     */
+    fun postGroupSummary(ctx: Context, justPosted: Map<Int, String>) {
+        val nm = NotificationManagerCompat.from(ctx)
         val systemNm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
         val active = runCatching { systemNm.activeNotifications.toList() }.getOrDefault(emptyList())
-            .filter { it.notification.group == GROUP_KEY && it.id != SUMMARY_ID }
-        if (active.size < 2) return
+            .filter { it.notification.group == GROUP_KEY }
+            .map { it.id to it.notification.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE) }
+        val entries = summaryEntries(active, justPosted)
+        if (entries.size < 2) return
 
         val style = NotificationCompat.InboxStyle()
-        active.take(6).forEach { sbn ->
-            val title = sbn.notification.extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)
-            if (!title.isNullOrBlank()) style.addLine(title)
-        }
-        val summaryText = "${active.size} daily games are ready"
+        entries.take(6).forEach { title -> if (title.isNotBlank()) style.addLine(title) }
+        val summaryText = "${entries.size} daily games are ready"
         style.setSummaryText(summaryText)
 
         val launch = Intent(ctx, MainActivity::class.java).apply {

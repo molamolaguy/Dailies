@@ -82,22 +82,39 @@ class ResetAlarmReceiver : BroadcastReceiver() {
  */
 class ScheduleChangeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED,
-            Intent.ACTION_MY_PACKAGE_REPLACED,
-            Intent.ACTION_TIMEZONE_CHANGED,
-            Intent.ACTION_TIME_CHANGED -> {
-                val app = context.applicationContext
-                val pending = goAsync()
-                Thread {
-                    try {
-                        // Don't notify for anything here, just re-anchor timing to the new clock.
-                        DailyRefreshWorker.scheduleNextReset(app)
-                    } finally {
-                        pending.finish()
-                    }
-                }.start()
+        val mode = modeFor(intent.action) ?: return
+        val app = context.applicationContext
+        val pending = goAsync()
+        Thread {
+            try {
+                if (mode == Mode.PROCESS_MISSED) {
+                    // The phone was off (or the app was being replaced) and its alarms were cleared:
+                    // post any reset that happened meanwhile, then arm the next one. (Arming alone
+                    // would also REPLACE the overdue WorkManager backup, so the alert would be lost.)
+                    DailyRefreshWorker.runRefresh(app)
+                } else {
+                    // Clock / zone changes: don't notify, just re-anchor timing to the new clock.
+                    DailyRefreshWorker.scheduleNextReset(app)
+                }
+            } finally {
+                pending.finish()
             }
+        }.start()
+    }
+
+    enum class Mode { PROCESS_MISSED, RESCHEDULE_ONLY }
+
+    companion object {
+        /** Exact-alarm permission granted / changed (API 31+; a literal so it compiles for minSdk 24). */
+        const val ACTION_EXACT_ALARM_PERMISSION_CHANGED = "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+
+        fun modeFor(action: String?): Mode? = when (action) {
+            Intent.ACTION_BOOT_COMPLETED,
+            Intent.ACTION_MY_PACKAGE_REPLACED -> Mode.PROCESS_MISSED
+            Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_TIME_CHANGED,
+            ACTION_EXACT_ALARM_PERMISSION_CHANGED -> Mode.RESCHEDULE_ONLY
+            else -> null
         }
     }
 }

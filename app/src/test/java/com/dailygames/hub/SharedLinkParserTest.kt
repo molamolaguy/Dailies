@@ -22,4 +22,11 @@ class SharedLinkParserTest {
         assertNull(SharedLinkParser.extractSharedUrl("android.intent.action.SEND", "image/png", "https://example.com"))
         assertNull(SharedLinkParser.extractSharedUrl("android.intent.action.SEND", "text/plain", "   "))
     }
+
+    @Test
+    fun sharedTextForLogging_keepsShortResultsAndDropsHugeText() {
+        assertEquals("Framed #1234\nhttps://framed.wtf", SharedLinkParser.sharedTextForLogging("  Framed #1234\nhttps://framed.wtf \n"))
+        assertEquals("", SharedLinkParser.sharedTextForLogging(null))
+        assertEquals("", SharedLinkParser.sharedTextForLogging("x".repeat(9000)))
+    }
 }

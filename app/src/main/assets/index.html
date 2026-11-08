@@ -178,7 +178,7 @@
         <div class="stat-tiles pt-3 border-t border-slate-800">
           <div class="stat-tile">
             <p class="k">Best streak</p>
-            <p id="calSummaryLongestStreak" class="v text-amber-300">🔥 0d</p>
+            <p id="calSummaryLongestStreak" class="v text-amber-300"><span class="v-emoji" aria-hidden="true">🔥</span>0d</p>
             <p id="calSummaryGameName" class="s">—</p>
           </div>
           <div class="stat-tile">
@@ -988,6 +988,19 @@
       else if (syncWanted) scheduleSyncNative();
       syncWanted = false;
     }
+
+    // Native writes happen in the background; Android reports when they start failing (e.g. the
+    // phone's storage is full) and when they work again, so changes are never silently unsaved.
+    let lastSaveFailToastAt = 0;
+    window.onHubSaveResult = function (ok) {
+      if (ok) {
+        lastSaveFailToastAt = 0;
+        showToast('Saving works again', 'Your latest changes are saved.', 'emerald');
+      } else if (Date.now() - lastSaveFailToastAt > 60000) {
+        lastSaveFailToastAt = Date.now();
+        showToast('Could not save', 'Your latest changes are not saved yet (is the phone\'s storage full?). Export a backup from Settings.', 'indigo');
+      }
+    };
 
     /** Banner shown when saved data exists but couldn't be read; saving stays off until resolved. */
     function showDataProblemBanner() {
@@ -2208,9 +2221,11 @@
       if (calGames.length === 0) {
         selectEl.innerHTML = '<option value="">No games loaded</option>';
         selectEl.dataset.sig = '';
+        const forget = document.getElementById('btnForgetRemovedGame');
+        if (forget) forget.classList.add('hidden');
         gridEl.innerHTML = '<div class="col-span-full py-6 text-center text-xs text-slate-400">Add a game on the Daily Hub to view its calendar.</div>';
         if (summaryNameEl) summaryNameEl.textContent = 'No games';
-        if (longestEl) longestEl.textContent = '🔥 0d';
+        if (longestEl) longestEl.innerHTML = '<span class="v-emoji" aria-hidden="true">🔥</span>0d';
         if (totalPlaysEl) totalPlaysEl.textContent = '0';
         if (subPlaysEl) subPlaysEl.textContent = '0 won · 0 missed';
         if (currentStreakEl) currentStreakEl.textContent = '0d';
@@ -2222,15 +2237,21 @@
         selectedCalendarGameId = calGames[0].id;
       }
 
-      const selectSig = calGames.map((g) => `${g.id}:${g.name}`).join('|');
+      const activeIds = new Set(state.games.map((g) => g.id));
+      const selectSig = calGames.map((g) => `${g.id}:${g.name}:${activeIds.has(g.id) ? 1 : 0}`).join('|');
       if (selectEl.dataset.sig !== selectSig) {
         selectEl.dataset.sig = selectSig;
-        selectEl.innerHTML = calGames.map((g) => `<option value="${escapeHtml(g.id)}" dir="auto">${escapeHtml(g.name)}</option>`).join('');
+        const opt = (g) => `<option value="${escapeHtml(g.id)}" dir="auto">${escapeHtml(g.name)}</option>`;
+        const removed = calGames.filter((g) => !activeIds.has(g.id));
+        // Removed games keep their history, but are listed apart so they aren't mistaken for active ones.
+        selectEl.innerHTML = calGames.filter((g) => activeIds.has(g.id)).map(opt).join('')
+          + (removed.length ? `<optgroup label="Removed games">${removed.map(opt).join('')}</optgroup>` : '');
       }
       selectEl.value = selectedCalendarGameId;
 
       const game = calGames.find((g) => g.id === selectedCalendarGameId) || calGames[0];
       recomputeGameStatsFromHistory(game);
+      const isActiveGame = activeIds.has(game.id);
 
       if (monthLabelEl) {
         monthLabelEl.textContent = formatCalendarMonthLabel(calendarYear, calendarMonth);
@@ -2268,21 +2289,59 @@
         }
         if (isToday) cls += ' today';
         const label = `${game.name} • ${dateKey}${outcome ? ' (' + outcome + ')' : ''}${isToday ? ' • today' : ''}`;
-        cellsHtml += `<div class="${cls}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><span>${d}</span>${mark}</div>`;
+        // Today and past days of a game in the hub can be tapped to log or correct that day.
+        const editable = isActiveGame && cycleKeyToDay(dateKey) <= cycleKeyToDay(todayKey);
+        const editAttrs = editable
+          ? ` data-action="cal-day" data-id="${escapeHtml(game.id)}" data-date="${dateKey}" role="button" tabindex="0"`
+          : '';
+        cellsHtml += `<div class="${cls}"${editAttrs} title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><span>${d}</span>${mark}</div>`;
       }
 
       gridEl.innerHTML = cellsHtml;
+
+      // A removed game's history can be forgotten for good (it stays otherwise, ready for a re-add).
+      let forgetBtn = document.getElementById('btnForgetRemovedGame');
+      if (!forgetBtn) {
+        forgetBtn = document.createElement('button');
+        forgetBtn.id = 'btnForgetRemovedGame';
+        forgetBtn.type = 'button';
+        forgetBtn.className = 'mt-3 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold';
+        forgetBtn.textContent = 'Forget this removed game';
+        forgetBtn.addEventListener('click', () => forgetRemovedGame(selectedCalendarGameId));
+        gridEl.insertAdjacentElement('afterend', forgetBtn);
+      }
+      forgetBtn.classList.toggle('hidden', isActiveGame);
 
       const bestStreak = Math.max(game.bestStreak || 0, game.streak || 0);
       const totalPlays = Math.max(game.totalPlayed || 0, monthCompletedCount + monthMissedCount);
       const totalWon = game.totalWon || 0;
 
       if (summaryNameEl) summaryNameEl.textContent = game.name;
-      if (longestEl) longestEl.textContent = `🔥 ${bestStreak}d`;
+      if (longestEl) longestEl.innerHTML = `<span class="v-emoji" aria-hidden="true">🔥</span>${Number(bestStreak) || 0}d`;
       if (totalPlaysEl) totalPlaysEl.textContent = String(totalPlays);
       if (subPlaysEl) subPlaysEl.innerHTML = `${totalWon} <span class="ico ico-check" aria-hidden="true"></span> ${Math.max(0, totalPlays - totalWon)} <span class="ico ico-close" aria-hidden="true"></span>`;
       if (currentStreakEl) currentStreakEl.textContent = `${game.streak || 0}d`;
       if (monthCountsEl) monthCountsEl.innerHTML = `${escapeHtml(formatCalendarMonthShort(calendarYear, calendarMonth))}: ${monthCompletedCount} <span class="ico ico-check" aria-hidden="true"></span> ${monthMissedCount} <span class="ico ico-close" aria-hidden="true"></span>`;
+    }
+
+    /** Permanently drops a removed game's kept history and its score-log rows (after confirming). */
+    function forgetRemovedGame(id) {
+      if (!id || state.games.some((g) => g.id === id)) return;
+      const retained = state.retainedGameStats || {};
+      const snap = Object.keys(retained).map((k) => retained[k]).find((r) => r && r.id === id);
+      if (!snap) return;
+      openConfirmModal(`Forget ${snap.name}?`,
+        `This permanently deletes the kept streaks, calendar and score log of "${snap.name}". It can't be undone.`,
+        'Forget', () => {
+          Object.keys(retained).forEach((k) => { if (retained[k] && retained[k].id === id) delete retained[k]; });
+          state.historyLogs = state.historyLogs.filter((l) => !(l && l.gameId === id));
+          invalidateLogIndex();
+          selectedCalendarGameId = state.games[0] ? state.games[0].id : '';
+          historyPage = 0;
+          saveState({ sync: false });
+          renderStatsAndCharts();
+          showToast(`${snap.name} forgotten`, 'Its history was deleted.', 'indigo');
+        });
     }
 
     function renderStatsAndCharts() {
@@ -2582,6 +2641,8 @@
         }
       } else if (id === 'modalDeleteGame') {
         document.getElementById('deleteGameId').value = '';
+        pendingConfirmAction = null;
+        document.getElementById('btnConfirmDeleteModal').textContent = 'Remove';
       } else if (id === 'modalLogScore') {
         logModalCycleKey = '';
       }
@@ -2622,7 +2683,24 @@
       closeModal('modalDeleteGame');
     }
 
+    // The Remove dialog doubles as a generic "are you sure?" (import, forgetting a removed game).
+    var pendingConfirmAction = null;
+    function openConfirmModal(title, message, confirmLabel, onConfirm) {
+      openModal('modalDeleteGame');
+      document.getElementById('deleteGameId').value = '';
+      document.getElementById('modalDeleteTitle').textContent = title;
+      document.getElementById('modalDeleteMessage').textContent = message;
+      document.getElementById('btnConfirmDeleteModal').textContent = confirmLabel;
+      pendingConfirmAction = onConfirm;
+    }
+
     function confirmDeleteGame() {
+      if (pendingConfirmAction) {
+        const action = pendingConfirmAction;
+        closeDeleteConfirmModal();
+        action();
+        return;
+      }
       const id = document.getElementById('deleteGameId').value;
       const game = state.games.find((g) => g.id === id);
       if (!game) {
@@ -2824,19 +2902,61 @@
     // =========================================================================
     // NATIVE HOOKS (called from MainActivity via evaluateJavascript)
     // =========================================================================
-    window.handleSharedUrl = function (raw) {
+    /** The one hub game a shared text is a result for (it names the game or carries its link), or null. */
+    function sharedResultTarget(text, raw) {
+      if (!text || /^https?:\/\/\S+$/i.test(text)) return null;
+      const byUrl = raw ? findGameByUrl(raw) : null;
+      const lower = text.toLowerCase();
+      const candidates = byUrl ? [byUrl] : state.games.filter((g) => {
+        const name = String(g.name || '').trim().toLowerCase();
+        let host = '';
+        try { host = new URL(g.url).hostname.replace(/^www\./i, '').toLowerCase(); } catch (e) {}
+        return (name.length >= 3 && lower.includes(name)) || (host && lower.includes(host));
+      });
+      const hits = candidates.filter((g) => HubCore.isStrictShareResult(text, g));
+      return hits.length === 1 ? hits[0] : null;
+    }
+
+    /**
+     * Share → Dailies. `raw` is the link found in the shared text (or the text itself), `fullText`
+     * the whole shared text: a game's result shared to the app is logged rather than reopening it.
+     */
+    window.handleSharedUrl = function (raw, fullText) {
+      const text = typeof fullText === 'string' ? fullText.replace(/\r\n/g, '\n').trim() : '';
+      const resultGame = sharedResultTarget(text, raw);
+      if (resultGame) {
+        checkDailyRollovers({ silent: true });
+        switchNavigation('dashboard');
+        if (state.settings && state.settings.autoLogFromShare === false) {
+          openLogModal(resultGame.id);
+          const box = document.getElementById('inputLogScoreText');
+          if (box && !box.value.trim()) box.value = text;
+          return;
+        }
+        if (!autoLogShareResult(resultGame, text, getCycleDateKey(resultGame.resetTime, resultGame.resetZone))) {
+          showToast(`${resultGame.name} already logged`, 'That result is already in your log.', 'indigo');
+        }
+        return;
+      }
       const meta = inferGameMetaFromUrl(raw);
       if (!meta) {
         showToast('Invalid link', 'That doesn\'t look like a web link. Try copying the game URL again.', 'indigo');
         return;
       }
-      switchNavigation('dashboard');
       const dup = findGameByUrl(meta.url);
       if (dup) {
-        showToast(`${dup.name} is already in your hub`, 'Opening it now.', 'indigo');
-        openGameInPlayer(dup.id);
+        switchNavigation('dashboard');
+        showToast(`${dup.name} is already in your hub`, 'No duplicate was added.', 'indigo', null,
+          { actionLabel: 'Play', onAction: () => openGameInPlayer(dup.id) });
         return;
       }
+      // Don't throw away a form the user is in the middle of: let them choose.
+      if (isModalOpen('modalAddGame') || isModalOpen('modalLogScore')) {
+        showToast('Link received', 'Finish or close the open form, or add this link instead.', 'indigo', null,
+          { actionLabel: 'Add link', onAction: () => { switchNavigation('dashboard'); openAddOrEditModal(meta, null); } });
+        return;
+      }
+      switchNavigation('dashboard');
       openAddOrEditModal(meta, null);
     };
 
@@ -2994,6 +3114,25 @@
     let returnPromptShareText = '';
 
     /**
+     * Logs a captured share result for `cycleKey` with an Undo toast. A result that says the puzzle
+     * wasn't solved ("X/6", "Next time", four Connections mistakes) is logged as Missed, with its text.
+     * Returns false if exactly this result is already logged.
+     */
+    function autoLogShareResult(game, text, cycleKey) {
+      const outcome = HubCore.isFailedShareResult(text) ? 'missed' : 'completed';
+      const alreadySame = game.dayHistory && game.dayHistory[cycleKey] === outcome
+        && cycleKey === getCycleDateKey(game.resetTime, game.resetZone) && game.todayScore === text;
+      if (alreadySame) return false;
+      const snap = snapshotForUndo(game, cycleKey);
+      recordGameOutcome(game.id, outcome, text, { cycleKey, quiet: true });
+      const firstLine = text.split('\n')[0].slice(0, 60);
+      showToast(outcome === 'missed' ? `${game.name} logged as missed` : `🔥 ${game.name} logged automatically`,
+        firstLine, outcome === 'missed' ? 'indigo' : 'emerald', null,
+        { actionLabel: 'Undo', onAction: () => restoreUndo(snap) });
+      return true;
+    }
+
+    /**
      * Back from the game player. If the player captured a share result (copied or shared inside the
      * game) it is logged automatically against the puzzle that was live when the game was opened.
      */
@@ -3086,9 +3225,11 @@
           : null;
         const seenIds = new Set();
         const validatedGames = [];
+        let skipped = 0;
         rawGames.forEach((g, idx) => {
           const norm = normalizeGameObject(g, idx);
-          if (!norm) throw new Error('Invalid game entry at index ' + idx);
+          // One unusable entry (no valid link) is skipped and reported, not a reason to refuse the file.
+          if (!norm) { skipped += 1; return; }
           if (backupIsLegacy) migrateLegacyFlattenedUtc(norm, importedLogs || []);
           norm.id = HubCore.uniqueId(norm.id, seenIds);
           seenIds.add(norm.id);
@@ -3102,32 +3243,83 @@
           recomputeGameStatsFromHistory(norm);
           validatedGames.push(norm);
         });
+        if (!validatedGames.length && rawGames.length) throw new Error('No usable games');
 
-        state.games = validatedGames;
-        historyPage = 0;
-        if (importedLogs) {
-          state.historyLogs = importedLogs;
-        }
-        if (rawSettings) {
-          state.settings = Object.assign(getDefaultSettings(), rawSettings, { autoMarkMissed: true });
-        }
-        if (rawRetained) {
-          state.retainedGameStats = normalizeRetainedMap(rawRetained);
-        }
-        invalidateLogIndex();
-        // An explicit import replaces unreadable data on purpose: saving can resume.
-        if (state.__saveBlocked) {
-          try { if (window.AndroidBridge && window.AndroidBridge.quarantineHubState) window.AndroidBridge.quarantineHubState(); } catch (e) {}
-          state.__saveBlocked = false;
-          const banner = document.getElementById('dataProblemBanner');
-          if (banner) banner.classList.add('hidden');
-        }
-        checkDailyRollovers({ silent: true });
+        // Current games the backup doesn't have: they leave the hub, but their history is kept (as for
+        // a removed game) so re-adding them, or looking them up in Streaks & Log, still works.
+        const importedKeys = new Set();
+        validatedGames.forEach((g) => { importedKeys.add(g.id); importedKeys.add(normalizeUrlKey(g.url)); });
+        const dropped = state.games.filter((g) => !importedKeys.has(g.id) && !importedKeys.has(normalizeUrlKey(g.url)));
 
-        selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
-        saveState({ syncNow: true });
-        renderAll();
-        showToast('Backup Restored', `Imported ${plural(state.games.length, 'daily game')} from your backup file.`, 'emerald');
+        const applyImport = () => {
+          const before = serializeState();
+          const droppedIds = new Set(dropped.map((g) => g.id));
+          const keptLogs = importedLogs
+            ? state.historyLogs.filter((l) => l && l.gameId && droppedIds.has(l.gameId))
+            : null;
+          state.games = validatedGames;
+          historyPage = 0;
+          if (importedLogs) {
+            const have = new Set(importedLogs.map((l) => `${l.gameId || ''}|${l.date}`));
+            state.historyLogs = importedLogs.concat(keptLogs.filter((l) => !have.has(`${l.gameId}|${l.date}`)));
+          }
+          if (rawSettings) {
+            state.settings = Object.assign(getDefaultSettings(), rawSettings, { autoMarkMissed: true });
+          }
+          if (rawRetained) {
+            state.retainedGameStats = normalizeRetainedMap(rawRetained);
+          }
+          if (!state.retainedGameStats || typeof state.retainedGameStats !== 'object') state.retainedGameStats = {};
+          dropped.forEach((g) => {
+            const snap = normalizeRetained(Object.assign({}, g, { dayHistory: Object.assign({}, g.dayHistory || {}) }));
+            if (!snap) return;
+            state.retainedGameStats[g.id] = snap;
+            const urlKey = normalizeUrlKey(g.url);
+            if (urlKey) state.retainedGameStats[urlKey] = snap;
+          });
+          invalidateLogIndex();
+          // An explicit import replaces unreadable data on purpose: saving can resume.
+          const wasBlocked = Boolean(state.__saveBlocked);
+          if (state.__saveBlocked) {
+            try { if (window.AndroidBridge && window.AndroidBridge.quarantineHubState) window.AndroidBridge.quarantineHubState(); } catch (e) {}
+            state.__saveBlocked = false;
+            const banner = document.getElementById('dataProblemBanner');
+            if (banner) banner.classList.add('hidden');
+          }
+          checkDailyRollovers({ silent: true });
+
+          selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
+          saveState({ syncNow: true });
+          renderAll();
+          const skippedNote = skipped ? ` Skipped ${plural(skipped, 'entry', 'entries')} without a valid link.` : '';
+          showToast('Backup Restored', `Imported ${plural(state.games.length, 'daily game')} from your backup file.${skippedNote}`, 'emerald', null,
+            wasBlocked ? undefined : {
+              actionLabel: 'Undo',
+              onAction: () => {
+                const prev = parseSavedState(before);
+                if (!prev) return;
+                state = stateFromParsed(prev, 'undo');
+                invalidateLogIndex();
+                selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
+                saveState({ syncNow: true });
+                renderAll();
+                showToast('Import undone', 'Your hub is back to how it was before the import.', 'indigo');
+              }
+            });
+        };
+
+        if (!state.games.length || state.__saveBlocked) {
+          applyImport();
+          return;
+        }
+        const parts = [`This backup has ${plural(validatedGames.length, 'game')}`
+          + (skipped ? ` (${skipped} unusable ${skipped === 1 ? 'entry' : 'entries'} will be skipped)` : '')
+          + `. It replaces the ${plural(state.games.length, 'game')} in your hub`
+          + (importedLogs ? ', your score log' : '') + (rawSettings ? ' and your settings' : '') + '.'];
+        if (dropped.length) {
+          parts.push(`${dropped.map((g) => g.name).slice(0, 5).join(', ')}${dropped.length > 5 ? '…' : ''} ${dropped.length === 1 ? 'isn\'t' : 'aren\'t'} in the backup: ${dropped.length === 1 ? 'it' : 'they'} will be removed, keeping ${dropped.length === 1 ? 'its' : 'their'} history.`);
+        }
+        openConfirmModal('Replace your hub with this backup?', parts.join(' '), 'Import', applyImport);
       } catch (err) {
         showToast('Import Failed', 'The selected file is not a valid Dailies JSON backup file.', 'indigo');
       }
@@ -3366,6 +3558,29 @@
       window.onBackupFileImported = function (rawText) {
         validateAndApplyBackup(rawText);
       };
+      // Large backups arrive from Android in slices (one huge evaluateJavascript call can run out of memory).
+      let importChunks = null;
+      window.__dailiesImportBegin = function () { importChunks = []; };
+      window.__dailiesImportChunk = function (part) { if (importChunks) importChunks.push(String(part || '')); };
+      window.__dailiesImportAbort = function () { importChunks = null; };
+      window.__dailiesImportEnd = function () {
+        const parts = importChunks;
+        importChunks = null;
+        if (!parts) return;
+        if (!parts.length) {
+          showToast('Import Failed', 'That file is empty.', 'indigo');
+          return;
+        }
+        let raw = '';
+        try {
+          raw = parts.join('');
+        } catch (e) {
+          showToast('Backup too large to import', 'Your current data was not changed.', 'indigo');
+          return;
+        }
+        parts.length = 0;
+        validateAndApplyBackup(raw);
+      };
 
       const saveBackupToFileHandler = async () => {
         const now = new Date();
@@ -3533,6 +3748,10 @@
           openGameInPlayer(game.id);
         } else if (action === 'log') {
           openLogModal(game.id);
+        } else if (action === 'cal-day') {
+          // Calendar tile: log or correct that day (today, or any past day).
+          const date = target.getAttribute('data-date') || '';
+          if (HubCore.DATE_KEY_RE.test(date)) openLogModal(game.id, { cycleKey: date, useRecordedStatus: true });
         } else if (action === 'edit') {
           openAddOrEditModal(null, game);
         } else if (action === 'delete') {
