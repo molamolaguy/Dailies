@@ -732,9 +732,11 @@
           ? String(g.lastCycleKey)
           : getCycleDateKey(resetTime, resetZone),
         dayHistory: cleanHistory,
+        addedCycleKey: HubCore.DATE_KEY_RE.test(String(g.addedCycleKey || '')) ? String(g.addedCycleKey) : undefined,
         statsBaseline: (g.statsBaseline && typeof g.statsBaseline === 'object') ? g.statsBaseline : undefined
       };
       if (!norm.statsBaseline) delete norm.statsBaseline;
+      if (!norm.addedCycleKey) delete norm.addedCycleKey;
       // Old saves kept bare counters; fold them into a one-time baseline so totals can go down again.
       HubCore.ensureStatsBaseline(norm);
       recomputeGameStatsFromHistory(norm);
@@ -831,6 +833,9 @@
         g.dayHistory = HubCore.shiftDayHistory(g.dayHistory, shift);
         if (HubCore.DATE_KEY_RE.test(String(g.lastCycleKey || ''))) {
           g.lastCycleKey = HubCore.addDaysToCycleKey(g.lastCycleKey, shift);
+        }
+        if (HubCore.DATE_KEY_RE.test(String(g.addedCycleKey || ''))) {
+          g.addedCycleKey = HubCore.addDaysToCycleKey(g.addedCycleKey, shift);
         }
         (logs || []).forEach((l) => {
           // Rows from older versions only carry the game's name.
@@ -1207,6 +1212,9 @@
         const prevOutcome = g.dayHistory[prevCycleKey] || (g.status === 'completed' ? 'completed' : '');
         if (prevOutcome === 'completed') {
           g.dayHistory[prevCycleKey] = 'completed';
+        } else if (prevCycleKey === g.addedCycleKey) {
+          // The day a game was added isn't tracked unless it was played: adding a game at 11:58 PM
+          // must not start its stats with a "Missed".
         } else {
           g.dayHistory[prevCycleKey] = 'missed';
           appendAutoMissedLog(g, prevCycleKey); // no-op if that day already has a row
@@ -3011,15 +3019,7 @@
         return;
       }
       if (captured && autoLog && !resetWhilePlaying) {
-        const cycleKey = currentKey;
-        const alreadySame = game.dayHistory && game.dayHistory[cycleKey] === 'completed'
-          && cycleKey === getCycleDateKey(game.resetTime, game.resetZone) && game.todayScore === captured;
-        if (alreadySame) return;
-        const snap = snapshotForUndo(game, cycleKey);
-        recordGameOutcome(game.id, 'completed', captured, { cycleKey, quiet: true });
-        const firstLine = captured.split('\n')[0].slice(0, 60);
-        showToast(`🔥 ${game.name} logged automatically`, firstLine, 'emerald', null,
-          { actionLabel: 'Undo', onAction: () => restoreUndo(snap) });
+        autoLogShareResult(game, captured, currentKey);
         return;
       }
       returnPromptShareText = captured;
@@ -3770,6 +3770,7 @@
             totalPlayed: (retained && retained.totalPlayed) || 0,
             totalWon: (retained && retained.totalWon) || 0,
             lastCycleKey: newCycleKey,
+            addedCycleKey: newCycleKey,
             dayHistory: restoredHistory,
             statsBaseline: retained && retained.statsBaseline ? retained.statsBaseline : { played: 0, won: 0, best: 0 }
           };
