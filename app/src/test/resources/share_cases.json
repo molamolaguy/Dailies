@@ -106,6 +106,40 @@
     {
       "text": "café 3 / 6 later",
       "strict": false
+    },
+    {
+      "text": "Guess the Wordle in 6 tries.",
+      "name": "Wordle",
+      "url": "https://www.nytimes.com/games/wordle/index.html",
+      "strict": false
+    },
+    {
+      "text": "How to play Contexto: find the secret word. You have unlimited guesses, 0 points to start.",
+      "name": "Contexto",
+      "url": "https://contexto.me/",
+      "strict": false
+    },
+    {
+      "text": "Can you solve today's Nerdle in 6/6 tries?",
+      "name": "Nerdle",
+      "url": "https://nerdlegame.com/",
+      "strict": false
+    },
+    {
+      "text": "Waffle rules: you have 15 swaps to solve the puzzle",
+      "name": "Waffle",
+      "url": "https://wafflegame.net/daily",
+      "strict": false
+    },
+    {
+      "text": "Wordle 1,238 X/6\n\n⬛🟨⬛⬛⬛\n⬛⬛⬛⬛⬛",
+      "name": "Wordle",
+      "url": "https://www.nytimes.com/games/wordle/index.html",
+      "strict": true
+    },
+    {
+      "text": "FE Guess #512 — guessed it in 4 tries",
+      "strict": true
     }
   ]
 }

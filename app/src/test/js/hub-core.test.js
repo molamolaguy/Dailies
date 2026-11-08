@@ -178,6 +178,7 @@ test('isFailedShareResult spots unsolved results', () => {
     'Wordle 1,238 X/6\n\n⬛🟨⬛⬛⬛\n⬛⬛⬛⬛⬛',
     'Wordle 1,238 x/6*',
     'Framed #900\n🎥 🟥 🟥 🟥 🟥 🟥 🟥\nNext time!',
+    'Framed #1234\n🎥 🟥 🟥 🟥 🟥 🟥 🟥\n\nhttps://framed.wtf',
     'Connections\nPuzzle #500\n🟨🟩🟨🟨\n🟦🟦🟪🟦\n🟩🟨🟩🟩\n🟪🟪🟦🟪',
     'Better luck tomorrow — Globle #12'
   ];
@@ -185,6 +186,8 @@ test('isFailedShareResult spots unsolved results', () => {
     'Wordle 1,238 3/6\n\n⬛🟨⬛⬛⬛\n🟩🟩🟩🟩🟩',
     'Connections\nPuzzle #500\n🟨🟩🟨🟨\n🟨🟨🟨🟨\n🟩🟩🟩🟩\n🟦🟦🟦🟦\n🟪🟪🟪🟪',
     'Nerdle 900 4/6 nerdlegame.com',
+    'Framed #1234\n🎥 🟥 🟥 🟩 ⬛ ⬛ ⬛',
+    'Travle #400 +2\n✅✅🟧✅',
     'Box 4x/6 tiles',
     ''
   ];

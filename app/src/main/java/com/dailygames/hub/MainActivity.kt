@@ -664,6 +664,10 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun getNotificationStatus(): String = notificationStatusJson()
 
+        /** JSON array of the zone ids java.util.TimeZone knows here, so the picker only offers zones alerts can use. */
+        @JavascriptInterface
+        fun getSupportedTimeZones(): String = org.json.JSONArray(java.util.TimeZone.getAvailableIDs().toList()).toString()
+
         /** Haptic feedback for drag-to-reorder: "start" (lift), "tick" (passed a card), "drop". */
         @JavascriptInterface
         fun performHaptic(kind: String) {

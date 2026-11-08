@@ -17,6 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Check the tag matches versionName
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION_NAME="$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' app/build.gradle.kts | head -1)"
+          if [ -z "$VERSION_NAME" ]; then echo "::error::Could not read versionName from app/build.gradle.kts"; exit 1; fi
+          if [ "${TAG#v}" != "$VERSION_NAME" ]; then
+            echo "::error::Tag $TAG does not match versionName $VERSION_NAME in app/build.gradle.kts (bump versionName and versionCode first)"
+            exit 1
+          fi
       - uses: actions/setup-java@v5
         with:
           distribution: temurin

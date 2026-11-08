@@ -2819,20 +2819,29 @@
         o.textContent = label;
         parent.appendChild(o);
       };
+      // Only zones Android's own TimeZone also knows: reset alerts are timed natively, and an id it
+      // doesn't know (older tz data than the WebView's) would silently fall back to local time there.
+      let nativeZones = null;
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.getSupportedTimeZones === 'function') {
+          nativeZones = new Set(JSON.parse(window.AndroidBridge.getSupportedTimeZones()));
+        }
+      } catch (e) { nativeZones = null; }
+      const usable = (z) => HubCore.isValidTimeZone(z) && (!nativeZones || nativeZones.has(z));
       const common = document.createElement('optgroup');
       common.label = 'Common time zones';
       const mine = deviceTimeZone();
-      if (mine && HubCore.isValidTimeZone(mine) && !COMMON_ZONES.some(([z]) => z === mine)) {
+      if (mine && usable(mine) && !COMMON_ZONES.some(([z]) => z === mine)) {
         add(common, mine, `${mine.split('/').pop().replace(/_/g, ' ')} (this phone's zone)`);
       }
-      COMMON_ZONES.forEach(([z, label]) => { if (HubCore.isValidTimeZone(z)) add(common, z, label); });
+      COMMON_ZONES.forEach(([z, label]) => { if (usable(z)) add(common, z, label); });
       sel.appendChild(common);
       try {
         if (typeof Intl.supportedValuesOf === 'function') {
           const all = document.createElement('optgroup');
           all.label = 'All time zones';
           Intl.supportedValuesOf('timeZone').forEach((z) => {
-            if (z.includes('/') && !COMMON_ZONES.some(([c]) => c === z)) add(all, z, z.replace(/_/g, ' '));
+            if (z.includes('/') && usable(z) && !COMMON_ZONES.some(([c]) => c === z)) add(all, z, z.replace(/_/g, ' '));
           });
           sel.appendChild(all);
         }
@@ -3041,7 +3050,7 @@
       }
       document.getElementById('returnPromptTitle').textContent = returnPromptCycles
         ? `Reset while you played: ${game.name}` : `Finished ${game.name}?`;
-      const streakGoal = game.streak > 0 ? `keep your 🔥 ${plural(game.streak, 'day')} streak` : 'start a streak';
+      const streakGoal = game.streak > 0 ? `keep your 🔥 ${game.streak}-day streak` : 'start a streak';
       document.getElementById('returnPromptSub').textContent = elapsedMs > 0
         ? `Played for ${formatPlayedFor(elapsedMs)} · log it to ${streakGoal}`
         : `Log today's result to ${streakGoal}`;

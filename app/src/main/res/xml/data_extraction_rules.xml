@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+: back up the hub data and settings, never game-site logins/cookies or caches. -->
+<!-- Android 12+: back up the hub data and settings, never game-site logins/cookies or caches. The local
+     .bak copy is left out so a large history stays within the 25 MB backup quota. -->
 <data-extraction-rules>
     <cloud-backup>
         <include domain="file" path="hub_state.json" />
-        <include domain="file" path="hub_state.json.bak" />
         <include domain="sharedpref" path="." />
     </cloud-backup>
     <device-transfer>
         <include domain="file" path="hub_state.json" />
-        <include domain="file" path="hub_state.json.bak" />
         <include domain="sharedpref" path="." />
     </device-transfer>
 </data-extraction-rules>

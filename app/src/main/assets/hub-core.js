@@ -399,6 +399,8 @@
   const STRICT_FRACTION_RE = /(?<![0-9/])(?:[0-9]{1,2}|x)[ \t\u00A0]*\/[ \t\u00A0]*[0-9]{1,2}(?![0-9/])/i;
   const STRICT_CONTEXT_RE = /\n|#[ \u00A0]?[0-9]|(?<![A-Za-z0-9_])(?:day|puzzle|guess|guesses|tries|try|attempts?|mistakes?|score|points?|streak)(?![A-Za-z0-9_])/i;
   const STRICT_COUNTED_RE = /#[ \u00A0]?[0-9]+|(?<![A-Za-z0-9_])[0-9]+[ \t\u00A0]*(?:guess|guesses|tries|attempts?|mistakes?|points?|pts|moves?|swaps?|seconds?|secs?|minutes?|mins?)(?![A-Za-z0-9_])/i;
+  const STRICT_HELP_RE = /(?<![A-Za-z0-9_])(?:how to play|you have[ \t ]+[0-9]+|you get[ \t ]+[0-9]+|in[ \t ]+[0-9]+[ \t ]+(?:tries|guesses|attempts|chances)|guess the|find the|can you|each guess|tap to|rules)(?![A-Za-z0-9_])/i;
+  const STRICT_PUZZLE_NO_RE = /#[  ]?[0-9]/;
   function isStrictShareResult(text, game) {
     const t = String(text || '').trim();
     if (t.length < 3 || t.length > 4000) return false;
@@ -409,6 +411,8 @@
     let host = '';
     try { host = new URL(String((game && game.url) || '')).hostname.replace(/^www\./, '').toLowerCase(); } catch (e) {}
     const mentionsGame = (name.length >= 3 && lower.includes(name)) || (host && lower.includes(host));
+    // Rules / help text ("Guess the Wordle in 6 tries") names the game and a count but isn't a result.
+    if (STRICT_HELP_RE.test(t) && !STRICT_PUZZLE_NO_RE.test(t)) return false;
     if (STRICT_FRACTION_RE.test(t) && (STRICT_CONTEXT_RE.test(t) || mentionsGame)) return true;
     return Boolean(mentionsGame && STRICT_COUNTED_RE.test(t));
   }
@@ -422,6 +426,10 @@
     const t = String(text || '').trim();
     if (!t) return false;
     if (FAILED_FRACTION_RE.test(t) || FAILED_PHRASE_RE.test(t)) return true;
+    // Framed-style rows: every attempt red (🟥 / ❌) and no green anywhere means it was never solved.
+    const cellsAll = Array.from(t);
+    const reds = cellsAll.filter((c) => c === '\u{1F7E5}' || c === '❌').length;
+    if (reds >= 3 && !cellsAll.some((c) => c === '\u{1F7E9}' || c === '✅')) return true;
     // Connections-style grid: rows of four group colours; a mixed row is a mistake, four ends the game.
     let mixedRows = 0;
     t.split('\n').forEach((line) => {
