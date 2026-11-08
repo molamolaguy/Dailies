@@ -1,0 +1,111 @@
+{
+  "game": {
+    "name": "FE Guess",
+    "url": "https://fe-guess.com/"
+  },
+  "cases": [
+    {
+      "text": "Wordle 1,234 3/6\n\n⬛🟨⬛⬛⬛\n🟩🟩🟩🟩🟩",
+      "name": "Wordle",
+      "url": "https://www.nytimes.com/games/wordle/index.html",
+      "strict": true
+    },
+    {
+      "text": "Connections\nPuzzle #512\n🟨🟨🟨🟨\n🟪🟪🟪🟪",
+      "name": "Connections",
+      "url": "https://www.nytimes.com/games/connections",
+      "strict": true
+    },
+    {
+      "text": "Strands #200\n“Fresh start”\n🔵🟡🔵🔵",
+      "name": "Strands",
+      "url": "https://www.nytimes.com/games/strands",
+      "strict": true
+    },
+    {
+      "text": "FE Guess #512 — 4/8 guesses",
+      "strict": true
+    },
+    {
+      "text": "Travle #400 +2\n✅✅🟧✅",
+      "name": "Travle",
+      "url": "https://travle.earth/",
+      "strict": true
+    },
+    {
+      "text": "Nerdle 123 3/6",
+      "name": "Nerdle",
+      "url": "https://nerdlegame.com/",
+      "strict": true
+    },
+    {
+      "text": "Waffle #1012 5/5\nstreak: 12",
+      "name": "Waffle",
+      "url": "https://wafflegame.net/daily",
+      "strict": true
+    },
+    {
+      "text": "Contexto #812 - 45 guesses",
+      "name": "Contexto",
+      "url": "https://contexto.me/",
+      "strict": true
+    },
+    {
+      "text": "I got FE Guess in 4!",
+      "strict": false
+    },
+    {
+      "text": "https://fe-guess.com/",
+      "strict": false
+    },
+    {
+      "text": "https://fe-guess.com/?puzzle=512&share=1",
+      "strict": false
+    },
+    {
+      "text": "FE Guess",
+      "strict": false
+    },
+    {
+      "text": "meeting at 3/4 pm",
+      "strict": false
+    },
+    {
+      "text": "random paragraph I copied about something else 12",
+      "strict": false
+    },
+    {
+      "text": "I solved today's puzzle in 3 tries",
+      "strict": false
+    },
+    {
+      "text": "",
+      "strict": false
+    },
+    {
+      "text": "2026/11/06",
+      "strict": false
+    },
+    {
+      "text": "Nerdle 123 3 / 6",
+      "name": "Nerdle",
+      "url": "https://nerdlegame.com/",
+      "strict": true
+    },
+    {
+      "text": "WWW.FE-GUESS.COM daily #12 — 4 guesses",
+      "url": "https://WWW.FE-Guess.com/",
+      "strict": true
+    },
+    {
+      "text": "my_game.example.com #44 — 5 tries",
+      "name": "x",
+      "url": "https://my_game.example.com/",
+      "strict": true
+    },
+    {
+      "text": "café 3 / 6 later",
+      "strict": false
+    }
+  ]
+}

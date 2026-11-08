@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Some small daily games are only served over plain http://, so the game player may load them.
+  Games are added by the user; the hub page itself is packaged with the app and never loads remote
+  content, and mixed content inside https pages stays blocked (GameActivity).
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

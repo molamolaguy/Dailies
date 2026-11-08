@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: android-actions/setup-android@v3
+      - name: Install Android platform 37
+        run: sdkmanager --install "platforms;android-37.0" "build-tools;37.0.0" || true
+      - name: Unit tests, JS tests, lint and debug build
+        run: ./gradlew --no-daemon testDebugUnitTest testHubJs lintDebug assembleDebug
+      - name: Ad-block list builder tests
+        run: python3 tools/test_build_adblock.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Dailies-debug
+          path: app/build/outputs/apk/debug/*.apk

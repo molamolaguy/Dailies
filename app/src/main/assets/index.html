@@ -1,0 +1,3761 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" data-m4-seed="wallpaper">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Dailies — Material 3 Expressive Daily Games Hub</title>
+  <link rel="stylesheet" href="app.css" />
+  <script>
+    // Synchronously apply safe-area padding & Material 3 dynamic wallpaper theme BEFORE body parses/paints
+    // so there is zero layout shift or theming lag on startup.
+    (function () {
+      const root = document.documentElement;
+      let amoled = false;
+      let useDynamic = true;
+      let cachedPalette = null;
+      try {
+        // Small launch-prefs record (the full hub state now lives in native storage and can be large).
+        const rawPrefs = localStorage.getItem('dailydeck_launch_prefs_v1');
+        const rawState = rawPrefs ? null : localStorage.getItem('dailydeck_hub_state_v3');
+        const prefs = rawPrefs ? JSON.parse(rawPrefs) : (rawState ? (JSON.parse(rawState) || {}).settings : null);
+        if (prefs && typeof prefs === 'object') {
+          amoled = Boolean(prefs.amoledDark);
+          useDynamic = prefs.dynamicWallpaper !== false;
+        }
+        const rawThemeCache = localStorage.getItem('dailydeck_launch_theme_cache_v1');
+        if (rawThemeCache) {
+          const tc = JSON.parse(rawThemeCache);
+          if (tc && typeof tc === 'object') {
+            if (typeof tc.topPx === 'number' && tc.topPx > 0) root.style.setProperty('--safe-top', tc.topPx + 'px');
+            if (typeof tc.bottomPx === 'number' && tc.bottomPx >= 0) root.style.setProperty('--safe-bottom', tc.bottomPx + 'px');
+            if (tc.palette && typeof tc.palette === 'object') cachedPalette = tc.palette;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.getInitialLaunchThemeJson === 'function') {
+          const env = JSON.parse(window.AndroidBridge.getInitialLaunchThemeJson());
+          if (env && typeof env === 'object') {
+            if (typeof env.topPx === 'number' && env.topPx >= 0) {
+              root.style.setProperty('--safe-top', env.topPx + 'px');
+            }
+            if (typeof env.bottomPx === 'number' && env.bottomPx >= 0) {
+              root.style.setProperty('--safe-bottom', env.bottomPx + 'px');
+            }
+            if (env.palette && typeof env.palette === 'object' && Object.keys(env.palette).length > 0) {
+              cachedPalette = env.palette;
+            }
+            try {
+              localStorage.setItem('dailydeck_launch_theme_cache_v1', JSON.stringify({
+                topPx: env.topPx,
+                bottomPx: env.bottomPx,
+                palette: cachedPalette
+              }));
+            } catch (e) {}
+          }
+        }
+      } catch (e) {}
+
+      root.setAttribute('data-amoled', amoled ? 'true' : 'false');
+      root.setAttribute('data-m4-seed', useDynamic ? 'wallpaper' : 'iris');
+      window.__INITIAL_WALLPAPER_PALETTE__ = cachedPalette;
+
+      // Defined here (not in the main script) so native inset updates apply even while the rest of the
+      // page is still parsing or images are still downloading.
+      window.applySafeAreaInsets = function (topPx, bottomPx, imeOpen) {
+        if (typeof topPx === 'number' && topPx >= 0) root.style.setProperty('--safe-top', topPx + 'px');
+        if (typeof bottomPx === 'number' && bottomPx >= 0) root.style.setProperty('--safe-bottom', bottomPx + 'px');
+        const bottomNav = document.getElementById('bottomNavWrapper');
+        if (bottomNav) bottomNav.classList.toggle('hidden', Boolean(imeOpen));
+      };
+
+      if (useDynamic && cachedPalette) {
+        if (!amoled && cachedPalette.surface) root.style.setProperty('--md-surface', cachedPalette.surface);
+        if (!amoled && cachedPalette.containerLow) root.style.setProperty('--md-container-low', cachedPalette.containerLow);
+        if (!amoled && cachedPalette.container) root.style.setProperty('--md-container', cachedPalette.container);
+        if (cachedPalette.containerHigh) root.style.setProperty('--md-container-high', cachedPalette.containerHigh);
+        if (cachedPalette.containerHighest) root.style.setProperty('--md-container-highest', cachedPalette.containerHighest);
+        if (cachedPalette.primary) root.style.setProperty('--md-primary', cachedPalette.primary);
+        if (cachedPalette.onPrimary) root.style.setProperty('--md-on-primary', cachedPalette.onPrimary);
+        if (cachedPalette.primaryContainer) root.style.setProperty('--md-primary-container', cachedPalette.primaryContainer);
+        if (cachedPalette.onPrimaryContainer) root.style.setProperty('--md-on-primary-container', cachedPalette.onPrimaryContainer);
+        if (cachedPalette.secondaryContainer) root.style.setProperty('--md-secondary-container', cachedPalette.secondaryContainer);
+        if (cachedPalette.tertiary) root.style.setProperty('--md-tertiary', cachedPalette.tertiary);
+        if (cachedPalette.tertiaryContainer) root.style.setProperty('--md-tertiary-container', cachedPalette.tertiaryContainer);
+      }
+    })();
+  </script>
+</head>
+<body class="min-h-screen">
+
+  <!-- Edge-to-Edge Material 3 Scaffold Main Content Container -->
+  <main id="m3Scaffold" class="m3-scaffold max-w-3xl mx-auto space-y-4">
+
+    <!-- View 1: MINIMALISTIC DAILY HUB -->
+    <section id="viewDashboard" class="space-y-4">
+      <!-- Minimal Status & Filter / Add Bar -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 text-xs text-slate-400">
+          <span class="inline-flex items-center gap-1.5 text-sm font-bold text-white tracking-tight mr-1">
+            <svg width="22" height="22" viewBox="0 0 108 108" class="rounded-md shrink-0">
+              <rect width="108" height="108" rx="26" fill="#141218"/>
+              <circle cx="54" cy="54" r="44" fill="#211F26"/>
+              <rect x="30" y="28" width="20" height="20" rx="4.5" fill="#4F378B"/>
+              <rect x="30" y="54" width="20" height="20" rx="4.5" fill="#D0BCFF"/>
+              <rect x="56" y="54" width="20" height="20" rx="4.5" fill="#4F378B"/>
+              <path d="M67,25 C69,33 72,36 80,38 C72,40 69,43 67,51 C65,43 62,40 54,38 C62,36 65,33 67,25 Z" fill="#EADDFF"/>
+            </svg>
+            Dailies
+          </span>
+          <span><strong id="kpiReadyCount" class="text-emerald-400 font-semibold">0</strong> ready</span>
+          <span>·</span>
+          <span><strong id="kpiDoneCount" class="text-slate-200 font-semibold">0 / 0</strong> done</span>
+          <span>·</span>
+          <span><span aria-hidden="true">🔥</span> <span class="sr-only">Top streak</span> <strong id="kpiTopStreak" class="text-amber-300 font-semibold">0d</strong></span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="flex items-center bg-slate-900/80 border border-slate-800 rounded-xl p-0.5 text-xs">
+            <button type="button" data-filter="all" aria-pressed="true" class="filter-tab px-2.5 py-1 rounded-lg bg-slate-800 text-white font-medium">All</button>
+            <button type="button" data-filter="ready" aria-pressed="false" class="filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Ready</button>
+            <button type="button" data-filter="completed" aria-pressed="false" class="filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Done</button>
+          </div>
+          <button id="btnOpenAddModal" type="button" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shrink-0">
+            + Add Game
+          </button>
+        </div>
+      </div>
+
+      <!-- Shown only when saved data exists but couldn't be read: saving is paused to protect it -->
+      <div id="dataProblemBanner" class="hidden glass-card rounded-2xl p-4 border border-rose-500/40" role="alert">
+        <p class="text-sm font-bold text-white">Your saved data couldn't be read</p>
+        <p class="text-xs text-slate-300 mt-1 leading-relaxed">To protect it, nothing is being saved right now. You can import a backup from Settings, or start fresh (the unreadable file is kept on the device, not deleted).</p>
+        <div class="flex items-center gap-2 mt-3">
+          <button id="btnDataStartFresh" type="button" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold">Start fresh</button>
+          <button id="btnDataGoImport" type="button" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold">Import a backup</button>
+        </div>
+      </div>
+
+      <!-- Clean Minimal Games List -->
+      <div id="gamesGrid" class="space-y-2.5"></div>
+    </section>
+
+    <!-- View 2: STREAKS & LOG (MONTHLY CALENDAR + DAILY COMPLETION & SCORE HISTORY) -->
+    <section id="viewStats" class="hidden space-y-4">
+      <!-- Monthly Game Completion & Missed Calendar -->
+      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-4">
+        <div class="space-y-2.5 border-b border-slate-800 pb-3.5">
+          <h3 class="text-base font-bold text-white">Completion Calendar</h3>
+          <select id="calendarGameSelect" aria-label="Game" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-semibold"></select>
+        </div>
+
+        <!-- Month navigation: icon arrows + one-line month label so nothing wraps on phones -->
+        <div class="cal-nav">
+          <button id="btnCalPrevMonth" type="button" class="icon-btn" aria-label="Previous month" title="Previous month">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <h4 id="calendarMonthLabel" class="cal-month">Month Year</h4>
+          <button id="btnCalNextMonth" type="button" class="icon-btn" aria-label="Next month" title="Next month">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+          <button id="btnCalToday" type="button" class="cal-today-btn">Today</button>
+        </div>
+
+        <div>
+          <div class="cal-grid mb-1.5">
+            <div class="cal-dow">S</div><div class="cal-dow">M</div><div class="cal-dow">T</div><div class="cal-dow">W</div><div class="cal-dow">T</div><div class="cal-dow">F</div><div class="cal-dow">S</div>
+          </div>
+          <div id="calendarDaysGrid" class="cal-grid"></div>
+          <div class="cal-legend pt-3">
+            <span><span class="status-dot status-ready"></span>Completed</span>
+            <span><span class="status-dot status-missed"></span>Missed</span>
+            <span><span class="status-dot" style="box-shadow: inset 0 0 0 2px var(--md-primary);"></span>Today</span>
+          </div>
+        </div>
+
+        <!-- Summary tiles -->
+        <div class="stat-tiles pt-3 border-t border-slate-800">
+          <div class="stat-tile">
+            <p class="k">Best streak</p>
+            <p id="calSummaryLongestStreak" class="v text-amber-300">🔥 0d</p>
+            <p id="calSummaryGameName" class="s">—</p>
+          </div>
+          <div class="stat-tile">
+            <p class="k">Current</p>
+            <p id="calSummaryCurrentStreak" class="v text-indigo-300">0d</p>
+            <p id="calSummaryMonthCounts" class="s">0 <span class="ico ico-check" aria-hidden="true"></span> 0 <span class="ico ico-close" aria-hidden="true"></span></p>
+          </div>
+          <div class="stat-tile">
+            <p class="k">Plays</p>
+            <p id="calSummaryTotalPlays" class="v text-emerald-300">0</p>
+            <p id="calSummarySubPlays" class="s">0 won · 0 missed</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Completion & Score History -->
+      <div class="glass-card rounded-2xl p-4 border border-slate-800">
+        <div class="mb-3">
+          <h3 class="text-base font-bold text-white">Score History</h3>
+          <p class="text-xs text-slate-400 mt-0.5">Every result you've logged, newest first.</p>
+        </div>
+        <div id="historyBlock">
+          <div id="historyTableBody" class="hist-list"></div>
+          <div id="historyPager" class="hist-pager hidden">
+            <button id="btnHistoryPrev" type="button" class="icon-btn" aria-label="Newer results">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <p class="page-label"><span id="historyPageLabel">Page 1 of 1</span><span id="historyCountLabel" class="page-sub"></span></p>
+            <button id="btnHistoryNext" type="button" class="icon-btn" aria-label="Older results">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+          <div id="historyDots" class="hist-dots"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- View 3: SETTINGS & REFRESH ALERTS TAB -->
+    <section id="viewSettings" class="hidden space-y-4">
+      <!-- 1. Display Settings -->
+      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+        <div class="border-b border-slate-800 pb-3">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span class="icon-label"><span class="ico ico-palette section-icon" aria-hidden="true"></span>Display</span>
+          </h3>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Match Device Wallpaper Colors</p>
+              <p class="text-[11px] text-slate-400">Use phone wallpaper colors</p>
+            </div>
+            <input id="settingDynamicWallpaper" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">AMOLED Pitch-Black Surface</p>
+              <p class="text-[11px] text-slate-400">Pure black background</p>
+            </div>
+            <input id="settingAmoledDark" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Compact Game Cards</p>
+              <p class="text-[11px] text-slate-400">Hide reset times &amp; shrink cards</p>
+            </div>
+            <input id="settingCompactCards" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+        </div>
+      </div>
+
+      <!-- 2. Gameplay, Streaks & Local Time Settings -->
+      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+        <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div class="min-w-0">
+            <h3 class="text-base font-bold text-white flex items-center gap-2 nowrap">
+              <span class="icon-label"><span class="ico ico-schedule section-icon" aria-hidden="true"></span>Gameplay &amp; Time</span>
+            </h3>
+          </div>
+          <span id="liveClockDisplay" class="shrink-0 tabular px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-[11px] text-emerald-300">--:--:--</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+            <div>
+              <p class="font-bold text-white">Local Time Display Format</p>
+              <p class="text-[11px] text-slate-400">12-hour or 24-hour clock</p>
+            </div>
+            <select id="settingTimeFormat" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+              <option value="12h">12-hour</option>
+              <option value="24h">24-hour</option>
+            </select>
+          </div>
+
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Show Seconds in Countdowns</p>
+              <p class="text-[11px] text-slate-400">Show seconds on timers</p>
+            </div>
+            <input id="settingShowSeconds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Ask to Log After Playing</p>
+              <p class="text-[11px] text-slate-400">Prompt when you come back from a game</p>
+            </div>
+            <input id="settingAskOnReturn" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Auto-Scrape URL on Paste</p>
+              <p class="text-[11px] text-slate-400">Auto-fill game info from link</p>
+            </div>
+            <input id="settingAutoScrape" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+        </div>
+      </div>
+
+      <!-- Game Player: share capture + ad blocking -->
+      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+        <div class="border-b border-slate-800 pb-3">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <span class="icon-label"><span class="ico ico-shield section-icon" aria-hidden="true"></span>Game Player</span>
+          </h3>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Auto-Log Shared Results</p>
+              <p class="text-[11px] text-slate-400">When a game's Share / Copy button gives your result, log it for you (with Undo)</p>
+            </div>
+            <input id="settingAutoLogShare" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Block Ads in Games</p>
+              <p id="adBlockInfo" class="text-[11px] text-slate-400">Blocks ads, trackers and ad pop-ups. Tap the shield in a game to allow ads on that site.</p>
+            </div>
+            <input id="settingBlockAds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+        </div>
+      </div>
+
+      <!-- 3. Daily Game Refresh Notification Engine -->
+      <div class="glass-card rounded-2xl p-4 border border-indigo-500/30">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <span class="icon-label"><span class="ico ico-bell section-icon" aria-hidden="true"></span>Reset Alerts</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Notify when each game resets.</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="btnRequestBrowserPerm" type="button" data-state="off" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow">Allow Notifications</button>
+          </div>
+        </div>
+
+        <!-- Per-Game Notification Schedule List -->
+        <div class="mt-3.5 space-y-2" id="notificationScheduleList"></div>
+      </div>
+
+      <!-- 4. Data & Backup Management -->
+      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+        <div>
+          <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-save section-icon" aria-hidden="true"></span>Data &amp; Backup</h3>
+          <p class="text-xs text-slate-400">Export or import your backup file.</p>
+        </div>
+        <div class="flex flex-col gap-2.5 w-full">
+          <button id="btnSettingsExportJson" type="button" class="w-full px-4 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold text-center">Save Backup (.json)</button>
+          <button id="btnSettingsImportJson" type="button" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold text-center">Import Backup (.json or .txt)</button>
+          <input id="inputImportBackupFile" type="file" accept=".txt,.json,text/plain,application/json" class="hidden" />
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ADD / EDIT GAME MODAL (Refresh Schedule Reference always uses device local time) -->
+  <div id="modalAddGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalAddTitle">
+    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-lg border border-indigo-500/30 shadow-2xl overflow-hidden">
+      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+        <h3 id="modalAddTitle" class="text-sm sm:text-base font-bold text-white">Add Daily Game by Link</h3>
+        <button id="btnCloseAddModal" type="button" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+
+      <form id="formSaveGame" class="p-4 space-y-3.5 text-xs sm:text-sm">
+        <input type="hidden" id="editGameId" value="" />
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="inputGameUrl" class="block text-xs font-semibold text-slate-300">Daily Game URL *</label>
+            <span id="scrapeStatusBadge" class="text-[11px] text-indigo-300 hidden">Scraping site metadata...</span>
+          </div>
+          <div class="flex gap-2">
+            <input id="inputGameUrl" type="text" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" required placeholder="Paste a daily game link, e.g. nytimes.com/games/wordle" class="flex-1 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+            <button id="btnAutoDetectMeta" type="button" class="px-3 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold shrink-0">Scrape Site</button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="sm:col-span-2">
+            <label for="inputGameName" class="block text-xs font-semibold text-slate-300 mb-1">Game Title *</label>
+            <input id="inputGameName" type="text" required placeholder="e.g. Wordle" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+          </div>
+          <div>
+            <label for="inputGameIcon" class="block text-xs font-semibold text-slate-300 mb-1">Favicon URL / Icon</label>
+            <div class="flex items-center gap-2">
+              <div id="inputIconPreview" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden text-base"><span class="ico ico-gamepad ico-lg" aria-hidden="true"></span></div>
+              <input id="inputGameIcon" type="text" value="" placeholder="Icon image URL (optional)" class="w-full px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs" />
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="inputGameCategory" class="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+            <select id="inputGameCategory" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white">
+              <option value="Gaming & RPG">Gaming &amp; RPG</option>
+              <option value="Word & Association">Word &amp; Association</option>
+              <option value="Geography & Maps">Geography &amp; Maps</option>
+              <option value="Math & Logic">Math &amp; Logic</option>
+              <option value="Movies & Media">Movies &amp; Media</option>
+              <option value="Custom Daily">Custom Daily</option>
+            </select>
+          </div>
+          <div>
+            <label for="inputGameMaxTries" class="block text-xs font-semibold text-slate-300 mb-1">Target Format / Par</label>
+            <input id="inputGameMaxTries" type="text" placeholder="e.g. 8 guesses, Daily Dive" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-900/70 border border-slate-800">
+          <label for="inputResetTime" class="block text-xs font-semibold text-indigo-300 mb-1">Daily Refresh Time * <span class="text-slate-400 font-medium">(in the zone the game uses)</span></label>
+          <div class="flex items-center gap-2">
+            <input id="inputResetTime" type="time" value="00:00" required class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono" />
+            <select id="inputResetZone" aria-label="Time zone the reset time is in" class="shrink-0 px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white" style="max-width: 46%;">
+              <option value="local">My local time</option>
+              <option value="utc">UTC</option>
+            </select>
+          </div>
+          <p id="inputResetZoneHint" class="mt-1 text-[11px] text-slate-400"></p>
+        </div>
+
+        <div>
+          <label for="inputGameDesc" class="block text-xs font-semibold text-slate-300 mb-1">Notes / Rules Reminder</label>
+          <input id="inputGameDesc" type="text" placeholder="e.g. Color-coded character attributes across 14 Fire Emblem releases" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+        </div>
+
+        <label class="flex items-center gap-2.5 cursor-pointer select-none pt-1">
+          <input id="inputNotifyEnabled" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500" />
+          <span class="text-xs text-slate-200">Notify me right when this game's next puzzle reset occurs</span>
+        </label>
+
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button id="btnRemoveFromEdit" type="button" class="hidden mr-auto px-3 py-2 rounded-xl text-rose-300 text-xs font-semibold border border-rose-500/30">Remove game</button>
+          <button id="btnCancelAddModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg">Save Daily Game</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- QUICK LOG SCORE MODAL (Preserving Pasted Text Formatting) -->
+  <div id="modalLogScore" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalLogTitle">
+    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-emerald-500/30 shadow-2xl overflow-hidden">
+      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+        <h3 id="modalLogTitle" class="text-sm sm:text-base font-bold text-white">Log Today's Result</h3>
+        <button id="btnCloseLogModal" type="button" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <form id="formLogScore" class="p-4 space-y-3.5 text-xs sm:text-sm">
+        <input type="hidden" id="logGameId" value="" />
+        <div>
+          <p id="logOutcomeLabel" class="block text-xs font-semibold text-slate-300 mb-1.5">Outcome</p>
+          <div class="grid grid-cols-2 gap-2.5" role="group" aria-labelledby="logOutcomeLabel">
+            <button type="button" data-status-pick="completed" class="status-pick-btn py-2.5 px-3 rounded-xl border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs icon-label w-full"><span class="ico ico-solved ico-lg" aria-hidden="true"></span>Solved / Won</button>
+            <button type="button" data-status-pick="missed" class="status-pick-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs icon-label w-full"><span class="ico ico-missed ico-lg" aria-hidden="true"></span>Missed</button>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <label for="inputLogScoreText" class="block text-xs font-semibold text-slate-300 nowrap">Score / share text</label>
+            <button id="btnPasteScore" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold nowrap icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Paste</button>
+          </div>
+          <textarea id="inputLogScoreText" rows="5" placeholder="Paste the result the game copied (emoji grids and line breaks are kept)…" style="white-space: pre-wrap; tab-size: 4;" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-xs leading-relaxed placeholder-slate-500 resize-y"></textarea>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button id="btnCancelLogModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg">Save Progress</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DELETE GAME CONFIRMATION POPUP MODAL -->
+  <div id="modalDeleteGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalDeleteTitle">
+    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-rose-500/30 shadow-2xl overflow-hidden">
+      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+        <h3 id="modalDeleteTitle" class="text-sm sm:text-base font-bold text-white">Remove Game</h3>
+        <button id="btnCloseDeleteModal" type="button" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="p-4 space-y-4 text-xs sm:text-sm">
+        <input type="hidden" id="deleteGameId" value="" />
+        <p id="modalDeleteMessage" class="text-slate-200 leading-relaxed">
+          Are you sure you want to remove this game from the app? Streaks and log data will be retained.
+        </p>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button id="btnCancelDeleteModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
+          <button id="btnConfirmDeleteModal" type="button" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION BANNER -->
+  <div id="toastContainer" role="status" aria-live="polite" style="top: calc(var(--safe-top, 0px) + 0.75rem);" class="fixed z-50 flex flex-col gap-2 max-w-md pointer-events-none"></div>
+
+  <!-- "FINISHED PLAYING?" SHEET (shown when returning from a game that isn't logged yet) -->
+  <div id="returnPrompt" class="return-sheet hidden" role="dialog" aria-labelledby="returnPromptTitle">
+    <div class="return-card">
+      <div class="return-head">
+        <div id="returnPromptIcon" class="m3-shape-avatar-compact m3-shape-3 shrink-0 overflow-hidden"></div>
+        <div class="min-w-0 flex-1">
+          <p id="returnPromptTitle" class="return-title">Finished?</p>
+          <p id="returnPromptSub" class="return-sub">Log today's result to keep your streak.</p>
+        </div>
+        <button type="button" data-return-action="later" class="icon-btn ghost" aria-label="Not now"><span class="ico ico-close ico-lg" aria-hidden="true"></span></button>
+      </div>
+      <div id="returnPromptCycle" class="return-cycle hidden" role="group" aria-label="Which puzzle">
+        <button type="button" data-cycle="opened" aria-pressed="true">Yesterday's puzzle</button>
+        <button type="button" data-cycle="current" aria-pressed="false">Today's puzzle</button>
+      </div>
+      <div class="return-actions">
+        <button type="button" data-return-action="solved" class="return-btn primary icon-label"><span class="ico ico-solved ico-lg" aria-hidden="true"></span>Solved</button>
+        <button type="button" data-return-action="missed" class="return-btn icon-label"><span class="ico ico-missed ico-lg" aria-hidden="true"></span>Missed</button>
+        <button type="button" data-return-action="details" class="return-btn icon-label"><span class="ico ico-paste ico-lg" aria-hidden="true"></span>Score</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANDROID MATERIAL 3 EXPRESSIVE FLOATING NAVIGATION BAR -->
+  <nav id="bottomNavWrapper" class="m3-bottom-nav-wrapper" aria-label="Primary Navigation">
+    <div class="m4-floating-dock pointer-events-auto px-3 py-1.5 grid grid-cols-3 gap-2">
+      <button type="button" data-nav="dashboard" aria-current="page" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full m4-tonal-pill font-bold text-[11px]">
+        <span class="m3-floating-icon mb-0.5" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="6" width="20" height="12" rx="6" />
+            <path d="M6 12h4M8 10v4" />
+            <circle cx="15" cy="11" r="0.85" fill="currentColor" />
+            <circle cx="17.5" cy="13" r="0.85" fill="currentColor" />
+          </svg>
+        </span>
+        <span>Daily Hub</span>
+      </button>
+      <button type="button" data-nav="stats" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]">
+        <span class="m3-floating-icon mb-0.5" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18" />
+            <rect x="7" y="12" width="2.5" height="6" rx="0.6" />
+            <rect x="12" y="8" width="2.5" height="10" rx="0.6" />
+            <rect x="17" y="5" width="2.5" height="13" rx="0.6" />
+          </svg>
+        </span>
+        <span>Streaks &amp; Log</span>
+      </button>
+      <button type="button" data-nav="settings" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]">
+        <span class="m3-floating-icon mb-0.5" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3.2" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </span>
+        <span>Settings</span>
+      </button>
+    </div>
+  </nav>
+
+  <script src="hub-core.js"></script>
+  <script src="known-games.js"></script>
+  <script>
+    // =========================================================================
+    // TRANSPARENT OUTLINE PNG ICON GENERATOR (Matches Nav Bar 1.8px Stroke Theme)
+    // =========================================================================
+    const OUTLINE_PNG_ICONS = (() => {
+      function renderOutlinePng(drawFn, strokeColor) {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 72;
+          canvas.height = 72;
+          const ctx = canvas.getContext('2d');
+          ctx.scale(3, 3);
+          ctx.strokeStyle = strokeColor || '#E2E8F0';
+          ctx.lineWidth = 1.85;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+          drawFn(ctx);
+          return canvas.toDataURL('image/png');
+        } catch (e) {
+          return '';
+        }
+      }
+
+      const checkPng = renderOutlinePng((ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(4.5, 12.5);
+        ctx.lineTo(9.5, 17.5);
+        ctx.lineTo(19.5, 6.5);
+        ctx.stroke();
+      }, '#E2E8F0');
+
+      const settingsPng = renderOutlinePng((ctx) => {
+        if (typeof Path2D === 'function') {
+          ctx.stroke(new Path2D('M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z'));
+        }
+        ctx.beginPath();
+        ctx.arc(12, 12, 3.2, 0, Math.PI * 2);
+        ctx.stroke();
+      }, '#CBD5E1');
+
+      const upPng = renderOutlinePng((ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(6, 15);
+        ctx.lineTo(12, 9);
+        ctx.lineTo(18, 15);
+        ctx.stroke();
+      }, '#CBD5E1');
+
+      const downPng = renderOutlinePng((ctx) => {
+        ctx.beginPath();
+        ctx.moveTo(6, 9);
+        ctx.lineTo(12, 15);
+        ctx.lineTo(18, 9);
+        ctx.stroke();
+      }, '#CBD5E1');
+
+      return {
+        check: checkPng,
+        settings: settingsPng,
+        up: upPng,
+        down: downPng
+      };
+    })();
+
+    // =========================================================================
+    // DATA MODEL, PRESET CATALOG & STATE PERSISTENCE
+    // =========================================================================
+    const STORAGE_KEY = 'dailydeck_hub_state_v3';
+    const MAX_DAY_HISTORY_ENTRIES = 400;
+    const TAB_ORDER = ['dashboard', 'stats', 'settings'];
+
+    // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
+    // which drifted by an hour at every DST change). State is stored natively without size caps.
+    const STATE_SCHEMA_VERSION = 4;
+    const APP_VERSION = '1.0.0';
+    const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
+
+    const TIME_FMT_12 = (() => {
+      try {
+        return new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+      } catch (e) {
+        return null;
+      }
+    })();
+    const TIME_FMT_24 = (() => {
+      try {
+        return new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+      } catch (e) {
+        return null;
+      }
+    })();
+
+    const cardTimerElements = new Map();
+    const schedTimerElements = new Map();
+
+    // Date / cycle math lives in hub-core.js (unit tested); these aliases keep call sites short.
+    const getCycleDateKey = HubCore.getCycleDateKey;
+    const cycleKeyToDay = HubCore.cycleKeyToDay;
+    const addDaysToCycleKey = HubCore.addDaysToCycleKey;
+
+    function getDefaultSettings() {
+      return {
+        dynamicWallpaper: true,
+        themeSeed: 'wallpaper',
+        amoledDark: false,
+        compactCards: false,
+        autoMarkMissed: true,
+        timeFormat: '12h',
+        showSeconds: true,
+        autoScrape: true,
+        askToLogOnReturn: true,
+        autoLogFromShare: true,
+        blockAdsInGames: true,
+        confirmDelete: true
+      };
+    }
+
+    /** First launch starts with an empty hub; games are only ever added by the user. */
+    function createInitialState() {
+      return {
+        schemaVersion: STATE_SCHEMA_VERSION,
+        activeFilter: 'all',
+        activeGameId: '',
+        settings: getDefaultSettings(),
+        games: [],
+        retainedGameStats: {},
+        historyLogs: [],
+        notifications: []
+      };
+    }
+
+    function recomputeGameStatsFromHistory(game) {
+      return HubCore.recomputeGameStatsFromHistory(game);
+    }
+
+    function normalizeGameObject(g, idx) {
+      if (!g || typeof g !== 'object') return null;
+      const cleanedUrl = cleanGameUrl(g.url);
+      if (!cleanedUrl) return null;
+      try {
+        const u = new URL(cleanedUrl);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+      } catch (e) {
+        return null;
+      }
+      const resetTime = HubCore.sanitizeResetTime(g.resetTime);
+      const resetZone = HubCore.normalizeZone(g.resetZone);
+      const cleanHistory = HubCore.cleanDayHistory(g.dayHistory);
+
+      const norm = {
+        id: String(g.id || ('game-' + idx + '-' + Date.now().toString(36))).trim(),
+        name: String(g.name || 'Daily Game').trim().slice(0, 80) || 'Daily Game',
+        url: cleanedUrl,
+        icon: isImageIcon(g.icon) ? String(g.icon).trim() : getDefaultFaviconUrl(cleanedUrl),
+        category: String(g.category || 'Custom Daily'),
+        resetTime,
+        resetZone,
+        maxTries: String(g.maxTries || 'Daily Puzzle'),
+        desc: String(g.desc || ''),
+        notifyEnabled: g.notifyEnabled !== false,
+        status: (g.status === 'completed' || g.status === 'missed') ? g.status : 'ready',
+        todayScore: typeof g.todayScore === 'string' ? g.todayScore : '',
+        streak: Math.max(0, parseInt(g.streak, 10) || 0),
+        bestStreak: Math.max(0, parseInt(g.bestStreak, 10) || 0),
+        totalPlayed: Math.max(0, parseInt(g.totalPlayed, 10) || 0),
+        totalWon: Math.max(0, parseInt(g.totalWon, 10) || 0),
+        lastCycleKey: /^\d{4}-\d{2}-\d{2}$/.test(String(g.lastCycleKey || ''))
+          ? String(g.lastCycleKey)
+          : getCycleDateKey(resetTime, resetZone),
+        dayHistory: cleanHistory,
+        statsBaseline: (g.statsBaseline && typeof g.statsBaseline === 'object') ? g.statsBaseline : undefined
+      };
+      if (!norm.statsBaseline) delete norm.statsBaseline;
+      // Old saves kept bare counters; fold them into a one-time baseline so totals can go down again.
+      HubCore.ensureStatsBaseline(norm);
+      recomputeGameStatsFromHistory(norm);
+      return norm;
+    }
+
+    /** A retained (deleted-game) snapshot, validated: null if unusable. */
+    function normalizeRetained(r) {
+      if (!r || typeof r !== 'object' || typeof r.id !== 'string' || !r.id.trim()) return null;
+      const url = cleanGameUrl(r.url);
+      if (!url) return null;
+      const out = {
+        id: r.id.trim(), name: String(r.name || 'Daily Game').slice(0, 80), url,
+        icon: isImageIcon(r.icon) ? String(r.icon) : getDefaultFaviconUrl(url),
+        resetTime: HubCore.sanitizeResetTime(r.resetTime), resetZone: HubCore.normalizeZone(r.resetZone),
+        dayHistory: HubCore.cleanDayHistory(r.dayHistory),
+        totalPlayed: Math.max(0, parseInt(r.totalPlayed, 10) || 0), totalWon: Math.max(0, parseInt(r.totalWon, 10) || 0),
+        bestStreak: Math.max(0, parseInt(r.bestStreak, 10) || 0), streak: 0
+      };
+      if (r.statsBaseline && typeof r.statsBaseline === 'object') out.statsBaseline = r.statsBaseline;
+      return out;
+    }
+    function normalizeRetainedMap(raw) {
+      const out = {};
+      if (!raw || typeof raw !== 'object') return out;
+      Object.keys(raw).forEach((k) => {
+        const r = normalizeRetained(raw[k]);
+        if (r) out[k] = r;
+      });
+      return out;
+    }
+
+    function hasNativeStore() {
+      return Boolean(window.AndroidBridge && typeof window.AndroidBridge.loadHubState === 'function'
+        && typeof window.AndroidBridge.saveHubState === 'function');
+    }
+
+    // Returned by the native store when hub_state.json exists but can't be read.
+    const NATIVE_READ_ERROR = '__DAILES_READ_ERROR__';
+
+    /**
+     * All saved copies, newest first (by their savedAt stamp). The localStorage copy only exists if a
+     * native save once failed, so it can be newer than the native file.
+     */
+    function readSavedCopies() {
+      const copies = [];
+      let unreadable = false;
+      if (hasNativeStore()) {
+        try {
+          const nativeRaw = window.AndroidBridge.loadHubState();
+          if (nativeRaw === NATIVE_READ_ERROR) unreadable = true;
+          else if (nativeRaw && String(nativeRaw).trim()) copies.push({ raw: String(nativeRaw), source: 'native' });
+        } catch (e) {
+          unreadable = true;
+        }
+      }
+      try {
+        const legacy = localStorage.getItem(STORAGE_KEY);
+        if (legacy) copies.push({ raw: legacy, source: 'localStorage' });
+      } catch (e) {}
+      return { copies, unreadable };
+    }
+
+    /**
+     * v3 -> v4: FE Guess (and the old UTC presets) were stored as "UTC midnight flattened to local time".
+     * Restore them to a real 00:00 UTC schedule and move their day keys to the UTC calendar so streaks
+     * and history keep lining up with the actual puzzles.
+     */
+    const LEGACY_UTC_MIDNIGHT_HOSTS = ['fe-guess.com', 'framed.wtf', 'nerdlegame.com', 'wafflegame.net'];
+    function migrateLegacyFlattenedUtc(g, logs) {
+      if (!g || HubCore.normalizeZone(g.resetZone) === 'utc') return;
+      let host = '';
+      try { host = new URL(g.url).hostname.replace(/^www\./i, '').toLowerCase(); } catch (e) { return; }
+      if (!LEGACY_UTC_MIDNIGHT_HOSTS.some((h) => host === h || host.endsWith('.' + h))) return;
+      // Accept the local equivalent of 00:00 UTC under the current offset or one DST hour either side.
+      const now = new Date();
+      const utcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      const candidates = [-60, 0, 60].map((delta) => {
+        const d = new Date(utcMidnight.getTime() + delta * 60000);
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      });
+      if (!candidates.includes(g.resetTime)) return;
+      const from = { resetTime: g.resetTime, resetZone: 'local' };
+      const to = { resetTime: '00:00', resetZone: 'utc' };
+      applyScheduleChange(g, from, to, logs);
+    }
+
+    /** Moves a game's day keys (history, log rows, cycle anchor) when its reset definition changes. */
+    function applyScheduleChange(g, from, to, logs) {
+      const shift = HubCore.scheduleKeyShift(from, to);
+      g.resetTime = to.resetTime;
+      g.resetZone = to.resetZone;
+      if (shift) {
+        g.dayHistory = HubCore.shiftDayHistory(g.dayHistory, shift);
+        if (HubCore.DATE_KEY_RE.test(String(g.lastCycleKey || ''))) {
+          g.lastCycleKey = HubCore.addDaysToCycleKey(g.lastCycleKey, shift);
+        }
+        (logs || []).forEach((l) => {
+          // Rows from older versions only carry the game's name.
+          const mine = l && (l.gameId ? l.gameId === g.id : l.gameName === g.name);
+          if (mine && HubCore.DATE_KEY_RE.test(String(l.date || ''))) {
+            l.date = HubCore.addDaysToCycleKey(l.date, shift);
+          }
+        });
+        invalidateLogIndex();
+      }
+      return shift;
+    }
+
+    function parseSavedState(raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        return (parsed && typeof parsed === 'object' && Array.isArray(parsed.games)) ? parsed : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function stateFromParsed(parsed, source) {
+      const logs = Array.isArray(parsed.historyLogs)
+        ? parsed.historyLogs.filter((l) => l && typeof l === 'object' && typeof l.date === 'string')
+        : [];
+      const isLegacySchema = !(Number(parsed.schemaVersion) >= STATE_SCHEMA_VERSION);
+      const seenIds = new Set();
+      const validGames = [];
+      parsed.games.forEach((g, idx) => {
+        const norm = normalizeGameObject(g, idx);
+        if (!norm) return;
+        if (seenIds.has(norm.id)) {
+          // Two games with the same id: keep both (rename the second) rather than dropping one.
+          norm.id = HubCore.uniqueId(norm.id, seenIds);
+        }
+        if (isLegacySchema) {
+          migrateLegacyFlattenedUtc(norm, logs);
+          recomputeGameStatsFromHistory(norm);
+        }
+        seenIds.add(norm.id);
+        validGames.push(norm);
+      });
+      return {
+        schemaVersion: STATE_SCHEMA_VERSION,
+        activeFilter: ['all', 'ready', 'completed'].includes(parsed.activeFilter) ? parsed.activeFilter : 'all',
+        activeGameId: String(parsed.activeGameId || (validGames[0] ? validGames[0].id : '')),
+        settings: Object.assign(getDefaultSettings(), parsed.settings || {}, { autoMarkMissed: true }),
+        games: validGames,
+        retainedGameStats: normalizeRetainedMap(parsed.retainedGameStats),
+        historyLogs: logs,
+        notifications: Array.isArray(parsed.notifications) ? parsed.notifications.slice(0, 50) : [],
+        __loadedFrom: source
+      };
+    }
+
+    function loadState() {
+      const { copies, unreadable } = readSavedCopies();
+      let best = null;
+      let unparsable = false;
+      copies.forEach((c) => {
+        const parsed = parseSavedState(c.raw);
+        if (!parsed) { unparsable = unparsable || c.source === 'native'; return; }
+        const at = Number(parsed.savedAt) || 0;
+        if (!best || at > best.at) best = { parsed, at, source: c.source };
+      });
+      if (best && !unreadable && !unparsable) return stateFromParsed(best.parsed, best.source);
+      if (unreadable || unparsable) {
+        // Saved data exists but can't be used. Never overwrite it: start in a protected, read-only
+        // mode and let the user decide (keep waiting / start fresh / import a backup).
+        const st = best ? stateFromParsed(best.parsed, best.source) : createInitialState();
+        st.__saveBlocked = true;
+        return st;
+      }
+      return createInitialState();
+    }
+
+    let state = loadState();
+    let activeTab = 'dashboard';
+    let selectedLogStatus = 'completed';
+    let deviceWallpaperPalette = window.__INITIAL_WALLPAPER_PALETTE__ || null;
+    let calendarYear = new Date().getFullYear();
+    let calendarMonth = new Date().getMonth();
+    let selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
+    let syncDebounceTimer = null;
+    let liveTickIntervalId = null;
+    let historyPage = 0; // 0 = newest page
+
+    function serializeState() {
+      const copy = Object.assign({}, state, { schemaVersion: STATE_SCHEMA_VERSION, savedAt: Date.now() });
+      Object.keys(copy).forEach((k) => { if (k.startsWith('__')) delete copy[k]; });
+      return JSON.stringify(copy);
+    }
+
+    function saveLaunchPrefs() {
+      try {
+        const s = state.settings || {};
+        localStorage.setItem('dailydeck_launch_prefs_v1', JSON.stringify({
+          amoledDark: Boolean(s.amoledDark),
+          dynamicWallpaper: s.dynamicWallpaper !== false
+        }));
+      } catch (e) {}
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.setThemePrefs === 'function') {
+          const s = state.settings || {};
+          window.AndroidBridge.setThemePrefs(s.dynamicWallpaper !== false, Boolean(s.amoledDark));
+        }
+        if (window.AndroidBridge && typeof window.AndroidBridge.setGamePrefs === 'function') {
+          const s = state.settings || {};
+          window.AndroidBridge.setGamePrefs(s.blockAdsInGames !== false, s.autoLogFromShare !== false);
+        }
+      } catch (e) {}
+    }
+
+    // Several saveState() calls in the same task (e.g. a rollover + a log) are merged into one write.
+    let saveQueued = false;
+    let syncWanted = false;
+    function saveState(opts) {
+      if (!opts || opts.sync !== false) syncWanted = true;
+      if (opts && opts.syncNow) syncWanted = 'now';
+      if (saveQueued) return;
+      saveQueued = true;
+      queueMicrotask(flushSaveNow);
+    }
+
+    function flushSaveNow() {
+      saveQueued = false;
+      if (state.__saveBlocked) {
+        showDataProblemBanner();
+        return;
+      }
+      const json = serializeState();
+      let savedNatively = false;
+      if (hasNativeStore()) {
+        try {
+          // Native file storage has no practical size limit (localStorage tops out around 5 MB).
+          window.AndroidBridge.saveHubState(json);
+          savedNatively = true;
+        } catch (e) {}
+      }
+      if (!savedNatively) {
+        try {
+          localStorage.setItem(STORAGE_KEY, json);
+        } catch (e) {
+          showToast('Storage full', 'Could not save your latest changes. Export a backup from Settings.', 'indigo');
+        }
+      }
+      saveLaunchPrefs();
+      if (syncWanted === 'now') flushSyncNativeNow();
+      else if (syncWanted) scheduleSyncNative();
+      syncWanted = false;
+    }
+
+    /** Banner shown when saved data exists but couldn't be read; saving stays off until resolved. */
+    function showDataProblemBanner() {
+      const el = document.getElementById('dataProblemBanner');
+      if (el) el.classList.remove('hidden');
+    }
+    function resolveDataProblemStartFresh() {
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.quarantineHubState === 'function') {
+          window.AndroidBridge.quarantineHubState(); // keeps the unreadable file aside, never deletes it
+        }
+      } catch (e) {}
+      state.__saveBlocked = false;
+      const el = document.getElementById('dataProblemBanner');
+      if (el) el.classList.add('hidden');
+      saveState({ syncNow: true });
+      renderAll();
+      showToast('Started fresh', 'Your unreadable data was kept aside on the device, not deleted.', 'indigo');
+    }
+
+    function flushSyncNativeNow() {
+      if (syncDebounceTimer) {
+        clearTimeout(syncDebounceTimer);
+        syncDebounceTimer = null;
+      }
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.syncGames === 'function') {
+          window.AndroidBridge.syncGames(JSON.stringify(state.games.map((g) => ({
+            id: g.id,
+            name: g.name,
+            icon: g.icon,
+            url: g.url,
+            resetTime: g.resetTime,
+            resetZone: HubCore.normalizeZone(g.resetZone),
+            notifyEnabled: Boolean(g.notifyEnabled),
+            lastCycleKey: g.lastCycleKey || getCycleDateKey(g.resetTime, g.resetZone),
+            lastPlayedCycle: g.status === 'completed' ? getCycleDateKey(g.resetTime, g.resetZone) : '',
+            status: g.status || 'ready',
+            streak: g.streak || 0
+          }))));
+        }
+      } catch (e) {}
+    }
+
+    function scheduleSyncNative() {
+      if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+      syncDebounceTimer = setTimeout(flushSyncNativeNow, 180);
+    }
+
+    // =========================================================================
+    // DEVICE WALLPAPER DYNAMIC COLOR & EDGE-TO-EDGE INSETS BRIDGE
+    // =========================================================================
+    window.applyDeviceDynamicColors = function (palette) {
+      if (!palette || typeof palette !== 'object') return;
+      deviceWallpaperPalette = palette;
+      try {
+        localStorage.setItem('dailydeck_launch_theme_cache_v1', JSON.stringify({
+          topPx: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-top'), 10) || 0,
+          bottomPx: parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom'), 10) || 0,
+          palette: palette
+        }));
+      } catch (e) {}
+      applyThemeAndSettings();
+    };
+
+    function applyThemeAndSettings() {
+      if (!state.settings) state.settings = getDefaultSettings();
+      const root = document.documentElement;
+      const s = state.settings;
+
+      root.setAttribute('data-amoled', s.amoledDark ? 'true' : 'false');
+      const seed = s.dynamicWallpaper ? 'wallpaper' : (s.themeSeed || 'iris');
+      root.setAttribute('data-m4-seed', seed);
+
+      const props = [
+        '--md-surface', '--md-container-low', '--md-container',
+        '--md-container-high', '--md-container-highest',
+        '--md-primary', '--md-on-primary',
+        '--md-primary-container', '--md-on-primary-container',
+        '--md-secondary-container', '--md-tertiary', '--md-tertiary-container',
+        '--md-outline', '--md-glow'
+      ];
+
+      if (s.dynamicWallpaper && deviceWallpaperPalette) {
+        if (!s.amoledDark && deviceWallpaperPalette.surface) root.style.setProperty('--md-surface', deviceWallpaperPalette.surface);
+        if (!s.amoledDark && deviceWallpaperPalette.containerLow) root.style.setProperty('--md-container-low', deviceWallpaperPalette.containerLow);
+        if (!s.amoledDark && deviceWallpaperPalette.container) root.style.setProperty('--md-container', deviceWallpaperPalette.container);
+        if (deviceWallpaperPalette.containerHigh) root.style.setProperty('--md-container-high', deviceWallpaperPalette.containerHigh);
+        if (deviceWallpaperPalette.containerHighest) root.style.setProperty('--md-container-highest', deviceWallpaperPalette.containerHighest);
+        if (deviceWallpaperPalette.primary) root.style.setProperty('--md-primary', deviceWallpaperPalette.primary);
+        if (deviceWallpaperPalette.onPrimary) root.style.setProperty('--md-on-primary', deviceWallpaperPalette.onPrimary);
+        if (deviceWallpaperPalette.primaryContainer) root.style.setProperty('--md-primary-container', deviceWallpaperPalette.primaryContainer);
+        if (deviceWallpaperPalette.onPrimaryContainer) root.style.setProperty('--md-on-primary-container', deviceWallpaperPalette.onPrimaryContainer);
+        if (deviceWallpaperPalette.secondaryContainer) root.style.setProperty('--md-secondary-container', deviceWallpaperPalette.secondaryContainer);
+        if (deviceWallpaperPalette.tertiary) root.style.setProperty('--md-tertiary', deviceWallpaperPalette.tertiary);
+        if (deviceWallpaperPalette.tertiaryContainer) root.style.setProperty('--md-tertiary-container', deviceWallpaperPalette.tertiaryContainer);
+      } else {
+        props.forEach((p) => root.style.removeProperty(p));
+      }
+    }
+
+    // =========================================================================
+    // LOCAL TIME FORMATTING HELPERS (Always Device Local Time, No Timezone Suffix)
+    // =========================================================================
+    function getLocalResetHourMinute(resetTime, resetZone) {
+      return HubCore.getLocalResetHourMinute(resetTime, resetZone);
+    }
+
+    function formatLocalClockHM(hour, minute) {
+      const use24 = state && state.settings && state.settings.timeFormat === '24h';
+      const mStr = String(minute).padStart(2, '0');
+      if (use24) {
+        return `${String(hour).padStart(2, '0')}:${mStr}`;
+      }
+      const period = hour >= 12 ? 'PM' : 'AM';
+      const h12 = hour % 12 || 12;
+      return `${h12}:${mStr} ${period}`;
+    }
+
+    function formatLocalResetTime(resetTime, resetZone) {
+      const { hour, minute } = getLocalResetHourMinute(resetTime, resetZone);
+      return formatLocalClockHM(hour, minute);
+    }
+
+    function formatLocalNowTime(dateObj) {
+      const d = dateObj || new Date();
+      const use24 = state && state.settings && state.settings.timeFormat === '24h';
+      const fmt = use24 ? TIME_FMT_24 : TIME_FMT_12;
+      if (fmt) return fmt.format(d);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: !use24 });
+    }
+
+    // =========================================================================
+    // COUNTDOWN & DAILY REFRESH ENGINE
+    // =========================================================================
+    function getMsUntilNextReset(resetTime, resetZone) {
+      return HubCore.getMsUntilNextReset(resetTime, resetZone);
+    }
+
+    function formatDurationHMS(ms) {
+      const totalSec = Math.floor(ms / 1000);
+      const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+      const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+      const s = String(totalSec % 60).padStart(2, '0');
+      if (state && state.settings && state.settings.showSeconds === false) {
+        return `${h}h ${m}m`;
+      }
+      return `${h}h ${m}m ${s}s`;
+    }
+
+    // Persistent "gameId|date" -> row index over the (unbounded) history log. Rebuilt lazily when the
+    // array is replaced or changes length; call invalidateLogIndex() after editing dates in place.
+    // `var` (hoisted): loadState() can invalidate the index before this part of the script runs.
+    var logIndexCache = null;
+    var logIndexArray = null;
+    var logIndexLength = -1;
+    function invalidateLogIndex() {
+      logIndexCache = null;
+    }
+    function getLogIndex() {
+      if (!logIndexCache || logIndexArray !== state.historyLogs || logIndexLength !== state.historyLogs.length) {
+        logIndexCache = HubCore.indexHistoryLogs(state.historyLogs);
+        logIndexArray = state.historyLogs;
+        logIndexLength = state.historyLogs.length;
+      }
+      return logIndexCache;
+    }
+    function findLogRow(game, date) {
+      const idx = getLogIndex();
+      return idx.get(`${game.id}|${date}`) || idx.get(`name:${game.name}|${date}`) || null;
+    }
+
+    function appendAutoMissedLog(game, cycleKey) {
+      const alreadyLogged = Boolean(findLogRow(game, cycleKey));
+      if (!alreadyLogged) {
+        state.historyLogs.unshift({
+          date: cycleKey,
+          localTime: formatLocalResetTime(game.resetTime, game.resetZone),
+          gameId: game.id,
+          gameName: game.name,
+          icon: game.icon,
+          outcome: 'Missed',
+          score: 'Auto-marked missed (daily reset occurred before completion)',
+          streak: 0
+        });
+      }
+    }
+
+    function checkDailyRollovers(opts) {
+      const silent = Boolean(opts && opts.silent);
+      let changed = false;
+
+      state.games.forEach((g) => {
+        const currentKey = getCycleDateKey(g.resetTime, g.resetZone);
+        if (!g.lastCycleKey) {
+          g.lastCycleKey = currentKey;
+          changed = true;
+          return;
+        }
+        if (g.lastCycleKey === currentKey) return;
+
+        const prevCycleKey = g.lastCycleKey;
+        const lastDay = cycleKeyToDay(prevCycleKey);
+        const curDay = cycleKeyToDay(currentKey);
+        const diff = (lastDay === null || curDay === null) ? 1 : (curDay - lastDay);
+
+        if (!g.dayHistory || typeof g.dayHistory !== 'object') g.dayHistory = {};
+
+        if (diff <= 0) {
+          // The clock went backwards (e.g. flying west): the live puzzle is an earlier one. Show that
+          // puzzle's own recorded outcome, never carry the later day's "Done" onto it.
+          g.lastCycleKey = currentKey;
+          g.status = g.dayHistory[currentKey] || 'ready';
+          if (g.status !== 'completed') g.todayScore = '';
+          recomputeGameStatsFromHistory(g);
+          changed = true;
+          return;
+        }
+
+        // The outcome of the cycle that just ended comes from its own history entry; `status` only
+        // counts if it was set for exactly that cycle (lastCycleKey === prevCycleKey here).
+        const prevOutcome = g.dayHistory[prevCycleKey] || (g.status === 'completed' ? 'completed' : '');
+        if (prevOutcome === 'completed') {
+          g.dayHistory[prevCycleKey] = 'completed';
+        } else {
+          g.dayHistory[prevCycleKey] = 'missed';
+          appendAutoMissedLog(g, prevCycleKey); // no-op if that day already has a row
+        }
+
+        // Every skipped day goes into the day history (up to ~10 years); only the most recent 60 also
+        // get a "missed" row in the score log so a long break doesn't flood it.
+        const maxFill = Math.min(diff - 1, 3660);
+        for (let step = 1; step <= maxFill; step++) {
+          const interKey = addDaysToCycleKey(prevCycleKey, step);
+          if (!g.dayHistory[interKey]) {
+            g.dayHistory[interKey] = 'missed';
+            if (diff - step <= 60) appendAutoMissedLog(g, interKey);
+          }
+        }
+
+        g.status = g.dayHistory[currentKey] || 'ready';
+        g.todayScore = '';
+        g.lastCycleKey = currentKey;
+        recomputeGameStatsFromHistory(g);
+        changed = true;
+
+        if (!silent && g.notifyEnabled) {
+          const localReset = formatLocalResetTime(g.resetTime, g.resetZone);
+          showToast(
+            `${g.name} — Next Puzzle Ready!`,
+            `Today's new puzzle just reset (${localReset}). Current streak: ${g.streak}d.`,
+            'emerald',
+            () => openGameInPlayer(g.id)
+          );
+        }
+      });
+
+      if (changed) {
+        saveState();
+        renderVisibleTab();
+      }
+    }
+
+    /**
+     * opts.actionLabel + opts.onAction: a real button (e.g. Undo) instead of making the whole toast
+     * the tap target. onClick (optional) still makes the text area tappable.
+     */
+    function showToast(title, message, tone, onClick, opts) {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      while (container.children.length >= 3) {
+        container.firstElementChild.remove();
+      }
+      const toast = document.createElement('div');
+      const borderClass = tone === 'emerald' ? 'border-emerald-500/50 bg-slate-900/95' : 'border-indigo-500/50 bg-slate-900/95';
+      toast.className = `pointer-events-auto rounded-2xl p-3.5 border ${borderClass} shadow-2xl flex items-start justify-between gap-2.5`;
+      toast.innerHTML = `
+        <div class="min-w-0 flex-1 cursor-pointer">
+          <p class="text-xs font-bold text-white truncate">${escapeHtml(title)}</p>
+          <p class="text-[11px] text-slate-300 mt-0.5 line-clamp-2">${escapeHtml(message)}</p>
+        </div>
+        ${opts && opts.actionLabel ? `<button type="button" data-toast-action class="toast-action">${escapeHtml(opts.actionLabel)}</button>` : ''}
+        <button type="button" data-toast-close class="text-slate-400 hover:text-white px-1.5 py-1 rounded-lg bg-slate-800 inline-flex" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
+      `;
+      const closeBtn = toast.querySelector('[data-toast-close]');
+      const actionBtn = toast.querySelector('[data-toast-action]');
+      if (actionBtn) {
+        actionBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          toast.remove();
+          opts.onAction();
+        });
+      }
+      closeBtn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        toast.remove();
+      });
+      if (typeof onClick === 'function') {
+        toast.firstElementChild.addEventListener('click', () => {
+          onClick();
+          toast.remove();
+        });
+      }
+      container.appendChild(toast);
+      setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+      }, opts && opts.actionLabel ? 8000 : 4500);
+    }
+
+    function isImageIcon(icon) {
+      const s = String(icon || '').trim();
+      return /^https?:\/\//i.test(s) || /^data:image\//i.test(s);
+    }
+
+    function getDefaultFaviconUrl(rawUrl) {
+      try {
+        const u = new URL(cleanGameUrl(rawUrl));
+        return `https://www.google.com/s2/favicons?sz=128&domain_url=${encodeURIComponent(u.origin)}`;
+      } catch (e) {
+        return '';
+      }
+    }
+
+    window.handleFaviconError = function (imgEl) {
+      if (!imgEl || !imgEl.parentNode) return;
+      const cls = imgEl.getAttribute('data-cls') || 'w-6 h-6';
+      const initial = imgEl.getAttribute('data-initial') || 'G';
+      const badge = document.createElement('span');
+      badge.className = `inline-flex items-center justify-center ${cls} rounded-md bg-indigo-500/25 border border-indigo-400/30 text-xs font-extrabold text-indigo-200`;
+      badge.textContent = initial;
+      imgEl.replaceWith(badge);
+    };
+
+    // Icons are served from the app's on-device cache (MainActivity intercepts this reserved host), so
+    // they appear instantly and work offline after the first download.
+    const FAVICON_PROXY = 'https://favicon.dailes.invalid/?src=';
+    const faviconCacheAvailable = (() => {
+      try {
+        return Boolean(window.AndroidBridge && typeof window.AndroidBridge.isFaviconCacheAvailable === 'function'
+          && window.AndroidBridge.isFaviconCacheAvailable());
+      } catch (e) {
+        return false;
+      }
+    })();
+    function iconSrc(url) {
+      const s = String(url || '').trim();
+      return (faviconCacheAvailable && /^https?:\/\//i.test(s)) ? FAVICON_PROXY + encodeURIComponent(s) : s;
+    }
+
+    function renderGameIconHtml(icon, name, sizeClass) {
+      const cls = sizeClass || 'w-6 h-6';
+      const s = String(icon || '').trim();
+      if (isImageIcon(s)) {
+        const initial = escapeHtml(String(name || 'G').trim().charAt(0).toUpperCase() || 'G');
+        return `<img src="${escapeHtml(iconSrc(s))}" alt="" data-cls="${escapeHtml(cls)}" data-initial="${initial}" class="${escapeHtml(cls)} rounded-md object-contain" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="window.handleFaviconError(this)" />`;
+      }
+      // No image: Material gamepad graphic (any old text/emoji icon is replaced by it too).
+      return `<span class="inline-flex items-center justify-center ${escapeHtml(cls)}"><span class="ico ico-gamepad" style="width:100%;height:100%" aria-hidden="true"></span></span>`;
+    }
+
+    function updateModalIconPreview() {
+      const prev = document.getElementById('inputIconPreview');
+      const val = (document.getElementById('inputGameIcon').value || '').trim();
+      const name = (document.getElementById('inputGameName').value || 'G').trim();
+      if (!prev) return;
+      prev.innerHTML = renderGameIconHtml(val, name, 'w-6 h-6');
+    }
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // =========================================================================
+    // URL PARSING & NATIVE SCRAPER INTEGRATION
+    // =========================================================================
+    function extractUrlCandidateFromText(raw) {
+      const s = String(raw || '').trim();
+      if (!s) return '';
+      const httpMatch = s.match(/https?:\/\/[^\s"'<>]+/i);
+      if (httpMatch) return httpMatch[0];
+      const domainMatch = s.match(/\b([a-z0-9-]+\.)+[a-z]{2,}(\/[^\s"'<>]*)?/i);
+      if (domainMatch) return domainMatch[0];
+      return s;
+    }
+
+    function normalizeUrlKey(rawUrl) {
+      try {
+        let c = extractUrlCandidateFromText(rawUrl);
+        if (!c) return '';
+        if (!/^https?:\/\//i.test(c)) c = 'https://' + c;
+        const u = new URL(c);
+        return u.hostname.replace(/^www\./i, '').toLowerCase() + u.pathname.replace(/\/+$/, '');
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function findGameByUrl(rawUrl) {
+      const key = normalizeUrlKey(rawUrl);
+      if (!key) return null;
+      return state.games.find((g) => normalizeUrlKey(g.url) === key) || null;
+    }
+
+    function cleanGameUrl(rawUrl) {
+      let c = extractUrlCandidateFromText(rawUrl);
+      if (!c) return '';
+      if (!/^https?:\/\//i.test(c)) c = 'https://' + c;
+      try {
+        const u = new URL(c);
+        if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
+        if (!u.hostname || !u.hostname.includes('.')) return '';
+      } catch (e) {
+        return '';
+      }
+      // https unless the link explicitly says http:// (some small games are http-only).
+      return c;
+    }
+
+    function mapNativeCategoryToUiCategory(cat) {
+      const c = String(cat || '');
+      if (c === 'Geography' || c === 'Geography & Maps') return 'Geography & Maps';
+      if (c === 'Math & Logic') return 'Math & Logic';
+      if (c === 'Music & Media' || c === 'Movies & Media') return 'Movies & Media';
+      if (c === 'Trivia' || c === 'Gaming & RPG') return 'Gaming & RPG';
+      if (c === 'Word' || c === 'Word & Association') return 'Word & Association';
+      return 'Custom Daily';
+    }
+
+    function inferGameMetaFromUrl(rawUrl) {
+      const cleaned = cleanGameUrl(rawUrl);
+      if (!cleaned) return null;
+      try {
+        const u = new URL(cleaned);
+        const host = u.hostname.replace(/^www\./i, '').toLowerCase();
+        const defaultFavicon = getDefaultFaviconUrl(cleaned);
+
+        // Built-in catalogue of popular games with known reset schedules (known-games.js).
+        const known = KnownGames.find(cleaned);
+        if (known) {
+          return {
+            url: cleaned,
+            name: known.name,
+            icon: defaultFavicon,
+            category: known.category,
+            resetTime: known.resetTime,
+            resetZone: known.resetZone,
+            maxTries: known.maxTries,
+            desc: known.desc,
+            knownSchedule: true,
+            knownVerified: Boolean(known.verified)
+          };
+        }
+
+        const baseName = host.split('.')[0]
+          .replace(/[-_]+/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+
+        return {
+          url: cleaned,
+          name: baseName || 'Daily Web Game',
+          icon: defaultFavicon,
+          category: 'Custom Daily',
+          resetTime: '00:00',
+          resetZone: 'local',
+          maxTries: 'Daily Puzzle',
+          desc: `Daily puzzle hosted on ${host}`
+        };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    let scrapeRequestIdCounter = 0;
+    let latestActiveScrapeId = 0;
+    const pendingScrapeResolvers = new Map();
+
+    window.onWebsiteScraped = function (payload) {
+      if (!payload || typeof payload !== 'object') return;
+      const reqId = payload.requestId;
+      if (typeof reqId === 'number' && pendingScrapeResolvers.has(reqId)) {
+        const fn = pendingScrapeResolvers.get(reqId);
+        pendingScrapeResolvers.delete(reqId);
+        fn(payload);
+      }
+    };
+
+    async function scrapeWebsiteMetadata(rawUrl) {
+      const cleaned = cleanGameUrl(rawUrl);
+      if (!cleaned) return null;
+      const initialMeta = inferGameMetaFromUrl(cleaned);
+      if (!initialMeta) return null;
+
+      const reqId = ++scrapeRequestIdCounter;
+      latestActiveScrapeId = reqId;
+
+      const statusBadge = document.getElementById('scrapeStatusBadge');
+      const btn = document.getElementById('btnAutoDetectMeta');
+      if (statusBadge) {
+        statusBadge.textContent = 'Scraping website…';
+        statusBadge.classList.remove('hidden');
+      }
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Scraping...';
+      }
+
+      const resultMeta = Object.assign({}, initialMeta);
+      let didScrapeLive = false;
+
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.scrapeWebsite === 'function') {
+          const res = await new Promise((resolve) => {
+            pendingScrapeResolvers.set(reqId, resolve);
+            window.AndroidBridge.scrapeWebsite(reqId, cleaned);
+            setTimeout(() => {
+              if (pendingScrapeResolvers.has(reqId)) {
+                pendingScrapeResolvers.delete(reqId);
+                resolve({ ok: false, requestId: reqId });
+              }
+            }, 12000);
+          });
+
+          if (res && res.parsed) {
+            const p = res.parsed;
+            const finalUrl = cleanGameUrl(res.finalUrl || cleaned) || cleaned;
+            resultMeta.url = finalUrl;
+            if (p.name) resultMeta.name = p.name;
+            if (p.description) resultMeta.desc = p.description;
+            if (p.faviconUrl) resultMeta.icon = p.faviconUrl;
+            if (p.resetTime) {
+              resultMeta.resetTime = HubCore.sanitizeResetTime(p.resetTime);
+              resultMeta.resetZone = HubCore.normalizeZone(p.resetZone);
+            }
+            if (p.metricType && p.par) {
+              resultMeta.maxTries = p.metricType === 'tries'
+                ? `${p.par} guesses`
+                : (p.metricType === 'time' ? `${p.par}s target` : `${p.par} pts`);
+            }
+            if (p.category) resultMeta.category = mapNativeCategoryToUiCategory(p.category);
+            didScrapeLive = Boolean(res.ok);
+            const knownAfterRedirect = KnownGames.find(resultMeta.url) || KnownGames.find(cleaned);
+            if (knownAfterRedirect) {
+              resultMeta.name = knownAfterRedirect.name;
+              resultMeta.category = knownAfterRedirect.category;
+              resultMeta.maxTries = knownAfterRedirect.maxTries;
+              resultMeta.resetTime = knownAfterRedirect.resetTime;
+              resultMeta.resetZone = knownAfterRedirect.resetZone;
+              resultMeta.knownSchedule = true;
+              resultMeta.knownVerified = Boolean(knownAfterRedirect.verified);
+            }
+          }
+        }
+      } catch (e) {}
+
+      if (reqId !== latestActiveScrapeId) return null;
+
+      if (statusBadge) {
+        statusBadge.innerHTML = '<span class="icon-label"><span class="ico ico-verified" aria-hidden="true"></span>' + (resultMeta.knownSchedule
+          ? 'Reset time from built-in list'
+          : (didScrapeLive ? 'Scraped from site' : 'Filled from domain')) + '</span>';
+        setTimeout(() => {
+          if (reqId === latestActiveScrapeId) statusBadge.classList.add('hidden');
+        }, 3000);
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Scrape Site';
+      }
+      return resultMeta;
+    }
+
+    // Fields the user has typed into since the modal opened (or since the URL last changed). Scrape
+    // results arrive asynchronously and must never overwrite something the user entered themselves.
+    const userEditedModalFields = new Set();
+    const SCRAPE_FILLED_FIELDS = ['inputGameName', 'inputGameIcon', 'inputGameCategory', 'inputGameMaxTries',
+      'inputResetTime', 'inputResetZone', 'inputGameDesc'];
+
+    function applyScrapedMetaToModal(meta, updateUrlInput) {
+      if (!meta) return;
+      const modal = document.getElementById('modalAddGame');
+      if (!modal || modal.classList.contains('hidden')) return;
+      const urlInput = document.getElementById('inputGameUrl');
+      if (updateUrlInput && urlInput && document.activeElement !== urlInput) {
+        urlInput.value = meta.url || '';
+      }
+      const setField = (id, value) => {
+        if (userEditedModalFields.has(id)) return;
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+      };
+      setField('inputGameName', meta.name || '');
+      setField('inputGameIcon', meta.icon || getDefaultFaviconUrl(meta.url));
+      setField('inputGameCategory', meta.category || 'Custom Daily');
+      setField('inputGameMaxTries', meta.maxTries || 'Daily Puzzle');
+      setField('inputResetTime', /^\d{2}:\d{2}$/.test(String(meta.resetTime || '')) ? meta.resetTime : '00:00');
+      if (!userEditedModalFields.has('inputResetZone')) setZoneSelectValue(meta.resetZone);
+      setField('inputGameDesc', meta.desc || '');
+      if (window.__updateZoneHint) window.__updateZoneHint();
+      updateModalIconPreview();
+    }
+
+    // =========================================================================
+    // RENDERING FUNCTIONS
+    // =========================================================================
+    function renderKPIs() {
+      const total = state.games.length;
+      let readyCount = 0;
+      let doneCount = 0;
+      let topStreak = 0;
+
+      for (let i = 0; i < total; i++) {
+        const g = state.games[i];
+        if (g.status === 'completed') doneCount += 1;
+        else if (g.status === 'ready') readyCount += 1;
+        if ((g.streak || 0) > topStreak) topStreak = g.streak || 0;
+      }
+
+      document.getElementById('kpiReadyCount').textContent = String(readyCount);
+      document.getElementById('kpiDoneCount').textContent = `${doneCount} / ${total}`;
+      document.getElementById('kpiTopStreak').textContent = `${topStreak}d`;
+    }
+
+    const STATUS_LABELS = { ready: 'Ready', completed: 'Done', missed: 'Missed' };
+
+    function buildGameCardHtml(g, idx, totalVisible, isCompact) {
+      const status = (g.status === 'completed' || g.status === 'missed') ? g.status : 'ready';
+      const statusLabel = STATUS_LABELS[status];
+      const id = escapeHtml(g.id);
+      const isFirst = idx === 0;
+      const isLast = idx === totalVisible - 1;
+      const img = (key, alt) => `<img src="${OUTLINE_PNG_ICONS[key]}" alt="${alt}" />`;
+      const reorder = `
+        <div class="reorder">
+          <button type="button" data-action="move-up" data-id="${id}" ${isFirst ? 'disabled' : ''} class="icon-btn" aria-label="Move up">${img('up', '')}</button>
+          <button type="button" data-action="move-down" data-id="${id}" ${isLast ? 'disabled' : ''} class="icon-btn" aria-label="Move down">${img('down', '')}</button>
+        </div>`;
+      const actions = `
+        <button type="button" data-action="log" data-id="${id}" class="icon-btn" aria-label="Log result" title="Log result">${img('check', '')}</button>
+        <button type="button" data-action="edit" data-id="${id}" class="icon-btn ghost" aria-label="Edit game" title="Edit game">${img('settings', '')}</button>
+        <button type="button" data-action="delete" data-id="${id}" class="icon-btn ghost danger" aria-label="Remove game" title="Remove game"><span class="ico ico-close ico-lg" aria-hidden="true"></span></button>
+        <button type="button" data-action="play" data-id="${id}" class="play-btn m4-primary-fab">Play</button>`;
+
+      if (isCompact) {
+        return `
+          <article data-card-game-id="${id}" class="glass-card game-card compact">
+            <div class="m3-shape-avatar-compact m3-shape-${idx % 6} shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-4 h-4')}</div>
+            <h3 class="gc-title" title="Edit ${escapeHtml(g.name)}" data-action="edit" data-id="${id}" role="button" tabindex="0">${escapeHtml(g.name)}</h3>
+            <span data-role="card-streak" class="gc-streak" aria-label="Streak ${g.streak} days"><span aria-hidden="true">🔥 ${g.streak}d</span></span>
+            <span data-role="card-status-pill" class="status-dot status-${status}" role="img" aria-label="${statusLabel}" title="${statusLabel}"></span>
+            <div class="gc-actions">${reorder}${actions}</div>
+          </article>`;
+      }
+
+      const timerText = formatDurationHMS(getMsUntilNextReset(g.resetTime, g.resetZone));
+      const localResetStr = formatLocalResetTime(g.resetTime, g.resetZone);
+      return `
+        <article data-card-game-id="${id}" class="glass-card game-card">
+          <div class="gc-top">
+            <div class="m3-shape-avatar m3-shape-${idx % 6} shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-6 h-6')}</div>
+            <div class="gc-main">
+              <h3 class="gc-title" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</h3>
+              <div class="gc-meta">
+                <span data-role="card-streak" class="gc-streak" aria-label="Streak ${g.streak} days"><span aria-hidden="true">🔥 ${g.streak}d</span></span>
+                <span class="gc-sep">·</span>
+                <span data-role="card-reset" class="gc-reset">Resets ${escapeHtml(localResetStr)}</span>
+              </div>
+            </div>
+            <span data-role="card-status-pill" class="status-pill status-${status}"><span class="dot"></span>${statusLabel}</span>
+          </div>
+          <div class="gc-bottom">
+            <div class="gc-countdown"><span class="label">Next in</span><span class="time game-countdown" data-game-id="${id}">${timerText}</span></div>
+            <div class="gc-actions">${reorder}${actions}</div>
+          </div>
+        </article>`;
+    }
+
+    function renderGamesGrid() {
+      const grid = document.getElementById('gamesGrid');
+      if (!grid) return;
+      if (grid.classList.contains('drag-active')) return; // never rebuild cards mid-drag
+      cardTimerElements.clear();
+      const isCompact = Boolean(state.settings && state.settings.compactCards);
+      grid.className = isCompact ? 'space-y-1.5' : 'space-y-2.5';
+
+      // Preserve the user-configured order in state.games (no forced status sort)
+      const list = state.games.filter((g) => {
+        if (state.activeFilter !== 'all' && g.status !== state.activeFilter) return false;
+        return true;
+      });
+
+      if (list.length === 0) {
+        const noGamesAtAll = state.games.length === 0;
+        grid.innerHTML = noGamesAtAll ? `
+          <div class="glass-card rounded-2xl p-6 text-center border border-slate-800">
+            <p class="text-base font-bold text-white">No games yet</p>
+            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">Tap <strong class="text-slate-200">+ Add Game</strong> and paste a daily game's link, or share a link to Dailies from your browser.</p>
+          </div>
+        ` : `
+          <div class="glass-card rounded-2xl p-6 text-center border border-slate-800">
+            <p class="text-base font-bold text-white">Nothing here</p>
+            <p class="text-xs text-slate-400 mt-1">No games match this filter. Try "All".</p>
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = list.map((g, idx) => buildGameCardHtml(g, idx, list.length, isCompact)).join('');
+      if (!isCompact) {
+        grid.querySelectorAll('.game-countdown').forEach((el) => {
+          const id = el.getAttribute('data-game-id');
+          if (id) cardTimerElements.set(id, el);
+        });
+      }
+    }
+
+    function moveGameInOrder(gameId, direction) {
+      const visibleList = state.games.filter((g) => state.activeFilter === 'all' || g.status === state.activeFilter);
+      const visIdx = visibleList.findIndex((g) => g.id === gameId);
+      if (visIdx < 0) return;
+      const targetVisIdx = visIdx + direction;
+      if (targetVisIdx < 0 || targetVisIdx >= visibleList.length) return;
+
+      const gameA = visibleList[visIdx];
+      const gameB = visibleList[targetVisIdx];
+      const idxA = state.games.indexOf(gameA);
+      const idxB = state.games.indexOf(gameB);
+      if (idxA < 0 || idxB < 0) return;
+
+      state.games[idxA] = gameB;
+      state.games[idxB] = gameA;
+      saveState();
+      renderGamesGrid();
+    }
+
+    /** Moves a game from one position to another within the currently visible (filtered) list. */
+    /**
+     * Moves the card at `from` to `to` within `ids` (the card order the user saw when the drag began),
+     * so a status change mid-drag can't make it move a different game. Games not in `ids` (hidden
+     * by a filter) keep their slots.
+     */
+    function reorderGamesByIds(ids, from, to) {
+      if (from === to || from < 0 || to < 0 || from >= ids.length || to >= ids.length) return false;
+      const byId = new Map(state.games.map((g) => [g.id, g]));
+      const newIds = ids.filter((id) => byId.has(id));
+      if (newIds.length !== ids.length) return false;
+      const [moved] = newIds.splice(from, 1);
+      newIds.splice(to, 0, moved);
+      const shown = new Set(newIds);
+      let k = 0;
+      state.games = state.games.map((g) => (shown.has(g.id) ? byId.get(newIds[k++]) : g));
+      return true;
+    }
+
+    function haptic(kind) {
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.performHaptic === 'function') {
+          window.AndroidBridge.performHaptic(kind);
+          return;
+        }
+        if (navigator.vibrate) navigator.vibrate(kind === 'start' ? 18 : 6);
+      } catch (e) {}
+    }
+
+    /**
+     * Long-press a game card (about 0.4 s, finger still) to lift it, then drag up/down to reorder.
+     * Other cards slide out of the way; the list auto-scrolls near the top/bottom edge.
+     */
+    // When the last drag ended: the document-level tab-swipe handler ignores that same touch.
+    let cardDragEndedAt = 0;
+    function initCardDragReorder() {
+      const grid = document.getElementById('gamesGrid');
+      if (!grid) return;
+      const LONG_PRESS_MS = 400;
+      const SLOP_PX = 10;
+      let press = null;   // { card, x, y, timer }
+      let drag = null;    // active drag state
+      let suppressClickUntil = 0;
+
+      const clearPress = () => {
+        if (!press) return;
+        clearTimeout(press.timer);
+        press.card.classList.remove('press-hold');
+        press = null;
+      };
+
+      const begin = () => {
+        if (!press) return;
+        const card = press.card;
+        const cards = [...grid.querySelectorAll('[data-card-game-id]')];
+        const from = cards.indexOf(card);
+        clearPress();
+        if (from < 0 || cards.length < 2) return;
+        const scroll0 = window.scrollY;
+        const tops = cards.map((c) => c.getBoundingClientRect().top + scroll0);
+        const heights = cards.map((c) => c.getBoundingClientRect().height);
+        const gap = cards.length > 1 ? Math.max(0, tops[1] - (tops[0] + heights[0])) : 10;
+        const ids = cards.map((c) => c.getAttribute('data-card-game-id'));
+        drag = { card, cards, ids, from, to: from, tops, heights, gap, startY: lastTouchY, lastY: lastTouchY, scroll0, raf: 0 };
+        grid.classList.add('drag-active');
+        card.classList.add('dragging');
+        haptic('start');
+        const loop = () => {
+          if (!drag) return;
+          const edgeTop = 90;
+          const edgeBottom = window.innerHeight - 150; // keep clear of the floating nav dock
+          if (drag.lastY < edgeTop) window.scrollBy(0, -Math.ceil((edgeTop - drag.lastY) / 6));
+          else if (drag.lastY > edgeBottom) window.scrollBy(0, Math.ceil((drag.lastY - edgeBottom) / 6));
+          update();
+          drag.raf = requestAnimationFrame(loop);
+        };
+        drag.raf = requestAnimationFrame(loop);
+      };
+
+      const update = () => {
+        const d = drag;
+        const dy = (d.lastY - d.startY) + (window.scrollY - d.scroll0);
+        d.card.style.transform = `translateY(${dy}px) scale(1.02)`;
+        const center = d.tops[d.from] + d.heights[d.from] / 2 + dy;
+        let to = 0;
+        d.cards.forEach((c, j) => {
+          if (j === d.from) return;
+          if (d.tops[j] + d.heights[j] / 2 < center) to += 1;
+        });
+        if (to !== d.to) {
+          d.to = to;
+          haptic('tick');
+        }
+        const shift = d.heights[d.from] + d.gap;
+        d.cards.forEach((c, j) => {
+          if (j === d.from) return;
+          let t = 0;
+          if (d.from < d.to && j > d.from && j <= d.to) t = -shift;
+          else if (d.to < d.from && j >= d.to && j < d.from) t = shift;
+          c.style.transform = t ? `translateY(${t}px)` : '';
+        });
+      };
+
+      const finish = (commit) => {
+        clearPress();
+        if (!drag) return;
+        cancelAnimationFrame(drag.raf);
+        update(); // use the final finger position, even if no frame has run since the last move
+        const { from, to, cards, ids } = drag;
+        drag = null;
+        cardDragEndedAt = Date.now();
+        grid.classList.remove('drag-active');
+        cards.forEach((c) => { c.style.transform = ''; c.classList.remove('dragging'); });
+        suppressClickUntil = Date.now() + 450;
+        if (commit && reorderGamesByIds(ids, from, to)) {
+          haptic('drop');
+          saveState();
+        }
+        renderGamesGrid();
+      };
+
+      let lastTouchY = 0;
+      grid.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) { finish(false); return; }
+        const card = e.target.closest('[data-card-game-id]');
+        if (!card || e.target.closest('input, textarea, select')) return;
+        const t = e.touches[0];
+        lastTouchY = t.clientY;
+        clearPress();
+        press = { card, x: t.clientX, y: t.clientY, timer: setTimeout(begin, LONG_PRESS_MS) };
+        card.classList.add('press-hold');
+      }, { passive: true });
+
+      grid.addEventListener('touchmove', (e) => {
+        const t = e.touches[0];
+        if (!t) return;
+        lastTouchY = t.clientY;
+        if (drag) {
+          e.preventDefault(); // the page must not scroll while a card is lifted
+          drag.lastY = t.clientY;
+          update();
+          return;
+        }
+        if (press && (Math.abs(t.clientX - press.x) > SLOP_PX || Math.abs(t.clientY - press.y) > SLOP_PX)) {
+          clearPress(); // it's a scroll or swipe, not a long press
+        }
+      }, { passive: false });
+
+      grid.addEventListener('touchend', (e) => {
+        if (drag && e.changedTouches && e.changedTouches[0]) drag.lastY = e.changedTouches[0].clientY;
+        finish(true);
+      });
+      grid.addEventListener('touchcancel', () => finish(false));
+      grid.addEventListener('contextmenu', (e) => { if (press || drag) e.preventDefault(); });
+      // A long press that turned into a drag must not also "tap" the button under the finger.
+      grid.addEventListener('click', (e) => {
+        if (Date.now() < suppressClickUntil) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      }, true);
+    }
+
+    function updateSingleGameCardOrGrid() {
+      renderKPIs();
+      renderGamesGrid();
+    }
+
+    // Next reset per game, recomputed only when it passes or the schedule changes (named-zone maths
+    // via Intl is too costly to redo for every game every second).
+    const nextResetCache = new Map();
+    function msUntilNextResetCached(g, now) {
+      const sig = `${g.resetTime}|${g.resetZone}`;
+      let c = nextResetCache.get(g.id);
+      if (!c || c.sig !== sig || now.getTime() >= c.at) {
+        c = { sig, at: HubCore.getNextResetDate(g.resetTime, g.resetZone, now).getTime() };
+        nextResetCache.set(g.id, c);
+      }
+      return Math.max(0, c.at - now.getTime());
+    }
+
+    function updateLiveTimers() {
+      const now = new Date();
+      if (activeTab === 'settings') {
+        const clockEl = document.getElementById('liveClockDisplay');
+        if (clockEl) {
+          clockEl.textContent = formatLocalNowTime(now);
+        }
+      }
+
+      for (let i = 0; i < state.games.length; i++) {
+        const g = state.games[i];
+        const ms = msUntilNextResetCached(g, now);
+        const formatted = formatDurationHMS(ms);
+        if (activeTab === 'dashboard') {
+          const timerEl = cardTimerElements.get(g.id);
+          if (timerEl) timerEl.textContent = formatted;
+        } else if (activeTab === 'settings') {
+          const schedEl = schedTimerElements.get(g.id);
+          if (schedEl) schedEl.textContent = formatted;
+        }
+      }
+    }
+
+    function openGameInPlayer(gameId) {
+      checkDailyRollovers({ silent: true });
+      const game = state.games.find((g) => g.id === gameId);
+      if (!game) {
+        showToast('Game not found', 'That game is no longer in your hub.', 'indigo');
+        return;
+      }
+      state.activeGameId = game.id;
+      saveState({ sync: false });
+
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.openGame === 'function') {
+          window.AndroidBridge.openGame(game.id, game.name, game.url);
+          return;
+        }
+      } catch (e) {}
+
+      window.open(game.url, '_blank', 'noopener,noreferrer');
+    }
+
+    function removeTodayLog(game, todayKey) {
+      state.historyLogs = state.historyLogs.filter(
+        (l) => !(l.date === todayKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name))
+      );
+    }
+
+    /**
+     * opts.cycleKey: log against this cycle instead of the current one (e.g. the puzzle that was live
+     *   when a game was opened, if it reset while you were playing). Never a future cycle.
+     * opts.quiet: no toast (the caller shows its own, e.g. with Undo).
+     */
+    function recordGameOutcome(gameId, newStatus, scoreText, opts) {
+      checkDailyRollovers({ silent: true });
+
+      const game = state.games.find((g) => g.id === gameId);
+      if (!game) return;
+
+      const validStatus = newStatus === 'missed' ? 'missed' : 'completed';
+      const prevStatus = game.status;
+      const rawFormattedScore = (typeof scoreText === 'string')
+        ? scoreText.replace(/\r\n/g, '\n').replace(/\s+$/, '')
+        : '';
+      const hasScoreContent = rawFormattedScore.trim().length > 0;
+
+      const localResetLabel = formatLocalResetTime(game.resetTime, game.resetZone);
+      const currentKey = getCycleDateKey(game.resetTime, game.resetZone);
+      const wanted = opts && opts.cycleKey;
+      const todayKey = (wanted && HubCore.DATE_KEY_RE.test(wanted) && cycleKeyToDay(wanted) <= cycleKeyToDay(currentKey))
+        ? wanted : currentKey;
+      const isCurrentCycle = todayKey === currentKey;
+      if (!game.dayHistory || typeof game.dayHistory !== 'object') {
+        game.dayHistory = {};
+      }
+
+      if (isCurrentCycle) {
+        game.status = validStatus;
+        game.lastCycleKey = todayKey;
+      }
+      game.dayHistory[todayKey] = validStatus;
+
+      let rowScore = rawFormattedScore;
+      if (isCurrentCycle) {
+        if (hasScoreContent) {
+          game.todayScore = rawFormattedScore;
+        } else if (validStatus === 'completed' && !game.todayScore) {
+          game.todayScore = 'Completed today';
+        } else if (validStatus === 'missed' && !hasScoreContent) {
+          game.todayScore = '';
+        }
+        rowScore = game.todayScore;
+      }
+
+      recomputeGameStatsFromHistory(game);
+
+      const existingRow = findLogRow(game, todayKey);
+      const outcomeLabel = validStatus === 'completed' ? 'Completed' : 'Missed';
+      const displayScore = validStatus === 'completed'
+        ? (rowScore || 'Completed today')
+        : (hasScoreContent ? rawFormattedScore : 'Missed (streak reset)');
+
+      if (existingRow) {
+        existingRow.gameId = game.id;
+        existingRow.gameName = game.name;
+        existingRow.icon = game.icon;
+        existingRow.outcome = outcomeLabel;
+        existingRow.score = displayScore;
+        existingRow.streak = game.streak;
+        existingRow.localTime = formatLocalNowTime(new Date());
+      } else {
+        removeTodayLog(game, todayKey);
+        state.historyLogs.unshift({
+          date: todayKey,
+          localTime: formatLocalNowTime(new Date()),
+          gameId: game.id,
+          gameName: game.name,
+          icon: game.icon,
+          outcome: outcomeLabel,
+          score: displayScore,
+          streak: game.streak
+        });
+      }
+
+      if (opts && opts.quiet) {
+        // caller shows its own message
+      } else if (validStatus === 'completed' && prevStatus !== 'completed') {
+        showToast(
+          `🔥 ${game.name} Completed!`,
+          `Streak is now ${game.streak} days. Next puzzle resets at ${localResetLabel}.`,
+          'emerald'
+        );
+      } else if (validStatus === 'completed') {
+        showToast(`${game.name} Updated`, 'Formatted score snippet saved.', 'indigo');
+      } else {
+        showToast(`${game.name} Marked Missed`, `We will alert you when tomorrow's puzzle resets at ${localResetLabel}.`, 'indigo');
+      }
+
+      historyPage = 0;
+      saveState();
+      updateSingleGameCardOrGrid(game.id);
+      if (activeTab === 'stats') renderStatsAndCharts();
+    }
+
+    // =========================================================================
+    // STATS, MONTHLY GAME CALENDAR & SETTINGS / NOTIFICATIONS VIEW
+    // =========================================================================
+    function getCalendarGamesList() {
+      const list = state.games.slice();
+      const loadedIds = new Set(list.map((g) => g.id));
+      if (state.retainedGameStats && typeof state.retainedGameStats === 'object') {
+        Object.keys(state.retainedGameStats).forEach((k) => {
+          const rg = state.retainedGameStats[k];
+          if (rg && rg.id && !loadedIds.has(rg.id)) {
+            loadedIds.add(rg.id);
+            list.push(rg);
+          }
+        });
+      }
+      return list;
+    }
+
+    function getGameDayOutcome(game, dateKey, logIndex) {
+      if (!game || !dateKey) return null;
+      if (game.dayHistory && (game.dayHistory[dateKey] === 'completed' || game.dayHistory[dateKey] === 'missed')) {
+        return game.dayHistory[dateKey];
+      }
+      const idx = logIndex || getLogIndex();
+      const logMatch = idx.get(`${game.id}|${dateKey}`) || idx.get(`name:${game.name}|${dateKey}`);
+      if (logMatch) {
+        return logMatch.outcome === 'Completed' ? 'completed' : 'missed';
+      }
+      const todayKey = getCycleDateKey(game.resetTime, game.resetZone);
+      if (dateKey === todayKey && (game.status === 'completed' || game.status === 'missed')) {
+        return game.status;
+      }
+      return null;
+    }
+
+    function renderGameCalendar() {
+      const selectEl = document.getElementById('calendarGameSelect');
+      const monthLabelEl = document.getElementById('calendarMonthLabel');
+      const gridEl = document.getElementById('calendarDaysGrid');
+      const longestEl = document.getElementById('calSummaryLongestStreak');
+      const totalPlaysEl = document.getElementById('calSummaryTotalPlays');
+      const currentStreakEl = document.getElementById('calSummaryCurrentStreak');
+      const summaryNameEl = document.getElementById('calSummaryGameName');
+      const subPlaysEl = document.getElementById('calSummarySubPlays');
+      const monthCountsEl = document.getElementById('calSummaryMonthCounts');
+      if (!selectEl || !gridEl) return;
+
+      const calGames = getCalendarGamesList();
+      if (calGames.length === 0) {
+        selectEl.innerHTML = '<option value="">No games loaded</option>';
+        selectEl.dataset.sig = '';
+        gridEl.innerHTML = '<div class="col-span-full py-6 text-center text-xs text-slate-400">Add a game on the Daily Hub to view its calendar.</div>';
+        if (summaryNameEl) summaryNameEl.textContent = 'No games';
+        if (longestEl) longestEl.textContent = '🔥 0d';
+        if (totalPlaysEl) totalPlaysEl.textContent = '0';
+        if (subPlaysEl) subPlaysEl.textContent = '0 won · 0 missed';
+        if (currentStreakEl) currentStreakEl.textContent = '0d';
+        if (monthCountsEl) monthCountsEl.innerHTML = '0 <span class="ico ico-check" aria-hidden="true"></span> 0 <span class="ico ico-close" aria-hidden="true"></span>';
+        return;
+      }
+
+      if (!calGames.some((g) => g.id === selectedCalendarGameId)) {
+        selectedCalendarGameId = calGames[0].id;
+      }
+
+      const selectSig = calGames.map((g) => `${g.id}:${g.name}`).join('|');
+      if (selectEl.dataset.sig !== selectSig) {
+        selectEl.dataset.sig = selectSig;
+        selectEl.innerHTML = calGames.map((g) => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name)}</option>`).join('');
+      }
+      selectEl.value = selectedCalendarGameId;
+
+      const game = calGames.find((g) => g.id === selectedCalendarGameId) || calGames[0];
+      recomputeGameStatsFromHistory(game);
+
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      if (monthLabelEl) {
+        monthLabelEl.textContent = `${monthNames[calendarMonth]} ${calendarYear}`;
+      }
+
+      const firstDayWeekIdx = new Date(calendarYear, calendarMonth, 1).getDay();
+      const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+      const todayKey = getCycleDateKey(game.resetTime, game.resetZone);
+
+      let cellsHtml = '';
+      for (let i = 0; i < firstDayWeekIdx; i++) {
+        cellsHtml += '<div class="cal-cell empty"></div>';
+      }
+
+      let monthCompletedCount = 0;
+      let monthMissedCount = 0;
+      const logIndex = getLogIndex();
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateKey = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const outcome = getGameDayOutcome(game, dateKey, logIndex);
+        const isToday = dateKey === todayKey;
+
+        let cls = 'cal-cell';
+        let mark = '';
+        if (outcome === 'completed') {
+          monthCompletedCount += 1;
+          cls += ' done';
+          mark = '<span class="mark"><span class="ico ico-check" aria-hidden="true"></span></span>';
+        } else if (outcome === 'missed') {
+          monthMissedCount += 1;
+          cls += ' missed';
+          mark = '<span class="mark"><span class="ico ico-close" aria-hidden="true"></span></span>';
+        }
+        if (isToday) cls += ' today';
+        const label = `${game.name} • ${dateKey}${outcome ? ' (' + outcome + ')' : ''}${isToday ? ' • today' : ''}`;
+        cellsHtml += `<div class="${cls}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><span>${d}</span>${mark}</div>`;
+      }
+
+      gridEl.innerHTML = cellsHtml;
+
+      const bestStreak = Math.max(game.bestStreak || 0, game.streak || 0);
+      const totalPlays = Math.max(game.totalPlayed || 0, monthCompletedCount + monthMissedCount);
+      const totalWon = game.totalWon || 0;
+
+      if (summaryNameEl) summaryNameEl.textContent = game.name;
+      if (longestEl) longestEl.textContent = `🔥 ${bestStreak}d`;
+      if (totalPlaysEl) totalPlaysEl.textContent = String(totalPlays);
+      if (subPlaysEl) subPlaysEl.innerHTML = `${totalWon} <span class="ico ico-check" aria-hidden="true"></span> ${Math.max(0, totalPlays - totalWon)} <span class="ico ico-close" aria-hidden="true"></span>`;
+      if (currentStreakEl) currentStreakEl.textContent = `${game.streak || 0}d`;
+      if (monthCountsEl) monthCountsEl.innerHTML = `${monthNames[calendarMonth].slice(0, 3)}: ${monthCompletedCount} <span class="ico ico-check" aria-hidden="true"></span> ${monthMissedCount} <span class="ico ico-close" aria-hidden="true"></span>`;
+    }
+
+    function renderStatsAndCharts() {
+      renderGameCalendar();
+
+      const tbody = document.getElementById('historyTableBody');
+      const total = state.historyLogs.length;
+      const pageCount = Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE));
+      historyPage = Math.min(Math.max(0, historyPage), pageCount - 1);
+      const start = historyPage * HISTORY_PAGE_SIZE;
+      const pageRows = state.historyLogs.slice(start, start + HISTORY_PAGE_SIZE);
+      // The pager only appears once there's more than one page (i.e. from the 6th result on).
+      const pager = document.getElementById('historyPager');
+      if (pager) pager.classList.toggle('hidden', pageCount <= 1);
+      const pageLabel = document.getElementById('historyPageLabel');
+      if (pageLabel) pageLabel.textContent = `Page ${historyPage + 1} of ${pageCount}`;
+      const countLabel = document.getElementById('historyCountLabel');
+      if (countLabel) countLabel.textContent = total ? `${start + 1}–${start + pageRows.length} of ${total} results` : '';
+      const prevBtn = document.getElementById('btnHistoryPrev');
+      const nextBtn = document.getElementById('btnHistoryNext');
+      if (prevBtn) prevBtn.disabled = historyPage === 0;
+      if (nextBtn) nextBtn.disabled = historyPage >= pageCount - 1;
+      const dots = document.getElementById('historyDots');
+      if (dots) {
+        // Up to 7 dots, a sliding window around the current page.
+        if (pageCount <= 1) {
+          dots.innerHTML = '';
+        } else {
+          const n = Math.min(7, pageCount);
+          const first = Math.min(Math.max(0, historyPage - 3), pageCount - n);
+          dots.innerHTML = Array.from({ length: n }, (_, i) => `<span class="${first + i === historyPage ? 'on' : ''}"></span>`).join('');
+        }
+      }
+      if (tbody) {
+        if (state.historyLogs.length === 0) {
+          tbody.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No results yet. Tap the check button on a game card, or log from the prompt after playing.</p>';
+        } else {
+          tbody.innerHTML = pageRows.map((item) => {
+            const ok = item.outcome === 'Completed';
+            const when = [formatCycleDateLabel(item.date), item.localTime].filter(Boolean).join(' · ');
+            const score = String(item.score || '').trim();
+            return `
+              <div class="hist-row">
+                <div class="hist-head">
+                  <span class="hist-icon">${renderGameIconHtml(item.icon, item.gameName, 'w-4 h-4')}</span>
+                  <span class="hist-name">${escapeHtml(item.gameName)}</span>
+                  <span class="hist-badge ${ok ? 'ok' : 'bad'}">${ok ? 'Completed' : 'Missed'}</span>
+                  <span class="hist-streak" aria-label="Streak after: ${escapeHtml(item.streak)} days"><span aria-hidden="true">🔥 ${escapeHtml(item.streak)}d</span></span>
+                </div>
+                <p class="hist-date">${escapeHtml(when)}</p>
+                ${score ? `<pre class="hist-score">${escapeHtml(score)}</pre>` : ''}
+              </div>`;
+          }).join('');
+        }
+      }
+    }
+
+    const CYCLE_DATE_FMT = (() => {
+      try {
+        return new Intl.DateTimeFormat([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+      } catch (e) {
+        return null;
+      }
+    })();
+    /** "2026-11-06" -> "Fri, Nov 6, 2026" (the key is a calendar date, so format it in UTC to avoid shifts). */
+    function formatCycleDateLabel(key) {
+      if (!HubCore.DATE_KEY_RE.test(String(key || ''))) return String(key || '');
+      const p = key.split('-').map(Number);
+      const d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+      return CYCLE_DATE_FMT ? CYCLE_DATE_FMT.format(d) : key;
+    }
+
+    /** {enabled} from Android (app notifications on + reset channel not blocked), or the browser API. */
+    function readNotificationStatus() {
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.getNotificationStatus === 'function') {
+          return JSON.parse(window.AndroidBridge.getNotificationStatus());
+        }
+      } catch (e) {}
+      try {
+        if ('Notification' in window) return { enabled: Notification.permission === 'granted' };
+      } catch (e) {}
+      return { enabled: false };
+    }
+
+    const NOTIF_BTN_OFF_CLASS = 'px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow';
+    /** "Allow Notifications" while they're off; a static "Notifications enabled" badge once they're on. */
+    function renderNotificationButton(status) {
+      const btn = document.getElementById('btnRequestBrowserPerm');
+      if (!btn) return;
+      const st = status && typeof status === 'object' ? status : readNotificationStatus();
+      const on = Boolean(st && st.enabled);
+      if (btn.dataset.state === (on ? 'on' : 'off')) return;
+      btn.dataset.state = on ? 'on' : 'off';
+      if (on) {
+        btn.className = 'notif-btn-on';
+        btn.disabled = true;
+        btn.setAttribute('aria-label', 'Notifications enabled');
+        btn.innerHTML = `<span class="ico ico-check" aria-hidden="true"></span>Notifications enabled`;
+      } else {
+        btn.className = NOTIF_BTN_OFF_CLASS;
+        btn.disabled = false;
+        btn.removeAttribute('aria-label');
+        btn.textContent = 'Allow Notifications';
+      }
+    }
+
+    function renderSettingsControls() {
+      renderNotificationButton();
+      if (!state.settings) state.settings = getDefaultSettings();
+      const s = state.settings;
+      const setChk = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.checked = Boolean(val);
+      };
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      };
+      setChk('settingDynamicWallpaper', s.dynamicWallpaper);
+      setChk('settingAmoledDark', s.amoledDark);
+      setChk('settingCompactCards', s.compactCards);
+      setVal('settingTimeFormat', s.timeFormat || '12h');
+      setChk('settingShowSeconds', s.showSeconds !== false);
+      setChk('settingAutoScrape', s.autoScrape !== false);
+      setChk('settingAskOnReturn', s.askToLogOnReturn !== false);
+      setChk('settingAutoLogShare', s.autoLogFromShare !== false);
+      setChk('settingBlockAds', s.blockAdsInGames !== false);
+    }
+
+    function renderNotificationsView() {
+      const schedList = document.getElementById('notificationScheduleList');
+      if (!schedList) return;
+      schedTimerElements.clear();
+
+      if (state.games.length === 0) {
+        schedList.innerHTML = '<p class="text-xs text-slate-400 py-2">No games added yet.</p>';
+        return;
+      }
+
+      schedList.innerHTML = state.games.map((g) => {
+        const localResetStr = formatLocalResetTime(g.resetTime, g.resetZone);
+        const nextIn = formatDurationHMS(getMsUntilNextReset(g.resetTime, g.resetZone));
+        return `
+          <div class="alert-row">
+            <span class="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">${renderGameIconHtml(g.icon, g.name, "w-5 h-5")}</span>
+            <div class="info">
+              <p class="name">${escapeHtml(g.name)}</p>
+              <p class="sub">Resets ${escapeHtml(localResetStr)} · in <span class="sched-countdown tabular" data-sched-id="${escapeHtml(g.id)}">${escapeHtml(nextIn)}</span></p>
+            </div>
+            <button type="button" data-action="toggle-notify" data-id="${escapeHtml(g.id)}" class="toggle-chip ${g.notifyEnabled ? 'on' : 'off'}" aria-pressed="${g.notifyEnabled ? 'true' : 'false'}">
+              ${g.notifyEnabled ? '<span class="icon-label"><span class="ico ico-bell" aria-hidden="true"></span>On</span>' : '<span class="icon-label"><span class="ico ico-bell_off" aria-hidden="true"></span>Off</span>'}
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      schedList.querySelectorAll('.sched-countdown').forEach((el) => {
+        const id = el.getAttribute('data-sched-id');
+        if (id) schedTimerElements.set(id, el);
+      });
+    }
+
+    function renderVisibleTab() {
+      renderKPIs();
+      if (activeTab === 'dashboard') {
+        renderGamesGrid();
+      } else if (activeTab === 'stats') {
+        renderStatsAndCharts();
+      } else if (activeTab === 'settings') {
+        renderSettingsControls();
+        renderNotificationsView();
+      }
+      updateLiveTimers();
+    }
+
+    function renderFilterTabs() {
+      document.querySelectorAll('.filter-tab').forEach((t) => {
+        const active = t.getAttribute('data-filter') === state.activeFilter;
+        t.className = active
+          ? 'filter-tab px-2.5 py-1 rounded-lg bg-slate-800 text-white font-medium'
+          : 'filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white';
+        t.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }
+
+    function renderAll() {
+      applyThemeAndSettings();
+      renderFilterTabs();
+      renderKPIs();
+      renderGamesGrid();
+      renderSettingsControls();
+      renderNotificationsView();
+      renderStatsAndCharts();
+      updateLiveTimers();
+    }
+
+    // =========================================================================
+    // NAVIGATION, SWIPE GESTURES & MODAL CONTROLLERS
+    // =========================================================================
+    function switchNavigation(targetView) {
+      const normalized = (targetView === 'notifications' || targetView === 'settings')
+        ? 'settings'
+        : (targetView === 'stats' ? 'stats' : 'dashboard');
+      activeTab = normalized;
+      if (normalized !== 'dashboard') hideReturnPrompt();
+      syncBackInterceptState();
+
+      const views = {
+        dashboard: document.getElementById('viewDashboard'),
+        stats: document.getElementById('viewStats'),
+        settings: document.getElementById('viewSettings')
+      };
+      Object.keys(views).forEach((k) => {
+        if (views[k]) {
+          views[k].classList.toggle('hidden', k !== normalized);
+        }
+      });
+
+      document.querySelectorAll('.nav-btn').forEach((btn) => {
+        const active = btn.getAttribute('data-nav') === normalized;
+        if (active) {
+          btn.setAttribute('aria-current', 'page');
+          btn.className = 'nav-btn relative flex flex-col items-center justify-center py-1 rounded-full m4-tonal-pill font-bold text-[11px]';
+        } else {
+          btn.removeAttribute('aria-current');
+          btn.className = 'nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]';
+        }
+      });
+
+      if (normalized === 'stats') {
+        const calGames = getCalendarGamesList();
+        const game = calGames.find((g) => g.id === selectedCalendarGameId) || calGames[0];
+        if (game) {
+          const cycleParts = getCycleDateKey(game.resetTime, game.resetZone).split('-');
+          calendarYear = parseInt(cycleParts[0], 10) || new Date().getFullYear();
+          calendarMonth = (parseInt(cycleParts[1], 10) || (new Date().getMonth() + 1)) - 1;
+        }
+        renderStatsAndCharts();
+      } else if (normalized === 'settings') {
+        renderSettingsControls();
+        renderNotificationsView();
+        updateLiveTimers();
+      } else {
+        renderKPIs();
+        renderGamesGrid();
+        updateLiveTimers();
+      }
+    }
+
+    let lastBackInterceptState = null;
+    function syncBackInterceptState() {
+      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId);
+      if (wantsBack === lastBackInterceptState) return;
+      lastBackInterceptState = wantsBack;
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.setBackInterceptEnabled === 'function') {
+          window.AndroidBridge.setBackInterceptEnabled(wantsBack);
+        }
+      } catch (e) {}
+    }
+
+    // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
+    const MODAL_IDS = ['modalAddGame', 'modalLogScore', 'modalDeleteGame'];
+    let modalReturnFocus = null;
+    function isModalOpen(id) {
+      const el = document.getElementById(id);
+      return Boolean(el && !el.classList.contains('hidden'));
+    }
+    function openModal(id) {
+      closeAllModals(id);
+      hideReturnPrompt();
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (!isModalOpen(id)) modalReturnFocus = document.activeElement;
+      el.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        const panel = el.querySelector('.modal-panel');
+        if (panel) panel.focus({ preventScroll: true });
+      });
+    }
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (!el || el.classList.contains('hidden')) return;
+      if (id === 'modalAddGame') {
+        latestActiveScrapeId = ++scrapeRequestIdCounter;
+        if (urlInputDebounceTimer) {
+          clearTimeout(urlInputDebounceTimer);
+          urlInputDebounceTimer = null;
+        }
+      } else if (id === 'modalDeleteGame') {
+        document.getElementById('deleteGameId').value = '';
+      } else if (id === 'modalLogScore') {
+        logModalCycleKey = '';
+      }
+      el.classList.add('hidden');
+      if (!MODAL_IDS.some(isModalOpen) && modalReturnFocus && modalReturnFocus.isConnected) {
+        try { modalReturnFocus.focus({ preventScroll: true }); } catch (e) {}
+        modalReturnFocus = null;
+      }
+    }
+    function closeAllModals(except) {
+      MODAL_IDS.forEach((id) => { if (id !== except) closeModal(id); });
+    }
+    function closeAddModal() {
+      closeModal('modalAddGame');
+    }
+
+    function isAnyModalOpen() {
+      const mAdd = document.getElementById('modalAddGame');
+      const mLog = document.getElementById('modalLogScore');
+      const mDel = document.getElementById('modalDeleteGame');
+      return Boolean(
+        (mAdd && !mAdd.classList.contains('hidden')) ||
+        (mLog && !mLog.classList.contains('hidden')) ||
+        (mDel && !mDel.classList.contains('hidden'))
+      );
+    }
+
+    function openDeleteConfirmModal(game) {
+      if (!game) return;
+      document.getElementById('deleteGameId').value = game.id;
+      document.getElementById('modalDeleteTitle').textContent = `Remove ${game.name}?`;
+      document.getElementById('modalDeleteMessage').textContent =
+        `Are you sure you want to remove "${game.name}" from the app? Streaks and log data will be retained.`;
+      openModal('modalDeleteGame');
+    }
+
+    function closeDeleteConfirmModal() {
+      closeModal('modalDeleteGame');
+    }
+
+    function confirmDeleteGame() {
+      const id = document.getElementById('deleteGameId').value;
+      const game = state.games.find((g) => g.id === id);
+      if (!game) {
+        closeDeleteConfirmModal();
+        return;
+      }
+      if (!state.retainedGameStats || typeof state.retainedGameStats !== 'object') {
+        state.retainedGameStats = {};
+      }
+      const snapshot = {
+        id: game.id,
+        name: game.name,
+        url: game.url,
+        icon: game.icon,
+        resetTime: game.resetTime,
+        resetZone: HubCore.normalizeZone(game.resetZone),
+        streak: game.streak || 0,
+        bestStreak: game.bestStreak || 0,
+        totalPlayed: game.totalPlayed || 0,
+        totalWon: game.totalWon || 0,
+        statsBaseline: game.statsBaseline,
+        dayHistory: Object.assign({}, game.dayHistory || {})
+      };
+      state.retainedGameStats[game.id] = snapshot;
+      const urlKey = normalizeUrlKey(game.url);
+      if (urlKey) {
+        state.retainedGameStats[urlKey] = snapshot;
+      }
+
+      state.games = state.games.filter((g) => g.id !== game.id);
+      closeDeleteConfirmModal();
+      saveState();
+      renderVisibleTab();
+      showToast('Game Removed', `${game.name} was removed from Daily Hub. Streaks and log data retained.`, 'indigo');
+    }
+
+    let lastAutoScrapedUrl = '';
+    let urlInputDebounceTimer = null;
+    let prevUrlInputValue = '';
+
+    function openAddOrEditModal(prefillData, existingGame) {
+      const modal = document.getElementById('modalAddGame');
+      document.getElementById('modalAddTitle').textContent = existingGame ? `Edit ${existingGame.name}` : 'Add Daily Game by Link';
+      document.getElementById('editGameId').value = existingGame ? existingGame.id : '';
+
+      lastAutoScrapedUrl = '';
+      userEditedModalFields.clear();
+      if (urlInputDebounceTimer) {
+        clearTimeout(urlInputDebounceTimer);
+        urlInputDebounceTimer = null;
+      }
+
+      const source = existingGame || prefillData || {};
+      const resetTime = /^\d{2}:\d{2}$/.test(String(source.resetTime || '')) ? source.resetTime : '00:00';
+
+      document.getElementById('inputGameUrl').value = source.url || '';
+      prevUrlInputValue = source.url || '';
+      document.getElementById('inputGameName').value = source.name || '';
+      document.getElementById('inputGameIcon').value = isImageIcon(source.icon) ? source.icon : '';
+      document.getElementById('inputGameCategory').value = source.category || 'Gaming & RPG';
+      document.getElementById('inputGameMaxTries').value = source.maxTries || 'Daily Puzzle';
+      document.getElementById('inputResetTime').value = resetTime;
+      setZoneSelectValue(source.resetZone);
+      document.getElementById('inputGameDesc').value = source.desc || '';
+      document.getElementById('inputNotifyEnabled').checked = source.notifyEnabled !== false;
+      updateModalIconPreview();
+
+      const btn = document.getElementById('btnAutoDetectMeta');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Scrape Site';
+      }
+      const badge = document.getElementById('scrapeStatusBadge');
+      if (badge) badge.classList.add('hidden');
+
+      if (window.__updateZoneHint) window.__updateZoneHint();
+      const removeBtn = document.getElementById('btnRemoveFromEdit');
+      if (removeBtn) removeBtn.classList.toggle('hidden', !existingGame);
+      // Keep an unusual stored category selectable instead of silently blanking it.
+      const catSel = document.getElementById('inputGameCategory');
+      if (catSel && source.category && ![...catSel.options].some((o) => o.value === source.category)) {
+        const o = document.createElement('option');
+        o.value = source.category;
+        o.textContent = source.category;
+        catSel.appendChild(o);
+        catSel.value = source.category;
+      }
+      openModal('modalAddGame');
+      if (!existingGame && source.url && (!state.settings || state.settings.autoScrape !== false)) {
+        lastAutoScrapedUrl = cleanGameUrl(source.url);
+        scrapeWebsiteMetadata(source.url).then((scraped) => {
+          if (scraped) applyScrapedMetaToModal(scraped, true);
+        });
+      }
+    }
+
+    // Common zones first (where most daily games publish their reset), then every IANA zone.
+    const COMMON_ZONES = [
+      ['America/New_York', 'US Eastern (New York)'], ['America/Chicago', 'US Central (Chicago)'],
+      ['America/Denver', 'US Mountain (Denver)'], ['America/Los_Angeles', 'US Pacific (Los Angeles)'],
+      ['America/Toronto', 'Toronto'], ['America/Sao_Paulo', 'São Paulo'], ['Europe/London', 'UK (London)'],
+      ['Europe/Paris', 'Central Europe (Paris)'], ['Europe/Berlin', 'Berlin'], ['Europe/Madrid', 'Madrid'],
+      ['Europe/Moscow', 'Moscow'], ['Asia/Kolkata', 'India (Kolkata)'], ['Asia/Shanghai', 'China (Shanghai)'],
+      ['Asia/Tokyo', 'Japan (Tokyo)'], ['Asia/Seoul', 'Korea (Seoul)'], ['Australia/Sydney', 'Australia East (Sydney)'],
+      ['Pacific/Auckland', 'New Zealand (Auckland)']
+    ];
+    function deviceTimeZone() {
+      try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; }
+    }
+    function populateZoneSelect(sel) {
+      if (!sel || sel.dataset.populated) return;
+      sel.dataset.populated = '1';
+      const add = (parent, value, label) => {
+        const o = document.createElement('option');
+        o.value = value;
+        o.textContent = label;
+        parent.appendChild(o);
+      };
+      const common = document.createElement('optgroup');
+      common.label = 'Common time zones';
+      const mine = deviceTimeZone();
+      if (mine && HubCore.isValidTimeZone(mine) && !COMMON_ZONES.some(([z]) => z === mine)) {
+        add(common, mine, `${mine.split('/').pop().replace(/_/g, ' ')} (this phone's zone)`);
+      }
+      COMMON_ZONES.forEach(([z, label]) => { if (HubCore.isValidTimeZone(z)) add(common, z, label); });
+      sel.appendChild(common);
+      try {
+        if (typeof Intl.supportedValuesOf === 'function') {
+          const all = document.createElement('optgroup');
+          all.label = 'All time zones';
+          Intl.supportedValuesOf('timeZone').forEach((z) => {
+            if (z.includes('/') && !COMMON_ZONES.some(([c]) => c === z)) add(all, z, z.replace(/_/g, ' '));
+          });
+          sel.appendChild(all);
+        }
+      } catch (e) {}
+    }
+    /** Selects `zone`, adding it as an option if a scraped/stored zone isn't in the list yet. */
+    function setZoneSelectValue(zone) {
+      const sel = document.getElementById('inputResetZone');
+      if (!sel) return;
+      populateZoneSelect(sel);
+      const z = HubCore.normalizeZone(zone);
+      if (![...sel.options].some((o) => o.value === z)) {
+        const o = document.createElement('option');
+        o.value = z;
+        o.textContent = z.replace(/_/g, ' ');
+        sel.insertBefore(o, sel.options[2] || null);
+      }
+      sel.value = z;
+    }
+
+    // Cycle the log form will save to (a past one when a game reset while you were playing it).
+    let logModalCycleKey = '';
+    function openLogModal(gameId, opts) {
+      hideReturnPrompt();
+      checkDailyRollovers({ silent: true });
+      const game = state.games.find((g) => g.id === gameId);
+      if (!game) return;
+      const currentKey = getCycleDateKey(game.resetTime, game.resetZone);
+      const wanted = opts && opts.cycleKey;
+      logModalCycleKey = (wanted && wanted !== currentKey && HubCore.DATE_KEY_RE.test(wanted)
+        && cycleKeyToDay(wanted) < cycleKeyToDay(currentKey)) ? wanted : '';
+      document.getElementById('logGameId').value = game.id;
+      document.getElementById('modalLogTitle').textContent = logModalCycleKey
+        ? `Log Result — ${game.name} (${formatCycleDateLabel(logModalCycleKey)})`
+        : `Log Result — ${game.name}`;
+      if (logModalCycleKey) {
+        const row = findLogRow(game, logModalCycleKey);
+        document.getElementById('inputLogScoreText').value = row && row.outcome === 'Completed' ? String(row.score || '') : '';
+        selectedLogStatus = 'completed';
+      } else {
+        document.getElementById('inputLogScoreText').value = game.todayScore || '';
+        selectedLogStatus = game.status === 'missed' ? 'missed' : 'completed';
+      }
+      updateStatusPickButtons();
+      openModal('modalLogScore');
+    }
+
+    function updateStatusPickButtons() {
+      document.querySelectorAll('.status-pick-btn').forEach((btn) => {
+        const pick = btn.getAttribute('data-status-pick');
+        btn.setAttribute('aria-pressed', pick === selectedLogStatus ? 'true' : 'false');
+        if (pick === selectedLogStatus) {
+          btn.className = pick === 'missed'
+            ? 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-xl border border-rose-500 bg-rose-500/20 text-rose-300 font-bold text-xs'
+            : 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-xl border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs';
+        } else {
+          btn.className = 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs';
+        }
+      });
+    }
+
+    // =========================================================================
+    // NATIVE HOOKS (called from MainActivity via evaluateJavascript)
+    // =========================================================================
+    window.handleSharedUrl = function (raw) {
+      const meta = inferGameMetaFromUrl(raw);
+      if (!meta) {
+        showToast('Invalid link', 'That doesn\'t look like a web link. Try copying the game URL again.', 'indigo');
+        return;
+      }
+      switchNavigation('dashboard');
+      const dup = findGameByUrl(meta.url);
+      if (dup) {
+        showToast(`${dup.name} is already in your hub`, 'Opening it now.', 'indigo');
+        openGameInPlayer(dup.id);
+        return;
+      }
+      openAddOrEditModal(meta, null);
+    };
+
+    // ---- Clipboard (read only on an explicit tap; Android 10+ only allows it while we're in front) ----
+    let clipboardRequestCounter = 0;
+    const pendingClipboardReads = new Map();
+    window.onClipboardText = function (requestId, text) {
+      const fn = pendingClipboardReads.get(requestId);
+      if (fn) {
+        pendingClipboardReads.delete(requestId);
+        fn(String(text || ''));
+      }
+    };
+    function readClipboardText() {
+      return new Promise((resolve) => {
+        try {
+          if (window.AndroidBridge && typeof window.AndroidBridge.readClipboardText === 'function') {
+            const id = ++clipboardRequestCounter;
+            pendingClipboardReads.set(id, resolve);
+            window.AndroidBridge.readClipboardText(id);
+            setTimeout(() => { if (pendingClipboardReads.delete(id)) resolve(''); }, 3000);
+            return;
+          }
+          if (navigator.clipboard && navigator.clipboard.readText) {
+            navigator.clipboard.readText().then(resolve, () => resolve(''));
+            return;
+          }
+        } catch (e) {}
+        resolve('');
+      });
+    }
+
+    // ---- "Finished playing?" sheet ----
+    const RETURN_PROMPT_MIN_MS = 15000; // ignore quick peeks at a game
+    let returnPromptGameId = '';
+    function formatPlayedFor(ms) {
+      const totalSec = Math.max(0, Math.round(ms / 1000));
+      const m = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      if (m >= 60) return `${Math.floor(m / 60)}h ${m % 60}m`;
+      return m > 0 ? `${m}m ${String(sec).padStart(2, '0')}s` : `${sec}s`;
+    }
+    let returnPromptOpenedKey = '';
+    function hideReturnPrompt() {
+      returnPromptGameId = '';
+      returnPromptCycles = null;
+      const el = document.getElementById('returnPrompt');
+      if (el) el.classList.add('hidden');
+    }
+    // When a game reset while it was open, the prompt asks which puzzle the result belongs to.
+    let returnPromptCycles = null; // { opened, current } or null
+    let returnPromptCycleKey = '';
+    function setReturnPromptCycle(key) {
+      returnPromptCycleKey = key;
+      document.querySelectorAll('#returnPromptCycle [data-cycle]').forEach((b) => {
+        const on = (b.getAttribute('data-cycle') === 'opened' ? returnPromptCycles.opened : returnPromptCycles.current) === key;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+    function showReturnPrompt(game, elapsedMs, cycles) {
+      const el = document.getElementById('returnPrompt');
+      if (!el) return;
+      closeAllModals();
+      returnPromptGameId = game.id;
+      returnPromptCycles = cycles && cycles.opened && cycles.opened !== cycles.current ? cycles : null;
+      const chooser = document.getElementById('returnPromptCycle');
+      if (chooser) chooser.classList.toggle('hidden', !returnPromptCycles);
+      if (returnPromptCycles) {
+        chooser.querySelector('[data-cycle="opened"]').textContent = `${formatCycleDateLabel(returnPromptCycles.opened).split(',')[0]}'s puzzle`;
+        setReturnPromptCycle(returnPromptCycles.opened);
+      } else {
+        returnPromptCycleKey = '';
+      }
+      document.getElementById('returnPromptTitle').textContent = returnPromptCycles
+        ? `${game.name} reset while you played` : `Finished ${game.name}?`;
+      document.getElementById('returnPromptSub').textContent = elapsedMs > 0
+        ? `Played for ${formatPlayedFor(elapsedMs)} · log it to keep your 🔥 ${game.streak}d streak`
+        : `Log today's result to keep your 🔥 ${game.streak}d streak`;
+      document.getElementById('returnPromptIcon').innerHTML = renderGameIconHtml(game.icon, game.name, 'w-4 h-4');
+      el.classList.remove('hidden');
+    }
+    async function handleReturnPromptAction(action) {
+      const game = state.games.find((g) => g.id === returnPromptGameId);
+      const cycleKey = returnPromptCycleKey || (returnPromptOpenedKey || '');
+      hideReturnPrompt();
+      if (!game || action === 'later') return;
+      const captured = returnPromptShareText;
+      returnPromptShareText = '';
+      const opts = cycleKey ? { cycleKey } : undefined;
+      if (action === 'solved') recordGameOutcome(game.id, 'completed', captured, opts);
+      else if (action === 'missed') recordGameOutcome(game.id, 'missed', '', opts);
+      else if (action === 'details') {
+        openLogModal(game.id, opts);
+        // Prefer the result the game player captured; otherwise check the clipboard.
+        const clip = captured || await readClipboardText();
+        const box = document.getElementById('inputLogScoreText');
+        const stillSameGame = document.getElementById('logGameId').value === game.id
+          && !document.getElementById('modalLogScore').classList.contains('hidden');
+        if (box && stillSameGame && !box.value.trim() && HubCore.looksLikeShareResult(clip, game)) {
+          box.value = clip.replace(/\r\n/g, '\n');
+          showToast('Pasted your result', 'Copied share text added — check it and tap Save.', 'emerald');
+        }
+      }
+    }
+
+    /** Snapshot of everything recordGameOutcome can change for one game/day, for Undo. */
+    function snapshotForUndo(game, cycleKey) {
+      const row = findLogRow(game, cycleKey);
+      return {
+        gameId: game.id, cycleKey, takenAt: Date.now(),
+        liveKeyAtSnapshot: getCycleDateKey(game.resetTime, game.resetZone),
+        status: game.status, todayScore: game.todayScore, lastCycleKey: game.lastCycleKey,
+        dayValue: game.dayHistory ? game.dayHistory[cycleKey] : undefined,
+        row: row ? Object.assign({}, row) : null
+      };
+    }
+    function restoreUndo(snap) {
+      const game = state.games.find((g) => g.id === snap.gameId);
+      if (!game) return;
+      // Only undo while the same puzzle is live (and within 10 minutes): restoring an old status or
+      // cycle anchor after a reset would corrupt the new day.
+      if (Date.now() - snap.takenAt > 10 * 60 * 1000 || getCycleDateKey(game.resetTime, game.resetZone) !== snap.liveKeyAtSnapshot) {
+        showToast('Too late to undo', 'The game has reset since then. Change the result from its ✓ button instead.', 'indigo');
+        return;
+      }
+      game.status = snap.status;
+      game.todayScore = snap.todayScore;
+      game.lastCycleKey = snap.lastCycleKey;
+      if (snap.dayValue === undefined) delete game.dayHistory[snap.cycleKey];
+      else game.dayHistory[snap.cycleKey] = snap.dayValue;
+      const idx = state.historyLogs.findIndex((l) => l.date === snap.cycleKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
+      if (snap.row) {
+        if (idx >= 0) state.historyLogs[idx] = snap.row;
+        else state.historyLogs.unshift(snap.row);
+      } else if (idx >= 0) {
+        state.historyLogs.splice(idx, 1);
+      }
+      invalidateLogIndex();
+      recomputeGameStatsFromHistory(game);
+      saveState();
+      renderVisibleTab();
+      showToast(`${game.name}: log undone`, 'Restored to how it was before.', 'indigo');
+    }
+
+    let returnPromptShareText = '';
+
+    /**
+     * Back from the game player. If the player captured a share result (copied or shared inside the
+     * game) it is logged automatically against the puzzle that was live when the game was opened.
+     */
+    window.onReturnFromGame = function (gameId, openLog, elapsedMs, shareText, openedAt) {
+      checkDailyRollovers({ silent: true });
+      const game = state.games.find((g) => g.id === gameId);
+      if (!game) return;
+      switchNavigation('dashboard');
+      const captured = (typeof shareText === 'string' && HubCore.isStrictShareResult(shareText, game))
+        ? shareText.replace(/\r\n/g, '\n').trim() : '';
+      const autoLog = !state.settings || state.settings.autoLogFromShare !== false;
+      const currentKey = getCycleDateKey(game.resetTime, game.resetZone);
+      const openedKey = Number(openedAt) > 0 ? getCycleDateKey(game.resetTime, game.resetZone, new Date(Number(openedAt))) : '';
+      const resetWhilePlaying = Boolean(openedKey && openedKey !== currentKey && cycleKeyToDay(openedKey) < cycleKeyToDay(currentKey));
+      if (openLog) {
+        openLogModal(game.id, resetWhilePlaying ? { cycleKey: openedKey } : undefined);
+        const box = document.getElementById('inputLogScoreText');
+        if (captured && box && !box.value.trim()) {
+          box.value = captured;
+          selectedLogStatus = 'completed';
+          updateStatusPickButtons();
+        }
+        return;
+      }
+      if (captured && autoLog && !resetWhilePlaying) {
+        const cycleKey = currentKey;
+        const alreadySame = game.dayHistory && game.dayHistory[cycleKey] === 'completed'
+          && cycleKey === getCycleDateKey(game.resetTime, game.resetZone) && game.todayScore === captured;
+        if (alreadySame) return;
+        const snap = snapshotForUndo(game, cycleKey);
+        recordGameOutcome(game.id, 'completed', captured, { cycleKey, quiet: true });
+        const firstLine = captured.split('\n')[0].slice(0, 60);
+        showToast(`🔥 ${game.name} logged automatically`, firstLine, 'emerald', null,
+          { actionLabel: 'Undo', onAction: () => restoreUndo(snap) });
+        return;
+      }
+      returnPromptShareText = captured;
+      returnPromptOpenedKey = resetWhilePlaying ? openedKey : '';
+      if (resetWhilePlaying && (captured || Number(elapsedMs || 0) >= RETURN_PROMPT_MIN_MS)) {
+        // The puzzle changed mid-game: ask which one the result is for instead of guessing.
+        showReturnPrompt(game, Number(elapsedMs || 0), { opened: openedKey, current: currentKey });
+        return;
+      }
+      const alreadyLogged = game.status === 'completed' || game.status === 'missed';
+      const askEnabled = !state.settings || state.settings.askToLogOnReturn !== false;
+      if (askEnabled && !alreadyLogged && Number(elapsedMs || 0) >= RETURN_PROMPT_MIN_MS) {
+        showReturnPrompt(game, Number(elapsedMs || 0));
+      }
+    };
+
+    window.handleBackPress = function () {
+      // The visible top layer first: an open modal, then the "Finished?" sheet, then the tab.
+      const open = MODAL_IDS.filter(isModalOpen);
+      if (open.length) {
+        closeModal(open[open.length - 1]);
+        return true;
+      }
+      if (returnPromptGameId) {
+        hideReturnPrompt();
+        return true;
+      }
+      if (activeTab !== 'dashboard') {
+        switchNavigation('dashboard');
+        return true;
+      }
+      return false;
+    };
+
+    // =========================================================================
+    // BACKUP VALIDATION & IMPORT
+    // =========================================================================
+    function validateAndApplyBackup(raw) {
+      if (!raw || !String(raw).trim()) {
+        showToast('Import Cancelled', 'No backup file was selected.', 'indigo');
+        return;
+      }
+      try {
+        const parsed = JSON.parse(String(raw).trim());
+        let rawGames = null;
+        let rawLogs = null;
+        let rawSettings = null;
+        let rawRetained = null;
+
+        if (Array.isArray(parsed)) {
+          rawGames = parsed;
+        } else if (parsed && typeof parsed === 'object' && Array.isArray(parsed.games)) {
+          rawGames = parsed.games;
+          if (Array.isArray(parsed.historyLogs)) rawLogs = parsed.historyLogs;
+          if (parsed.settings && typeof parsed.settings === 'object') rawSettings = parsed.settings;
+          if (parsed.retainedGameStats && typeof parsed.retainedGameStats === 'object') rawRetained = parsed.retainedGameStats;
+        } else {
+          throw new Error('Invalid backup root');
+        }
+
+        const backupIsLegacy = !(parsed && !Array.isArray(parsed) && Number(parsed.schemaVersion) >= STATE_SCHEMA_VERSION);
+        const importedLogs = rawLogs
+          ? rawLogs.filter((l) => l && typeof l === 'object' && typeof l.date === 'string' && typeof l.gameName === 'string')
+          : null;
+        const seenIds = new Set();
+        const validatedGames = [];
+        rawGames.forEach((g, idx) => {
+          const norm = normalizeGameObject(g, idx);
+          if (!norm) throw new Error('Invalid game entry at index ' + idx);
+          if (backupIsLegacy) migrateLegacyFlattenedUtc(norm, importedLogs || []);
+          norm.id = HubCore.uniqueId(norm.id, seenIds);
+          seenIds.add(norm.id);
+          // Keep the backup's cycle anchor (if not in the future) so the days between the backup and
+          // now are filled in as missed by the rollover below, exactly as if the app had been open.
+          const todayKey = getCycleDateKey(norm.resetTime, norm.resetZone);
+          const anchor = HubCore.DATE_KEY_RE.test(String(norm.lastCycleKey || '')) && cycleKeyToDay(norm.lastCycleKey) <= cycleKeyToDay(todayKey)
+            ? norm.lastCycleKey : todayKey;
+          norm.lastCycleKey = anchor;
+          if (anchor !== todayKey && norm.status === 'completed' && norm.dayHistory[anchor] !== 'completed') norm.status = 'ready';
+          recomputeGameStatsFromHistory(norm);
+          validatedGames.push(norm);
+        });
+
+        state.games = validatedGames;
+        historyPage = 0;
+        if (importedLogs) {
+          state.historyLogs = importedLogs;
+        }
+        if (rawSettings) {
+          state.settings = Object.assign(getDefaultSettings(), rawSettings, { autoMarkMissed: true });
+        }
+        if (rawRetained) {
+          state.retainedGameStats = normalizeRetainedMap(rawRetained);
+        }
+        invalidateLogIndex();
+        // An explicit import replaces unreadable data on purpose: saving can resume.
+        if (state.__saveBlocked) {
+          try { if (window.AndroidBridge && window.AndroidBridge.quarantineHubState) window.AndroidBridge.quarantineHubState(); } catch (e) {}
+          state.__saveBlocked = false;
+          const banner = document.getElementById('dataProblemBanner');
+          if (banner) banner.classList.add('hidden');
+        }
+        checkDailyRollovers({ silent: true });
+
+        selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
+        saveState({ syncNow: true });
+        renderAll();
+        showToast('Backup Restored', `Imported ${state.games.length} daily games from your backup file.`, 'emerald');
+      } catch (err) {
+        showToast('Import Failed', 'The selected file is not a valid Dailies JSON backup file.', 'indigo');
+      }
+    }
+
+    // =========================================================================
+    // VISIBILITY-AWARE 1-SECOND TIMER
+    // =========================================================================
+    function startLiveTickTimer() {
+      if (liveTickIntervalId !== null) return;
+      liveTickIntervalId = setInterval(() => {
+        if (document.hidden) return;
+        checkDailyRollovers({ silent: false });
+        updateLiveTimers();
+      }, 1000);
+    }
+
+    function stopLiveTickTimer() {
+      if (liveTickIntervalId !== null) {
+        clearInterval(liveTickIntervalId);
+        liveTickIntervalId = null;
+      }
+    }
+
+    // =========================================================================
+    // EVENT LISTENERS & INITIALIZATION
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      applyThemeAndSettings();
+      renderFilterTabs();
+      checkDailyRollovers({ silent: true });
+
+      // First launch on the native store: copy any legacy localStorage state across, then drop it.
+      if (hasNativeStore()) {
+        if (state.__loadedFrom === 'localStorage') {
+          saveState({ sync: false });
+        } else if (state.__loadedFrom === 'native') {
+          try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+        }
+      }
+      saveLaunchPrefs();
+
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const sharedUrl = params.get('addUrl') || params.get('url');
+        if (sharedUrl) window.handleSharedUrl(sharedUrl);
+      } catch (e) {}
+
+      renderVisibleTab();
+      flushSyncNativeNow();
+      startLiveTickTimer();
+
+      // Enable button micro-animations only after first paint so initial load has zero transition lag
+      requestAnimationFrame(() => {
+        document.documentElement.classList.add('app-ready');
+      });
+
+      // Tell the native shell the hub is interactive now. Waiting for onPageFinished meant waiting for
+      // every favicon download, which held back inset/theme updates and queued intents for seconds.
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.onHubReady === 'function') {
+          window.AndroidBridge.onHubReady();
+        }
+      } catch (e) {}
+
+      // Keep Android's predictive-back state in sync with modal visibility.
+      ['modalAddGame', 'modalLogScore', 'modalDeleteGame', 'returnPrompt'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) new MutationObserver(syncBackInterceptState).observe(el, { attributes: true, attributeFilter: ['class'] });
+      });
+      syncBackInterceptState();
+
+      // Score History pages: ‹ › buttons and horizontal swipes inside the block.
+      const goHistoryPage = (delta) => {
+        const pageCount = Math.max(1, Math.ceil(state.historyLogs.length / HISTORY_PAGE_SIZE));
+        const next = Math.min(Math.max(0, historyPage + delta), pageCount - 1);
+        if (next === historyPage) return;
+        historyPage = next;
+        renderStatsAndCharts();
+        const list = document.getElementById('historyTableBody');
+        if (list) {
+          list.classList.remove('slide-left', 'slide-right');
+          void list.offsetWidth;
+          list.classList.add(delta > 0 ? 'slide-left' : 'slide-right');
+        }
+      };
+      document.getElementById('btnHistoryPrev').addEventListener('click', () => goHistoryPage(-1));
+      document.getElementById('btnHistoryNext').addEventListener('click', () => goHistoryPage(1));
+      const historyBlock = document.getElementById('historyBlock');
+      let histX = 0, histY = 0;
+      historyBlock.addEventListener('touchstart', (e) => {
+        if (e.touches && e.touches.length === 1) { histX = e.touches[0].clientX; histY = e.touches[0].clientY; }
+      }, { passive: true });
+      historyBlock.addEventListener('touchend', (e) => {
+        if (!e.changedTouches || e.changedTouches.length !== 1) return;
+        const dx = e.changedTouches[0].clientX - histX;
+        const dy = e.changedTouches[0].clientY - histY;
+        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+        goHistoryPage(dx < 0 ? 1 : -1);
+      }, { passive: true });
+
+      const zoneSelect = document.getElementById('inputResetZone');
+      const timeInput = document.getElementById('inputResetTime');
+      populateZoneSelect(zoneSelect);
+      const updateZoneHint = () => {
+        const hint = document.getElementById('inputResetZoneHint');
+        if (!hint || !zoneSelect || !timeInput) return;
+        const zone = HubCore.normalizeZone(zoneSelect.value);
+        const local = formatLocalResetTime(timeInput.value || '00:00', zone);
+        if (zone === 'local') {
+          hint.textContent = 'Resets at this time wherever you are.';
+        } else if (zone === 'utc') {
+          hint.textContent = `= ${local} your time. Saved as UTC, always shown in your local time.`;
+        } else {
+          hint.textContent = `= ${local} your time. Saved as ${HubCore.zoneLabel(zone)}, always shown in your local time.`;
+        }
+      };
+      if (zoneSelect) zoneSelect.addEventListener('change', updateZoneHint);
+      if (timeInput) timeInput.addEventListener('input', updateZoneHint);
+      window.__updateZoneHint = updateZoneHint;
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          stopLiveTickTimer();
+          if (syncDebounceTimer) flushSyncNativeNow();
+        } else {
+          checkDailyRollovers({ silent: true });
+          renderVisibleTab();
+          startLiveTickTimer();
+          renderNotificationButton();
+        }
+      });
+
+      initCardDragReorder();
+      // Keyboard activation for non-button elements that act like buttons (e.g. compact card titles).
+      document.addEventListener('keydown', (e) => {
+        const el = e.target && e.target.closest ? e.target.closest('[role="button"][data-action]') : null;
+        if (el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); el.click(); }
+      });
+
+      if (state.__saveBlocked) showDataProblemBanner();
+      document.getElementById('btnDataStartFresh').addEventListener('click', resolveDataProblemStartFresh);
+      document.getElementById('btnDataGoImport').addEventListener('click', () => {
+        switchNavigation('settings');
+        const b = document.getElementById('btnSettingsImportJson');
+        if (b) b.scrollIntoView({ block: 'center' });
+      });
+
+      // Horizontal swipe left/right to switch tabs (Daily Hub <-> Streaks & Log <-> Settings)
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchIgnore = false;
+
+      document.addEventListener('touchstart', (e) => {
+        if (!e.touches || e.touches.length !== 1 || isAnyModalOpen()) {
+          touchIgnore = true;
+          return;
+        }
+        const el = e.target;
+        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock')) {
+          touchIgnore = true;
+          return;
+        }
+        touchIgnore = false;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      document.addEventListener('touchend', (e) => {
+        if (Date.now() - cardDragEndedAt < 400) return; // that touch reordered a card
+        if (touchIgnore || !e.changedTouches || e.changedTouches.length !== 1 || isAnyModalOpen()) return;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
+
+        const curIdx = TAB_ORDER.indexOf(activeTab);
+        if (curIdx < 0) return;
+        if (dx < 0 && curIdx < TAB_ORDER.length - 1) {
+          // Swiped left -> move to next tab on the right
+          switchNavigation(TAB_ORDER[curIdx + 1]);
+        } else if (dx > 0 && curIdx > 0) {
+          // Swiped right -> move to previous tab on the left
+          switchNavigation(TAB_ORDER[curIdx - 1]);
+        }
+      }, { passive: true });
+
+      document.getElementById('btnOpenAddModal').addEventListener('click', () => {
+        openAddOrEditModal(null, null);
+      });
+
+      // Settings Tab Controls
+      const bindSetting = (id, key, isCheckbox) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('change', () => {
+          if (!state.settings) state.settings = getDefaultSettings();
+          state.settings[key] = isCheckbox ? el.checked : el.value;
+          state.settings.autoMarkMissed = true;
+          saveState({ sync: false });
+          applyThemeAndSettings();
+          if (key === 'compactCards') {
+            renderGamesGrid();
+          } else if (key === 'timeFormat' || key === 'showSeconds') {
+            renderVisibleTab();
+          }
+        });
+      };
+      bindSetting('settingDynamicWallpaper', 'dynamicWallpaper', true);
+      bindSetting('settingAmoledDark', 'amoledDark', true);
+      bindSetting('settingCompactCards', 'compactCards', true);
+      bindSetting('settingTimeFormat', 'timeFormat', false);
+      bindSetting('settingShowSeconds', 'showSeconds', true);
+      bindSetting('settingAutoScrape', 'autoScrape', true);
+      bindSetting('settingAskOnReturn', 'askToLogOnReturn', true);
+      bindSetting('settingAutoLogShare', 'autoLogFromShare', true);
+      bindSetting('settingBlockAds', 'blockAdsInGames', true);
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.getAdBlockInfo === 'function') {
+          const info = JSON.parse(window.AndroidBridge.getAdBlockInfo() || '{}');
+          const el = document.getElementById('adBlockInfo');
+          if (el && info.blocked_hosts) {
+            const n = (x) => Number(x || 0).toLocaleString();
+            el.textContent = `${n(info.blocked_hosts)} ad & tracker domains, ${n(info.url_rules)} URL rules, ${n(Number(info.generic_hide || 0) + Number(info.specific_hide || 0))} hiding rules. Tap the shield in a game to allow ads on that site.`;
+          }
+        }
+      } catch (e) {}
+
+      window.onBackupFileSaved = function (success) {
+        if (success) {
+          showToast('Backup File Saved', `Saved ${state.games.length} daily games, settings & score logs to your device.`, 'emerald');
+        } else {
+          showToast('Save Cancelled', 'Backup file export was cancelled or could not be written.', 'indigo');
+        }
+      };
+
+      window.onBackupFileImported = function (rawText) {
+        validateAndApplyBackup(rawText);
+      };
+
+      const saveBackupToFileHandler = async () => {
+        const now = new Date();
+        const dateStamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const fileName = `dailies_backup_${dateStamp}.json`;
+        const backupPayload = {
+          app: 'Dailies',
+          version: APP_VERSION,
+          schemaVersion: STATE_SCHEMA_VERSION,
+          exportedAtLocal: formatLocalNowTime(now),
+          settings: state.settings,
+          games: state.games,
+          retainedGameStats: state.retainedGameStats || {},
+          historyLogs: state.historyLogs
+        };
+        const jsonStr = JSON.stringify(backupPayload, null, 2);
+
+        try {
+          if (window.AndroidBridge && typeof window.AndroidBridge.saveBackupToFile === 'function') {
+            window.AndroidBridge.saveBackupToFile(fileName, jsonStr);
+            return;
+          }
+          if (typeof window.showSaveFilePicker === 'function') {
+            const handle = await window.showSaveFilePicker({
+              suggestedName: fileName,
+              types: [{
+                description: 'Dailies JSON Backup',
+                accept: { 'application/json': ['.json'], 'text/plain': ['.txt'] }
+              }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(jsonStr);
+            await writable.close();
+            window.onBackupFileSaved(true);
+            return;
+          }
+        } catch (err) {
+          if (err && err.name === 'AbortError') {
+            window.onBackupFileSaved(false);
+            return;
+          }
+        }
+
+        try {
+          const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+          window.onBackupFileSaved(true);
+        } catch (e) {
+          window.onBackupFileSaved(false);
+        }
+      };
+
+      const btnSettingsExport = document.getElementById('btnSettingsExportJson');
+      if (btnSettingsExport) btnSettingsExport.addEventListener('click', saveBackupToFileHandler);
+
+      // Calendar Game Dropdown & Month Navigation Controls
+      const calGameSelect = document.getElementById('calendarGameSelect');
+      if (calGameSelect) {
+        calGameSelect.addEventListener('change', () => {
+          selectedCalendarGameId = calGameSelect.value;
+          renderGameCalendar();
+        });
+      }
+      const btnCalPrev = document.getElementById('btnCalPrevMonth');
+      if (btnCalPrev) {
+        btnCalPrev.addEventListener('click', () => {
+          calendarMonth -= 1;
+          if (calendarMonth < 0) {
+            calendarMonth = 11;
+            calendarYear -= 1;
+          }
+          renderGameCalendar();
+        });
+      }
+      const btnCalNext = document.getElementById('btnCalNextMonth');
+      if (btnCalNext) {
+        btnCalNext.addEventListener('click', () => {
+          calendarMonth += 1;
+          if (calendarMonth > 11) {
+            calendarMonth = 0;
+            calendarYear += 1;
+          }
+          renderGameCalendar();
+        });
+      }
+      const btnCalToday = document.getElementById('btnCalToday');
+      if (btnCalToday) {
+        btnCalToday.addEventListener('click', () => {
+          const calGames = getCalendarGamesList();
+          const game = calGames.find((g) => g.id === selectedCalendarGameId) || calGames[0];
+          if (game) {
+            const parts = getCycleDateKey(game.resetTime, game.resetZone).split('-');
+            calendarYear = parseInt(parts[0], 10) || new Date().getFullYear();
+            calendarMonth = (parseInt(parts[1], 10) || (new Date().getMonth() + 1)) - 1;
+          } else {
+            const now = new Date();
+            calendarYear = now.getFullYear();
+            calendarMonth = now.getMonth();
+          }
+          renderGameCalendar();
+        });
+      }
+
+      const fileInputEl = document.getElementById('inputImportBackupFile');
+      if (fileInputEl) {
+        fileInputEl.addEventListener('change', () => {
+          const file = fileInputEl.files && fileInputEl.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            validateAndApplyBackup(String(reader.result || ''));
+            fileInputEl.value = '';
+          };
+          reader.onerror = () => {
+            showToast('Import Failed', 'Could not read the selected backup file.', 'indigo');
+            fileInputEl.value = '';
+          };
+          reader.readAsText(file);
+        });
+      }
+
+      const btnSettingsImport = document.getElementById('btnSettingsImportJson');
+      if (btnSettingsImport) {
+        btnSettingsImport.addEventListener('click', () => {
+          try {
+            if (window.AndroidBridge && typeof window.AndroidBridge.openBackupFilePicker === 'function') {
+              window.AndroidBridge.openBackupFilePicker();
+              return;
+            }
+          } catch (e) {}
+          if (fileInputEl) {
+            fileInputEl.value = '';
+            fileInputEl.click();
+          }
+        });
+      }
+
+      // Filter tabs
+      document.querySelectorAll('.filter-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          state.activeFilter = tab.getAttribute('data-filter') || 'all';
+          renderFilterTabs();
+          renderGamesGrid();
+          saveState({ sync: false });
+        });
+      });
+
+      // Delegated clicks on gamesGrid and notificationScheduleList
+      document.body.addEventListener('click', (e) => {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+        const action = target.getAttribute('data-action');
+        const id = target.getAttribute('data-id');
+        const game = state.games.find((g) => g.id === id);
+        if (!game) return;
+
+        if (action === 'play') {
+          openGameInPlayer(game.id);
+        } else if (action === 'log') {
+          openLogModal(game.id);
+        } else if (action === 'edit') {
+          openAddOrEditModal(null, game);
+        } else if (action === 'delete') {
+          openDeleteConfirmModal(game);
+        } else if (action === 'move-up') {
+          moveGameInOrder(game.id, -1);
+        } else if (action === 'move-down') {
+          moveGameInOrder(game.id, 1);
+        } else if (action === 'toggle-notify') {
+          game.notifyEnabled = !game.notifyEnabled;
+          saveState({ syncNow: true });
+          renderNotificationsView();
+          const localReset = formatLocalResetTime(game.resetTime, game.resetZone);
+          showToast(
+            `${game.name} Alerts ${game.notifyEnabled ? 'Enabled' : 'Muted'}`,
+            game.notifyEnabled
+              ? `You will be notified right when this game resets at ${localReset}.`
+              : 'Per-game reset notifications paused for this game.',
+            'indigo'
+          );
+        }
+      });
+
+      // Delete Confirmation Modal handlers
+      document.getElementById('btnCloseDeleteModal').addEventListener('click', closeDeleteConfirmModal);
+      document.getElementById('btnCancelDeleteModal').addEventListener('click', closeDeleteConfirmModal);
+      document.getElementById('btnConfirmDeleteModal').addEventListener('click', confirmDeleteGame);
+
+      // Add/Edit Modal handlers (closeAddModal is global so Back closes it the same way)
+      document.getElementById('btnCloseAddModal').addEventListener('click', closeAddModal);
+      document.getElementById('btnRemoveFromEdit').addEventListener('click', () => {
+        const game = state.games.find((g) => g.id === document.getElementById('editGameId').value);
+        closeAddModal();
+        if (game) openDeleteConfirmModal(game);
+      });
+
+      // Tap outside a dialog (on its dimmed backdrop) closes it; Tab stays inside the open dialog.
+      MODAL_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        el.addEventListener('click', (e) => { if (e.target === el) closeModal(id); });
+      });
+      document.addEventListener('keydown', (e) => {
+        const openId = MODAL_IDS.find(isModalOpen);
+        if (!openId) return;
+        if (e.key === 'Escape') { closeModal(openId); e.preventDefault(); return; }
+        if (e.key !== 'Tab') return;
+        const focusables = [...document.getElementById(openId).querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+          .filter((x) => !x.disabled && x.offsetParent !== null);
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
+        else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+      });
+      document.getElementById('btnCancelAddModal').addEventListener('click', closeAddModal);
+
+      async function triggerUrlScrape(rawUrl, forceUpdateUrlField, force) {
+        const cleaned = cleanGameUrl(rawUrl);
+        if (!cleaned) return;
+        // A paste fires both "paste" and "input": only the first starts a native scrape.
+        if (!force && cleaned === lastAutoScrapedUrl) return;
+        lastAutoScrapedUrl = cleaned;
+        const quick = inferGameMetaFromUrl(cleaned);
+        if (quick) applyScrapedMetaToModal(quick, forceUpdateUrlField);
+        const scraped = await scrapeWebsiteMetadata(cleaned);
+        if (scraped) applyScrapedMetaToModal(scraped, forceUpdateUrlField);
+      }
+
+      document.getElementById('btnAutoDetectMeta').addEventListener('click', () => {
+        triggerUrlScrape(document.getElementById('inputGameUrl').value, true, true);
+      });
+
+      const urlInputEl = document.getElementById('inputGameUrl');
+
+      // 1) Standard clipboard paste event (captures clipboardData immediately & after input updates)
+      urlInputEl.addEventListener('paste', (e) => {
+        if (state.settings && state.settings.autoScrape === false) return;
+        let clipText = '';
+        try {
+          const cd = e.clipboardData || window.clipboardData;
+          if (cd && typeof cd.getData === 'function') {
+            clipText = cd.getData('text/plain') || cd.getData('text') || '';
+          }
+        } catch (err) {}
+        setTimeout(() => {
+          const val = (urlInputEl.value || clipText || '').trim();
+          const cleaned = cleanGameUrl(val);
+          if (cleaned && cleaned !== lastAutoScrapedUrl) {
+            triggerUrlScrape(val, false);
+          }
+        }, 25);
+      });
+
+      // 2) Input event: handles Android Gboard / keyboard clipboard bar commits (which fire input without paste)
+      //    as well as debounced URL entry.
+      urlInputEl.addEventListener('input', (e) => {
+        const currentVal = (urlInputEl.value || '').trim();
+        const deltaLen = Math.abs(currentVal.length - prevUrlInputValue.length);
+        prevUrlInputValue = currentVal;
+
+        if (state.settings && state.settings.autoScrape === false) return;
+        const inputType = (e && e.inputType) ? String(e.inputType) : '';
+        const isPasteLike =
+          inputType === 'insertFromPaste' ||
+          inputType === 'insertFromDrop' ||
+          inputType === 'insertReplacementText' ||
+          deltaLen >= 5;
+
+        const cleaned = cleanGameUrl(currentVal);
+        if (!cleaned) return;
+
+        if (isPasteLike && cleaned !== lastAutoScrapedUrl) {
+          if (urlInputDebounceTimer) clearTimeout(urlInputDebounceTimer);
+          urlInputDebounceTimer = setTimeout(() => {
+            triggerUrlScrape(urlInputEl.value, false);
+          }, 40);
+          return;
+        }
+
+        if (urlInputDebounceTimer) clearTimeout(urlInputDebounceTimer);
+        urlInputDebounceTimer = setTimeout(() => {
+          const latestClean = cleanGameUrl(urlInputEl.value);
+          if (latestClean && latestClean !== lastAutoScrapedUrl) {
+            triggerUrlScrape(urlInputEl.value, false);
+          }
+        }, 420);
+      });
+
+      urlInputEl.addEventListener('change', () => {
+        if (state.settings && state.settings.autoScrape === false) return;
+        const val = urlInputEl.value.trim();
+        const cleaned = cleanGameUrl(val);
+        if (cleaned && cleaned !== lastAutoScrapedUrl) {
+          triggerUrlScrape(val, true);
+        }
+      });
+
+      document.getElementById('inputGameIcon').addEventListener('input', updateModalIconPreview);
+      SCRAPE_FILLED_FIELDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // Programmatic .value assignments fire no events, so anything seen here came from the user.
+        const mark = () => userEditedModalFields.add(id);
+        el.addEventListener('input', mark);
+        el.addEventListener('change', mark);
+      });
+
+      document.getElementById('formSaveGame').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const editId = document.getElementById('editGameId').value;
+        const url = cleanGameUrl(document.getElementById('inputGameUrl').value);
+        if (!url) {
+          showToast('Invalid URL', 'Please enter a valid http:// or https:// game link.', 'indigo');
+          return;
+        }
+        const name = document.getElementById('inputGameName').value.trim() || 'Daily Game';
+        const icon = document.getElementById('inputGameIcon').value.trim();
+        const category = document.getElementById('inputGameCategory').value;
+        const maxTries = document.getElementById('inputGameMaxTries').value.trim() || 'Daily Puzzle';
+        const resetTime = HubCore.sanitizeResetTime(document.getElementById('inputResetTime').value || '00:00');
+        const resetZone = HubCore.normalizeZone(document.getElementById('inputResetZone').value);
+        const desc = document.getElementById('inputGameDesc').value.trim() || `Daily game hosted at ${url}`;
+        const notifyEnabled = document.getElementById('inputNotifyEnabled').checked;
+        const localResetStr = formatLocalResetTime(resetTime, resetZone);
+        const newCycleKey = getCycleDateKey(resetTime, resetZone);
+
+        if (editId) {
+          const existing = state.games.find((g) => g.id === editId);
+          const clash = findGameByUrl(url);
+          if (existing && clash && clash.id !== existing.id) {
+            showToast('Link already used', `${clash.name} already uses that link.`, 'indigo');
+            return;
+          }
+          if (existing) {
+            existing.url = url;
+            existing.name = name;
+            existing.icon = isImageIcon(icon) ? icon : getDefaultFaviconUrl(url);
+            existing.category = category;
+            existing.maxTries = maxTries;
+            const prevSchedule = { resetTime: existing.resetTime, resetZone: HubCore.normalizeZone(existing.resetZone) };
+            if (prevSchedule.resetZone !== resetZone || prevSchedule.resetTime !== resetTime) {
+              // Same puzzles, corrected clock: move history so streaks stay attached to the right days.
+              applyScheduleChange(existing, prevSchedule, { resetTime, resetZone }, state.historyLogs);
+            }
+            existing.resetTime = resetTime;
+            existing.resetZone = resetZone;
+            existing.desc = desc;
+            existing.notifyEnabled = notifyEnabled;
+            existing.lastCycleKey = newCycleKey;
+            existing.status = (existing.dayHistory && existing.dayHistory[newCycleKey]) || 'ready';
+            recomputeGameStatsFromHistory(existing);
+          }
+          showToast(`${name} Updated`, `Reset alert scheduled for ${localResetStr}.`, 'emerald');
+          closeAddModal();
+          saveState({ syncNow: true });
+          renderVisibleTab();
+          return;
+        } else {
+          const dupGame = findGameByUrl(url);
+          if (dupGame) {
+            closeAddModal();
+            showToast(`${dupGame.name} is already in your hub`, 'No duplicate was added.', 'indigo');
+            return;
+          }
+          // Restore retained streaks & dayHistory if this game was previously removed
+          const urlKey = normalizeUrlKey(url);
+          const retained = (state.retainedGameStats && urlKey && state.retainedGameStats[urlKey])
+            ? state.retainedGameStats[urlKey]
+            : null;
+          const restoredHistory = (retained && retained.dayHistory) ? HubCore.cleanDayHistory(retained.dayHistory) : {};
+          const newGame = {
+            id: (retained && retained.id && !state.games.some((g) => g.id === retained.id))
+              ? retained.id
+              : ('game-' + Date.now().toString(36)),
+            name,
+            url,
+            icon: isImageIcon(icon) ? icon : getDefaultFaviconUrl(url),
+            category,
+            resetTime,
+            resetZone,
+            maxTries,
+            desc,
+            notifyEnabled,
+            status: restoredHistory[newCycleKey] || 'ready',
+            todayScore: '',
+            streak: (retained && retained.streak) || 0,
+            bestStreak: (retained && retained.bestStreak) || 0,
+            totalPlayed: (retained && retained.totalPlayed) || 0,
+            totalWon: (retained && retained.totalWon) || 0,
+            lastCycleKey: newCycleKey,
+            dayHistory: restoredHistory,
+            statsBaseline: retained && retained.statsBaseline ? retained.statsBaseline : { played: 0, won: 0, best: 0 }
+          };
+          if (retained) {
+            const oldSchedule = { resetTime: retained.resetTime, resetZone: HubCore.normalizeZone(retained.resetZone) };
+            if (oldSchedule.resetTime !== resetTime || oldSchedule.resetZone !== resetZone) {
+              // Re-added on a different schedule: move the restored history to the new day keys.
+              const tmp = { id: newGame.id, name: retained.name, dayHistory: newGame.dayHistory, lastCycleKey: newCycleKey };
+              applyScheduleChange(tmp, oldSchedule, { resetTime, resetZone }, state.historyLogs);
+              newGame.dayHistory = tmp.dayHistory;
+            }
+            // The game is back: drop both retained copies (by id and by link).
+            Object.keys(state.retainedGameStats || {}).forEach((k) => {
+              const r = state.retainedGameStats[k];
+              if (k === urlKey || (r && r.id === retained.id)) delete state.retainedGameStats[k];
+            });
+          }
+          recomputeGameStatsFromHistory(newGame);
+          state.games.unshift(newGame);
+          selectedCalendarGameId = newGame.id;
+          showToast(`${name} Added`, `Resets daily at ${localResetStr}.`, 'emerald');
+        }
+
+        closeAddModal();
+        saveState({ syncNow: true });
+        renderVisibleTab();
+      });
+
+      // "Finished playing?" sheet
+      document.querySelectorAll('#returnPromptCycle [data-cycle]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (!returnPromptCycles) return;
+          setReturnPromptCycle(btn.getAttribute('data-cycle') === 'opened' ? returnPromptCycles.opened : returnPromptCycles.current);
+        });
+      });
+      document.querySelectorAll('[data-return-action]').forEach((btn) => {
+        btn.addEventListener('click', () => handleReturnPromptAction(btn.getAttribute('data-return-action')));
+      });
+
+      document.getElementById('btnPasteScore').addEventListener('click', async () => {
+        const clip = await readClipboardText();
+        const box = document.getElementById('inputLogScoreText');
+        if (!clip.trim()) {
+          showToast('Clipboard is empty', 'Use the game\'s Share / Copy button first, then tap Paste.', 'indigo');
+          return;
+        }
+        if (box.value.includes(clip.trim())) {
+          showToast('Already pasted', 'That result is already in the box.', 'indigo');
+          return;
+        }
+        box.value = box.value.trim() ? `${box.value.replace(/\s+$/, '')}\n${clip}` : clip;
+        box.focus();
+      });
+
+      // Log Score Modal handlers
+      document.querySelectorAll('.status-pick-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          selectedLogStatus = btn.getAttribute('data-status-pick') === 'missed' ? 'missed' : 'completed';
+          updateStatusPickButtons();
+        });
+      });
+      document.getElementById('btnCloseLogModal').addEventListener('click', () => closeModal('modalLogScore'));
+      document.getElementById('btnCancelLogModal').addEventListener('click', () => closeModal('modalLogScore'));
+      document.getElementById('formLogScore').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const gId = document.getElementById('logGameId').value;
+        const scoreVal = document.getElementById('inputLogScoreText').value;
+        recordGameOutcome(gId, selectedLogStatus, scoreVal, logModalCycleKey ? { cycleKey: logModalCycleKey } : undefined);
+        closeModal('modalLogScore');
+      });
+
+      // Notifications & Permission button in Settings tab
+      window.onNotificationPermissionResult = function (granted) {
+        showToast(granted ? 'Reset alerts are on' : 'Notifications are blocked',
+          granted ? 'You\'ll get a notification when each game resets.' : 'Allow notifications for Dailies in Android Settings to get reset alerts.',
+          granted ? 'emerald' : 'indigo');
+        renderNotificationButton();
+      };
+      window.onNotificationStatusChanged = function (status) {
+        renderNotificationButton(status);
+      };
+      window.onNotificationSettingsOpened = function () {
+        showToast('Turn on notifications', 'Switch notifications on for Dailies, then come back.', 'indigo');
+      };
+      document.getElementById('btnRequestBrowserPerm').addEventListener('click', () => {
+        try {
+          if (window.AndroidBridge && typeof window.AndroidBridge.requestNotificationPermission === 'function') {
+            window.AndroidBridge.requestNotificationPermission();
+            return;
+          }
+        } catch (e) {}
+        if (!('Notification' in window)) {
+          showToast('In-App Alerts Active', 'Standard browser push API is unavailable here; in-app alerts are active.', 'indigo');
+          return;
+        }
+        Notification.requestPermission().then((perm) => {
+          showToast('Notification Permission: ' + perm, 'Per-game notifications will alert you when each puzzle resets.', 'emerald');
+          renderNotificationButton();
+        }).catch(() => {
+          showToast('In-App Alerts Enabled', 'Using in-app toast alerts.', 'emerald');
+        });
+      });
+
+      // Bottom nav buttons
+      document.querySelectorAll('.nav-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-nav') || 'dashboard';
+          switchNavigation(target);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

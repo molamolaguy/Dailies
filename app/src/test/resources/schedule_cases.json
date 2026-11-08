@@ -1,0 +1,214 @@
+{
+  "cycleKey": [
+    {
+      "note": "UTC midnight, New York, just after DST starts",
+      "resetTime": "00:00",
+      "resetZone": "utc",
+      "tz": "America/New_York",
+      "now": "2026-03-08T04:30:00Z",
+      "expect": "2026-03-08"
+    },
+    {
+      "note": "UTC midnight, one minute before reset",
+      "resetTime": "00:00",
+      "resetZone": "utc",
+      "tz": "America/New_York",
+      "now": "2026-03-08T23:59:00Z",
+      "expect": "2026-03-08"
+    },
+    {
+      "note": "UTC midnight, one minute after reset (= 20:01 EDT, not 19:01)",
+      "resetTime": "00:00",
+      "resetZone": "utc",
+      "tz": "America/New_York",
+      "now": "2026-03-09T00:01:00Z",
+      "expect": "2026-03-09"
+    },
+    {
+      "note": "local midnight, 23:59 EDT",
+      "resetTime": "00:00",
+      "resetZone": "local",
+      "tz": "America/New_York",
+      "now": "2026-03-09T03:59:00Z",
+      "expect": "2026-03-08"
+    },
+    {
+      "note": "local midnight, 00:01 EDT",
+      "resetTime": "00:00",
+      "resetZone": "local",
+      "tz": "America/New_York",
+      "now": "2026-03-09T04:01:00Z",
+      "expect": "2026-03-09"
+    },
+    {
+      "note": "local 19:00 after DST ends, 19:30 EST",
+      "resetTime": "19:00",
+      "resetZone": "local",
+      "tz": "America/New_York",
+      "now": "2026-11-02T00:30:00Z",
+      "expect": "2026-11-01"
+    },
+    {
+      "note": "local 19:00 after DST ends, 18:30 EST",
+      "resetTime": "19:00",
+      "resetZone": "local",
+      "tz": "America/New_York",
+      "now": "2026-11-01T23:30:00Z",
+      "expect": "2026-10-31"
+    },
+    {
+      "note": "UTC noon seen from Tokyo",
+      "resetTime": "12:00",
+      "resetZone": "utc",
+      "tz": "Asia/Tokyo",
+      "now": "2026-06-01T11:59:00Z",
+      "expect": "2026-05-31"
+    },
+    {
+      "note": "local reset inside the skipped spring-forward hour",
+      "resetTime": "02:30",
+      "resetZone": "local",
+      "tz": "America/New_York",
+      "now": "2026-03-08T08:00:00Z",
+      "expect": "2026-03-08"
+    },
+    {
+      "note": "New York 09:00 seen from London before the UK changes clocks (US already on EDT)",
+      "resetTime": "09:00",
+      "resetZone": "America/New_York",
+      "tz": "Europe/London",
+      "now": "2026-03-10T12:00:00Z",
+      "expect": "2026-03-09"
+    },
+    {
+      "note": "New York 09:00, just after it (13:01 London)",
+      "resetTime": "09:00",
+      "resetZone": "America/New_York",
+      "tz": "Europe/London",
+      "now": "2026-03-10T13:01:00Z",
+      "expect": "2026-03-10"
+    },
+    {
+      "note": "Tokyo midnight seen from Los Angeles",
+      "resetTime": "00:00",
+      "resetZone": "Asia/Tokyo",
+      "tz": "America/Los_Angeles",
+      "now": "2026-06-01T14:30:00Z",
+      "expect": "2026-06-01"
+    },
+    {
+      "note": "Named-zone reset inside its skipped spring-forward hour",
+      "resetTime": "02:30",
+      "resetZone": "America/New_York",
+      "tz": "Asia/Tokyo",
+      "now": "2026-03-08T08:00:00Z",
+      "expect": "2026-03-08"
+    },
+    {
+      "note": "Unknown zone id falls back to the device zone",
+      "resetTime": "00:00",
+      "resetZone": "Mars/Olympus_Mons",
+      "tz": "America/New_York",
+      "now": "2026-03-09T04:01:00Z",
+      "expect": "2026-03-09"
+    },
+    {
+      "note": "named zone, repeated fall-back 01:30 means the later (EST) instant",
+      "resetTime": "01:30",
+      "resetZone": "America/New_York",
+      "tz": "Europe/London",
+      "now": "2026-11-01T05:45:00Z",
+      "expect": "2026-10-31"
+    },
+    {
+      "note": "local zone, repeated fall-back 01:30 means the later (EST) instant",
+      "resetTime": "01:30",
+      "resetZone": "local",
+      "tz": "America/New_York",
+      "now": "2026-11-01T05:45:00Z",
+      "expect": "2026-10-31"
+    }
+  ],
+  "msUntilNextReset": [
+    {
+      "note": "UTC midnight from New York, one hour before",
+      "resetTime": "00:00",
+      "resetZone": "utc",
+      "tz": "America/New_York",
+      "now": "2026-03-08T23:00:00Z",
+      "expect": 3600000
+    },
+    {
+      "note": "local midnight across the 23-hour spring-forward day",
+      "resetTime": "00:00",
+      "resetZone": "local",
+      "tz": "America/New_York",
+      "now": "2026-03-08T05:30:00Z",
+      "expect": 81000000
+    },
+    {
+      "note": "UTC midnight from London in summer (BST)",
+      "resetTime": "00:00",
+      "resetZone": "utc",
+      "tz": "Europe/London",
+      "now": "2026-07-01T22:30:00Z",
+      "expect": 5400000
+    },
+    {
+      "note": "New York 09:00 from London, one hour before",
+      "resetTime": "09:00",
+      "resetZone": "America/New_York",
+      "tz": "Europe/London",
+      "now": "2026-03-10T12:00:00Z",
+      "expect": 3600000
+    },
+    {
+      "note": "Tokyo midnight from Los Angeles, 30 minutes before",
+      "resetTime": "00:00",
+      "resetZone": "Asia/Tokyo",
+      "tz": "America/Los_Angeles",
+      "now": "2026-06-01T14:30:00Z",
+      "expect": 1800000
+    },
+    {
+      "note": "Named-zone skipped hour: next reset is 02:30 EDT the following day",
+      "resetTime": "02:30",
+      "resetZone": "America/New_York",
+      "tz": "Asia/Tokyo",
+      "now": "2026-03-08T08:00:00Z",
+      "expect": 81000000
+    },
+    {
+      "note": "named zone, ambiguous 01:30: 45 min until the EST occurrence",
+      "resetTime": "01:30",
+      "resetZone": "America/New_York",
+      "tz": "Europe/London",
+      "now": "2026-11-01T05:45:00Z",
+      "expect": 2700000
+    },
+    {
+      "note": "local zone, ambiguous 01:30: 45 min until the EST occurrence",
+      "resetTime": "01:30",
+      "resetZone": "local",
+      "tz": "America/New_York",
+      "now": "2026-11-01T05:45:00Z",
+      "expect": 2700000
+    },
+    {
+      "note": "local reset in the skipped hour: next day is 02:30 again, not 03:30",
+      "resetTime": "02:30",
+      "resetZone": "local",
+      "tz": "America/New_York",
+      "now": "2026-03-08T08:00:00Z",
+      "expect": 81000000
+    },
+    {
+      "note": "Santiago skips local midnight: the following day's reset is 00:00 again",
+      "resetTime": "00:00",
+      "resetZone": "local",
+      "tz": "America/Santiago",
+      "now": "2026-09-06T06:00:00Z",
+      "expect": 75600000
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Top-Left Rounded Tile (PrimaryContainer #4F378B) -->
+    <path
+        android:fillColor="#4F378B"
+        android:pathData="M36,30L46,30A4,4 0,0 1,50 34L50,44A4,4 0,0 1,46 48L36,48A4,4 0,0 1,32 44L32,34A4,4 0,0 1,36 30Z" />
+    <!-- Bottom-Left Rounded Tile (Primary #D0BCFF) -->
+    <path
+        android:fillColor="#D0BCFF"
+        android:pathData="M36,56L46,56A4,4 0,0 1,50 60L50,70A4,4 0,0 1,46 74L36,74A4,4 0,0 1,32 70L32,60A4,4 0,0 1,36 56Z" />
+    <!-- Bottom-Right Rounded Tile (PrimaryContainer #4F378B) -->
+    <path
+        android:fillColor="#4F378B"
+        android:pathData="M62,56L72,56A4,4 0,0 1,76 60L76,70A4,4 0,0 1,72 74L62,74A4,4 0,0 1,58 70L58,60A4,4 0,0 1,62 56Z" />
+    <!-- Top-Right Expressive Daily Spark / Sunburst (Tertiary/Primary #EADDFF) -->
+    <path
+        android:fillColor="#EADDFF"
+        android:pathData="M67,27C68.8,34.2 71.8,37.2 79,39C71.8,40.8 68.8,43.8 67,51C65.2,43.8 62.2,40.8 55,39C62.2,37.2 65.2,34.2 67,27Z" />
+</vector>

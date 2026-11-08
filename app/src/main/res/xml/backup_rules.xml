@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older Auto Backup: same policy as data_extraction_rules.xml. -->
+<full-backup-content>
+    <include domain="file" path="hub_state.json" />
+    <include domain="file" path="hub_state.json.bak" />
+    <include domain="sharedpref" path="." />
+</full-backup-content>

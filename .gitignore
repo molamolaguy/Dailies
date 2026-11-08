@@ -1,0 +1,25 @@
+# Build output
+build/
+app/build/
+.gradle/
+.kotlin/
+*.apk
+*.aab
+
+# Local machine settings (SDK path, signing passwords)
+local.properties
+
+# Signing keys: never commit these
+*.jks
+*.keystore
+*.p12
+signing.properties
+Dailies_signing_KEEP_PRIVATE/
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
+captures/
+node_modules/
+__pycache__/

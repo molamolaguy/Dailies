@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dailies</string>
+    <string name="share_captured">Result captured. It\'ll be logged when you go back.</string>
+    <string name="adblock_on_site">Blocking ads on %1$s</string>
+    <string name="adblock_off_site">Ads allowed on %1$s</string>
+    <string name="download_saved">Download saved.</string>
+    <string name="download_failed">Couldn\'t save that download.</string>
+</resources>
