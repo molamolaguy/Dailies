@@ -750,6 +750,18 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        /** Android share sheet for a text the hub built (monthly recap, game list). */
+        @JavascriptInterface
+        fun shareText(text: String, subject: String) {
+            if (text.length > 20_000) return
+            runOnUiThread {
+                val send = Intent(Intent.ACTION_SEND).setType("text/plain")
+                    .putExtra(Intent.EXTRA_TEXT, text)
+                    .putExtra(Intent.EXTRA_SUBJECT, subject.take(120))
+                runCatching { startActivity(Intent.createChooser(send, subject.take(120))) }
+            }
+        }
+
         /** "Remind me before a reset" lead time in minutes (0 = off). */
         @JavascriptInterface
         fun setStreakReminder(minutes: Int) {

@@ -219,6 +219,18 @@
         <div id="gameScoreStats" class="score-stats pt-3 border-t border-slate-800"></div>
       </div>
 
+      <!-- Monthly recap (follows the calendar's month) -->
+      <div id="recapCard" class="glass-card rounded-2xl p-4 border border-slate-800"></div>
+
+      <!-- Achievements -->
+      <div class="glass-card rounded-2xl p-4 border border-slate-800">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <h3 class="text-base font-bold text-white">Achievements</h3>
+          <span id="achievementsCount" class="text-xs text-slate-400"></span>
+        </div>
+        <div id="achievementsGrid" class="ach-grid"></div>
+      </div>
+
       <!-- Daily Completion & Score History -->
       <div class="glass-card rounded-2xl p-4 border border-slate-800">
         <div class="mb-3">
@@ -827,8 +839,13 @@
           : getCycleDateKey(resetTime, resetZone),
         dayHistory: cleanHistory,
         addedCycleKey: HubCore.DATE_KEY_RE.test(String(g.addedCycleKey || '')) ? String(g.addedCycleKey) : undefined,
-        statsBaseline: (g.statsBaseline && typeof g.statsBaseline === 'object') ? g.statsBaseline : undefined
+        statsBaseline: (g.statsBaseline && typeof g.statsBaseline === 'object') ? g.statsBaseline : undefined,
+        archived: g.archived === true ? true : undefined,
+        playTime: (g.playTime && HubCore.DATE_KEY_RE.test(String(g.playTime.key || '')) && Number(g.playTime.ms) > 0)
+          ? { key: String(g.playTime.key), ms: Math.min(Number(g.playTime.ms), 6 * 3600000) } : undefined
       };
+      if (!norm.archived) delete norm.archived;
+      if (!norm.playTime) delete norm.playTime;
       if (!norm.statsBaseline) delete norm.statsBaseline;
       if (!norm.addedCycleKey) delete norm.addedCycleKey;
       // Old saves kept bare counters; fold them into a one-time baseline so totals can go down again.
@@ -982,6 +999,7 @@
         retainedGameStats: normalizeRetainedMap(parsed.retainedGameStats),
         historyLogs: logs,
         notifications: Array.isArray(parsed.notifications) ? parsed.notifications.slice(0, 50) : [],
+        achievements: Array.isArray(parsed.achievements) ? parsed.achievements.filter((a) => typeof a === 'string').slice(0, 100) : undefined,
         __loadedFrom: source
       };
     }
@@ -1904,10 +1922,11 @@
         const collapsed = Boolean(state.settings && state.settings.doneCollapsed);
         const n = sections.done.length;
         grid.innerHTML = cardsHtml(sections.open) + `
-          <button type="button" data-action="toggle-done-section" class="done-section-head" aria-expanded="${collapsed ? 'false' : 'true'}">
+          <button type="button" data-action="toggle-done-section" class="done-section-head" aria-expanded="${collapsed ? 'false' : 'true'}" aria-controls="doneSection">
             <span class="icon-label"><span class="ico ico-check" aria-hidden="true"></span>Done today · ${n}</span>
-            <span class="chev" aria-hidden="true"></span>
-          </button>` + (collapsed ? '' : cardsHtml(sections.done));
+            <span class="done-toggle"><span class="done-toggle-label">${collapsed ? 'Show' : 'Hide'}</span><span class="chev" aria-hidden="true"></span></span>
+          </button>
+          <div id="doneSection" class="done-section ${isCompact ? 'space-y-1.5' : 'space-y-2.5'}"${collapsed ? ' hidden' : ''}>${collapsed ? '' : cardsHtml(sections.done)}</div>`;
       }
       if (!isCompact) {
         grid.querySelectorAll('.game-countdown').forEach((el) => {
@@ -1928,6 +1947,56 @@
       const open = list.filter((g) => g.status !== 'completed');
       if (!done.length || !open.length) return { grouped: false, open: list, done: [] };
       return { grouped: true, open, done };
+    }
+
+    /**
+     * Folds or unfolds "Done today" with a height animation, and brings the cards into view when they
+     * open (they're often below the bottom of the screen, where a change would go unnoticed).
+     */
+    function toggleDoneSection() {
+      if (!state.settings) state.settings = getDefaultSettings();
+      const grid = document.getElementById('gamesGrid');
+      const before = grid && grid.querySelector('#doneSection');
+      const startH = before ? before.getBoundingClientRect().height : 0;
+      state.settings.doneCollapsed = !state.settings.doneCollapsed;
+      saveState({ sync: false });
+      haptic('tick');
+      if (state.settings.doneCollapsed && before && startH > 0 && !REDUCED_MOTION && before.animate) {
+        // Fold: shrink the open section first, then re-render without it.
+        // The header flips straight away; the cards are removed when the shrink ends (or after a
+        // short timeout, so the fold never depends on the animation actually running).
+        const head = grid.querySelector('.done-section-head');
+        if (head) {
+          head.setAttribute('aria-expanded', 'false');
+          const lbl = head.querySelector('.done-toggle-label');
+          if (lbl) lbl.textContent = 'Show';
+        }
+        before.style.overflow = 'hidden';
+        let finished = false;
+        const finish = () => { if (finished) return; finished = true; renderGamesGrid(); };
+        const a = before.animate([{ height: `${startH}px`, opacity: 1 }, { height: '0px', opacity: 0 }],
+          { duration: 220, easing: 'cubic-bezier(0.3, 0, 0.8, 0.15)', fill: 'forwards' });
+        a.onfinish = finish;
+        setTimeout(finish, 320);
+        return;
+      }
+      renderGamesGrid();
+      const sec = document.getElementById('doneSection');
+      if (!state.settings.doneCollapsed && sec) {
+        const h = sec.getBoundingClientRect().height;
+        if (!REDUCED_MOTION && sec.animate && h > 0) {
+          sec.style.overflow = 'hidden';
+          const a = sec.animate([{ height: '0px', opacity: 0 }, { height: `${h}px`, opacity: 1 }],
+            { duration: 320, easing: 'cubic-bezier(0.05, 0.7, 0.1, 1)' });
+          a.onfinish = () => { sec.style.overflow = ''; };
+        }
+        const head = document.querySelector('.done-section-head');
+        const r = head && head.getBoundingClientRect();
+        const dockTop = window.innerHeight - 96;
+        if (r && r.bottom + Math.min(h, 220) > dockTop) {
+          window.scrollBy({ top: r.bottom + Math.min(h, 220) - dockTop, behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
+        }
+      }
     }
 
     function moveGameInOrder(gameId, direction) {
@@ -2213,6 +2282,9 @@
       }
       const undoSnap = snapshotForUndo(game, todayKey);
       const undoOpts = { actionLabel: 'Undo', onAction: () => restoreUndo(undoSnap) };
+      // For personal records: this game's other results and its best streak before this log.
+      const recordBaseRows = state.historyLogs.filter((l) => l && l.date !== todayKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
+      const prevBestStreak = Math.max(Number(game.bestStreak) || 0, ...recordBaseRows.map((r) => Number(r.streak) || 0));
 
       if (isCurrentCycle) {
         game.status = validStatus;
@@ -2239,6 +2311,8 @@
         ? (rowScore || '')
         : (hasScoreContent ? rawFormattedScore : '');
 
+      const playedMs = game.playTime && game.playTime.key === todayKey ? Number(game.playTime.ms) || 0 : 0;
+      let loggedRow = existingRow;
       if (existingRow) {
         existingRow.gameId = game.id;
         existingRow.gameName = game.name;
@@ -2247,9 +2321,10 @@
         existingRow.score = displayScore;
         existingRow.streak = game.streak;
         existingRow.localTime = formatLogTime(new Date());
+        if (playedMs > 0) existingRow.timeMs = playedMs;
       } else {
         removeTodayLog(game, todayKey);
-        state.historyLogs.unshift({
+        loggedRow = {
           date: todayKey,
           localTime: formatLogTime(new Date()),
           gameId: game.id,
@@ -2258,8 +2333,11 @@
           outcome: outcomeLabel,
           score: displayScore,
           streak: game.streak
-        });
+        };
+        if (playedMs > 0) loggedRow.timeMs = playedMs;
+        state.historyLogs.unshift(loggedRow);
       }
+      const records = validStatus === 'completed' ? HubCore.newRecords(recordBaseRows, loggedRow, prevBestStreak) : [];
 
       if (opts && opts.quiet) {
         // caller shows its own message
@@ -2277,10 +2355,34 @@
           : `The next puzzle resets at ${localResetLabel}.`, 'indigo', null, undoOpts);
       }
 
+      if (records.length) announceRecords(game, records);
       historyPage = 0;
       saveState();
+      checkNewAchievements();
       updateSingleGameCardOrGrid(game.id);
       if (activeTab === 'stats') renderStatsAndCharts();
+    }
+
+    /** "Best Wordle ever: 2/6", "Fastest Wordle: 1m 05s", "Longest Wordle streak: 31 days". */
+    function announceRecords(game, records) {
+      const lines = records.map((r) => r.kind === 'score' ? `Best ${game.name} ever: ${r.value}`
+        : r.kind === 'time' ? `Fastest ${game.name}: ${r.value}`
+        : `Longest ${game.name} streak: ${plural(r.value, 'day')}`);
+      setTimeout(() => showToast('🏆 New personal best', lines.join(' · '), 'emerald'), 350);
+      haptic('drop');
+    }
+
+    /** Toasts achievements earned since the last check. The first check after updating is silent. */
+    function checkNewAchievements(silent) {
+      const all = HubCore.computeAchievements(state.games, state.historyLogs);
+      const known = new Set(Array.isArray(state.achievements) ? state.achievements : []);
+      const fresh = all.filter((a) => a.earned && !known.has(a.id));
+      if (!fresh.length) return;
+      const first = !Array.isArray(state.achievements);
+      state.achievements = [...known, ...fresh.map((a) => a.id)];
+      saveState({ sync: false });
+      if (first || silent) return;
+      fresh.forEach((a, i) => setTimeout(() => showToast(`${a.icon} Achievement unlocked`, `${a.title}: ${a.desc.charAt(0).toLowerCase()}${a.desc.slice(1)}.`, 'indigo'), 900 + i * 400));
     }
 
     // =========================================================================
@@ -2480,6 +2582,76 @@
       renderScoreStats(game);
     }
 
+    /** The calendar month's recap across all games, with a Share button. */
+    function monthlyRecapData() {
+      const r = HubCore.monthlyRecap(state.historyLogs, calendarYear, calendarMonth);
+      let label;
+      try { label = new Intl.DateTimeFormat([], { month: 'long', year: 'numeric' }).format(new Date(calendarYear, calendarMonth, 1)); }
+      catch (e) { label = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}`; }
+      return { r, label };
+    }
+
+    function monthlyRecapText() {
+      const { r, label } = monthlyRecapData();
+      const lines = [`My ${label} in Dailies`, `🧩 ${plural(r.solved, 'puzzle')} solved of ${r.results} (${r.winRate}% win rate) over ${plural(r.days, 'day')}`];
+      if (r.bestStreak) lines.push(`🔥 Longest streak: ${plural(r.bestStreak, 'day')}`);
+      if (r.bestResult) lines.push(`🏆 Best result: ${r.bestResult.game} ${r.bestResult.score}`);
+      if (r.topGame) lines.push(`⭐ Most played: ${r.topGame.name} (${r.topGame.count})`);
+      if (r.timeMs) lines.push(`⏱ Time puzzling: ${HubCore.formatDuration(r.timeMs)}`);
+      return lines.join('\n');
+    }
+
+    function renderMonthlyRecap() {
+      const el = document.getElementById('recapCard');
+      if (!el) return;
+      const { r, label } = monthlyRecapData();
+      const head = `<div class="flex items-center justify-between gap-2 mb-3"><h3 class="text-base font-bold text-white">${escapeHtml(label)} recap</h3>`
+        + (r.results ? '<button type="button" id="btnShareRecap" class="px-3 py-1.5 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold">Share</button>' : '') + '</div>';
+      if (!r.results) {
+        el.innerHTML = head + '<p class="text-xs text-slate-400">No results logged this month yet.</p>';
+        return;
+      }
+      const tile = (k, v, sub) => `<div class="stat-tile"><p class="k">${k}</p><p class="v">${v}</p><p class="s">${sub}</p></div>`;
+      el.innerHTML = head + `<div class="stat-tiles">`
+        + tile('Solved', String(r.solved), `${r.winRate}% of ${r.results}`)
+        + tile('Best streak', `${r.bestStreak}d`, plural(r.days, 'day') + ' played')
+        + tile('Best result', r.bestResult ? escapeHtml(r.bestResult.score) : '—', r.bestResult ? escapeHtml(r.bestResult.game) : 'No guess scores')
+        + '</div>'
+        + `<p class="score-head mt-2.5">${r.topGame ? `<span>Most played <strong>${escapeHtml(r.topGame.name)}</strong></span>` : ''}${r.timeMs ? `<span aria-hidden="true">·</span><span>⏱ <strong>${HubCore.formatDuration(r.timeMs)}</strong> puzzling</span>` : ''}</p>`;
+      const btn = document.getElementById('btnShareRecap');
+      if (btn) btn.addEventListener('click', () => shareText(monthlyRecapText(), `${label} recap`));
+    }
+
+    function renderAchievements() {
+      const grid = document.getElementById('achievementsGrid');
+      if (!grid) return;
+      const all = HubCore.computeAchievements(state.games, state.historyLogs);
+      const n = all.filter((a) => a.earned).length;
+      const count = document.getElementById('achievementsCount');
+      if (count) count.textContent = `${n} of ${all.length}`;
+      grid.innerHTML = all.map((a) => `
+        <div class="ach ${a.earned ? 'on' : ''}" role="img" aria-label="${escapeHtml(`${a.title}: ${a.desc}. ${a.earned ? 'Earned' : `${a.progress} of ${a.target}`}`)}">
+          <span class="ach-icon" aria-hidden="true">${a.icon}</span>
+          <span class="ach-title">${escapeHtml(a.title)}</span>
+          <span class="ach-desc">${escapeHtml(a.desc)}</span>
+          ${a.earned || a.target <= 1 ? '' : `<span class="ach-bar" aria-hidden="true"><span style="width:${Math.round((a.progress / a.target) * 100)}%"></span></span>`}
+        </div>`).join('');
+    }
+
+    /** Android share sheet (or the clipboard in a plain browser). */
+    function shareText(text, subject) {
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.shareText === 'function') {
+          window.AndroidBridge.shareText(String(text), String(subject || 'Dailies'));
+          return;
+        }
+      } catch (e) {}
+      try {
+        if (navigator.share) { navigator.share({ text: String(text) }); return; }
+        navigator.clipboard.writeText(String(text)).then(() => showToast('Copied', 'Paste it wherever you like.', 'indigo'));
+      } catch (e) {}
+    }
+
     /** Win rate, average guesses and the guess distribution for the calendar's game. */
     function renderScoreStats(game) {
       const el = document.getElementById('gameScoreStats');
@@ -2492,6 +2664,15 @@
       }
       const head = [`<span><strong>${st.winRate}%</strong> win rate</span>`, `<span>${plural(st.played, 'logged result')}</span>`];
       if (st.avg !== null) head.splice(1, 0, `<span><strong>${st.avg}</strong> average (of ${st.max})</span>`);
+      if (st.fastestMs) {
+        head.push(`<span>⏱ fastest <strong>${HubCore.formatDuration(st.fastestMs)}</strong></span>`);
+        head.push(`<span>average <strong>${HubCore.formatDuration(st.avgMs)}</strong></span>`);
+      }
+      const pb = HubCore.personalBests(rows, Math.max(Number(game.bestStreak) || 0, Number(game.streak) || 0));
+      const bests = [];
+      if (pb.bestScore) bests.push(`<span class="pb-chip">🏆 Best ${escapeHtml(pb.bestScore)}</span>`);
+      if (pb.fastestMs) bests.push(`<span class="pb-chip">⚡ ${escapeHtml(HubCore.formatDuration(pb.fastestMs))}</span>`);
+      if (pb.bestStreak) bests.push(`<span class="pb-chip">🔥 ${escapeHtml(plural(pb.bestStreak, 'day'))}</span>`);
       let bars = '';
       if (st.dist.length) {
         const top = Math.max(1, ...st.dist.map((d) => d.count));
@@ -2499,7 +2680,8 @@
           st.dist.map((d) => `<div class="row"><span class="lbl">${escapeHtml(d.label)}</span><span class="bar${d.label === 'X' ? ' fail' : ''}" style="width:${Math.max(6, Math.round((d.count / top) * 100))}%">${d.count}</span></div>`).join('') +
           '</div>';
       }
-      el.innerHTML = `<p class="text-xs font-bold text-white mb-0.5">Score stats</p><p class="score-head">${head.join('<span aria-hidden="true">·</span>')}</p>${bars}`;
+      el.innerHTML = `<p class="text-xs font-bold text-white mb-0.5">Score stats</p><p class="score-head">${head.join('<span aria-hidden="true">·</span>')}</p>`
+        + (bests.length ? `<p class="pb-row" aria-label="Personal bests">${bests.join('')}</p>` : '') + bars;
     }
 
     /** Permanently drops a removed game's kept history and its score-log rows (after confirming). */
@@ -2524,6 +2706,8 @@
 
     function renderStatsAndCharts() {
       renderGameCalendar();
+      renderMonthlyRecap();
+      renderAchievements();
 
       const tbody = document.getElementById('historyTableBody');
       const total = state.historyLogs.length;
@@ -2569,7 +2753,7 @@
                   <span class="hist-badge ${ok ? 'ok' : 'bad'}">${ok ? 'Completed' : 'Missed'}</span>
                   <span class="hist-streak"><span class="sr-only">Streak after: ${escapeHtml(plural(item.streak, 'day'))}</span><span aria-hidden="true">🔥 ${escapeHtml(item.streak)}d</span></span>
                 </div>
-                <p class="hist-date">${escapeHtml(when)}</p>
+                <p class="hist-date">${escapeHtml(when)}${Number(item.timeMs) > 0 ? ` <span class="hist-time">· ⏱ ${escapeHtml(HubCore.formatDuration(item.timeMs))}</span>` : ''}</p>
                 ${score ? `<pre class="hist-score">${escapeHtml(score)}</pre>` : ''}
               </div>`;
           }).join('');
@@ -3460,6 +3644,17 @@
      * Back from the game player. If the player captured a share result (copied or shared inside the
      * game) it is logged automatically against the puzzle that was live when the game was opened.
      */
+    /** Time spent in the game player, added up per puzzle (several sessions on the same day count together). */
+    function addPlayTime(game, cycleKey, ms) {
+      if (!game || !(ms > 0) || !HubCore.DATE_KEY_RE.test(String(cycleKey || ''))) return;
+      if (!game.playTime || game.playTime.key !== cycleKey) game.playTime = { key: cycleKey, ms: 0 };
+      game.playTime.ms = Math.min(game.playTime.ms + ms, 6 * 3600000);
+      // Already logged this puzzle (e.g. auto-logged before playing on): keep its row's time current.
+      const row = findLogRow(game, cycleKey);
+      if (row && row.outcome === 'Completed') row.timeMs = game.playTime.ms;
+      saveState({ sync: false });
+    }
+
     window.onReturnFromGame = function (gameId, openLog, elapsedMs, shareText, openedAt) {
       checkDailyRollovers({ silent: true });
       const game = state.games.find((g) => g.id === gameId);
@@ -3471,6 +3666,7 @@
       const currentKey = getCycleDateKey(game.resetTime, game.resetZone);
       const openedKey = Number(openedAt) > 0 ? getCycleDateKey(game.resetTime, game.resetZone, new Date(Number(openedAt))) : '';
       const resetWhilePlaying = Boolean(openedKey && openedKey !== currentKey && cycleKeyToDay(openedKey) < cycleKeyToDay(currentKey));
+      addPlayTime(game, resetWhilePlaying ? openedKey : currentKey, Number(elapsedMs) || 0);
       if (openLog) {
         openLogModal(game.id, resetWhilePlaying ? { cycleKey: openedKey } : undefined);
         const box = document.getElementById('inputLogScoreText');
@@ -3695,6 +3891,7 @@
       renderVisibleTab();
       flushSyncNativeNow();
       startLiveTickTimer();
+      checkNewAchievements(true); // badges already earned before this version arrive quietly
       // Opt-in daily update check (Settings → About).
       if (state.settings && state.settings.updateCheck && Date.now() - (Number(state.settings.lastUpdateCheckAt) || 0) > 20 * 3600 * 1000) {
         setTimeout(() => runUpdateCheck(false), 4000);
@@ -4129,10 +4326,7 @@
         if (!target) return;
         const action = target.getAttribute('data-action');
         if (action === 'toggle-done-section') {
-          if (!state.settings) state.settings = getDefaultSettings();
-          state.settings.doneCollapsed = !state.settings.doneCollapsed;
-          saveState({ sync: false });
-          renderGamesGrid();
+          toggleDoneSection();
           return;
         }
         const id = target.getAttribute('data-id');

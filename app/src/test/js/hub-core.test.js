@@ -219,3 +219,50 @@ test('scoreStats: win rate, average and guess distribution (1.1.0)', () => {
   assert.equal(core.scoreStats([]).winRate, null);
   assert.equal(core.scoreStats(null).played, 0);
 });
+
+test('1.2.0: play times, records, achievements and monthly recap', () => {
+  assert.equal(core.formatDuration(65000), '1m 05s');
+  assert.equal(core.formatDuration(42000), '42s');
+  assert.equal(core.formatDuration(3780000), '1h 03m');
+  assert.deepEqual(core.parseScore('Wordle 1,600 X/6'), { n: null, max: 6, fail: true });
+  assert.equal(core.parseScore('no score'), null);
+
+  const rows = [
+    { outcome: 'Completed', score: '4/6', timeMs: 180000, streak: 3 },
+    { outcome: 'Completed', score: '3/6', timeMs: 120000, streak: 4 },
+    { outcome: 'Missed', score: 'X/6', streak: 0 }
+  ];
+  const st = core.scoreStats(rows);
+  assert.equal(st.fastestMs, 120000);
+  assert.equal(st.avgMs, 150000);
+
+  const rec = core.newRecords(rows, { outcome: 'Completed', score: '2/6', timeMs: 90000, streak: 5 }, 4);
+  assert.deepEqual(rec.map((r) => r.kind), ['score', 'time', 'streak']);
+  assert.equal(rec[0].value, '2/6');
+  assert.deepEqual(core.newRecords([], { outcome: 'Completed', score: '2/6', timeMs: 1000, streak: 1 }, 0), [], 'a first solve is not a record');
+  assert.deepEqual(core.newRecords(rows, { outcome: 'Missed', score: 'X/6' }, 4), []);
+  assert.deepEqual(core.personalBests(rows, 4), { bestScore: '3/6', fastestMs: 120000, bestStreak: 4 });
+
+  const day = (n) => `2026-11-${String(n).padStart(2, '0')}`;
+  const hist = (from, to, skip) => { const h = {}; for (let d = from; d <= to; d++) h[day(d)] = d === skip ? 'missed' : 'completed'; return h; };
+  const games = [{ id: 'a', dayHistory: hist(1, 9) }, { id: 'b', dayHistory: hist(3, 9, 5) }];
+  // b is eligible from the 3rd and missed the 5th, so the best all-solved run is the 6th-9th (4 days)
+  assert.equal(core.perfectRun(games), 4);
+  assert.equal(core.perfectRun([{ id: 'a', dayHistory: hist(1, 9) }]), 9);
+
+  const logs = [];
+  for (let d = 1; d <= 9; d++) logs.push({ date: day(d), gameId: 'a', gameName: 'Wordle', outcome: 'Completed', score: d === 2 ? '2/6' : '4/6', streak: d, timeMs: d === 3 ? 50000 : 0 });
+  const ach = core.computeAchievements([{ id: 'a', bestStreak: 9, dayHistory: hist(1, 9) }], logs);
+  const earned = ach.filter((a) => a.earned).map((a) => a.id);
+  assert.deepEqual(earned.sort(), ['first', 'lucky', 'perfectWeek', 'speed', 'streak7'].sort());
+  assert.equal(ach.find((a) => a.id === 'solves10').progress, 9);
+
+  const recap = core.monthlyRecap(logs.concat([{ date: '2026-10-31', gameName: 'Wordle', outcome: 'Completed', score: '1/6' }]), 2026, 10);
+  assert.equal(recap.results, 9);
+  assert.equal(recap.winRate, 100);
+  assert.equal(recap.bestStreak, 9);
+  assert.deepEqual(recap.bestResult, { game: 'Wordle', score: '2/6' });
+  assert.deepEqual(recap.topGame, { name: 'Wordle', count: 9 });
+  assert.equal(recap.timeMs, 50000);
+  assert.equal(core.monthlyRecap([], 2026, 10).winRate, null);
+});
