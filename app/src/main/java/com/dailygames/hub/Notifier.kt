@@ -20,7 +20,11 @@ fun interface NotificationDispatcher {
 
 /** Shared notification helper used by both the UI bridge and the background worker. */
 object Notifier {
-    const val CHANNEL_ID = "daily_game_refresh"
+    /** 1.0.0/1.0.1 channel. It was created silent, and Android never lets an app change a channel's sound. */
+    const val LEGACY_CHANNEL_ID = "daily_game_refresh"
+    /** Since 1.1.0: same alerts, created with the phone's default notification sound. */
+    const val SOUND_CHANNEL_ID = "reset_alerts"
+    private const val KEY_CHANNEL = "channel_id"
     const val EXTRA_GAME_ID = "open_game_id"
     const val DEFAULT_REFRESH_BODY = "A new daily puzzle is ready. Tap to play and keep your streak going."
     const val GROUP_KEY = "com.dailygames.hub.RESETS"
@@ -60,19 +64,49 @@ object Notifier {
         return "$cleanName has refreshed" to DEFAULT_REFRESH_BODY
     }
 
+    /** What to do with the old silent channel on first run of 1.1.0. */
+    enum class ChannelMigration { KEEP_LEGACY, REPLACE_LEGACY, CREATE_NEW }
+
+    /**
+     * Keep the old channel if the user has already made a choice on it (blocked it, or turned sound
+     * on); otherwise replace it with the new channel that has sound, so upgraders get the default too.
+     */
+    fun channelMigration(legacyExists: Boolean, legacyBlocked: Boolean, legacyHasSound: Boolean): ChannelMigration = when {
+        !legacyExists -> ChannelMigration.CREATE_NEW
+        legacyBlocked || legacyHasSound -> ChannelMigration.KEEP_LEGACY
+        else -> ChannelMigration.REPLACE_LEGACY
+    }
+
+    /** The channel reset alerts are posted on (creating or migrating it if needed). */
+    fun channelId(ctx: Context): String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return SOUND_CHANNEL_ID
+        ensureChannel(ctx)
+        return ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_CHANNEL, null) ?: SOUND_CHANNEL_ID
+    }
+
+    @Synchronized
     fun ensureChannel(ctx: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Reset Alerts",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Notifies you when a daily game you track resets and a new puzzle is out."
-                setSound(null, null)
-            }
-            val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(channel)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        var chosen = prefs.getString(KEY_CHANNEL, null)
+        if (chosen == null) {
+            val legacy = nm.getNotificationChannel(LEGACY_CHANNEL_ID)
+            val decision = channelMigration(
+                legacyExists = legacy != null,
+                legacyBlocked = legacy?.importance == NotificationManager.IMPORTANCE_NONE,
+                legacyHasSound = legacy?.sound != null
+            )
+            chosen = if (decision == ChannelMigration.KEEP_LEGACY) LEGACY_CHANNEL_ID else SOUND_CHANNEL_ID
+            if (decision == ChannelMigration.REPLACE_LEGACY) nm.deleteNotificationChannel(LEGACY_CHANNEL_ID)
+            prefs.edit().putString(KEY_CHANNEL, chosen).apply()
         }
+        // Re-creating an existing channel only refreshes its name and description; user settings stay.
+        val channel = NotificationChannel(chosen, "Reset Alerts", NotificationManager.IMPORTANCE_DEFAULT).apply {
+            description = "Notifies you when a daily game you track resets and a new puzzle is out."
+        }
+        nm.createNotificationChannel(channel)
+        ReminderChannel.ensure(ctx, nm)
     }
 
     /**
@@ -82,7 +116,6 @@ object Notifier {
      * ([postGroupSummary]), so the count never depends on the system having registered each post yet.
      */
     fun postGameNotification(ctx: Context, gameId: String, title: String, body: String, updateSummary: Boolean = true): Int? {
-        ensureChannel(ctx)
         val nm = NotificationManagerCompat.from(ctx)
         if (!nm.areNotificationsEnabled()) return null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -101,15 +134,15 @@ object Notifier {
             launch,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val notification = NotificationCompat.Builder(ctx, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(ctx, channelId(ctx))
             .setSmallIcon(R.drawable.ic_stat_dailes)
             .setContentTitle(title)
             .setContentText(body)
             .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
-            // Not silent: the channel decides (it starts without sound; the user can turn sound or
-            // vibration on in Android settings). Only the children alert, never the summary as well.
+            // Not silent: the channel decides (default sound; the user can change it in Android
+            // settings). Only the children alert, never the summary as well.
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
             .setAutoCancel(true)
             .setContentIntent(pending)
@@ -162,7 +195,7 @@ object Notifier {
             ctx, SUMMARY_ID, launch,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val summary = NotificationCompat.Builder(ctx, CHANNEL_ID)
+        val summary = NotificationCompat.Builder(ctx, channelId(ctx))
             .setSmallIcon(R.drawable.ic_stat_dailes)
             .setContentTitle(summaryText)
             .setContentText("Tap to open your hub")

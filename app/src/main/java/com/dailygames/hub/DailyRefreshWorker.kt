@@ -116,6 +116,8 @@ class DailyRefreshWorker(
         }
 
         fun scheduleNextReset(ctx: Context, nowMs: Long = System.currentTimeMillis()) {
+            // Streak reminders follow the same games list (and the same reboot / clock-change hooks).
+            runCatching { StreakReminders.schedule(ctx, nowMs) }
             val wm = WorkManager.getInstance(ctx)
             wm.cancelUniqueWork(LEGACY_PERIODIC_WORK_NAME)
 

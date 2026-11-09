@@ -77,6 +77,20 @@ class MainActivity : ComponentActivity() {
         handleImportResult(uri)
     }
 
+    /** System folder picker for weekly automatic backups. */
+    private val backupFolderLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri == null) { pushAutoBackupStatus(); return@registerForActivityResult }
+        AutoBackup.enable(applicationContext, uri)
+        Thread {
+            AutoBackup.runIfDue(applicationContext, force = true)
+            runOnUiThread { pushAutoBackupStatus() }
+        }.start()
+    }
+
+    private fun pushAutoBackupStatus() {
+        runJs("window.onAutoBackupStatus && window.onAutoBackupStatus(${AutoBackup.statusJson(applicationContext)})")
+    }
+
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             runJs("window.onNotificationPermissionResult && window.onNotificationPermissionResult($granted)")
@@ -99,6 +113,7 @@ class MainActivity : ComponentActivity() {
         })
         Notifier.ensureChannel(this)
         DailyRefreshWorker.scheduleNextReset(this)
+        AutoBackup.schedule(this)
 
         // Edge-to-edge: draw behind the status & navigation bars.
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -527,7 +542,7 @@ class MainActivity : ComponentActivity() {
         val nm = NotificationManagerCompat.from(this)
         val appEnabled = nm.areNotificationsEnabled()
         val channelBlocked = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-            nm.getNotificationChannel(Notifier.CHANNEL_ID)?.importance == android.app.NotificationManager.IMPORTANCE_NONE
+            nm.getNotificationChannel(Notifier.channelId(this))?.importance == android.app.NotificationManager.IMPORTANCE_NONE
         return JSONObject()
             .put("enabled", appEnabled && !channelBlocked)
             .put("appEnabled", appEnabled)
@@ -571,7 +586,7 @@ class MainActivity : ComponentActivity() {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && channelOnly ->
                 Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
                     .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                    .putExtra(Settings.EXTRA_CHANNEL_ID, Notifier.CHANNEL_ID)
+                    .putExtra(Settings.EXTRA_CHANNEL_ID, Notifier.channelId(this))
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ->
                 Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
             else -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
@@ -638,6 +653,55 @@ class MainActivity : ComponentActivity() {
         fun syncGames(json: String) {
             GameStore.sync(applicationContext, json)
             DailyRefreshWorker.scheduleNextReset(applicationContext)
+        }
+
+        /** Weekly automatic backups: pick (or change) the folder, which also turns them on. */
+        @JavascriptInterface
+        fun chooseAutoBackupFolder() {
+            runOnUiThread { runCatching { backupFolderLauncher.launch(null) }.onFailure { pushAutoBackupStatus() } }
+        }
+
+        @JavascriptInterface
+        fun disableAutoBackup() {
+            AutoBackup.disable(applicationContext)
+            runOnUiThread { pushAutoBackupStatus() }
+        }
+
+        @JavascriptInterface
+        fun getAutoBackupStatus(): String = AutoBackup.statusJson(applicationContext)
+
+        @JavascriptInterface
+        fun runAutoBackupNow() {
+            Thread {
+                AutoBackup.runIfDue(applicationContext, force = true)
+                runOnUiThread { pushAutoBackupStatus() }
+            }.start()
+        }
+
+        /** Opt-in update check against the GitHub release; answers window.onUpdateCheckResult. */
+        @JavascriptInterface
+        fun checkForUpdate() {
+            val current = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: ""
+            Thread {
+                val json = UpdateCheck.check(current)
+                runOnUiThread { runJs("window.onUpdateCheckResult && window.onUpdateCheckResult($json)") }
+            }.start()
+        }
+
+        /** Opens the latest release page in the browser (a fixed address; the page can't pass one). */
+        @JavascriptInterface
+        fun openReleasePage() {
+            runOnUiThread {
+                runCatching {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(UpdateCheck.RELEASES_PAGE)).addCategory(Intent.CATEGORY_BROWSABLE))
+                }
+            }
+        }
+
+        /** "Remind me before a reset" lead time in minutes (0 = off). */
+        @JavascriptInterface
+        fun setStreakReminder(minutes: Int) {
+            StreakReminders.setLeadMinutes(applicationContext, minutes)
         }
 
         /** In-game options from Settings: ad blocking and auto-logging captured share results. */

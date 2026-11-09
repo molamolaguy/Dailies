@@ -513,7 +513,11 @@ class GameActivity : ComponentActivity() {
      * tapped link to another site opens in the browser, anything else is dropped.
      */
     @SuppressLint("SetJavaScriptEnabled")
+    /** The site the popup is showing, for first-party checks in its ad blocking. */
+    @Volatile private var popupHost: String? = null
+
     private fun createPopupWebView(userGesture: Boolean): WebView {
+        popupHost = null
         val child = WebView(this)
         popupView = child
         child.setBackgroundColor(surfaceColor)
@@ -560,6 +564,22 @@ class GameActivity : ComponentActivity() {
                 // Fallback in case the first load didn't pass through shouldOverrideUrlLoading.
                 if (!decided && url != null && !decide(Uri.parse(url))) view?.stopLoading()
                 popupTitle?.text = url?.let { Uri.parse(it).host }.orEmpty()
+                url?.let { Uri.parse(it).host }?.lowercase(Locale.US)?.let { popupHost = it }
+                if (!documentStartScriptsSupported && blockAdsSetting && adBlockActive &&
+                    WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+                    view?.evaluateJavascript(pageScript("game/cosmetic.js"), null)
+                }
+            }
+
+            // Popups get the same ad and tracker blocking as the game page, judged against the
+            // popup's own site (a sign-in page's own scripts are first-party there).
+            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                val r = request ?: return null
+                if (r.isForMainFrame) {
+                    r.url?.host?.let { popupHost = it.lowercase(Locale.US) }
+                    return null
+                }
+                return blockedResponseFor(r, popupHost)
             }
 
             override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
@@ -570,6 +590,7 @@ class GameActivity : ComponentActivity() {
         child.webChromeClient = object : WebChromeClient() {
             override fun onCloseWindow(window: WebView?) { closePopup() }
         }
+        if (blockAdsSetting) installCosmeticHooks(child)
         return child
     }
 
@@ -666,24 +687,7 @@ class GameActivity : ComponentActivity() {
                     offerShare(text, "page")
                 }
             }
-            if (blockAdsSetting) {
-                WebViewCompat.addWebMessageListener(webView, "DailesAdBlock", anyOrigin) { _, message, sourceOrigin, isMainFrame, reply ->
-                    if (!adBlockActive) {
-                        // Tell the page script to stop scanning (blocking is off for this site).
-                        runCatching { reply.postMessage("{\"disabled\":true}") }
-                        return@addWebMessageListener
-                    }
-                    val host = sourceOrigin.host?.lowercase(Locale.US) ?: return@addWebMessageListener
-                    val data = message.data ?: return@addWebMessageListener
-                    if (data.length > MAX_COSMETIC_MESSAGE) return@addWebMessageListener
-                    runCatching {
-                        cosmeticExecutor.execute {
-                            val css = cosmeticCssFor(host, data, isMainFrame) ?: return@execute
-                            runOnUiThread { runCatching { reply.postMessage(JSONObject().put("css", css).toString()) } }
-                        }
-                    }
-                }
-            }
+            if (blockAdsSetting) addCosmeticListener(webView)
             WebViewCompat.addWebMessageListener(webView, "DailesDownload", anyOrigin) { _, message, sourceOrigin, _, reply ->
                 onDownloadChannelMessage(message.data, sourceOrigin, reply)
             }
@@ -695,6 +699,37 @@ class GameActivity : ComponentActivity() {
             }
         } catch (e: Exception) {
             // Older WebView: the clipboard listener (layer 1) still captures results.
+        }
+    }
+
+    /** Element hiding for [target]: answers cosmetic.js's requests for a page's CSS. */
+    private fun addCosmeticListener(target: WebView) {
+        WebViewCompat.addWebMessageListener(target, "DailesAdBlock", setOf("*")) { _, message, sourceOrigin, isMainFrame, reply ->
+            if (!adBlockActive) {
+                // Tell the page script to stop scanning (blocking is off for this site).
+                runCatching { reply.postMessage("{\"disabled\":true}") }
+                return@addWebMessageListener
+            }
+            val host = sourceOrigin.host?.lowercase(Locale.US) ?: return@addWebMessageListener
+            val data = message.data ?: return@addWebMessageListener
+            if (data.length > MAX_COSMETIC_MESSAGE) return@addWebMessageListener
+            runCatching {
+                cosmeticExecutor.execute {
+                    val css = cosmeticCssFor(host, data, isMainFrame) ?: return@execute
+                    runOnUiThread { runCatching { reply.postMessage(JSONObject().put("css", css).toString()) } }
+                }
+            }
+        }
+    }
+
+    /** Cosmetic filtering for a popup window (the game page sets its hooks up in [setUpPageHooks]). */
+    private fun installCosmeticHooks(target: WebView) {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return
+        runCatching {
+            addCosmeticListener(target)
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                WebViewCompat.addDocumentStartJavaScript(target, pageScript("game/cosmetic.js"), setOf("*"))
+            }
         }
     }
 
@@ -770,6 +805,12 @@ class GameActivity : ComponentActivity() {
             url.host?.let { pendingPageHost = it.lowercase(Locale.US) }
             return null
         }
+        return blockedResponseFor(request, pageHost)
+    }
+
+    /** The ad-blocking verdict for a sub-resource of a page on [firstPartyHost]: null to let it load. */
+    private fun blockedResponseFor(request: WebResourceRequest, firstPartyHost: String?): WebResourceResponse? {
+        val url = request.url ?: return null
         if (!adBlockActive) return null
         val scheme = url.scheme?.lowercase(Locale.US)
         if (scheme != "http" && scheme != "https") return null
@@ -779,7 +820,7 @@ class GameActivity : ComponentActivity() {
         val accept = headers.entries.firstOrNull { it.key.equals("Accept", true) }?.value
         val requestedWith = headers.entries.firstOrNull { it.key.equals("X-Requested-With", true) }?.value
         val type = AdBlockEngine.inferType(s, accept, false, requestedWith)
-        if (!engine.shouldBlock(s, pageHost, type)) return null
+        if (!engine.shouldBlock(s, firstPartyHost, type)) return null
         onRequestBlocked()
         // Ad libraries a game may call directly get a harmless stand-in so the game doesn't stall.
         Surrogates.forUrl(s)?.let { js -> return scriptResponse(js) }
@@ -1068,10 +1109,12 @@ class GameActivity : ComponentActivity() {
 
     /**
      * Web downloads keep the game's login: on Android 10+ DownloadManager fetches them with the page's
-     * cookies into Downloads (no storage permission needed). Older phones hand the link to the browser.
+     * cookies into Downloads (no storage permission needed). On Android 7-9, where DownloadManager
+     * would need storage permission, the app fetches the file itself and saves it through the system
+     * file picker; only if that fails does the link go to the browser.
      */
     private fun startHttpDownload(url: String, userAgent: String?, contentDisposition: String?, mimeType: String?) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) { viewExternally(Uri.parse(url)); return }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) { fetchForSave(url, userAgent, contentDisposition, mimeType); return }
         val name = GamePlayerPolicy.filenameFromContentDisposition(contentDisposition)
             ?: URLUtil.guessFileName(url, contentDisposition, mimeType)
         val ok = runCatching {
@@ -1086,6 +1129,33 @@ class GameActivity : ComponentActivity() {
             (getSystemService(DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
         }.isSuccess
         if (ok) showBanner("Downloading $name") else viewExternally(Uri.parse(url))
+    }
+
+    private fun fetchForSave(url: String, userAgent: String?, contentDisposition: String?, mimeType: String?) {
+        showBanner(getString(R.string.download_fetching))
+        val cookie = runCatching { CookieManager.getInstance().getCookie(url) }.getOrNull()
+        Thread {
+            val headers = buildMap {
+                if (!cookie.isNullOrBlank()) put("Cookie", cookie)
+                if (!userAgent.isNullOrBlank()) put("User-Agent", userAgent)
+            }
+            val r = SafeHttp.get(url, headers, maxBytes = MAX_DOWNLOAD_BYTES + 1, deadlineMs = 60_000)
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                when {
+                    r == null || r.code !in 200..299 -> viewExternally(Uri.parse(url))
+                    r.body.size > MAX_DOWNLOAD_BYTES -> showBanner(DOWNLOAD_TOO_BIG)
+                    else -> {
+                        val mime = mimeType?.takeIf { it.isNotBlank() && it != "application/octet-stream" }
+                            ?: r.contentType?.substringBefore(';')?.trim()?.ifBlank { null }
+                            ?: "application/octet-stream"
+                        val name = GamePlayerPolicy.filenameFromContentDisposition(contentDisposition)
+                            ?: URLUtil.guessFileName(url, contentDisposition, mime)
+                        promptSave(r.body, mime, name)
+                    }
+                }
+            }
+        }.start()
     }
 
     /** DailesDownload channel: "hi" from a frame that made blob: URLs, or the bytes of a requested blob. */

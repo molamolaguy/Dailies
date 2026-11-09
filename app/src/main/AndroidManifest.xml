@@ -53,6 +53,11 @@
             android:name=".ResetAlarmReceiver"
             android:exported="false" />
 
+        <!-- "Keep your streak" reminder before a reset. -->
+        <receiver
+            android:name=".StreakReminderReceiver"
+            android:exported="false" />
+
         <!-- Re-anchor reset timing after reboot, app update, time-zone change or clock change. -->
         <receiver
             android:name=".ScheduleChangeReceiver"
