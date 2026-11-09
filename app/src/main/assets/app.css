@@ -969,3 +969,13 @@ select::-ms-expand { display: none; }
 .stat-tile .k, .stat-tile .s { white-space: normal; overflow-wrap: anywhere; }
 .stat-tile .v-emoji { font-size: 0.72em; margin-right: 3px; vertical-align: 0.08em; }
 .stat-tile .s { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ==========================================================================
+   Optical centring (1.1.0). Measured from rendered pixels at 4x.
+   ========================================================================== */
+/* Alert chips: centre the bell + label as one group (it sat about 2 px high and 1 px left). */
+.toggle-chip { display: inline-flex; align-items: center; justify-content: center; }
+/* Bottom nav: the label's descender space made the icon + label group sit about 2 px high. */
+.nav-btn { padding-top: 5px; padding-bottom: 3px; }
+/* Material Symbols glyphs carry a little side padding: pull a leading icon in so icon + label look centred. */
+.icon-label > .ico:first-child { margin-inline-start: -0.15em; }

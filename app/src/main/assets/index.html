@@ -101,10 +101,12 @@
             <svg width="22" height="22" viewBox="0 0 108 108" class="rounded-md shrink-0">
               <rect width="108" height="108" rx="26" fill="#141218"/>
               <circle cx="54" cy="54" r="44" fill="#211F26"/>
+              <g transform="translate(-1 4.5)">
               <rect x="30" y="28" width="20" height="20" rx="4.5" fill="#4F378B"/>
               <rect x="30" y="54" width="20" height="20" rx="4.5" fill="#D0BCFF"/>
               <rect x="56" y="54" width="20" height="20" rx="4.5" fill="#4F378B"/>
               <path d="M67,25 C69,33 72,36 80,38 C72,40 69,43 67,51 C65,43 62,40 54,38 C62,36 65,33 67,25 Z" fill="#EADDFF"/>
+              </g>
             </svg>
             Dailies
           </span>
@@ -2446,7 +2448,7 @@
         btn.className = 'notif-btn-on';
         btn.disabled = true;
         btn.setAttribute('aria-label', 'Notifications enabled');
-        btn.innerHTML = `<span class="ico ico-check" aria-hidden="true"></span>Notifications enabled`;
+        btn.innerHTML = `<span class="icon-label"><span class="ico ico-check" aria-hidden="true"></span>Notifications enabled</span>`;
       } else {
         btn.className = NOTIF_BTN_OFF_CLASS;
         btn.disabled = false;

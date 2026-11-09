@@ -211,6 +211,8 @@ class GameActivity : ComponentActivity() {
             setTextColor(Color.WHITE)
             textSize = 15f
             typeface = googleSansBold
+            // Google Sans's extra top/bottom font padding is uneven; without it text centres on its letters.
+            includeFontPadding = false
             setSingleLine(true)
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
@@ -257,6 +259,8 @@ class GameActivity : ComponentActivity() {
             setTextColor(onPrimaryContainerColor)
             textSize = 13f
             typeface = googleSansBold
+            // Google Sans's extra top/bottom font padding is uneven; without it text centres on its letters.
+            includeFontPadding = false
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(14), dp(10), dp(16), dp(10))
             background = GradientDrawable().apply { cornerRadius = dp(18).toFloat(); setColor(primaryContainerColor) }
@@ -580,6 +584,7 @@ class GameActivity : ComponentActivity() {
             setTextColor(Color.WHITE)
             textSize = 14f
             typeface = googleSansBold
+            includeFontPadding = false
             setSingleLine(true)
             ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(8) }
@@ -1158,6 +1163,8 @@ class GameActivity : ComponentActivity() {
             setTextColor(fg)
             textSize = 13f
             typeface = googleSansBold
+            // Google Sans's extra top/bottom font padding is uneven; without it text centres on its letters.
+            includeFontPadding = false
             gravity = Gravity.CENTER
             setSingleLine(true)
             minWidth = dp(48)
