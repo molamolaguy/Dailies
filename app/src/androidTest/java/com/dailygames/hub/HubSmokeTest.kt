@@ -168,13 +168,17 @@ class HubSmokeTest {
             // Exactly what Android does for a singleTask activity that's already running.
             val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link))
                 .setClass(ctx, HubActivity::class.java)
-            s.onActivity { a -> InstrumentationRegistry.getInstrumentation().callActivityOnNewIntent(a, intent) }
+            var launchIntent: android.content.Intent? = null
+            s.onActivity { a ->
+                launchIntent = android.content.Intent(a.intent)
+                InstrumentationRegistry.getInstrumentation().callActivityOnNewIntent(a, intent)
+            }
             s.waitForJs("String(!document.getElementById('modalImportList').classList.contains('hidden'))", "\"true\"")
             assertEquals("\"Smoke List Game\"", s.js("document.querySelector('#importListRows .name').textContent"))
             s.js("closeModal('modalImportList'); 'ok'")
-            // The hub's intent is now the link (onNewIntent → setIntent), which ActivityScenario no
-            // longer matches to the one it launched, so finish the hub here for close() to see it end.
-            s.onActivity { it.finish() }
+            // ActivityScenario follows the hub by the intent it launched; onNewIntent replaced it with the
+            // link, so put the launch intent back before closing, or its lifecycle events are ignored.
+            s.onActivity { it.intent = launchIntent }
         }
     }
 
