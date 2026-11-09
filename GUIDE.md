@@ -1,8 +1,8 @@
-# Dailies 1.1.0: How the App Works
+# Dailies 1.2.0: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.1.0` (`versionCode = 3`)
+- **Version**: `1.2.0` (`versionCode = 4`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **Licence**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -371,3 +371,17 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **CI**: a `device-tests` job runs `connectedDebugAndroidTest`; `release.yml` also checks `APP_VERSION` in `index.html` and publishes only the newest section of the release notes. Lint is at 0 warnings.
 - **Store metadata** for F-Droid / Obtainium is in `fastlane/metadata/android/en-US/`.
 - New tests: `V110FeaturesTest`, proxy tests in `SafeHttpTest`, `scoreStats` in the Node tests, and `HubSmokeTest` on device.
+
+## 10. New in 1.2.0
+
+The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for developers:
+- **Play time**: `onReturnFromGame`'s elapsed time is added to `game.playTime {key, ms}` for that puzzle and saved on the log row as `timeMs`.
+- **Stats logic** in `hub-core.js` (Node-tested): `parseScore`, `formatDuration`, `newRecords`, `personalBests`, `computeAchievements` / `perfectRun`, `monthlyRecap`, `extractResultText`. Earned badge ids are kept in `state.achievements`, so only new ones get a toast.
+- **Archive**: `game.archived`. Archived games are left out of the hub, KPIs and alert list, synced with alerts off, and skip roll-overs (no auto-missed days). Restoring treats today like a newly added game.
+- **Bulk edit** reuses `applyScheduleChange`, so history moves with a new reset time exactly as in the edit dialog.
+- **Game lists**: `GameListCodec` makes `dailies://add?v=1&d=<deflate+base64url>` links and QR codes (ZXing). MainActivity opens them from a VIEW intent, a shared message or a paste into the Add Game box.
+- **Screenshots**: `ScreenshotReader` (ML Kit text recognition through Google Play services) runs on an image shared to Dailies or picked from the log dialog. This is the one non-free dependency; an F-Droid build would need a flavour without it.
+- **Dark game pages**: `WebSettingsCompat.setAlgorithmicDarkeningAllowed`. The game player uses `Theme.Dailies.Light` in the light theme so pages get `prefers-color-scheme: light`.
+- **Tab swipes**: the page follows the finger, and `animateTabChange` slides between views with the Web Animations API (with a timeout fallback). Reduced-motion settings are respected.
+- **App icon**: adaptive icons in six launcher entries (`activity-alias`). `.MainActivity`, the 1.x launcher name kept so home-screen shortcuts survive the update, is the default: it uses `-night` and `-v31` colours, so it follows the phone's dark theme and wallpaper. With **App Icon Matches Theme** on, `AppIcon` enables the entry for the app's theme when you leave the app. The activity itself is now `HubActivity`.
+- New tests: `AppIconTest`, `GameListCodecTest`, Node tests for the stats helpers, and device tests that tap the Done-today row with real touch events and open a shared list link.

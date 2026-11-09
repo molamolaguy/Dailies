@@ -14,6 +14,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Set up Gradle (caches the Gradle download between runs)
+        uses: gradle/actions/setup-gradle@v4
+      - name: Fetch the Gradle wrapper (retries when the download server is busy)
+        run: for i in 1 2 3 4 5 6; do ./gradlew --no-daemon --version > /dev/null && exit 0; echo "Gradle download failed, retrying in $((i * 20))s"; sleep $((i * 20)); done; exit 1
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
@@ -42,6 +46,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Set up Gradle (caches the Gradle download between runs)
+        uses: gradle/actions/setup-gradle@v4
+      - name: Fetch the Gradle wrapper (retries when the download server is busy)
+        run: for i in 1 2 3 4 5 6; do ./gradlew --no-daemon --version > /dev/null && exit 0; echo "Gradle download failed, retrying in $((i * 20))s"; sleep $((i * 20)); done; exit 1
       - name: Enable KVM for the emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -63,7 +71,20 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: ./gradlew --no-daemon connectedDebugAndroidTest
+          # On failure, print the crash buffer and any fatal exception before the emulator shuts down.
+          script: >-
+            ./gradlew --no-daemon connectedDebugAndroidTest || { adb logcat -d -b crash | tail -n 120; adb logcat -d | grep -E -A40 "FATAL EXCEPTION|Process. com.dailygames" | head -n 200; adb logcat -d | grep -iE "com.dailygames.hub" | grep -iE "kill|died|force.stop|crash|changed" | tail -n 60; exit 1; }
+      - name: Show failing device tests
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          for f in glob.glob('app/build/outputs/androidTest-results/connected/**/*.xml', recursive=True):
+              for tc in ET.parse(f).getroot().iter('testcase'):
+                  for bad in list(tc.findall('failure')) + list(tc.findall('error')):
+                      print(f"::error title={tc.get('classname')}.{tc.get('name')}::" + (bad.get('message') or '')[:300].replace('\n', ' '))
+                      print((bad.text or '')[:3000])
+          PY
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

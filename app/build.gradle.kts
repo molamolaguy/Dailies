@@ -28,8 +28,8 @@ android {
         applicationId = "com.dailygames.hub"
         minSdk = 24
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.1.0"
+        versionCode = 4
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -97,6 +97,10 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.13.0")
     implementation("androidx.webkit:webkit:1.18.0")
     implementation("androidx.work:work-runtime-ktx:2.12.0")
+    // QR codes for shared game lists (Apache-2.0).
+    implementation("com.google.zxing:core:3.5.4")
+    // Reading results from screenshots (on-device text recognition through Google Play services).
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.2")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20260814")

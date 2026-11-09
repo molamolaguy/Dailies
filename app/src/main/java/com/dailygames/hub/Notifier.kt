@@ -124,7 +124,7 @@ object Notifier {
         ) return null
 
         val notificationId = notificationIdFor(ctx, gameId)
-        val launch = Intent(ctx, MainActivity::class.java).apply {
+        val launch = Intent(ctx, HubActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra(EXTRA_GAME_ID, gameId)
             putExtra(EXTRA_TOKEN, intentToken(ctx))
@@ -189,7 +189,7 @@ object Notifier {
         val summaryText = "${entries.size} daily games are ready"
         style.setSummaryText(summaryText)
 
-        val launch = Intent(ctx, MainActivity::class.java).apply {
+        val launch = Intent(ctx, HubActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pending = PendingIntent.getActivity(

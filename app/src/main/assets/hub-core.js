@@ -439,31 +439,58 @@
     return mixedRows >= 4;
   }
 
+  const SCORE_RE = /(^|[^\d/])(\d{1,2}|[xX])\s*\/\s*(\d{1,2})(?![\d/])/;
+
+  /** "3/6" -> { n: 3, max: 6 }; "X/6" -> { n: null, max: 6, fail: true }; null when there's no N/M score. */
+  function parseScore(text) {
+    const m = SCORE_RE.exec(String(text || ''));
+    if (!m) return null;
+    const max = Number(m[3]);
+    if (!(max >= 2 && max <= 20)) return null;
+    if (/x/i.test(m[2])) return { n: null, max, fail: true };
+    const n = Number(m[2]);
+    if (n < 1 || n > max) return null;
+    return { n, max, fail: false };
+  }
+
+  /** "1m 05s" / "42s" / "1h 03m" for a play time in ms. */
+  function formatDuration(ms) {
+    const t = Math.max(0, Math.round(Number(ms) / 1000) || 0);
+    const h = Math.floor(t / 3600);
+    const m = Math.floor((t % 3600) / 60);
+    const sec = t % 60;
+    if (h) return `${h}h ${String(m).padStart(2, '0')}m`;
+    if (m) return `${m}m ${String(sec).padStart(2, '0')}s`;
+    return `${sec}s`;
+  }
+
   /**
-   * Score statistics for one game's logged results ({outcome, score} rows): win rate and, when the
-   * scores are "N/M" guesses (Wordle-style), the average and the guess distribution for the most
-   * common M. Fails ("X/6", or a Missed row with an N/M score) count in an "X" bar.
+   * Score statistics for one game's logged results ({outcome, score, timeMs} rows): win rate and, when
+   * the scores are "N/M" guesses (Wordle-style), the average and the guess distribution for the most
+   * common M. Fails ("X/6", or a Missed row with an N/M score) count in an "X" bar. Solved rows with a
+   * play time give the fastest and average time.
    */
   function scoreStats(rows) {
     const list = Array.isArray(rows) ? rows.filter((r) => r && typeof r === 'object') : [];
     let won = 0;
     let missed = 0;
     const parsed = [];
-    const re = /(^|[^\d/])(\d{1,2}|[xX])\s*\/\s*(\d{1,2})(?![\d/])/;
+    const times = [];
     for (const r of list) {
       const ok = r.outcome === 'Completed';
       if (ok) won += 1; else if (r.outcome === 'Missed') missed += 1; else continue;
-      const m = re.exec(String(r.score || ''));
-      if (!m) continue;
-      const max = Number(m[3]);
-      if (!(max >= 2 && max <= 20)) continue;
-      const fail = /x/i.test(m[2]) || !ok;
-      const n = fail ? null : Number(m[2]);
-      if (n !== null && (n < 1 || n > max)) continue;
-      parsed.push({ max, n });
+      if (ok && Number(r.timeMs) > 0) times.push(Number(r.timeMs));
+      const sc = parseScore(r.score);
+      if (!sc) continue;
+      parsed.push({ max: sc.max, n: sc.fail || !ok ? null : sc.n });
     }
     const played = won + missed;
-    const out = { won, missed, played, winRate: played ? Math.round((won / played) * 100) : null, avg: null, max: null, dist: [] };
+    const out = {
+      won, missed, played, winRate: played ? Math.round((won / played) * 100) : null, avg: null, max: null, dist: [],
+      fastestMs: times.length ? Math.min(...times) : null,
+      avgMs: times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null,
+      timed: times.length
+    };
     if (parsed.length < 2) return out;
     const counts = new Map();
     parsed.forEach((p) => counts.set(p.max, (counts.get(p.max) || 0) + 1));
@@ -480,8 +507,170 @@
     return out;
   }
 
+  /**
+   * Personal records a new solved row sets against the game's earlier rows: best score (fewest
+   * guesses for the same M), fastest time, and longest streak. Needs at least one earlier comparable
+   * result, so a first solve isn't a "record".
+   */
+  function newRecords(previousRows, row, prevBestStreak) {
+    const out = [];
+    if (!row || row.outcome !== 'Completed') return out;
+    const prev = (Array.isArray(previousRows) ? previousRows : []).filter((r) => r && r.outcome === 'Completed');
+    const sc = parseScore(row.score);
+    if (sc && !sc.fail) {
+      const earlier = prev.map((r) => parseScore(r.score)).filter((p) => p && !p.fail && p.max === sc.max);
+      if (earlier.length && sc.n < Math.min(...earlier.map((p) => p.n))) out.push({ kind: 'score', value: `${sc.n}/${sc.max}` });
+    }
+    const t = Number(row.timeMs);
+    if (t > 0) {
+      const earlierT = prev.map((r) => Number(r.timeMs)).filter((x) => x > 0);
+      if (earlierT.length && t < Math.min(...earlierT)) out.push({ kind: 'time', value: formatDuration(t) });
+    }
+    const streak = Number(row.streak) || 0;
+    if (streak >= 3 && streak > (Number(prevBestStreak) || 0)) out.push({ kind: 'streak', value: streak });
+    return out;
+  }
+
+  /** A game's personal bests from its rows: { bestScore: "2/6", fastestMs, bestStreak }. */
+  function personalBests(rows, bestStreak) {
+    const solved = (Array.isArray(rows) ? rows : []).filter((r) => r && r.outcome === 'Completed');
+    let best = null;
+    solved.forEach((r) => {
+      const p = parseScore(r.score);
+      if (p && !p.fail && (!best || p.n / p.max < best.n / best.max || (p.n / p.max === best.n / best.max && p.n < best.n))) best = p;
+    });
+    const times = solved.map((r) => Number(r.timeMs)).filter((x) => x > 0);
+    return { bestScore: best ? `${best.n}/${best.max}` : null, fastestMs: times.length ? Math.min(...times) : null, bestStreak: Number(bestStreak) || 0 };
+  }
+
+  const ACHIEVEMENTS = [
+    { id: 'first', icon: '⭐', title: 'First solve', desc: 'Solve your first puzzle', metric: 'solves', target: 1 },
+    { id: 'solves10', icon: '🧩', title: 'Getting started', desc: 'Solve 10 puzzles', metric: 'solves', target: 10 },
+    { id: 'solves100', icon: '💯', title: 'Puzzler', desc: 'Solve 100 puzzles', metric: 'solves', target: 100 },
+    { id: 'solves500', icon: '🏅', title: 'Puzzle master', desc: 'Solve 500 puzzles', metric: 'solves', target: 500 },
+    { id: 'solves1000', icon: '👑', title: 'Legend', desc: 'Solve 1,000 puzzles', metric: 'solves', target: 1000 },
+    { id: 'streak7', icon: '🔥', title: 'On a roll', desc: 'Reach a 7-day streak', metric: 'streak', target: 7 },
+    { id: 'streak30', icon: '📅', title: 'Monthly habit', desc: 'Reach a 30-day streak', metric: 'streak', target: 30 },
+    { id: 'streak100', icon: '🚀', title: 'Centurion', desc: 'Reach a 100-day streak', metric: 'streak', target: 100 },
+    { id: 'streak365', icon: '🏆', title: 'Year of puzzles', desc: 'Reach a 365-day streak', metric: 'streak', target: 365 },
+    { id: 'perfectWeek', icon: '✨', title: 'Perfect week', desc: 'Solve every game you track, 7 days in a row', metric: 'perfectDays', target: 7 },
+    { id: 'variety', icon: '🎨', title: 'Variety pack', desc: 'Solve 5 different games in one day', metric: 'variety', target: 5 },
+    { id: 'lucky', icon: '🍀', title: 'Two-guess wonder', desc: 'Solve a guessing game in 2 or fewer', metric: 'lucky', target: 1 },
+    { id: 'speed', icon: '⚡', title: 'Speed run', desc: 'Solve a puzzle in under a minute', metric: 'speed', target: 1 },
+    { id: 'collector', icon: '📚', title: 'Collector', desc: 'Track 10 games', metric: 'games', target: 10 }
+  ];
+
+  /** Longest run of consecutive dates on which every eligible game was solved. */
+  function perfectRun(games) {
+    const list = (Array.isArray(games) ? games : []).filter((g) => g && g.dayHistory && typeof g.dayHistory === 'object');
+    if (!list.length) return 0;
+    const first = new Map();
+    const done = new Map();
+    list.forEach((g) => {
+      const dates = Object.keys(g.dayHistory).filter((d) => DATE_KEY_RE.test(d)).sort();
+      if (!dates.length) return;
+      first.set(g, cycleKeyToDay(dates[0]));
+      done.set(g, new Set(dates.filter((d) => g.dayHistory[d] === 'completed').map(cycleKeyToDay)));
+    });
+    const allDays = new Set();
+    done.forEach((set) => set.forEach((d) => allDays.add(d)));
+    const days = [...allDays].sort((a, b) => a - b);
+    let best = 0;
+    let run = 0;
+    let prev = null;
+    for (const d of days) {
+      const eligible = [...first.keys()].filter((g) => first.get(g) <= d);
+      const ok = eligible.length > 0 && eligible.every((g) => done.get(g).has(d));
+      run = ok ? (prev !== null && d === prev + 1 && run > 0 ? run + 1 : 1) : 0;
+      prev = d;
+      if (run > best) best = run;
+    }
+    return best;
+  }
+
+  /** Every achievement with { earned, progress, target } from the games list and the result log. */
+  function computeAchievements(games, logs) {
+    const gs = Array.isArray(games) ? games.filter((g) => g && typeof g === 'object') : [];
+    const rows = Array.isArray(logs) ? logs.filter((l) => l && typeof l === 'object') : [];
+    const solvedRows = rows.filter((r) => r.outcome === 'Completed');
+    const byDay = new Map();
+    solvedRows.forEach((r) => {
+      const key = r.date;
+      if (!byDay.has(key)) byDay.set(key, new Set());
+      byDay.get(key).add(r.gameId || r.gameName);
+    });
+    const metrics = {
+      solves: solvedRows.length,
+      streak: Math.max(0, ...gs.map((g) => Math.max(Number(g.bestStreak) || 0, Number(g.streak) || 0)), ...rows.map((r) => Number(r.streak) || 0)),
+      perfectDays: perfectRun(gs.filter((g) => !g.archived)),
+      variety: Math.max(0, ...[...byDay.values()].map((set) => set.size)),
+      lucky: solvedRows.some((r) => { const p = parseScore(r.score); return p && !p.fail && p.max >= 5 && p.n <= 2; }) ? 1 : 0,
+      speed: solvedRows.some((r) => Number(r.timeMs) > 0 && Number(r.timeMs) < 60000) ? 1 : 0,
+      games: gs.length
+    };
+    return ACHIEVEMENTS.map((a) => {
+      const progress = Math.min(a.target, metrics[a.metric] || 0);
+      return { id: a.id, icon: a.icon, title: a.title, desc: a.desc, target: a.target, progress, earned: progress >= a.target };
+    });
+  }
+
+  /**
+   * A month's recap from the result log: results, solves, win rate, longest streak reached, best
+   * result (fewest guesses relative to the maximum), most-played game and total play time.
+   */
+  function monthlyRecap(logs, year, month) {
+    const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
+    const rows = (Array.isArray(logs) ? logs : []).filter((r) => r && typeof r.date === 'string' && r.date.startsWith(prefix));
+    const solved = rows.filter((r) => r.outcome === 'Completed');
+    const counts = new Map();
+    rows.forEach((r) => counts.set(r.gameName || '', (counts.get(r.gameName || '') || 0) + 1));
+    let topGame = null;
+    counts.forEach((c, name) => { if (name && (!topGame || c > topGame.count)) topGame = { name, count: c }; });
+    let best = null;
+    solved.forEach((r) => {
+      const p = parseScore(r.score);
+      if (!p || p.fail) return;
+      const ratio = p.n / p.max;
+      if (!best || ratio < best.ratio || (ratio === best.ratio && p.n < best.n)) best = { ratio, n: p.n, game: r.gameName || '', score: `${p.n}/${p.max}` };
+    });
+    const timeMs = solved.reduce((a, r) => a + (Number(r.timeMs) > 0 ? Number(r.timeMs) : 0), 0);
+    return {
+      results: rows.length,
+      solved: solved.length,
+      winRate: rows.length ? Math.round((solved.length / rows.length) * 100) : null,
+      bestStreak: Math.max(0, ...rows.map((r) => Number(r.streak) || 0)),
+      bestResult: best ? { game: best.game, score: best.score } : null,
+      topGame,
+      days: new Set(rows.map((r) => r.date)).size,
+      timeMs
+    };
+  }
+
+  /**
+   * The lines of recognised screenshot text that look like a result ("Wordle 1,234 3/6", "Solved in
+   * 4 guesses", "#512", "Streak 12"), for the log's score box. Falls back to the first few lines.
+   */
+  function extractResultText(text) {
+    const lines = String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).slice(0, 80);
+    const looks = (l) => SCORE_RE.test(l) || /#\s?\d{2,}/.test(l)
+      || /\b(\d+\s*(guess|guesses|tries|attempts|moves|points|pts|mistakes?|hints?|seconds|sec|s)\b|solved|streak|score|time|you (won|got it|lost)|well done|congrat|splendid|magnificent|impressive|great|phew|genius|next (puzzle|game))/i.test(l)
+      || (/\b\d{1,2}:\d{2}\b/.test(l) && !/^\d{1,2}:\d{2}(\s*(am|pm))?$/i.test(l)); // a time, but not the status-bar clock
+    const picked = lines.filter(looks).slice(0, 8);
+    const out = (picked.length ? picked : lines.slice(0, 6)).join('\n');
+    return out.slice(0, 600);
+  }
+
   return {
+    extractResultText,
     scoreStats,
+    parseScore,
+    formatDuration,
+    newRecords,
+    personalBests,
+    computeAchievements,
+    perfectRun,
+    monthlyRecap,
+    ACHIEVEMENTS,
     isFailedShareResult,
     looksLikeShareResult,
     isStrictShareResult,

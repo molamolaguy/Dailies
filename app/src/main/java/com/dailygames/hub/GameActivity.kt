@@ -143,6 +143,8 @@ class GameActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Pages see the app's theme as prefers-color-scheme (light theme → light pages).
+        if (ThemePrefs.isLight(this)) setTheme(R.style.Theme_Dailies_Light)
         super.onCreate(savedInstanceState)
 
         gameId = intent.getStringExtra(EXTRA_ID).orEmpty()
@@ -275,7 +277,7 @@ class GameActivity : ComponentActivity() {
             androidx.core.content.ContextCompat.getDrawable(this@GameActivity, R.drawable.ic_bar_check)?.mutate()?.let { icon ->
                 icon.setBounds(0, 0, dp(18), dp(18))
                 setCompoundDrawablesRelative(icon, null, null, null)
-                compoundDrawableTintList = ColorStateList.valueOf(onPrimaryContainerColor)
+                androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(onPrimaryContainerColor))
                 compoundDrawablePadding = dp(8)
             }
         }
@@ -318,8 +320,21 @@ class GameActivity : ComponentActivity() {
 
     /** Builds the game WebView (also used to replace one whose renderer process went away). */
     @SuppressLint("SetJavaScriptEnabled")
+    /**
+     * Dark theme + "Dark Game Pages": WebView darkens pages that don't offer a dark theme of their
+     * own (pages that do, via prefers-color-scheme or color-scheme, keep their own design).
+     */
+    private fun applyDarkPages(view: WebView) {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) return
+        val on = GamePrefs.darkPages(this) && !ThemePrefs.isLight(this)
+        runCatching { androidx.webkit.WebSettingsCompat.setAlgorithmicDarkeningAllowed(view.settings, on) }
+    }
+
+    // JavaScript is required: the games are web apps.
+    @android.annotation.SuppressLint("SetJavaScriptEnabled")
     private fun createGameWebView(): WebView = WebView(this).apply {
         setBackgroundColor(surfaceColor)
+        applyDarkPages(this)
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         // With ad blocking on, scripts can't open pop-ups/pop-unders without a tap.
@@ -529,6 +544,7 @@ class GameActivity : ComponentActivity() {
         val child = WebView(this)
         popupView = child
         child.setBackgroundColor(surfaceColor)
+        applyDarkPages(child)
         child.settings.javaScriptEnabled = true
         child.settings.domStorageEnabled = true
         child.settings.setSupportMultipleWindows(false)
@@ -1235,7 +1251,7 @@ class GameActivity : ComponentActivity() {
                 val icon = androidx.core.content.ContextCompat.getDrawable(this@GameActivity, iconRes)?.mutate()
                 icon?.setBounds(0, 0, dp(20), dp(20))
                 setCompoundDrawablesRelative(icon, null, null, null)
-                compoundDrawableTintList = ColorStateList.valueOf(fg)
+                androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(fg))
                 compoundDrawablePadding = if (label.isEmpty()) 0 else dp(6)
             }
             contentDescription = desc

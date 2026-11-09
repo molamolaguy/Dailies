@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="icon_auto_bg">@android:color/system_neutral1_900</color>
+    <color name="icon_auto_shape">@android:color/system_accent1_200</color>
+    <color name="icon_auto_mark">@android:color/system_accent1_800</color>
+</resources>

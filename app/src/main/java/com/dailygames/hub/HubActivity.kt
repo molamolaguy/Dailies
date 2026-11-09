@@ -40,7 +40,7 @@ import java.io.File
 import java.util.Locale
 import java.util.concurrent.Executors
 
-class MainActivity : ComponentActivity() {
+class HubActivity : ComponentActivity() {
     private lateinit var scaffoldRoot: FrameLayout
     private lateinit var webView: WebView
     private lateinit var stateStore: HubStateStore
@@ -74,6 +74,36 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
             handleExportResult(uri)
         }
+
+    /** Photo picker for "Read a screenshot" in the log dialog. */
+    private val screenshotPicker = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri == null) runJs("window.onScreenshotText && window.onScreenshotText(null, 'picker')")
+        else readScreenshot(uri, "picker")
+    }
+
+    private fun readScreenshot(uri: Uri, source: String) {
+        runJs("window.onScreenshotReading && window.onScreenshotReading()")
+        ScreenshotReader.read(applicationContext, uri) { text ->
+            runOnUiThread {
+                val arg = text?.take(4000)?.let { JSONObject.quote(it) } ?: "null"
+                runJs("window.onScreenshotText && window.onScreenshotText($arg, ${JSONObject.quote(source)})")
+            }
+        }
+    }
+
+    /** "Save to…" picker for the CSV history export. */
+    private val csvLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        val temp = File(cacheDir, CSV_TEMP_FILE)
+        if (uri == null) { runCatching { temp.delete() }; runJs("window.onCsvSaved && window.onCsvSaved(false)"); return@registerForActivityResult }
+        Thread {
+            val ok = runCatching {
+                (runCatching { contentResolver.openOutputStream(uri, "wt") }.getOrNull() ?: contentResolver.openOutputStream(uri, "w"))
+                    ?.use { out -> temp.inputStream().use { it.copyTo(out) }; true } ?: false
+            }.getOrDefault(false)
+            runCatching { temp.delete() }
+            runOnUiThread { runJs("window.onCsvSaved && window.onCsvSaved($ok)") }
+        }.start()
+    }
 
     /** System document picker (Storage Access Framework) for importing a backup. */
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -381,6 +411,12 @@ class MainActivity : ComponentActivity() {
         return obj
     }
 
+    override fun onStop() {
+        super.onStop()
+        // Swap the launcher icon only once the hub is off screen, so the switch can't disturb it.
+        if (!isChangingConfigurations) AppIcon.apply(applicationContext)
+    }
+
     override fun onPause() {
         super.onPause()
         if (::webView.isInitialized) webView.onPause()
@@ -533,12 +569,32 @@ class MainActivity : ComponentActivity() {
         if (intent == null) return
 
         val gameId = intent.getStringExtra(Notifier.EXTRA_GAME_ID)
-        // MainActivity is exported (launcher + share target): only our own notifications, which carry
+        // HubActivity is exported (launcher + share target): only our own notifications, which carry
         // the app-private token, may ask it to open a game.
         val trusted = intent.getStringExtra(Notifier.EXTRA_TOKEN) == Notifier.intentToken(this)
         if (!gameId.isNullOrBlank() && trusted) {
             intent.removeExtra(Notifier.EXTRA_GAME_ID)
             runJs("window.openGameInPlayer(${JSONObject.quote(gameId)})")
+            return
+        }
+
+        // A screenshot shared to Dailies: read its text on the phone and offer to log it.
+        if (intent.action == Intent.ACTION_SEND && intent.type?.startsWith("image/") == true) {
+            @Suppress("DEPRECATION")
+            val uri = (if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                else intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri)
+            intent.action = Intent.ACTION_MAIN
+            if (uri != null) readScreenshot(uri, "share")
+            return
+        }
+
+        // A friend's game list: an opened dailies:// link, or a shared message that contains one.
+        val listSource = if (intent.action == Intent.ACTION_VIEW && intent.data?.scheme == GameListCodec.SCHEME) intent.dataString
+            else intent.getStringExtra(Intent.EXTRA_TEXT)?.takeIf { intent.action == Intent.ACTION_SEND }
+        GameListCodec.decode(listSource)?.let { list ->
+            intent.action = Intent.ACTION_MAIN
+            intent.data = null
+            runJs("window.onSharedGameList && window.onSharedGameList($list)")
             return
         }
 
@@ -653,7 +709,7 @@ class MainActivity : ComponentActivity() {
                 put("bottomPx", if (lastImeVisible) 0 else lastBottomInsetDp)
                 put("imeOpen", lastImeVisible)
                 put("palette", extractDeviceWallpaperPalette())
-                put("systemDark", ThemePrefs.systemIsDark(this@MainActivity))
+                put("systemDark", ThemePrefs.systemIsDark(this@HubActivity))
             }.toString()
         }
 
@@ -689,7 +745,7 @@ class MainActivity : ComponentActivity() {
             ThemePrefs.saveMode(applicationContext, mode)
             runOnUiThread {
                 applySystemBarAppearance()
-                surfaceColor = ThemePrefs.surfaceColor(this@MainActivity)
+                surfaceColor = ThemePrefs.surfaceColor(this@HubActivity)
                 window.setBackgroundDrawable(surfaceColor.toDrawable())
             }
         }
@@ -747,6 +803,61 @@ class MainActivity : ComponentActivity() {
                 runCatching {
                     startActivity(Intent(Intent.ACTION_VIEW, UpdateCheck.RELEASES_PAGE.toUri()).addCategory(Intent.CATEGORY_BROWSABLE))
                 }
+            }
+        }
+
+        /** Your game list as a link and a QR code: {link, qr} (qr is a PNG data: URL). */
+        @JavascriptInterface
+        fun makeGameListShare(gamesJson: String): String {
+            val link = GameListCodec.encode(gamesJson) ?: return "{}"
+            return JSONObject().put("link", link).put("qr", GameListCodec.qrDataUrl(link) ?: "").toString()
+        }
+
+        /** A pasted message or link that holds a friend's game list → the games JSON, or "" if none. */
+        @JavascriptInterface
+        fun decodeGameList(text: String): String = GameListCodec.decode(text) ?: ""
+
+        /** Saves a CSV the hub built through the system "Save to…" picker; answers window.onCsvSaved. */
+        @JavascriptInterface
+        fun saveCsvFile(suggestedFileName: String, content: String) {
+            val staged = content.isNotBlank() && runCatching { File(cacheDir, CSV_TEMP_FILE).writeText(content, Charsets.UTF_8) }.isSuccess
+            runOnUiThread {
+                if (!staged) { runJs("window.onCsvSaved && window.onCsvSaved(false)"); return@runOnUiThread }
+                runCatching { csvLauncher.launch(suggestedFileName.ifBlank { "dailies_history.csv" }) }
+                    .onFailure { runJs("window.onCsvSaved && window.onCsvSaved(false)") }
+            }
+        }
+
+        /** "Read a screenshot": opens the photo picker; the text arrives in window.onScreenshotText. */
+        @JavascriptInterface
+        fun pickScreenshot() {
+            runOnUiThread {
+                runCatching { screenshotPicker.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                    .onFailure { runJs("window.onScreenshotText && window.onScreenshotText(null, 'picker')") }
+            }
+        }
+
+        /** Settings → Display → App Icon Matches Theme (applied when leaving the app). */
+        @JavascriptInterface
+        fun setIconFollowsTheme(on: Boolean) {
+            AppIcon.setFollowsTheme(applicationContext, on)
+        }
+
+        /** Settings → Game Player → Dark Game Pages. */
+        @JavascriptInterface
+        fun setDarkGamePages(on: Boolean) {
+            GamePrefs.setDarkPages(applicationContext, on)
+        }
+
+        /** Android share sheet for a text the hub built (monthly recap, game list). */
+        @JavascriptInterface
+        fun shareText(text: String, subject: String) {
+            if (text.length > 20_000) return
+            runOnUiThread {
+                val send = Intent(Intent.ACTION_SEND).setType("text/plain")
+                    .putExtra(Intent.EXTRA_TEXT, text)
+                    .putExtra(Intent.EXTRA_SUBJECT, subject.take(120))
+                runCatching { startActivity(Intent.createChooser(send, subject.take(120))) }
             }
         }
 
@@ -852,7 +963,7 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                 val text = runCatching {
-                    cm?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this@MainActivity)?.toString()
+                    cm?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this@HubActivity)?.toString()
                 }.getOrNull().orEmpty()
                 runJs("window.onClipboardText && window.onClipboardText($requestId, ${JSONObject.quote(text)})")
             }
@@ -882,6 +993,7 @@ class MainActivity : ComponentActivity() {
         private const val ASSET_PREFIX = "file:///android_asset/"
         private const val MAX_IMPORT_BYTES = 50 * 1024 * 1024
         private const val BACKUP_TEMP_FILE = "pending_backup_export.json"
+        private const val CSV_TEMP_FILE = "pending_history_export.csv"
         /** Characters per slice when handing an imported backup to the page. */
         private const val IMPORT_CHUNK_CHARS = 512 * 1024
     }

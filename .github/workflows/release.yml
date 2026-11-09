@@ -1,6 +1,6 @@
 name: Release
 
-# Push a tag such as v1.1.0 to build a signed APK and publish it as a GitHub release.
+# Push a tag such as v1.2.0 to build a signed APK and publish it as a GitHub release.
 # Needs these repository secrets (Settings → Secrets and variables → Actions), which
 # scripts/publish-to-github.* can set for you:
 #   RELEASE_KEYSTORE_BASE64  base64 of dailies-release.jks
@@ -12,9 +12,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to create, e.g. v1.1.0 (must match versionName in app/build.gradle.kts)'
+        description: 'Release tag to create, e.g. v1.2.0 (must match versionName in app/build.gradle.kts)'
         required: true
-        default: 'v1.1.0'
+        default: 'v1.2.0'
 
 permissions:
   contents: write
@@ -43,6 +43,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Set up Gradle (caches the Gradle download between runs)
+        uses: gradle/actions/setup-gradle@v4
+      - name: Fetch the Gradle wrapper (retries when the download server is busy)
+        run: for i in 1 2 3 4 5 6; do ./gradlew --no-daemon --version > /dev/null && exit 0; echo "Gradle download failed, retrying in $((i * 20))s"; sleep $((i * 20)); done; exit 1
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
