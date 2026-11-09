@@ -3351,7 +3351,6 @@
 #permads
 #persistentAd
 #personalization_ads
-#pfx_interstitial
 #pgAdWrapper
 #ph_ad
 #pk-status-message
@@ -10438,7 +10437,6 @@
 .group_ad
 .gsAd
 .gtm-ad-slot
-.gtm-ga4-walkthrough-imp-event
 .guide__row--fixed-ad
 .guj-ad--placeholder
 .gujAd
@@ -10820,7 +10818,6 @@
 .is-mpu
 .is-preload-ad
 .is-script-ad
-.is-sp[data-ad]
 .is-sticky-ad
 .isAd
 .isAdPage
@@ -10924,7 +10921,6 @@
 .kumpulads-post
 .kumpulads-side
 .kwizly-psb-ad
-.kyuujinbox_recurit
 .l-ad
 .l-ad-top
 .l-ads
@@ -13463,14 +13459,6 @@ a[href*=".ufinkln.com/"]
 a[href*="//jjgirls.com/sex/Chaturbate"]
 a[href*="/fdh/wth.php?"]
 a[href*="/jump/next.php?r="]
-a[href*="html-load.com/"] > amp-img[src^="https://tpc.googlesyndication.com/"]
-a[href*="html-load.com/"]:has(+ amp-pixel + div[aria-hidden="true"]) > amp-img.aspw
-a[href*="html-load.com/"][attributiondestination="https://appier.net"]
-a[href*="html-load.com/"][attributionsrc^="https://track.u.send.microad.jp"]
-a[href*="html-load.com/"][style$="margin:0px auto;text-decoration:none;"]
-a[href*="html-load.com/"][style$="width:   100%;height:   100%"]
-a[href*="html-load.com/"][style="display:inline-block;"]
-a[href="javascript:void(window.open(clickTag))"] > div[id^="img_"]
 a[href^=" https://www.friendlyduck.com/AF_"]
 a[href^="//go.eabids.com/"]
 a[href^="//hoodingluster.com/"]
@@ -13723,29 +13711,18 @@ a[href^="https://z.cdn.secured-ad.com/"]
 a[href^="https://zirdough.net/"]
 a[href^="mailto:support@netu.tv"]
 a[id][href="https://chpadblock.com/"][rel="noopener noreferrer"]
-a[id^="img_"][onfocus^="ss"] > img.aspw[height$="2"]
-a[id^="img_"][onfocus^="ss"] > img[class^="img_"]
 a[onclick*="openAuc();"]
 a[onclick^="window.location.replace('https://random-affiliate.atimaze.com/"]
 a[onmousedown^="this.href='https://paid.outbrain.com/network/redir?"]
 a[onmousedown^="this.href='https://paid.outbrain.com/network/redir?"] + .ob_source
-a[style="text-decoration:none;"] > div[style^="border: none; margin: 0px;"]
 a[style="width:100%;height:100%;z-index:10000000000000000;position:absolute;top:0;left:0;"]
-a[style^="background:transparent url"][style*="html-load.com/"]
 ad-shield-ads
 ad-slot
-adfm-ad
 amp-ad
 amp-ad-custom
-amp-ad-exit + div[class*=" "]:has(+ div[aria-hidden="true"] + amp-pixel + amp-pixel)
-amp-ad-exit + div[class*=" "]:has(+ div[aria-hidden="true"] + amp-pixel + div[style^="bottom:0;right:0;width"])
-amp-ad-exit + div[class*=" "]:has(+ div[aria-hidden="true"] + div[style^="bottom:0;right:0;width"])
 amp-connatix-player
 amp-embed[type="taboola"]
 amp-fx-flying-carpet
-amp-img[class^="img_"][style="width:300px;height:250px;"]
-amp-img[class^="img_"][style="width:336px;height:280px;"]
-amp-img[height^="   "]
 app-ad
 app-advertisement
 app-large-ad
@@ -13756,87 +13733,34 @@ aside[id^="adrotate_widgets-"]
 atf-ad-slot
 body .top-advert
 body > #adfox-cover[style^="position: fixed; top: 0px; left: 0px; width: 100vw; height: 100vh; z-index: 2147483647; background-color:"]
-body > a[attributionsrc*="html-load.com/"]
-body > a[href^="https://content-loader.com/"][target="_top"]
-body > a[href^="https://html-load.com/"][target="_top"]
 body > div#dontfoid
 body > div#fixedban
 body > div.demo-wrapper[style="display:none;"] + div[id][class]
-body > div:not([class]):not([id]) > script + div[id^="img_"] > script + span[id^="img_"][style] > a[href*="html-load.com/"]
-body > div[class^="img_"] > a[href*="html-load.com/"][target="_blank"]
-body > div[class^="img_"] > style + div[id^="img_"] + div[class^="img_"]
-body > div[class^="img_"][id^="img_"] > button[type="button"][class^="img_"][id^="img_"]
-body > div[id^="img_"] > div[style$="height:280px;"][class*=" img_"]
-body > div[id^="img_"]:has(+ amp-pixel + amp-analytics)
-body > div[id^="img_"]:has(+ amp-pixel + div[style^="bottom:0;right:0;width"])
-body > div[style="display:inline"] > div[class^="img_"][id^="img_"]
 body > div[style="position: fixed; display: block; width: 100%; height: 100%; inset: 0px; background-color: rgba(0, 0, 0, 0); z-index: 300000;"]
 body > div[style^="position: fixed; inset: 0px; z-index: 2147483647; background-color: transparent; pointer-events: auto; cursor: auto; margin: 0px; padding: 0px;"]
 body > div[style^="position: fixed; inset: 0px; z-index: 2147483647; background: black; opacity: 0.01;"]
 body > div[style^="position:fixed;inset:0;z-index:2147483647;background:black;opacity:0.01"][style*=";cursor:pointer"]:empty
 body > div[style^="position:fixed;inset:0px;z-index:2147483647;background:black;opacity:0.01"][style*=";cursor:pointer"]:empty
-body > iframe[src*="html-load.com/"] + div[id^="img_"]
-body > iframe[src*="html-load.com/"] ~ script + div[class^="img_"]
-body > script + div + div[style="display:inline"] > a[target="_blank"][href*="html-load.com/"]
-body > script + script + script + div + div[style="display:inline"] > div:not([id]):not([class])
-body > script[src]:first-child + div:not([id]):not([class]) > script + script[src] + script + div[id^="img_"]
-body > script[src]:first-child + script + div:not([id]):not([class]) > script + script[src] + script + div[id^="img_"]
 body ~ div[style^="z-index: 2147483647 !important; position: fixed !important; width:"]
 body ~ iframe[id][style^="width: 100% !important; height:"][style*="inset:"]
-body.aspw[width="320"]
-body[class^="img_"] > div[class^="img_"] > div[style][class^="img_"]
-body[class^="img_"] > div[style$="-webkit-tap-highlight-color:rgba(0,0,0,0);"]
-body[class^="img_"][style$="running none;"]
-body[class^="img_"][style^="background-color"]
-body[class^="img_"][style^="opacity: 1;"]
 body[data-publication] aside[class^="RHRBlock_right-aside-wrapper"]
 body[data-publication] div.commercial-label-style
 body[data-publication] div[class*="BoxStyles_commercial"][class*="BoxStyles_taboola"][data-testid^="commercial-"]
 body[data-publication] div[data-testid^="ncu-within-group-"]
 body[data-publication] div[data-tmdatatrack-type="commercial"]
-body[marginwidth="0"][marginheight="0"][style="background:transparent;line-height:0"] > div[id][class][style="overflow:hidden;position:absolute"]
 body[onbeforeunload="return myFunction()"]
-body[onclick="ExitApi.exit();"][style="cursor:pointer"] > a[href="javascript:(function(){open(window.clickTag)})()"]
-body[style$="transform-origin: left top;"] > div[id^="img_"]
 bottomadblock
 broadstreet-zone-container
-browsispot[style^="width:    100%;"]
-button[class]:has(+ div[id][style="width:    320px; height:    100px;"])
 button[data-openuri="|BTN_URL|"]
-button[id^="img_"][onclick^="window.open"]
-canvas[id^="img_"][height="600"]
 citrus-ad-wrapper
 display-ad-component
 display-ads
 div.fadeInDown[id$="____equal"][class$="____equal"]
-div:not([class]) + style + div[class^="img_"] > img[src*="html-load.com/"]
 div[aria-label="Ads"]
 div[class$="-adlabel"]
-div[class][id][style="width:    100%; height:    280px; overflow: hidden;"]
-div[class][style="min-height:180px;"]:empty
-div[class][style="min-height:250px;margin:0 0 10px;"]
-div[class][style^="display: block; width:    100%;"][started]
-div[class][style^="left:0px;top:0px;width:   100%;height:   100%"]
-div[class][style^="min-width: 300px; min-height: 250px; color:#fff"]
-div[class][style^="min-width: 336px; min-height: 280px; color:#fff"]
-div[class][style^="width:300px; height:250px; color:#fff"]
-div[class][width="   300"][height="   600"]
 div[class^="Adstyled__AdWrapper-"]
 div[class^="DisplayAdvert"]
 div[class^="TaboolaHomepageFeed_taboolaWrapper"]
-div[class^="img_"] > div[id^="img_"][align="center"][style="text-align:center"]
-div[class^="img_"] > div[id^="img_"][class^="img_"][style="height: auto;"]
-div[class^="img_"] > table[class^="img_"]
-div[class^="img_"][id^="img_"][active_view_class_name]
-div[class^="img_"][onclick^="handleClick(event, 'https:"]
-div[class^="img_"][started="true"]
-div[class^="img_"][style$="196px; position: absolute;"]
-div[class^="img_"][style="margin-bottom:20px;"]
-div[class^="img_"][style="width:100%"]
-div[class^="img_"][style^="background: url(\"https://html-load.com"]
-div[class^="img_"][style^="grid-template-areas:'product-image buy-box"]
-div[class^="img_"][style^="height:189px;"]
-div[class^="img_"][style^="width: 410px"] > div[class^="img_"] > lima-video
 div[class^="index-module_openwebAd_"]
 div[data-ad-placeholder]
 div[data-ad-region]
@@ -13857,35 +13781,6 @@ div[data-target="ad"]
 div[data-type="_mgwidget"]
 div[id*="MarketGid"]
 div[id*="ScriptRoot"]
-div[id][align="center"][style="width: 100% !important; height: auto !important;"]
-div[id][class][style="display: block; right: 20px; bottom: 20px;"]:has(> iframe[id][srcdoc])
-div[id][spottype="dynamic_mc"]
-div[id][style$="height:    90px; overflow: hidden;"]
-div[id][style$="width:    300px; height:    250px;"]
-div[id][style$="width:    300px; height:    600px;"]
-div[id][style$="width:    320px; height:    50px;"]
-div[id][style$="width:    728px; height:    90px;"]
-div[id][style$="width:    970px; height:    250px;"]
-div[id][style$="width:    970px; height:    90px;"]
-div[id][style$="width:336px; max-width:100%; min-height:250px; background-color:transparent;"]
-div[id][style*="height:    100%; width:    100%"]
-div[id][style="height:    100%"]
-div[id][style="max-height: 180px; text-align: center; margin: 0px auto; display: block;"]
-div[id][style="min-width: 320px; min-height: 50px;"]
-div[id][style="width:    auto;"]
-div[id][style="width: 375px; height: 667px; background-color: transparent;"]
-div[id][style="width: 728px; height: 90px;"]
-div[id][style^="border: 0pt; max-height: none !important; max-width: 375px !important; padding: 0px !important; width: 375px !important;"]
-div[id][style^="left:0px;top:0px;width:   100%;height:   100%"]
-div[id][style^="margin-top: 30px; text-align: center; width: 375px !important; max-width: 375px !important;"]
-div[id][style^="min-width: 300px; min-height: 250px"]
-div[id][style^="min-width: 728px; min-height: 90px"]
-div[id][style^="width:    1"][style$="height:    90px;"]
-div[id][style^="width:    3"][style*="height:    "]
-div[id][style^="width:    320px"]
-div[id][style^="width:   "][style$="overflow: hidden;"]
-div[id][style^="width:   "][style$="overflow:hidden"]
-div[id][style^="width:   "][style*="height:   "]
 div[id^="M"][id*="Composite"]
 div[id^="ad-div-"]
 div[id^="ad-position-"]
@@ -13901,53 +13796,6 @@ div[id^="div-gpt-"]
 div[id^="ezoic-pub-ad-"]
 div[id^="google_dfp_"]
 div[id^="gpt_ad_"]
-div[id^="img_"] > div[id^="img_"][style="width: auto;"]
-div[id^="img_"] > div[style$="text-decoration:none;width:300px;"]
-div[id^="img_"] > div[style^="margin:0;padding:0;"]
-div[id^="img_"] > svg[style$="overflow:visible;z-index:0;box-shadow:none;"]
-div[id^="img_"]:first-child > div[aria-hidden="true"] + div[id^="img_"]
-div[id^="img_"][class^="img_"][lang][style="overflow: hidden; width: 100%; height: 100%;"]
-div[id^="img_"][class^="img_"][mode]
-div[id^="img_"][ggnoclick]
-div[id^="img_"][onclick="fireClickHandler()"]
-div[id^="img_"][onclick^="window.open"]
-div[id^="img_"][ontouchend$="touchEnd(event)"]
-div[id^="img_"][ontouchstart][style$="z-index:1;"]
-div[id^="img_"][role="button"]
-div[id^="img_"][style$="height: 248px; overflow: hidden;"]
-div[id^="img_"][style$="height:100px;"]
-div[id^="img_"][style$="height:90px;overflow:hidden;"]
-div[id^="img_"][style$="justify-content: center; align-items: center; position: relative;"]
-div[id^="img_"][style$="overflow:hidden; display:inline-block;"]
-div[id^="img_"][style$="padding: 0px; display: inline-block;"]
-div[id^="img_"][style$="position: sticky; top: 0; z-index: 1;"]
-div[id^="img_"][style$="width: 100%; z-index: 2147483647;"]
-div[id^="img_"][style$="width:100%;height:250px;overflow:hidden;"]
-div[id^="img_"][style*="font-family: arial, helvetica, sans-serif;"]
-div[id^="img_"][style*="height:   250px;overflow:hidden"]
-div[id^="img_"][style="border: 0pt; width:    fit-content;"]
-div[id^="img_"][style="cursor: pointer;"]
-div[id^="img_"][style="opacity: 1;"]
-div[id^="img_"][style="overflow:hidden;"]
-div[id^="img_"][style="width: 100%;"]
-div[id^="img_"][style="width:300px;height:200px;"]
-div[id^="img_"][style^="display: block; height: 50px;"]
-div[id^="img_"][style^="display: block;width: 100%;height: 90px"]
-div[id^="img_"][style^="height: 250px; width: 300px;"]
-div[id^="img_"][style^="margin: 0px; padding: 0px; position: fixed; top: 0px; left: 0px; width: 100%; z-index: 2147483647;"]
-div[id^="img_"][style^="overflow: hidden; width: 320px;"]
-div[id^="img_"][style^="position: fixed; bottom: 0; left: 0; width: 100%; z-index:2147483647;"]
-div[id^="img_"][style^="position: fixed; bottom: 0px; left: 0px; width: 100%; z-index: 2147483647;"]
-div[id^="img_"][style^="position:absolute;width:100%;height:100%;"]
-div[id^="img_"][style^="width: 100%; height: 100px; position: fixed; bottom: 0; left: 0; z-index:"]
-div[id^="img_"][style^="width: 100%; min-height: 430px;"]
-div[id^="img_"][style^="width: 100vw; height: 100vh;"]
-div[id^="img_"][style^="width: 300px;"]
-div[id^="img_"][visibility="visible"]
-div[id^="img_"][x-frame-height="53"]
-div[id^="img_"][x-frame-height="600"]
-div[id^="img_"][x-frame-height^="40"]
-div[id^="img_"][x-frame-width="336"][x-frame-height="336"]
 div[id^="lazyad-"]
 div[id^="mrec-leaderboard-"]
 div[id^="optidigital-adslot"]
@@ -13957,31 +13805,9 @@ div[id^="sticky_ad_"]
 div[id^="taboola-stream-"]
 div[id^="vuukle-ad-"]
 div[id^="zergnet-widget"]
-div[js_error_track_url^="https://uncn.jp/0/data/js_error_track/"][click_trackers]
-div[js_error_track_url^="https://uncn.jp/0/data/js_error_track/gn."]
-div[js_error_track_url^="https://uncn.jp/0/data/js_error_track/pb."]
-div[lang] [x-remove="false"]
 div[ow-ad-unit-wrapper]
-div[style$="-10000px; position: absolute;"] + div[id^="img_"]
-div[style$="overflow: hidden; width: 300px; height: 250px; margin: 0px auto;"]
-div[style$="text-indent: 0px !important;"] > a[href*="html-load.com"]
-div[style*="left: 0px; z-index: 1000000000"] > div > div[id^="img_"]
-div[style="display:inline"][class^="img_"] > div[style="display:flex;"]
 div[style="margin: 10px 0; position: relative;"] > div[id="overlay"][style="position: absolute; width: 100%; height: 100%; z-index: 99999;"]
 div[style="text-align:center;margin:0 0 8px 0;"] > div[class^="ad-"][class$="-wrapper"]
-div[style] > div[style="position:absolute;display:none;"] + meta + meta + div[class^="img_"]
-div[style^="bottom:0;right:0;width:300px;height:250px;background:initial!important;"]
-div[style^="left:0px;top:0px;width:   100%;height:   100%"] + div[class][style="display:inline"]
-div[style^="overflow: hidden; width:    100%; height:    1"]
-div[style^="position:"][ontouchstart="fCidsp(event)"]
-div[style^="position:absolute;"] > div[id^="img_"]
-div[style^="position:absolute;left:0px;"] + div[class^="img_"]
-div[style^="transition-duration:0ms!important;margin:0px!important;padding:0px!important;border:none!important;position:absolute!important;top:0px!important;"]
-div[style^="v"] > a[href*="html-load.com"][target][style="text-decoration:none;"]
-div[style^="visibility: visible; position: relative; overflow: hidden; width: 300px; height: 250px"]
-div[x-frame-height$="50"] > div[style="position:absolute;display:none;"] + meta + meta + div[class^="img_"]
-div[x-frame-height="100"] > div[style="position:absolute;display:none;"] + meta + meta + div[class^="img_"]
-div[xyz-component="fixed-frame"]
 embed[width="100%"][height="100"]
 embed[width="120"][height="240"]
 embed[width="160"][height="600"]
@@ -13989,26 +13815,14 @@ embed[width="240"][height="400"]
 embed[width="468"][height="60"]
 embed[width="600"][height="160"]
 embed[width="728"][height="90"]
-form[id][action*="html-load.com/feed/"][target="_blank"]
 gpt-ad
 guj-ad
-gwd-google-ad
-head:has(> meta[name="as-inventory-frame-listener-added"]) + body > a[target="_blank"][rel="noopener noreferrer"][href*=".html-load.com/"]
-head:has(> meta[name="as-tester-handler-added"]) + body > a[target="_blank"][rel="noopener noreferrer"][href*=".html-load.com/"]
 hl-adsense
 html > div[class][style^="pointer-events: none; position: absolute; top: 0px; left: 0px; width:"]
-html[amp4ads=""][amp-version="2605071401000"]
 html[data-lt-installed="true"] > body[style=""] img[style="width: 100%;max-width: 728px;"]
-html[lang*="-"] > body[style="width:100%;height:100%;margin:0;"] > div[class^="img_"][style="width:100%; height:100%;"]
 html[lang="vi"] > body > #_preload-ads-1
 html[lang="vi"] > body > #_preload-ads-2
-iframe[id^="img_"][style^="cursor: pointer; display: block; position: absolute; overflow: hidden; margin: 0px; padding: 0px; pointer-events: auto; opacity: 0.8;"]
 iframe[scrolling="no"][sandbox*="allow-popups allow-modals"][style^="width: 100%; height: 100%; border: none;"]
-iframe[src*="content-loader.com/"] + style + div
-iframe[src*="html-load.com/"] + div[id^="img_"]:empty
-iframe[src*="html-load.com/"] + style + div
-iframe[src*="html-load.com/"][style="display:none"][aria-hidden="true"] + div:not([class]):not([id])
-iframe[src="javascript:false"] ~ div[style="display:inline"]
 iframe[src^="//ad.a-ads.com/"]
 iframe[src^="//tempest.services.disqus.com/ads-iframe/"]
 iframe[src^="//tsyndicate.com/"]
@@ -14031,15 +13845,6 @@ iframe[width="600"][height="90"]
 iframe[width="728"][height="90"]
 iframe[width="780"][height="120"]
 iframe[width="980"][height="90"]
-img[height^="10"][src*="content-loader.com/"]
-img[height^="10"][src*="html-load.com/"]
-img[id^="img_"][style$="margin:0px;padding:0px;border:none;opacity:0.8;"]
-img[src*="content-loader.com/"][style^="border-style:"]
-img[src*="content-loader.com/"][style^="position: absolute; left: 0px;"]
-img[src*="html-load.com/"][onclick^="window.open('https://www.inmobi.com"]
-img[src*="html-load.com/"][style^="border-style:"]
-img[src*="html-load.com/"][style^="position: absolute; left: 0px;"]
-img[src*="html-load.com/"][width="100%"][alt=""][style="display: block;"]
 img[src^="https://images.purevpnaffiliates.com"]
 img[src^="https://s-img.adskeeper.com/"]
 img[width="240"][height="400"]
@@ -14052,37 +13857,9 @@ img[width="728"][height="90"]
 in-page-message[doskip]
 ins.adsbygoogle[data-ad-client]
 ins.adsbygoogle[data-ad-slot]
-ins[class^="img_"][style^="display:inline-block;"]
-ins[data-adsbygoogle-status]:not(.adsbygoogle)
-ins[id][data-anchor-status]
-link + div[class^="img_"][style="width: 300px; height: 250px;"]
-link + style + script + a[href*="html-load.com/"]
-link[rel="stylesheet"][href*="html-load.com/"] + script + script + div[id^="img_"]
-link[rel="stylesheet"][href*="html-load.com/"][media="screen"] + script + div[class^="img_"]
-meta + script + div[id^="img_"] + div[id^="img_"]
-meta + style + div[class^="img_"]
-meta + title + script + div[id^="img_"]
-meta + title + script + script + div[id^="img_"]
-meta[charset="utf-8"] + meta[name="viewport"] + div[class^="img_"]
-meta[content] + a[href^="https://content-loader.com/"]
-meta[content] + a[href^="https://html-load.com/"]
-p[id^="img_"][onclick]
 ps-connatix-module
-script + style + div[class^="img_"]
-script[attributionsrc] + div[id^="img_"]
-script[id^="img_"] + div[id^="img_"]
-script[name="scrbnr"] + div[class^="img_"]
-script[src*="html-load.com/"] + div[id^="img_"]:empty
-script[src*="html-load.com/"] + div[id^="img_"][style="width: auto;"]
-section[class^="img_"] > div[id^="img_"][class^="img_"][draggable="false"]
 section[data-e2e="advertisement"]
-span[class^="img_"] > svg.aspw
 span[data-ez-ph-id]
-span[id][style="border:none;margin:0;padding:0;position:relative;display:inline-block"]
 span[id^="ezoic-pub-ad-placeholder-"]
-style + script[src*="html-load.com/"] + script + div[id^="img_"]
-style + title + script + div[id^="img_"]
 topadblock
-video[class^="img_"][playsinline]
-video[poster*="html-load.com/"]
 zeus-ad

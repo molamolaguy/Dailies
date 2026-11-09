@@ -5618,7 +5618,9 @@ net.vi
 org.vi
 vn
 ac.vn
+ad.vn
 ai.vn
+ap.vn
 biz.vn
 com.vn
 edu.vn
@@ -5630,6 +5632,7 @@ int.vn
 io.vn
 name.vn
 net.vn
+on.vn
 org.vn
 pro.vn
 angiang.vn
@@ -7975,8 +7978,10 @@ bearblog.dev
 pages.gay
 bnr.la
 bitbucket.io
+ship.place
 blackbaudcdn.net
 of.je
+prod.page
 square.site
 bluebite.io
 boomla.net
