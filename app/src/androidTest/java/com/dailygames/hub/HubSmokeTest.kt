@@ -172,6 +172,9 @@ class HubSmokeTest {
             s.waitForJs("String(!document.getElementById('modalImportList').classList.contains('hidden'))", "\"true\"")
             assertEquals("\"Smoke List Game\"", s.js("document.querySelector('#importListRows .name').textContent"))
             s.js("closeModal('modalImportList'); 'ok'")
+            // The hub's intent is now the link (onNewIntent → setIntent), which ActivityScenario no
+            // longer matches to the one it launched, so finish the hub here for close() to see it end.
+            s.onActivity { it.finish() }
         }
     }
 
