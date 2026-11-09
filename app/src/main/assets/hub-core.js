@@ -646,7 +646,22 @@
     };
   }
 
+  /**
+   * The lines of recognised screenshot text that look like a result ("Wordle 1,234 3/6", "Solved in
+   * 4 guesses", "#512", "Streak 12"), for the log's score box. Falls back to the first few lines.
+   */
+  function extractResultText(text) {
+    const lines = String(text || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean).slice(0, 80);
+    const looks = (l) => SCORE_RE.test(l) || /#\s?\d{2,}/.test(l)
+      || /\b(\d+\s*(guess|guesses|tries|attempts|moves|points|pts|mistakes?|hints?|seconds|sec|s)\b|solved|streak|score|time|you (won|got it|lost)|well done|congrat|splendid|magnificent|impressive|great|phew|genius|next (puzzle|game))/i.test(l)
+      || (/\b\d{1,2}:\d{2}\b/.test(l) && !/^\d{1,2}:\d{2}(\s*(am|pm))?$/i.test(l)); // a time, but not the status-bar clock
+    const picked = lines.filter(looks).slice(0, 8);
+    const out = (picked.length ? picked : lines.slice(0, 6)).join('\n');
+    return out.slice(0, 600);
+  }
+
   return {
+    extractResultText,
     scoreStats,
     parseScore,
     formatDuration,

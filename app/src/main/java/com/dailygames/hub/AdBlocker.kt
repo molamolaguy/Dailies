@@ -86,6 +86,15 @@ object GamePrefs {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY_BLOCK_ADS, blockAds); putBoolean(KEY_AUTO_LOG, autoLogShare) }
     }
 
+    private const val KEY_DARK_PAGES = "dark_pages"
+
+    /** Darken game pages that have no dark theme of their own (only while the app theme is dark). */
+    fun setDarkPages(ctx: Context, on: Boolean) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY_DARK_PAGES, on) }
+    }
+
+    fun darkPages(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_DARK_PAGES, true)
+
     fun blockAds(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_BLOCK_ADS, true)
     fun autoLogShare(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_AUTO_LOG, true)
 

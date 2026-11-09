@@ -99,6 +99,8 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.12.0")
     // QR codes for shared game lists (Apache-2.0).
     implementation("com.google.zxing:core:3.5.3")
+    // Reading results from screenshots (on-device text recognition through Google Play services).
+    implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.1")
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20260814")

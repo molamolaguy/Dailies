@@ -266,3 +266,12 @@ test('1.2.0: play times, records, achievements and monthly recap', () => {
   assert.equal(recap.timeMs, 50000);
   assert.equal(core.monthlyRecap([], 2026, 10).winRate, null);
 });
+
+test('extractResultText keeps the result lines of recognised screenshot text', () => {
+  const ocr = '9:41\nWordle\nStatistics\n42\nPlayed\n95\nWin %\nWordle 1,234 3/6\nNext Wordle\n04:12:33\nShare';
+  const out = core.extractResultText(ocr);
+  assert.ok(out.includes('Wordle 1,234 3/6'));
+  assert.ok(!out.includes('Statistics'));
+  assert.equal(core.extractResultText(''), '');
+  assert.equal(core.extractResultText('just\nsome\nwords'), 'just\nsome\nwords');
+});

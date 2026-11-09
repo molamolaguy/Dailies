@@ -385,6 +385,13 @@
           </label>
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
+              <p class="font-bold text-white">Dark Game Pages</p>
+              <p class="text-[11px] text-slate-400">In the dark theme, darken game sites that don't have a dark mode</p>
+            </div>
+            <input id="settingDarkPages" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
               <p class="font-bold text-white">Block Ads in Games</p>
               <p id="adBlockInfo" class="text-[11px] text-slate-400">Blocks ads, trackers and ad pop-ups. Tap the shield in a game to allow ads on that site.</p>
             </div>
@@ -590,6 +597,7 @@
         <div>
           <div class="flex items-center justify-between gap-2 mb-1.5">
             <label for="inputLogScoreText" class="block text-xs font-semibold text-slate-300 nowrap">Score / share text</label>
+            <button id="btnScreenshotScore" type="button" class="hidden px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold nowrap">📷 Screenshot</button>
             <button id="btnPasteScore" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold nowrap icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Paste</button>
           </div>
           <textarea id="inputLogScoreText" rows="5" placeholder="Paste the result the game copied (emoji grids and line breaks are kept)…" style="white-space: pre-wrap; tab-size: 4;" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-xs leading-relaxed placeholder-slate-500 resize-y"></textarea>
@@ -875,6 +883,7 @@
         themeMode: 'dark',
         groupDone: true,
         oneHanded: false,
+        darkGamePages: true,
         streakReminderMinutes: 0,
         updateCheck: false
       };
@@ -1156,6 +1165,9 @@
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setStreakReminder === 'function') {
           window.AndroidBridge.setStreakReminder(Number((state.settings || {}).streakReminderMinutes) || 0);
+        }
+        if (window.AndroidBridge && typeof window.AndroidBridge.setDarkGamePages === 'function') {
+          window.AndroidBridge.setDarkGamePages((state.settings || {}).darkGamePages !== false);
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setGamePrefs === 'function') {
           const s = state.settings || {};
@@ -2183,6 +2195,8 @@
       switchNavigation('dashboard');
       const have = new Set(state.games.map((g) => normalizeUrlKey(g.url)));
       importListGames = list.map((g) => ({ g, dup: have.has(normalizeUrlKey(g.url)) }));
+      document.getElementById('modalImportListTitle').textContent = 'Add games from a friend';
+      document.getElementById('btnImportListAdd').classList.remove('hidden');
       const rows = document.getElementById('importListRows');
       rows.innerHTML = importListGames.map(({ g, dup }, i) => `
         <label class="alert-row cursor-pointer">
@@ -2214,6 +2228,72 @@
       saveState();
       renderVisibleTab();
       showToast(`Added ${plural(added, 'game')}`, 'They are on your hub now.', 'emerald');
+    }
+
+    // ---- Results from screenshots ----
+    window.onScreenshotReading = function () {
+      showToast('Reading the screenshot…', 'This stays on your phone.', 'indigo');
+    };
+
+    /** Text recognised in a screenshot: from the log dialog's button ("picker") or shared to Dailies ("share"). */
+    window.onScreenshotText = function (text, source) {
+      if (text === null || text === undefined) {
+        if (source === 'share') showToast("Couldn't read that screenshot", 'Text reading needs Google Play services. You can still log the result by hand.', 'indigo');
+        else if (source === 'picker' && text === null) { /* picker closed or failed: nothing to do */ }
+        return;
+      }
+      const result = HubCore.extractResultText(text);
+      if (!result) {
+        showToast('No text found', 'Try a screenshot of the result screen.', 'indigo');
+        return;
+      }
+      if (source === 'share' || !isModalOpen('modalLogScore')) {
+        // Which game? Look for a game's name in the text; ask if it's unclear.
+        const low = String(text).toLowerCase();
+        const matches = visibleGames().filter((g) => g.name && low.includes(g.name.toLowerCase()));
+        if (matches.length === 1) {
+          switchNavigation('dashboard');
+          openLogModal(matches[0].id);
+        } else {
+          pendingScreenshotResult = result;
+          openGamePickerForScreenshot(matches.length ? matches : visibleGames());
+          return;
+        }
+      }
+      fillLogFromScreenshot(result);
+    };
+    let pendingScreenshotResult = '';
+
+    function fillLogFromScreenshot(result) {
+      const box = document.getElementById('inputLogScoreText');
+      if (!box) return;
+      box.value = result;
+      const sc = HubCore.parseScore(result);
+      selectedLogStatus = sc && sc.fail ? 'missed' : 'completed';
+      updateStatusPickButtons();
+      showToast('Result read from the screenshot', 'Check it, then save.', 'emerald');
+    }
+
+    /** Reuses the "add games" list dialog as a one-tap game picker. */
+    function openGamePickerForScreenshot(games) {
+      if (!games.length) { showToast('Add a game first', 'Then share the screenshot again.', 'indigo'); return; }
+      switchNavigation('dashboard');
+      document.getElementById('modalImportListTitle').textContent = 'Which game is this?';
+      document.getElementById('importListSub').textContent = 'Pick the game this result is from.';
+      document.getElementById('btnImportListAdd').classList.add('hidden');
+      document.getElementById('importListRows').innerHTML = games.map((g) => `
+        <button type="button" class="alert-row w-full text-left" data-pick-game="${escapeHtml(g.id)}">
+          <span class="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">${renderGameIconHtml(g.icon, g.name, 'w-5 h-5')}</span>
+          <div class="info"><p class="name" dir="auto">${escapeHtml(g.name)}</p></div>
+        </button>`).join('');
+      document.querySelectorAll('[data-pick-game]').forEach((b) => b.addEventListener('click', () => {
+        const id = b.getAttribute('data-pick-game');
+        closeModal('modalImportList');
+        openLogModal(id);
+        fillLogFromScreenshot(pendingScreenshotResult);
+        pendingScreenshotResult = '';
+      }));
+      openModal('modalImportList');
     }
 
     // ---- CSV export ----
@@ -3157,6 +3237,7 @@
       setVal('settingThemeMode', s.themeMode || 'dark');
       setChk('settingGroupDone', s.groupDone !== false);
       setChk('settingOneHanded', Boolean(s.oneHanded));
+      setChk('settingDarkPages', s.darkGamePages !== false);
       renderArchivedList();
       setVal('settingStreakReminder', String(Number(s.streakReminderMinutes) || 0));
       setChk('settingUpdateCheck', Boolean(s.updateCheck));
@@ -4400,7 +4481,7 @@
             state.settings.streakReminderMinutes = Number(el.value) || 0;
             try { window.AndroidBridge && window.AndroidBridge.setStreakReminder && window.AndroidBridge.setStreakReminder(state.settings.streakReminderMinutes); } catch (e) {}
           }
-          if (key === 'themeMode') saveLaunchPrefs();
+          if (key === 'themeMode' || key === 'darkGamePages') saveLaunchPrefs();
           if (key === 'updateCheck' && el.checked) runUpdateCheck(true);
           if (key === 'compactCards' || key === 'groupDone') {
             renderGamesGrid();
@@ -4421,6 +4502,7 @@
       bindSetting('settingThemeMode', 'themeMode', false);
       bindSetting('settingGroupDone', 'groupDone', true);
       bindSetting('settingOneHanded', 'oneHanded', true);
+      bindSetting('settingDarkPages', 'darkGamePages', true);
       bindSetting('settingStreakReminder', 'streakReminderMinutes', false);
       bindSetting('settingUpdateCheck', 'updateCheck', true);
       try {
@@ -4436,6 +4518,13 @@
 
       const onClick = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
       onClick('btnSelectMode', () => setSelectMode(!selectMode));
+      if (window.AndroidBridge && typeof window.AndroidBridge.pickScreenshot === 'function') {
+        const shotBtn = document.getElementById('btnScreenshotScore');
+        if (shotBtn) {
+          shotBtn.classList.remove('hidden');
+          shotBtn.addEventListener('click', () => { try { window.AndroidBridge.pickScreenshot(); } catch (e) {} });
+        }
+      }
       document.querySelectorAll('#bulkBar [data-bulk]').forEach((b) => b.addEventListener('click', () => runBulk(b.dataset.bulk)));
       onClick('btnApplyBulkTime', applyBulkTime);
       onClick('btnExportCsv', exportCsv);

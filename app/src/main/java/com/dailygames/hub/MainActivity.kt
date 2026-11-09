@@ -75,6 +75,22 @@ class MainActivity : ComponentActivity() {
             handleExportResult(uri)
         }
 
+    /** Photo picker for "Read a screenshot" in the log dialog. */
+    private val screenshotPicker = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri == null) runJs("window.onScreenshotText && window.onScreenshotText(null, 'picker')")
+        else readScreenshot(uri, "picker")
+    }
+
+    private fun readScreenshot(uri: Uri, source: String) {
+        runJs("window.onScreenshotReading && window.onScreenshotReading()")
+        ScreenshotReader.read(applicationContext, uri) { text ->
+            runOnUiThread {
+                val arg = text?.take(4000)?.let { JSONObject.quote(it) } ?: "null"
+                runJs("window.onScreenshotText && window.onScreenshotText($arg, ${JSONObject.quote(source)})")
+            }
+        }
+    }
+
     /** "Save to…" picker for the CSV history export. */
     private val csvLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         val temp = File(cacheDir, CSV_TEMP_FILE)
@@ -556,6 +572,16 @@ class MainActivity : ComponentActivity() {
             return
         }
 
+        // A screenshot shared to Dailies: read its text on the phone and offer to log it.
+        if (intent.action == Intent.ACTION_SEND && intent.type?.startsWith("image/") == true) {
+            @Suppress("DEPRECATION")
+            val uri = (if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+                else intent.getParcelableExtra(Intent.EXTRA_STREAM) as? Uri)
+            intent.action = Intent.ACTION_MAIN
+            if (uri != null) readScreenshot(uri, "share")
+            return
+        }
+
         // A friend's game list: an opened dailies:// link, or a shared message that contains one.
         val listSource = if (intent.action == Intent.ACTION_VIEW && intent.data?.scheme == GameListCodec.SCHEME) intent.dataString
             else intent.getStringExtra(Intent.EXTRA_TEXT)?.takeIf { intent.action == Intent.ACTION_SEND }
@@ -794,6 +820,21 @@ class MainActivity : ComponentActivity() {
                 runCatching { csvLauncher.launch(suggestedFileName.ifBlank { "dailies_history.csv" }) }
                     .onFailure { runJs("window.onCsvSaved && window.onCsvSaved(false)") }
             }
+        }
+
+        /** "Read a screenshot": opens the photo picker; the text arrives in window.onScreenshotText. */
+        @JavascriptInterface
+        fun pickScreenshot() {
+            runOnUiThread {
+                runCatching { screenshotPicker.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                    .onFailure { runJs("window.onScreenshotText && window.onScreenshotText(null, 'picker')") }
+            }
+        }
+
+        /** Settings → Game Player → Dark Game Pages. */
+        @JavascriptInterface
+        fun setDarkGamePages(on: Boolean) {
+            GamePrefs.setDarkPages(applicationContext, on)
         }
 
         /** Android share sheet for a text the hub built (monthly recap, game list). */

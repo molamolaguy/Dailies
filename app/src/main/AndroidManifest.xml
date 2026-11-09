@@ -42,6 +42,13 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
 
+            <!-- Screenshots of a game's result, read on the phone and logged. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+
             <!-- Game lists from friends: dailies://add?v=1&d=… (a link or a scanned QR code). -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -80,5 +87,9 @@
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
+        <!-- Fetch the on-device text-recognition model with the app install, not on first use. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
     </application>
 </manifest>
