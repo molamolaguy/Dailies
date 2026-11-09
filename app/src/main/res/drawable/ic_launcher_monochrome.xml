@@ -1,26 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed-icon (Android 13+) layer: the same artwork as ic_launcher_foreground in one colour.
-     The launcher tints by alpha, so the two "primary container" tiles use a lower alpha to keep
-     the two-tone look of the full-colour icon. -->
+<!-- Themed-icon (Android 13+) layer: the tile as an outline with the check, so it tints cleanly. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group android:translateX="-1.5" android:translateY="3.5">
-        <path
-            android:fillColor="#FFFFFFFF"
-            android:fillAlpha="0.5"
-            android:pathData="M36,30L46,30A4,4 0,0 1,50 34L50,44A4,4 0,0 1,46 48L36,48A4,4 0,0 1,32 44L32,34A4,4 0,0 1,36 30Z" />
-        <path
-            android:fillColor="#FFFFFFFF"
-            android:pathData="M36,56L46,56A4,4 0,0 1,50 60L50,70A4,4 0,0 1,46 74L36,74A4,4 0,0 1,32 70L32,60A4,4 0,0 1,36 56Z" />
-        <path
-            android:fillColor="#FFFFFFFF"
-            android:fillAlpha="0.5"
-            android:pathData="M62,56L72,56A4,4 0,0 1,76 60L76,70A4,4 0,0 1,72 74L62,74A4,4 0,0 1,58 70L58,60A4,4 0,0 1,62 56Z" />
-        <path
-            android:fillColor="#FFFFFFFF"
-            android:pathData="M67,27C68.8,34.2 71.8,37.2 79,39C71.8,40.8 68.8,43.8 67,51C65.2,43.8 62.2,40.8 55,39C62.2,37.2 65.2,34.2 67,27Z" />
-    </group>
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="5"
+        android:pathData="M45,33.5L63,33.5A11.5,11.5 0,0 1,74.5 45L74.5,63A11.5,11.5 0,0 1,63 74.5L45,74.5A11.5,11.5 0,0 1,33.5 63L33.5,45A11.5,11.5 0,0 1,45 33.5Z" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M43,54.5L50.5,62L65.5,46.5" />
 </vector>

@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Status-bar icon: the app's day tile with a check, as a white outline. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Glyph bounds are x 4-19.5, y 2.5-18: shift so it sits centred in the 24x24 status-bar box. -->
-    <group android:translateX="0.25" android:translateY="1.75">
     <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M4,4h6v6H4V4zM4,12h6v6H4v-6zM12,12h6v6h-6v-6zM15.5,2.5C16.1,4.9 17.1,5.9 19.5,6.5C17.1,7.1 16.1,8.1 15.5,10.5C14.9,8.1 13.9,7.1 11.5,6.5C13.9,5.9 14.9,4.9 15.5,2.5z" />
-    </group>
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:pathData="M8,4L16,4A4,4 0,0 1,20 8L20,16A4,4 0,0 1,16 20L8,20A4,4 0,0 1,4 16L4,8A4,4 0,0 1,8 4Z" />
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M8.2,12.2L10.9,14.9L16,9.6" />
 </vector>

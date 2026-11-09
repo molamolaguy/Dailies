@@ -110,15 +110,11 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="hub-header-row flex items-center gap-2.5 text-xs text-slate-400">
           <span class="inline-flex items-center gap-1.5 text-sm font-bold text-white tracking-tight mr-1">
-            <svg width="22" height="22" viewBox="0 0 108 108" class="rounded-md shrink-0">
-              <rect width="108" height="108" rx="26" fill="#141218"/>
-              <circle cx="54" cy="54" r="44" fill="#211F26"/>
-              <g transform="translate(-1 4.5)">
-              <rect x="30" y="28" width="20" height="20" rx="4.5" fill="#4F378B"/>
-              <rect x="30" y="54" width="20" height="20" rx="4.5" fill="#D0BCFF"/>
-              <rect x="56" y="54" width="20" height="20" rx="4.5" fill="#4F378B"/>
-              <path d="M67,25 C69,33 72,36 80,38 C72,40 69,43 67,51 C65,43 62,40 54,38 C62,36 65,33 67,25 Z" fill="#EADDFF"/>
-              </g>
+            <svg width="22" height="22" viewBox="0 0 108 108" class="shrink-0" aria-hidden="true">
+              <!-- The app icon in the theme's colours: primary-container ground, primary tile, on-primary check. -->
+              <rect width="108" height="108" rx="30" fill="var(--md-primary-container)"/>
+              <rect x="27" y="27" width="54" height="54" rx="16" fill="var(--md-primary)"/>
+              <path d="M40,54.5L50,64L68,45.5" fill="none" stroke="var(--md-on-primary)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             Dailies
           </span>
@@ -2819,10 +2815,53 @@
     // =========================================================================
     // NAVIGATION, SWIPE GESTURES & MODAL CONTROLLERS
     // =========================================================================
-    function switchNavigation(targetView) {
+    const TAB_VIEW_IDS = { dashboard: 'viewDashboard', stats: 'viewStats', settings: 'viewSettings' };
+    const REDUCED_MOTION = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+    let tabAnimating = false;
+
+    /**
+     * Slides from the current tab to the next: the old page continues in the swipe's direction and
+     * fades, the new one comes in from the other side with Material's emphasized deceleration.
+     */
+    function animateTabChange(fromEl, toEl, dir, offset) {
+      if (REDUCED_MOTION || !fromEl || !toEl || fromEl === toEl || typeof toEl.animate !== 'function') return;
+      const w = window.innerWidth || 400;
+      const start = Number(offset) || 0;
+      const outTo = -dir * w * 0.28;
+      tabAnimating = true;
+      // Keep the outgoing page visible on top for the exit, without affecting layout.
+      const ghost = fromEl.cloneNode(true);
+      ghost.removeAttribute('id');
+      ghost.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+      ghost.classList.remove('hidden');
+      ghost.setAttribute('aria-hidden', 'true');
+      ghost.classList.add('tab-ghost');
+      const r = fromEl.getBoundingClientRect();
+      ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;margin:0;pointer-events:none;z-index:5;transform:translate3d(${start}px,0,0);opacity:${fromEl.style.opacity || 1}`;
+      fromEl.style.transform = '';
+      fromEl.style.opacity = '';
+      fromEl.style.transition = '';
+      document.body.appendChild(ghost);
+      const ease = 'cubic-bezier(0.05, 0.7, 0.1, 1)';
+      const exit = ghost.animate(
+        [{ transform: `translate3d(${start}px,0,0)`, opacity: Number(ghost.style.opacity) || 1 }, { transform: `translate3d(${outTo}px,0,0)`, opacity: 0 }],
+        { duration: 180, easing: 'cubic-bezier(0.3, 0, 0.8, 0.15)', fill: 'forwards' });
+      const enter = toEl.animate(
+        [{ transform: `translate3d(${dir * w * 0.22}px,0,0)`, opacity: 0 }, { transform: 'translate3d(0,0,0)', opacity: 1 }],
+        { duration: 340, delay: 40, easing: ease, fill: 'backwards' });
+      const done = () => { ghost.remove(); tabAnimating = false; };
+      exit.onfinish = () => ghost.remove();
+      enter.onfinish = done;
+      enter.oncancel = done;
+      setTimeout(() => { if (ghost.isConnected) ghost.remove(); tabAnimating = false; }, 700);
+    }
+
+    function switchNavigation(targetView, anim) {
       const normalized = (targetView === 'notifications' || targetView === 'settings')
         ? 'settings'
         : (targetView === 'stats' ? 'stats' : 'dashboard');
+      const previous = activeTab;
+      const fromEl = document.getElementById(TAB_VIEW_IDS[previous]);
       activeTab = normalized;
       if (normalized !== 'dashboard') hideReturnPrompt();
       syncBackInterceptState();
@@ -2866,6 +2905,12 @@
         renderKPIs();
         renderGamesGrid();
         updateLiveTimers();
+      }
+
+      if (previous !== normalized) {
+        const dir = anim && anim.dir ? anim.dir : (TAB_ORDER.indexOf(normalized) > TAB_ORDER.indexOf(previous) ? 1 : -1);
+        animateTabChange(fromEl, document.getElementById(TAB_VIEW_IDS[normalized]), dir, anim && anim.offset);
+        window.scrollTo(0, 0);
       }
     }
 
@@ -3751,43 +3796,70 @@
         if (b) b.scrollIntoView({ block: 'center' });
       });
 
-      // Horizontal swipe left/right to switch tabs (Daily Hub <-> Streaks & Log <-> Settings)
-      let touchStartX = 0;
-      let touchStartY = 0;
-      let touchIgnore = false;
-
+      // Horizontal swipe left/right to switch tabs (Daily Hub <-> Streaks & Log <-> Settings).
+      // The page follows the finger, then glides into the next tab or springs back.
+      let swipe = null;
+      const viewOf = (tab) => document.getElementById(TAB_VIEW_IDS[tab]);
       document.addEventListener('touchstart', (e) => {
-        if (!e.touches || e.touches.length !== 1 || isAnyModalOpen()) {
-          touchIgnore = true;
-          return;
-        }
+        swipe = null;
+        if (!e.touches || e.touches.length !== 1 || isAnyModalOpen() || tabAnimating) return;
         const el = e.target;
-        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock')) {
-          touchIgnore = true;
-          return;
-        }
-        touchIgnore = false;
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
+        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, .m4-floating-dock, .return-sheet')) return;
+        swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now(), dx: 0, locked: false, view: viewOf(activeTab) };
       }, { passive: true });
 
-      document.addEventListener('touchend', (e) => {
-        if (Date.now() - cardDragEndedAt < 400) return; // that touch reordered a card
-        if (touchIgnore || !e.changedTouches || e.changedTouches.length !== 1 || isAnyModalOpen()) return;
-        const dx = e.changedTouches[0].clientX - touchStartX;
-        const dy = e.changedTouches[0].clientY - touchStartY;
-        if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
-
-        const curIdx = TAB_ORDER.indexOf(activeTab);
-        if (curIdx < 0) return;
-        if (dx < 0 && curIdx < TAB_ORDER.length - 1) {
-          // Swiped left -> move to next tab on the right
-          switchNavigation(TAB_ORDER[curIdx + 1]);
-        } else if (dx > 0 && curIdx > 0) {
-          // Swiped right -> move to previous tab on the left
-          switchNavigation(TAB_ORDER[curIdx - 1]);
+      document.addEventListener('touchmove', (e) => {
+        if (!swipe || !e.touches || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - swipe.x;
+        const dy = e.touches[0].clientY - swipe.y;
+        if (!swipe.locked) {
+          if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { swipe = null; return; } // a scroll
+          if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+          if (document.querySelector('#gamesGrid.drag-active')) { swipe = null; return; }
+          swipe.locked = true;
+          swipe.x += dx > 0 ? 12 : -12; // start from where the swipe was recognised, no jump
+        }
+        const raw = e.touches[0].clientX - swipe.x;
+        const idx = TAB_ORDER.indexOf(activeTab);
+        const blocked = (raw < 0 && idx >= TAB_ORDER.length - 1) || (raw > 0 && idx <= 0);
+        swipe.dx = blocked ? raw * 0.25 : raw; // rubber band at the first and last tab
+        // Recent samples for the release velocity (a quick flick switches even if it's short).
+        const now = performance.now();
+        swipe.samples = (swipe.samples || []).filter((p) => now - p.t < 120);
+        swipe.samples.push({ t: now, x: raw });
+        if (swipe.view && !REDUCED_MOTION) {
+          const w = window.innerWidth || 400;
+          swipe.view.style.transition = 'none';
+          swipe.view.style.transform = `translate3d(${swipe.dx}px,0,0)`;
+          swipe.view.style.opacity = String(1 - Math.min(0.35, Math.abs(swipe.dx) / w * 0.6));
         }
       }, { passive: true });
+
+      const endSwipe = (e, cancelled) => {
+        const sw = swipe;
+        swipe = null;
+        if (!sw || !sw.locked) return;
+        if (Date.now() - cardDragEndedAt < 400) cancelled = true; // that touch reordered a card
+        const w = window.innerWidth || 400;
+        const samples = sw.samples || [];
+        const first = samples[0];
+        const last = samples[samples.length - 1];
+        const velocity = first && last && last.t > first.t ? (last.x - first.x) / (last.t - first.t) : 0; // px per ms
+        const idx = TAB_ORDER.indexOf(activeTab);
+        const next = sw.dx < 0 ? idx + 1 : idx - 1;
+        const go = !cancelled && next >= 0 && next < TAB_ORDER.length &&
+          (Math.abs(sw.dx) > w * 0.22 || (Math.abs(velocity) > 0.45 && Math.abs(sw.dx) > 30));
+        if (go) {
+          switchNavigation(TAB_ORDER[next], { fromSwipe: true, dir: sw.dx < 0 ? 1 : -1, offset: sw.dx });
+        } else if (sw.view) {
+          sw.view.style.transition = 'transform 260ms var(--m3-spring-spatial), opacity 200ms ease-out';
+          sw.view.style.transform = '';
+          sw.view.style.opacity = '';
+          setTimeout(() => { if (sw.view) sw.view.style.transition = ''; }, 280);
+        }
+      };
+      document.addEventListener('touchend', (e) => endSwipe(e, false), { passive: true });
+      document.addEventListener('touchcancel', (e) => endSwipe(e, true), { passive: true });
 
       document.getElementById('btnOpenAddModal').addEventListener('click', () => {
         openAddOrEditModal(null, null);
