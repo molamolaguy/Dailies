@@ -22,7 +22,11 @@ import javax.net.ssl.SSLSocketFactory
  * - Redirects are followed manually (max 5) so every hop is checked the same way.
  * - No DNS rebinding: a host is resolved once and checked, then plain http connects to that checked
  *   address (with the original Host header), and https verifies the address the socket actually
- *   connected to before the TLS handshake. Connections are direct (no proxy) so the check is meaningful.
+ *   connected to before the TLS handshake.
+ * - Proxies: when the phone has an HTTP proxy set (Wi-Fi or VPN proxy settings), requests go through it,
+ *   as the WebView's do. The proxy resolves names itself, so the app can't pin addresses; it still refuses
+ *   local names and literal private addresses, and a name that resolves locally must resolve to public
+ *   addresses. Without a proxy, connections are direct and pinned as above.
  * - Bounded: an overall deadline and a maximum body size.
  */
 object SafeHttp {
@@ -30,6 +34,9 @@ object SafeHttp {
 
     /** For unit tests that run against a local test server. */
     @Volatile var allowPrivateHostsForTests = false
+
+    /** For unit tests: the proxy to use instead of the system's (null = ask the system). */
+    @Volatile var proxyForTests: Proxy? = null
 
     fun get(
         url: String,
@@ -44,12 +51,17 @@ object SafeHttp {
             val u = runCatching { URL(current) }.getOrNull() ?: return null
             val scheme = u.protocol.lowercase(Locale.US)
             if (scheme != "http" && scheme != "https") return null
-            val pinned = if (allowPrivateHostsForTests) null else (resolvePublic(u.host) ?: return null)
+            val proxy = proxyFor(u)
+            val pinned = when {
+                proxy != null -> { if (!allowPrivateHostsForTests && !proxiedHostAllowed(u.host)) return null; null }
+                allowPrivateHostsForTests -> null
+                else -> resolvePublic(u.host) ?: return null
+            }
             val remaining = deadline - System.currentTimeMillis()
             if (remaining <= 0) return null
             var conn: HttpURLConnection? = null
             try {
-                conn = open(u, pinned).apply {
+                conn = (if (proxy != null) u.openConnection(proxy) as HttpURLConnection else open(u, pinned)).apply {
                     instanceFollowRedirects = false
                     connectTimeout = remaining.coerceAtMost(6000).toInt()
                     readTimeout = remaining.coerceAtMost(6000).toInt()
@@ -81,6 +93,34 @@ object SafeHttp {
             }
         }
         return null
+    }
+
+    /** The HTTP proxy the system would use for [u], or null for a direct connection. */
+    private fun proxyFor(u: URL): Proxy? {
+        proxyForTests?.let { return it }
+        val selected = runCatching { java.net.ProxySelector.getDefault()?.select(u.toURI()) }.getOrNull().orEmpty()
+        return selected.firstOrNull { it.type() == Proxy.Type.HTTP }
+    }
+
+    /**
+     * Whether [host] may be fetched through a proxy: never a local name or a literal non-public address;
+     * a name the phone can resolve must resolve only to public addresses; a name only the proxy can
+     * resolve is left to the proxy (the WebView reaches the same names through it anyway).
+     */
+    fun proxiedHostAllowed(host: String?): Boolean {
+        if (host.isNullOrBlank()) return false
+        val h = host.trim('[', ']').lowercase(Locale.US).trimEnd('.')
+        if (h.isEmpty() || h == "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) return false
+        if (h.contains(':')) return runCatching { isPublicAddress(InetAddress.getByName(h)) }.getOrDefault(false)
+        if (Regex("^[0-9a-fx.]+$").matches(h) && h.split('.').all { Regex("^(0x[0-9a-f]*|[0-9]+)$").matches(it) }) {
+            // Numeric IPv4 in any form. Octal ("0177.1") and hex parts mean different addresses to
+            // different resolvers, so only plain dotted-decimal is accepted, and only if it's public.
+            val parts = h.split('.')
+            val canonical = parts.size == 4 && parts.all { it.length in 1..3 && (it == "0" || !it.startsWith("0")) && it.toInt() <= 255 }
+            return canonical && runCatching { isPublicAddress(InetAddress.getByName(h)) }.getOrDefault(false)
+        }
+        val addrs = runCatching { InetAddress.getAllByName(h) }.getOrNull() ?: return true
+        return addrs.isNotEmpty() && addrs.all { isPublicAddress(it) }
     }
 
     /** Opens a direct connection to [u]; with [pinned] addresses, only to those checked addresses. */
