@@ -16,8 +16,15 @@ jobs:
           java-version: '17'
       - name: Set up Gradle (caches the Gradle download between runs)
         uses: gradle/actions/setup-gradle@v4
-      - name: Fetch the Gradle wrapper (retries when the download server is busy)
-        run: for i in 1 2 3 4 5 6; do ./gradlew --no-daemon --version > /dev/null && exit 0; echo "Gradle download failed, retrying in $((i * 20))s"; sleep $((i * 20)); done; exit 1
+      - name: Pick Gradle (the runner's own copy when it matches the wrapper, so nothing is downloaded)
+        run: |
+          want="$(sed -n 's/.*gradle-\([0-9.]*\)-bin\.zip.*/\1/p' gradle/wrapper/gradle-wrapper.properties)"
+          if command -v gradle > /dev/null && gradle --version 2> /dev/null | grep -q "^Gradle $want\$"; then
+            echo "Using the runner's Gradle $want"; echo "GRADLE=gradle" >> "$GITHUB_ENV"
+          else
+            echo "GRADLE=./gradlew" >> "$GITHUB_ENV"
+            for i in 1 2 3 4 5 6; do ./gradlew --no-daemon --version > /dev/null && exit 0; echo "Gradle download failed, retrying in $((i * 20))s"; sleep $((i * 20)); done; exit 1
+          fi
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
@@ -28,7 +35,7 @@ jobs:
           yes | "$SDKM" --licenses > /dev/null || true
           "$SDKM" --install "platforms;android-37.0" "build-tools;37.0.0" || true
       - name: Unit tests, JS tests, lint and debug build
-        run: ./gradlew --no-daemon testDebugUnitTest testHubJs lintDebug assembleDebug
+        run: $GRADLE --no-daemon testDebugUnitTest testHubJs lintDebug assembleDebug
       - name: Ad-block list builder tests
         run: python3 tools/test_build_adblock.py
       - uses: actions/upload-artifact@v4
@@ -48,8 +55,15 @@ jobs:
           java-version: '17'
       - name: Set up Gradle (caches the Gradle download between runs)
         uses: gradle/actions/setup-gradle@v4
-      - name: Fetch the Gradle wrapper (retries when the download server is busy)
-        run: for i in 1 2 3 4 5 6; do ./gradlew --no-daemon --version > /dev/null && exit 0; echo "Gradle download failed, retrying in $((i * 20))s"; sleep $((i * 20)); done; exit 1
+      - name: Pick Gradle (the runner's own copy when it matches the wrapper, so nothing is downloaded)
+        run: |
+          want="$(sed -n 's/.*gradle-\([0-9.]*\)-bin\.zip.*/\1/p' gradle/wrapper/gradle-wrapper.properties)"
+          if command -v gradle > /dev/null && gradle --version 2> /dev/null | grep -q "^Gradle $want\$"; then
+            echo "Using the runner's Gradle $want"; echo "GRADLE=gradle" >> "$GITHUB_ENV"
+          else
+            echo "GRADLE=./gradlew" >> "$GITHUB_ENV"
+            for i in 1 2 3 4 5 6; do ./gradlew --no-daemon --version > /dev/null && exit 0; echo "Gradle download failed, retrying in $((i * 20))s"; sleep $((i * 20)); done; exit 1
+          fi
       - name: Enable KVM for the emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -62,7 +76,7 @@ jobs:
           yes | "$SDKM" --licenses > /dev/null || true
           "$SDKM" --install "platforms;android-37.0" "build-tools;37.0.0" || true
       - name: Build the app and test APKs
-        run: ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest
+        run: $GRADLE --no-daemon assembleDebug assembleDebugAndroidTest
       - name: Run on an Android 14 emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -73,7 +87,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           # On failure, print the crash buffer and any fatal exception before the emulator shuts down.
           script: >-
-            ./gradlew --no-daemon connectedDebugAndroidTest || { adb logcat -d -b crash | tail -n 120; adb logcat -d | grep -E -A40 "FATAL EXCEPTION|Process. com.dailygames" | head -n 200; adb logcat -d | grep -iE "com.dailygames.hub" | grep -iE "kill|died|force.stop|crash|changed" | tail -n 60; exit 1; }
+            $GRADLE --no-daemon connectedDebugAndroidTest || { adb logcat -d -b crash | tail -n 120; adb logcat -d | grep -E -A40 "FATAL EXCEPTION|Process. com.dailygames" | head -n 200; adb logcat -d | grep -iE "com.dailygames.hub" | grep -iE "kill|died|force.stop|crash|changed" | tail -n 60; exit 1; }
       - name: Show failing device tests
         if: failure()
         run: |

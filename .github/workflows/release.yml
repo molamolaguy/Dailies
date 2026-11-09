@@ -45,8 +45,15 @@ jobs:
           java-version: '17'
       - name: Set up Gradle (caches the Gradle download between runs)
         uses: gradle/actions/setup-gradle@v4
-      - name: Fetch the Gradle wrapper (retries when the download server is busy)
-        run: for i in 1 2 3 4 5 6; do ./gradlew --no-daemon --version > /dev/null && exit 0; echo "Gradle download failed, retrying in $((i * 20))s"; sleep $((i * 20)); done; exit 1
+      - name: Pick Gradle (the runner's own copy when it matches the wrapper, so nothing is downloaded)
+        run: |
+          want="$(sed -n 's/.*gradle-\([0-9.]*\)-bin\.zip.*/\1/p' gradle/wrapper/gradle-wrapper.properties)"
+          if command -v gradle > /dev/null && gradle --version 2> /dev/null | grep -q "^Gradle $want\$"; then
+            echo "Using the runner's Gradle $want"; echo "GRADLE=gradle" >> "$GITHUB_ENV"
+          else
+            echo "GRADLE=./gradlew" >> "$GITHUB_ENV"
+            for i in 1 2 3 4 5 6; do ./gradlew --no-daemon --version > /dev/null && exit 0; echo "Gradle download failed, retrying in $((i * 20))s"; sleep $((i * 20)); done; exit 1
+          fi
       - uses: actions/setup-node@v5
         with:
           node-version: '20'
@@ -68,7 +75,7 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: ./gradlew --no-daemon testDebugUnitTest testHubJs assembleRelease
+        run: $GRADLE --no-daemon testDebugUnitTest testHubJs assembleRelease
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
