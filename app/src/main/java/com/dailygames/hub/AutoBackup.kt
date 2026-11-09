@@ -1,5 +1,7 @@
 package com.dailygames.hub
 
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -34,7 +36,7 @@ object AutoBackup {
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    fun folder(ctx: Context): Uri? = prefs(ctx).getString(KEY_TREE, null)?.let { Uri.parse(it) }
+    fun folder(ctx: Context): Uri? = prefs(ctx).getString(KEY_TREE, null)?.toUri()
 
     /** Status for the Settings card: {enabled, folder, lastAt, lastName, error}. */
     fun statusJson(ctx: Context): String {
@@ -64,13 +66,13 @@ object AutoBackup {
             )
         }
         folder(ctx)?.takeIf { it != tree }?.let { old -> releaseAccess(ctx, old) }
-        prefs(ctx).edit().putString(KEY_TREE, tree.toString()).remove(KEY_LAST_ERROR).apply()
+        prefs(ctx).edit { putString(KEY_TREE, tree.toString()); remove(KEY_LAST_ERROR) }
         schedule(ctx)
     }
 
     fun disable(ctx: Context) {
         folder(ctx)?.let { releaseAccess(ctx, it) }
-        prefs(ctx).edit().clear().apply()
+        prefs(ctx).edit { clear() }
         WorkManager.getInstance(ctx).cancelUniqueWork(WORK_NAME)
     }
 
@@ -137,12 +139,12 @@ object AutoBackup {
             resolver.openOutputStream(doc, "wt")?.use { it.write(content.toByteArray()) }
                 ?: throw IllegalStateException("Couldn't write the file")
             prune(ctx, tree)
-            p.edit().putLong(KEY_LAST_AT, nowMs).putString(KEY_LAST_NAME, name).remove(KEY_LAST_ERROR).apply()
+            p.edit { putLong(KEY_LAST_AT, nowMs); putString(KEY_LAST_NAME, name); remove(KEY_LAST_ERROR) }
             true
         } catch (e: Exception) {
             val msg = if (e is SecurityException) "Dailies lost access to the backup folder. Choose it again."
             else "The last automatic backup failed. Check the folder still exists."
-            p.edit().putString(KEY_LAST_ERROR, msg).apply()
+            p.edit { putString(KEY_LAST_ERROR, msg) }
             false
         }
     }

@@ -1,5 +1,6 @@
 package com.dailygames.hub
 
+import androidx.core.content.edit
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -40,7 +41,7 @@ object Notifier {
         val existing = prefs.getInt(key, 0)
         if (existing != 0) return existing
         val next = prefs.getInt("next_id", 1000) + 1
-        prefs.edit().putInt(key, next).putInt("next_id", next).apply()
+        prefs.edit { putInt(key, next); putInt("next_id", next) }
         return next
     }
 
@@ -49,7 +50,7 @@ object Notifier {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         prefs.getString("token", null)?.let { return it }
         val t = java.util.UUID.randomUUID().toString()
-        prefs.edit().putString("token", t).apply()
+        prefs.edit { putString("token", t) }
         return t
     }
     private const val SUMMARY_ID = 0x0DA1E5
@@ -99,7 +100,7 @@ object Notifier {
             )
             chosen = if (decision == ChannelMigration.KEEP_LEGACY) LEGACY_CHANNEL_ID else SOUND_CHANNEL_ID
             if (decision == ChannelMigration.REPLACE_LEGACY) nm.deleteNotificationChannel(LEGACY_CHANNEL_ID)
-            prefs.edit().putString(KEY_CHANNEL, chosen).apply()
+            prefs.edit { putString(KEY_CHANNEL, chosen) }
         }
         // Re-creating an existing channel only refreshes its name and description; user settings stay.
         val channel = NotificationChannel(chosen, "Reset Alerts", NotificationManager.IMPORTANCE_DEFAULT).apply {

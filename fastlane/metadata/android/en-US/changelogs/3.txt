@@ -1,0 +1,7 @@
+1.1.0
+• Light theme (or follow your phone), and a "Done today" section on the hub.
+• Score stats: win rate, average and guess spread per game.
+• Streak reminder before a reset, and alert sounds that follow your settings.
+• Weekly automatic backup to a folder you choose; optional update check.
+• Ad blocking in sign-in popups; proxy support; downloads on Android 7–9.
+• Text and icons centred properly.

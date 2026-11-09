@@ -1,5 +1,6 @@
 package com.dailygames.hub
 
+import androidx.core.content.edit
 import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -128,7 +129,7 @@ object StreakReminders {
 
     fun setLeadMinutes(ctx: Context, minutes: Int) {
         val m = if (minutes in StreakReminderPlanner.ALLOWED_LEAD_MINUTES) minutes else 0
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putInt(KEY_LEAD, m).apply()
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putInt(KEY_LEAD, m) }
         schedule(ctx)
     }
 
@@ -142,7 +143,7 @@ object StreakReminders {
         if (due.isNotEmpty()) {
             post(ctx, planner.message(due, leadMs))
             // Marked even if notifications are off, so the alarm doesn't keep firing for this cycle.
-            prefs.edit().apply { due.forEach { putString(REMINDED_PREFIX + it.id, it.cycleKey) } }.commit()
+            prefs.edit { due.forEach { putString(REMINDED_PREFIX + it.id, it.cycleKey) } }
         }
         scheduleLocked(ctx, games, nowMs, leadMs)
     }

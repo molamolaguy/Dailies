@@ -4,8 +4,9 @@
   Games are added by the user; the hub page itself is packaged with the app and never loads remote
   content, and mixed content inside https pages stays blocked (GameActivity).
 -->
-<network-security-config>
-    <base-config cleartextTrafficPermitted="true">
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <!-- Intentional (see above); lint flags any cleartext base config. -->
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

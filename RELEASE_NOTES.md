@@ -1,3 +1,31 @@
+# Dailies 1.1.0
+
+A feature update. It installs over 1.0.x and keeps your games, streaks and history.
+
+## What's new since 1.0.1
+| | 1.0.1 | 1.1.0 |
+|---|---|---|
+| **Theme** | Dark only | Dark, light, or match your phone |
+| **Finished games** | Mixed in with the rest | Grouped under "Done today", which you can fold away |
+| **Stats** | Streaks and plays | Also win rate, average score and guess spread per game |
+| **Streak reminder** | None | Optional alert before a reset if a streak game isn't logged |
+| **Alert sound** | Silent unless changed in Android settings | Your phone's default sound, unless you'd set it yourself |
+| **Backups** | Saved by hand | Also weekly to a folder you choose (last 5 kept) |
+| **Updates** | Check GitHub yourself | Optional daily check with an "update available" banner |
+| **Sign-in popups** | No ad blocking | Same ad blocking as the game |
+
+## Also fixed
+- Text and icons that sat slightly off-centre (alert chips, bottom bar, game player toolbar).
+- Game details and icons load through a phone proxy or VPN proxy.
+- Downloads from games save inside the app on Android 7–9.
+- Sharper, centred app icon on Android 7.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.0.1
 
 A bug-fix update. It installs over 1.0.0 and keeps your games, streaks and history.

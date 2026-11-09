@@ -1,5 +1,6 @@
 package com.dailygames.hub
 
+import androidx.core.content.edit
 import android.content.Context
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -82,8 +83,7 @@ object GamePrefs {
     private const val KEY_ALLOWED_SITES = "ads_allowed_sites"
 
     fun save(ctx: Context, blockAds: Boolean, autoLogShare: Boolean) {
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-            .putBoolean(KEY_BLOCK_ADS, blockAds).putBoolean(KEY_AUTO_LOG, autoLogShare).apply()
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY_BLOCK_ADS, blockAds); putBoolean(KEY_AUTO_LOG, autoLogShare) }
     }
 
     fun blockAds(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_BLOCK_ADS, true)
@@ -97,6 +97,6 @@ object GamePrefs {
         val set = HashSet(prefs.getStringSet(KEY_ALLOWED_SITES, emptySet())!!)
         val site = AdBlockEngine.siteOf(host)
         if (allowed) set.add(site) else set.remove(site)
-        prefs.edit().putStringSet(KEY_ALLOWED_SITES, set).apply()
+        prefs.edit { putStringSet(KEY_ALLOWED_SITES, set) }
     }
 }

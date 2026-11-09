@@ -1,5 +1,6 @@
 package com.dailygames.hub
 
+import androidx.core.content.edit
 import android.content.Context
 import org.json.JSONArray
 import java.util.Calendar
@@ -28,13 +29,13 @@ class SharedPrefsGameStorage(context: Context) : GameStorage {
     override fun getString(key: String): String? = prefs.getString(key, null)
 
     override fun putString(key: String, value: String) {
-        prefs.edit().putString(key, value).apply()
+        prefs.edit { putString(key, value) }
     }
 
     override fun contains(key: String): Boolean = prefs.contains(key)
 
     override fun remove(key: String) {
-        prefs.edit().remove(key).apply()
+        prefs.edit { remove(key) }
     }
 
     override fun keys(): Set<String> = prefs.all.keys.toSet()

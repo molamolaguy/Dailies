@@ -1,5 +1,8 @@
 package com.dailygames.hub
 
+import androidx.core.content.edit
+import androidx.core.net.toUri
+import androidx.core.graphics.drawable.toDrawable
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ClipboardManager
@@ -130,7 +133,7 @@ class MainActivity : ComponentActivity() {
         // Paint the window in the same surface colour the hub will use (wallpaper / AMOLED / Iris), so
         // there is no colour jump between the first frame and the WebView's first paint.
         surfaceColor = ThemePrefs.surfaceColor(this)
-        window.setBackgroundDrawable(ColorDrawable(surfaceColor))
+        window.setBackgroundDrawable(surfaceColor.toDrawable())
 
         // Accurate insets before the first layout pass (API 30+), so the page's very first frame already
         // has correct edge-to-edge padding instead of a guess that is corrected later.
@@ -318,7 +321,7 @@ class MainActivity : ComponentActivity() {
             lastSystemDark = dark
             applySystemBarAppearance()
             surfaceColor = ThemePrefs.surfaceColor(this)
-            window.setBackgroundDrawable(ColorDrawable(surfaceColor))
+            window.setBackgroundDrawable(surfaceColor.toDrawable())
             runJs("window.onSystemThemeChanged && window.onSystemThemeChanged($dark)")
             pushEdgeToEdgeAndDynamicThemeToWebView()
         }
@@ -610,7 +613,7 @@ class MainActivity : ComponentActivity() {
             val systemWillShowPrompt = !askedBefore ||
                 shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
             if (systemWillShowPrompt) {
-                prefs.edit().putBoolean("asked_post_notifications", true).apply()
+                prefs.edit { putBoolean("asked_post_notifications", true) }
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 return
             }
@@ -687,7 +690,7 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 applySystemBarAppearance()
                 surfaceColor = ThemePrefs.surfaceColor(this@MainActivity)
-                window.setBackgroundDrawable(ColorDrawable(surfaceColor))
+                window.setBackgroundDrawable(surfaceColor.toDrawable())
             }
         }
 
@@ -742,7 +745,7 @@ class MainActivity : ComponentActivity() {
         fun openReleasePage() {
             runOnUiThread {
                 runCatching {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(UpdateCheck.RELEASES_PAGE)).addCategory(Intent.CATEGORY_BROWSABLE))
+                    startActivity(Intent(Intent.ACTION_VIEW, UpdateCheck.RELEASES_PAGE.toUri()).addCategory(Intent.CATEGORY_BROWSABLE))
                 }
             }
         }
