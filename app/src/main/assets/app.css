@@ -1144,3 +1144,43 @@ html[data-theme="light"] .score-dist .bar.fail { background: rgba(179, 38, 30, 0
 html[data-theme="light"] .pb-chip { color: var(--lt-strong); }
 html[data-theme="light"] .ach-title { color: var(--lt-on-surface); }
 html[data-theme="light"] .ach-desc { color: var(--lt-muted); }
+
+/* 1.2.0: select mode and the bulk-edit bar. */
+#gamesGrid.select-mode [data-card-game-id] { position: relative; }
+.sel-cover {
+  position: absolute; inset: 0; z-index: 3; border-radius: inherit; display: flex; align-items: flex-start; justify-content: flex-end;
+  padding: 12px; background: transparent;
+}
+.sel-cover:active { transform: none; }
+.sel-box {
+  width: 24px; height: 24px; border-radius: 8px; border: 2px solid var(--md-outline); background: var(--md-container-high);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+[data-card-game-id].selected { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+[data-card-game-id].selected .sel-box { background: var(--md-primary); border-color: var(--md-primary); }
+[data-card-game-id].selected .sel-box::after {
+  content: ''; width: 6px; height: 11px; border: solid var(--md-on-primary); border-width: 0 2.5px 2.5px 0; transform: translateY(-1px) rotate(45deg);
+}
+.bulk-bar {
+  position: fixed; left: 12px; right: 12px; z-index: 40; max-width: 28rem; margin: 0 auto;
+  bottom: calc(var(--safe-bottom, 0px) + 20px + 72px);
+  padding: 10px 12px; border-radius: 22px; background: var(--md-container-high); border: 1px solid var(--md-outline);
+  box-shadow: 0 14px 30px -10px rgba(0, 0, 0, 0.6); animation: sheet-in 0.22s var(--m3-spring-effects);
+}
+.bulk-count { font-size: 12px; font-weight: 700; color: #e2e6ee; margin-bottom: 8px; }
+.bulk-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.bulk-actions button {
+  display: inline-flex; align-items: center; gap: 5px; padding: 7px 10px; border-radius: 12px; font-size: 11px; font-weight: 700;
+  color: var(--md-on-primary-container); background: var(--md-primary-container);
+}
+.bulk-actions button.bulk-done { margin-left: auto; background: transparent; color: var(--md-primary); }
+.share-qr { width: 220px; height: 220px; border-radius: 16px; background: #fff; padding: 8px; image-rendering: pixelated; }
+html[data-theme="light"] .bulk-count { color: var(--lt-strong); }
+html[data-theme="light"] .bulk-bar { box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.25); }
+
+/* One-handed mode: the page starts lower on tall screens and dialogs open as bottom sheets. */
+@media (min-height: 640px) {
+  html[data-onehand="true"] .m3-scaffold { padding-top: calc(var(--safe-top, 0px) + 1.15rem + 22vh); }
+  html[data-onehand="true"] [role="dialog"].flex { align-items: flex-end; padding-bottom: calc(var(--safe-bottom, 0px) + 12px); }
+  html[data-onehand="true"] [role="dialog"] .modal-panel { animation: sheet-in 0.24s var(--m3-spring-effects); }
+}

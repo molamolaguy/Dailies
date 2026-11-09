@@ -75,6 +75,20 @@ class MainActivity : ComponentActivity() {
             handleExportResult(uri)
         }
 
+    /** "Save to…" picker for the CSV history export. */
+    private val csvLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        val temp = File(cacheDir, CSV_TEMP_FILE)
+        if (uri == null) { runCatching { temp.delete() }; runJs("window.onCsvSaved && window.onCsvSaved(false)"); return@registerForActivityResult }
+        Thread {
+            val ok = runCatching {
+                (runCatching { contentResolver.openOutputStream(uri, "wt") }.getOrNull() ?: contentResolver.openOutputStream(uri, "w"))
+                    ?.use { out -> temp.inputStream().use { it.copyTo(out) }; true } ?: false
+            }.getOrDefault(false)
+            runCatching { temp.delete() }
+            runOnUiThread { runJs("window.onCsvSaved && window.onCsvSaved($ok)") }
+        }.start()
+    }
+
     /** System document picker (Storage Access Framework) for importing a backup. */
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         handleImportResult(uri)
@@ -542,6 +556,16 @@ class MainActivity : ComponentActivity() {
             return
         }
 
+        // A friend's game list: an opened dailies:// link, or a shared message that contains one.
+        val listSource = if (intent.action == Intent.ACTION_VIEW && intent.data?.scheme == GameListCodec.SCHEME) intent.dataString
+            else intent.getStringExtra(Intent.EXTRA_TEXT)?.takeIf { intent.action == Intent.ACTION_SEND }
+        GameListCodec.decode(listSource)?.let { list ->
+            intent.action = Intent.ACTION_MAIN
+            intent.data = null
+            runJs("window.onSharedGameList && window.onSharedGameList($list)")
+            return
+        }
+
         val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
         val shared = SharedLinkParser.extractSharedUrl(intent.action, intent.type, sharedText)
         if (!shared.isNullOrBlank()) {
@@ -750,6 +774,28 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        /** Your game list as a link and a QR code: {link, qr} (qr is a PNG data: URL). */
+        @JavascriptInterface
+        fun makeGameListShare(gamesJson: String): String {
+            val link = GameListCodec.encode(gamesJson) ?: return "{}"
+            return JSONObject().put("link", link).put("qr", GameListCodec.qrDataUrl(link) ?: "").toString()
+        }
+
+        /** A pasted message or link that holds a friend's game list → the games JSON, or "" if none. */
+        @JavascriptInterface
+        fun decodeGameList(text: String): String = GameListCodec.decode(text) ?: ""
+
+        /** Saves a CSV the hub built through the system "Save to…" picker; answers window.onCsvSaved. */
+        @JavascriptInterface
+        fun saveCsvFile(suggestedFileName: String, content: String) {
+            val staged = content.isNotBlank() && runCatching { File(cacheDir, CSV_TEMP_FILE).writeText(content, Charsets.UTF_8) }.isSuccess
+            runOnUiThread {
+                if (!staged) { runJs("window.onCsvSaved && window.onCsvSaved(false)"); return@runOnUiThread }
+                runCatching { csvLauncher.launch(suggestedFileName.ifBlank { "dailies_history.csv" }) }
+                    .onFailure { runJs("window.onCsvSaved && window.onCsvSaved(false)") }
+            }
+        }
+
         /** Android share sheet for a text the hub built (monthly recap, game list). */
         @JavascriptInterface
         fun shareText(text: String, subject: String) {
@@ -894,6 +940,7 @@ class MainActivity : ComponentActivity() {
         private const val ASSET_PREFIX = "file:///android_asset/"
         private const val MAX_IMPORT_BYTES = 50 * 1024 * 1024
         private const val BACKUP_TEMP_FILE = "pending_backup_export.json"
+        private const val CSV_TEMP_FILE = "pending_history_export.csv"
         /** Characters per slice when handing an imported backup to the page. */
         private const val IMPORT_CHUNK_CHARS = 512 * 1024
     }

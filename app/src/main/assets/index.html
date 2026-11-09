@@ -131,6 +131,7 @@
             <button type="button" data-filter="ready" aria-pressed="false" class="filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Ready</button>
             <button type="button" data-filter="completed" aria-pressed="false" class="filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Done</button>
           </div>
+          <button id="btnSelectMode" type="button" aria-pressed="false" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold shrink-0">Select</button>
           <button id="btnOpenAddModal" type="button" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shrink-0">
             + Add Game
           </button>
@@ -302,6 +303,14 @@
 
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
+              <p class="font-bold text-white">One-Handed Mode</p>
+              <p class="text-[11px] text-slate-400">Start the page lower and open dialogs at the bottom, within thumb reach</p>
+            </div>
+            <input id="settingOneHanded" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
               <p class="font-bold text-white">Group Finished Games</p>
               <p class="text-[11px] text-slate-400">Move today's done games into a section you can fold away</p>
             </div>
@@ -428,6 +437,10 @@
           <button id="btnSettingsImportJson" type="button" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold text-center">Import Backup (.json or .txt)</button>
           <input id="inputImportBackupFile" type="file" accept=".txt,.json,text/plain,application/json" class="hidden" />
         </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <button id="btnExportCsv" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Export history (.csv)</button>
+          <button id="btnShareGameList" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
+        </div>
         <div id="autoBackupBlock" class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs space-y-2.5">
           <div>
             <p class="font-bold text-white">Weekly Automatic Backup</p>
@@ -439,6 +452,15 @@
             <button id="btnAutoBackupOff" type="button" class="hidden px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Turn off</button>
           </div>
         </div>
+      </div>
+
+      <!-- Archived games -->
+      <div id="archivedCard" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+        <div>
+          <h3 class="text-base font-bold text-white">Archived Games</h3>
+          <p class="text-xs text-slate-400">Hidden from the hub, with no alerts. Their history and stats are kept.</p>
+        </div>
+        <div id="archivedList" class="space-y-2"></div>
       </div>
 
       <!-- 5. About & updates -->
@@ -540,7 +562,8 @@
         </label>
 
         <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-          <button id="btnRemoveFromEdit" type="button" class="hidden mr-auto px-3 py-2 rounded-xl text-rose-300 text-xs font-semibold border border-rose-500/30">Remove game</button>
+          <button id="btnRemoveFromEdit" type="button" class="hidden px-3 py-2 rounded-xl text-rose-300 text-xs font-semibold border border-rose-500/30">Remove</button>
+          <button id="btnArchiveFromEdit" type="button" class="hidden mr-auto px-3 py-2 rounded-xl text-slate-300 text-xs font-semibold border border-slate-700">Archive</button>
           <button id="btnCancelAddModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
           <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg">Save Daily Game</button>
         </div>
@@ -596,6 +619,77 @@
           <button id="btnConfirmDeleteModal" type="button" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg">Remove</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="modalBulkTime" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalBulkTimeTitle">
+    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl overflow-hidden">
+      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+        <h3 id="modalBulkTimeTitle" class="text-sm sm:text-base font-bold text-white">Change reset time</h3>
+        <button id="btnCloseBulkTime" type="button" data-close-modal="modalBulkTime" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="p-4 space-y-3 text-xs">
+        <p id="bulkTimeSub" class="text-slate-300">For the selected games.</p>
+        <div class="flex items-center gap-2">
+          <input id="bulkTimeInput" type="time" value="00:00" aria-label="Reset time" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm" />
+          <select id="bulkZoneSelect" aria-label="Time zone" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm">
+            <option value="keep">Keep each game's zone</option>
+            <option value="local">My local time</option>
+            <option value="utc">UTC</option>
+          </select>
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+          <button type="button" data-close-modal="modalBulkTime" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-semibold">Cancel</button>
+          <button id="btnApplyBulkTime" type="button" class="px-5 py-2 rounded-xl bg-indigo-600 text-white font-bold">Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalShareList" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalShareListTitle">
+    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl overflow-hidden">
+      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+        <h3 id="modalShareListTitle" class="text-sm sm:text-base font-bold text-white">Share your games</h3>
+        <button id="btnCloseShareList" type="button" data-close-modal="modalShareList" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="p-4 space-y-3 text-xs text-center">
+        <p class="text-slate-300">A friend can scan this with their phone camera, or open the link, to add the same games in Dailies.</p>
+        <img id="shareListQr" alt="QR code for your game list" class="share-qr mx-auto" />
+        <p id="shareListCount" class="text-slate-400"></p>
+        <div class="flex justify-center gap-2 pt-1">
+          <button id="btnShareListLink" type="button" class="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold">Share link</button>
+          <button type="button" data-close-modal="modalShareList" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-semibold">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalImportList" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalImportListTitle">
+    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl overflow-hidden">
+      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
+        <h3 id="modalImportListTitle" class="text-sm sm:text-base font-bold text-white">Add games from a friend</h3>
+        <button id="btnCloseImportList" type="button" data-close-modal="modalImportList" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="p-4 space-y-3 text-xs">
+        <p id="importListSub" class="text-slate-300">Pick the games to add.</p>
+        <div id="importListRows" class="space-y-1.5 max-h-[50vh] overflow-y-auto"></div>
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+          <button type="button" data-close-modal="modalImportList" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-semibold">Cancel</button>
+          <button id="btnImportListAdd" type="button" class="px-5 py-2 rounded-xl bg-indigo-600 text-white font-bold">Add games</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bulk edit bar (Select mode on the hub) -->
+  <div id="bulkBar" class="bulk-bar hidden" role="toolbar" aria-label="Selected games">
+    <p id="bulkCount" class="bulk-count">0 selected</p>
+    <div class="bulk-actions">
+      <button type="button" data-bulk="alerts-on"><span class="ico ico-bell" aria-hidden="true"></span>Alerts on</button>
+      <button type="button" data-bulk="alerts-off"><span class="ico ico-bell_off" aria-hidden="true"></span>Alerts off</button>
+      <button type="button" data-bulk="time"><span class="ico ico-schedule" aria-hidden="true"></span>Reset time</button>
+      <button type="button" data-bulk="archive"><span class="ico ico-save" aria-hidden="true"></span>Archive</button>
+      <button type="button" data-bulk="done" class="bulk-done">Done</button>
     </div>
   </div>
 
@@ -780,6 +874,7 @@
         confirmDelete: true,
         themeMode: 'dark',
         groupDone: true,
+        oneHanded: false,
         streakReminderMinutes: 0,
         updateCheck: false
       };
@@ -1154,14 +1249,15 @@
             url: g.url,
             resetTime: g.resetTime,
             resetZone: HubCore.normalizeZone(g.resetZone),
-            notifyEnabled: Boolean(g.notifyEnabled),
+            // Archived games keep their settings but never alert or remind.
+            notifyEnabled: Boolean(g.notifyEnabled) && !g.archived,
             lastCycleKey: g.lastCycleKey || getCycleDateKey(g.resetTime, g.resetZone),
             lastPlayedCycle: g.status === 'completed' ? getCycleDateKey(g.resetTime, g.resetZone) : '',
             // Logged anything (solved or missed) for the current puzzle: no streak reminder needed.
             loggedCycle: (g.status === 'completed' || g.status === 'missed') && g.lastCycleKey === getCycleDateKey(g.resetTime, g.resetZone)
               ? g.lastCycleKey : '',
             status: g.status || 'ready',
-            streak: g.streak || 0
+            streak: g.archived ? 0 : (g.streak || 0)
           }))));
         }
       } catch (e) {}
@@ -1209,6 +1305,7 @@
 
       const light = isLightTheme();
       root.setAttribute('data-theme', light ? 'light' : 'dark');
+      root.setAttribute('data-onehand', s.oneHanded ? 'true' : 'false');
       root.classList.toggle('dark', !light);
       root.setAttribute('data-amoled', s.amoledDark && !light ? 'true' : 'false');
       const seed = s.dynamicWallpaper ? 'wallpaper' : (s.themeSeed || 'iris');
@@ -1347,6 +1444,14 @@
           return;
         }
         if (g.lastCycleKey === currentKey) return;
+        if (g.archived) {
+          // Days while archived aren't tracked: just move to the current puzzle.
+          g.lastCycleKey = currentKey;
+          g.status = (g.dayHistory && g.dayHistory[currentKey]) || 'ready';
+          if (g.status !== 'completed') g.todayScore = '';
+          changed = true;
+          return;
+        }
 
         const prevCycleKey = g.lastCycleKey;
         const lastDay = cycleKeyToDay(prevCycleKey);
@@ -1813,13 +1918,14 @@
     // RENDERING FUNCTIONS
     // =========================================================================
     function renderKPIs() {
-      const total = state.games.length;
+      const shown = visibleGames();
+      const total = shown.length;
       let readyCount = 0;
       let doneCount = 0;
       let topStreak = 0;
 
       for (let i = 0; i < total; i++) {
-        const g = state.games[i];
+        const g = shown[i];
         if (g.status === 'completed') doneCount += 1;
         else if (g.status === 'ready') readyCount += 1;
         if ((g.streak || 0) > topStreak) topStreak = g.streak || 0;
@@ -1893,14 +1999,14 @@
       grid.className = isCompact ? 'space-y-1.5' : 'space-y-2.5';
 
       // Preserve the user-configured order in state.games (no forced status sort)
-      const list = state.games.filter((g) => {
+      const list = visibleGames().filter((g) => {
         if (state.activeFilter !== 'all' && g.status !== state.activeFilter) return false;
         return true;
       });
       const sections = gameSections(list);
 
       if (list.length === 0) {
-        const noGamesAtAll = state.games.length === 0;
+        const noGamesAtAll = visibleGames().length === 0;
         grid.innerHTML = noGamesAtAll ? `
           <div class="glass-card rounded-2xl p-6 text-center border border-slate-800">
             <p class="text-base font-bold text-white">No games yet</p>
@@ -1928,6 +2034,15 @@
           </button>
           <div id="doneSection" class="done-section ${isCompact ? 'space-y-1.5' : 'space-y-2.5'}"${collapsed ? ' hidden' : ''}>${collapsed ? '' : cardsHtml(sections.done)}</div>`;
       }
+      grid.classList.toggle('select-mode', selectMode);
+      if (selectMode) {
+        grid.querySelectorAll('[data-card-game-id]').forEach((card) => {
+          const id = card.getAttribute('data-card-game-id');
+          const on = selectedIds.has(id);
+          card.classList.toggle('selected', on);
+          card.insertAdjacentHTML('beforeend', `<button type="button" class="sel-cover" data-action="toggle-select" data-id="${escapeHtml(id)}" aria-pressed="${on}" aria-label="Select ${escapeHtml((state.games.find((g) => g.id === id) || {}).name || '')}"><span class="sel-box" aria-hidden="true"></span></button>`);
+        });
+      }
       if (!isCompact) {
         grid.querySelectorAll('.game-countdown').forEach((el) => {
           const id = el.getAttribute('data-game-id');
@@ -1935,6 +2050,204 @@
         });
       }
     }
+
+    /** Games shown on the hub, in alerts and in the KPIs (archived ones are kept but hidden). */
+    function visibleGames() {
+      return state.games.filter((g) => !g.archived);
+    }
+
+    // ---- Archive ----
+    function setArchived(ids, archived) {
+      const games = state.games.filter((g) => ids.includes(g.id) && Boolean(g.archived) !== archived);
+      if (!games.length) return;
+      const before = games.map((g) => ({ g, archived: g.archived, added: g.addedCycleKey }));
+      games.forEach((g) => {
+        if (archived) {
+          g.archived = true;
+        } else {
+          delete g.archived;
+          // Like a newly added game: today isn't counted as missed unless it's played.
+          g.addedCycleKey = getCycleDateKey(g.resetTime, g.resetZone);
+          g.lastCycleKey = g.addedCycleKey;
+        }
+      });
+      saveState();
+      renderVisibleTab();
+      const what = games.length === 1 ? games[0].name : plural(games.length, 'game');
+      showToast(archived ? `${what} archived` : `${what} restored`,
+        archived ? 'Hidden from the hub with no alerts. Find it under Settings → Archived Games.' : 'Back on your hub.', 'indigo', null,
+        { actionLabel: 'Undo', onAction: () => {
+          before.forEach(({ g, archived: a, added }) => {
+            if (a) g.archived = true; else delete g.archived;
+            if (added) g.addedCycleKey = added; else delete g.addedCycleKey;
+          });
+          saveState();
+          renderVisibleTab();
+        } });
+    }
+
+    function renderArchivedList() {
+      const card = document.getElementById('archivedCard');
+      const list = document.getElementById('archivedList');
+      if (!card || !list) return;
+      const archived = state.games.filter((g) => g.archived);
+      card.classList.toggle('hidden', archived.length === 0);
+      list.innerHTML = archived.map((g) => `
+        <div class="alert-row">
+          <span class="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden shrink-0">${renderGameIconHtml(g.icon, g.name, 'w-5 h-5')}</span>
+          <div class="info"><p class="name" dir="auto">${escapeHtml(g.name)}</p><p class="sub">Best streak ${escapeHtml(plural(g.bestStreak || 0, 'day'))} · ${escapeHtml(plural(g.totalPlayed || 0, 'result'))}</p></div>
+          <button type="button" data-action="unarchive" data-id="${escapeHtml(g.id)}" class="toggle-chip off">Restore</button>
+        </div>`).join('');
+    }
+
+    // ---- Select mode / bulk edit ----
+    let selectMode = false;
+    const selectedIds = new Set();
+    function setSelectMode(on) {
+      selectMode = Boolean(on);
+      selectedIds.clear();
+      const btn = document.getElementById('btnSelectMode');
+      if (btn) { btn.setAttribute('aria-pressed', String(selectMode)); btn.textContent = selectMode ? 'Cancel' : 'Select'; }
+      renderGamesGrid();
+      renderBulkBar();
+      syncBackInterceptState();
+    }
+    function renderBulkBar() {
+      const bar = document.getElementById('bulkBar');
+      if (!bar) return;
+      bar.classList.toggle('hidden', !selectMode);
+      const n = selectedIds.size;
+      const c = document.getElementById('bulkCount');
+      if (c) c.textContent = n ? `${n} selected` : 'Tap games to select them';
+      bar.querySelectorAll('[data-bulk]').forEach((b) => { if (b.dataset.bulk !== 'done') b.disabled = n === 0; });
+    }
+    function runBulk(kind) {
+      const ids = [...selectedIds];
+      const games = state.games.filter((g) => ids.includes(g.id));
+      if (kind === 'done') { setSelectMode(false); return; }
+      if (!games.length) return;
+      if (kind === 'alerts-on' || kind === 'alerts-off') {
+        const on = kind === 'alerts-on';
+        games.forEach((g) => { g.notifyEnabled = on; });
+        saveState();
+        showToast(on ? 'Alerts on' : 'Alerts off', `For ${plural(games.length, 'game')}.`, 'indigo');
+        setSelectMode(false);
+      } else if (kind === 'archive') {
+        setSelectMode(false);
+        setArchived(ids, true);
+      } else if (kind === 'time') {
+        const sub = document.getElementById('bulkTimeSub');
+        if (sub) sub.textContent = `New reset time for ${plural(games.length, 'game')}. Their history moves with it, like editing one game.`;
+        const t = document.getElementById('bulkTimeInput');
+        if (t) t.value = games[0].resetTime || '00:00';
+        openModal('modalBulkTime');
+      }
+    }
+    function applyBulkTime() {
+      const time = HubCore.sanitizeResetTime(document.getElementById('bulkTimeInput').value);
+      const zoneSel = document.getElementById('bulkZoneSelect').value;
+      const games = state.games.filter((g) => selectedIds.has(g.id));
+      games.forEach((g) => {
+        const from = { resetTime: g.resetTime, resetZone: g.resetZone };
+        const to = { resetTime: time, resetZone: zoneSel === 'keep' ? g.resetZone : zoneSel };
+        applyScheduleChange(g, from, to, state.historyLogs);
+        recomputeGameStatsFromHistory(g);
+      });
+      closeModal('modalBulkTime');
+      saveState();
+      showToast('Reset time changed', `${plural(games.length, 'game')} now reset at ${formatLocalResetTime(time, zoneSel === 'keep' ? (games[0] || {}).resetZone : zoneSel)}${zoneSel === 'keep' ? ' (in each game\'s zone)' : ''}.`, 'indigo');
+      setSelectMode(false);
+    }
+
+    // ---- Share a game list / add a friend's ----
+    function openShareList() {
+      const games = visibleGames().map((g) => ({ name: g.name, url: g.url, resetTime: g.resetTime, resetZone: HubCore.normalizeZone(g.resetZone) }));
+      if (!games.length) { showToast('No games to share', 'Add a game first.', 'indigo'); return; }
+      let res = {};
+      try { res = JSON.parse(window.AndroidBridge.makeGameListShare(JSON.stringify(games)) || '{}'); } catch (e) {}
+      if (!res.link) { showToast("Couldn't make the link", 'Sharing a list needs the Android app.', 'indigo'); return; }
+      const img = document.getElementById('shareListQr');
+      if (img) img.src = res.qr || '';
+      const c = document.getElementById('shareListCount');
+      if (c) c.textContent = `${plural(games.length, 'game')}: ${games.map((g) => g.name).join(', ')}`;
+      shareListPayload = { link: res.link, games };
+      openModal('modalShareList');
+    }
+    let shareListPayload = null;
+    let importListGames = [];
+
+    /** Native (an opened link / shared message) or a paste hands over a friend's list here. */
+    window.onSharedGameList = function (games) {
+      const list = (Array.isArray(games) ? games : []).filter((g) => g && typeof g.url === 'string');
+      if (!list.length) return;
+      switchNavigation('dashboard');
+      const have = new Set(state.games.map((g) => normalizeUrlKey(g.url)));
+      importListGames = list.map((g) => ({ g, dup: have.has(normalizeUrlKey(g.url)) }));
+      const rows = document.getElementById('importListRows');
+      rows.innerHTML = importListGames.map(({ g, dup }, i) => `
+        <label class="alert-row cursor-pointer">
+          <input type="checkbox" data-import-idx="${i}" ${dup ? 'disabled' : 'checked'} class="w-4 h-4 accent-indigo-500 shrink-0" />
+          <div class="info"><p class="name" dir="auto">${escapeHtml(g.name || g.url)}</p><p class="sub">${dup ? 'Already in your hub' : escapeHtml(safeHost(g.url))} · resets ${escapeHtml(formatLocalResetTime(HubCore.sanitizeResetTime(g.resetTime), HubCore.normalizeZone(g.resetZone)))}</p></div>
+        </label>`).join('');
+      const fresh = importListGames.filter((x) => !x.dup).length;
+      document.getElementById('importListSub').textContent = fresh
+        ? `${plural(list.length, 'game')} in this list${fresh < list.length ? `, ${list.length - fresh} already in your hub` : ''}.`
+        : 'You already have every game in this list.';
+      openModal('modalImportList');
+    };
+    function safeHost(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
+    function addImportedGames() {
+      const picked = [...document.querySelectorAll('#importListRows input[data-import-idx]:checked')].map((el) => importListGames[Number(el.dataset.importIdx)]).filter(Boolean);
+      const seen = new Set(state.games.map((g) => g.id));
+      let added = 0;
+      picked.forEach(({ g }) => {
+        const norm = normalizeGameObject({ name: g.name, url: g.url, resetTime: g.resetTime, resetZone: g.resetZone, notifyEnabled: true }, state.games.length + added);
+        if (!norm) return;
+        norm.id = HubCore.uniqueId(norm.id, seen);
+        seen.add(norm.id);
+        norm.addedCycleKey = getCycleDateKey(norm.resetTime, norm.resetZone);
+        state.games.push(norm);
+        added += 1;
+      });
+      closeModal('modalImportList');
+      if (!added) return;
+      saveState();
+      renderVisibleTab();
+      showToast(`Added ${plural(added, 'game')}`, 'They are on your hub now.', 'emerald');
+    }
+
+    // ---- CSV export ----
+    function historyCsv() {
+      const q = (v) => {
+        const t = String(v === undefined || v === null ? '' : v);
+        return /[",\n\r]/.test(t) || /^[=+\-@]/.test(t) ? `"${(/^[=+\-@]/.test(t) ? "'" : '') + t.replace(/"/g, '""')}"` : t;
+      };
+      const head = ['date', 'game', 'outcome', 'score', 'streak', 'time_seconds', 'logged_at', 'full_result'];
+      const rows = state.historyLogs.slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).map((l) => {
+        const sc = HubCore.parseScore(l.score);
+        return [l.date, l.gameName, l.outcome, sc ? (sc.fail ? `X/${sc.max}` : `${sc.n}/${sc.max}`) : '', Number(l.streak) || 0,
+          Number(l.timeMs) > 0 ? Math.round(Number(l.timeMs) / 1000) : '', l.localTime || '', String(l.score || '').replace(/\r?\n/g, ' / ')].map(q).join(',');
+      });
+      return '\ufeff' + [head.join(',')].concat(rows).join('\r\n') + '\r\n';
+    }
+    function exportCsv() {
+      if (!state.historyLogs.length) { showToast('Nothing to export', 'Log a result first.', 'indigo'); return; }
+      const d = new Date();
+      const name = `dailies_history_${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.csv`;
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.saveCsvFile === 'function') {
+          window.AndroidBridge.saveCsvFile(name, historyCsv());
+          return;
+        }
+      } catch (e) {}
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([historyCsv()], { type: 'text/csv' }));
+      a.download = name;
+      a.click();
+    }
+    window.onCsvSaved = function (ok) {
+      if (ok) showToast('History exported', `${plural(state.historyLogs.length, 'result')} saved as a spreadsheet.`, 'emerald');
+    };
 
     /**
      * With "Group finished games" on and the All filter, today's finished games go in their own
@@ -2000,7 +2313,7 @@
     }
 
     function moveGameInOrder(gameId, direction) {
-      const filtered = state.games.filter((g) => state.activeFilter === 'all' || g.status === state.activeFilter);
+      const filtered = visibleGames().filter((g) => state.activeFilter === 'all' || g.status === state.activeFilter);
       const sec = gameSections(filtered);
       // The arrows move a card within the section it's shown in.
       const visibleList = !sec.grouped ? filtered : (sec.done.some((g) => g.id === gameId) ? sec.done : sec.open);
@@ -2495,13 +2808,15 @@
       }
 
       const activeIds = new Set(state.games.map((g) => g.id));
-      const selectSig = calGames.map((g) => `${g.id}:${g.name}:${activeIds.has(g.id) ? 1 : 0}`).join('|');
+      const selectSig = calGames.map((g) => `${g.id}:${g.name}:${activeIds.has(g.id) ? 1 : 0}:${g.archived ? 1 : 0}`).join('|');
       if (selectEl.dataset.sig !== selectSig) {
         selectEl.dataset.sig = selectSig;
         const opt = (g) => `<option value="${escapeHtml(g.id)}" dir="auto">${escapeHtml(g.name)}</option>`;
         const removed = calGames.filter((g) => !activeIds.has(g.id));
         // Removed games keep their history, but are listed apart so they aren't mistaken for active ones.
-        selectEl.innerHTML = calGames.filter((g) => activeIds.has(g.id)).map(opt).join('')
+        const archived = calGames.filter((g) => activeIds.has(g.id) && g.archived);
+        selectEl.innerHTML = calGames.filter((g) => activeIds.has(g.id) && !g.archived).map(opt).join('')
+          + (archived.length ? `<optgroup label="Archived games">${archived.map(opt).join('')}</optgroup>` : '')
           + (removed.length ? `<optgroup label="Removed games">${removed.map(opt).join('')}</optgroup>` : '');
       }
       selectEl.value = selectedCalendarGameId;
@@ -2841,6 +3156,8 @@
       setChk('settingBlockAds', s.blockAdsInGames !== false);
       setVal('settingThemeMode', s.themeMode || 'dark');
       setChk('settingGroupDone', s.groupDone !== false);
+      setChk('settingOneHanded', Boolean(s.oneHanded));
+      renderArchivedList();
       setVal('settingStreakReminder', String(Number(s.streakReminderMinutes) || 0));
       setChk('settingUpdateCheck', Boolean(s.updateCheck));
       renderAutoBackupStatus();
@@ -2853,12 +3170,12 @@
       if (!schedList) return;
       schedTimerElements.clear();
 
-      if (state.games.length === 0) {
+      if (visibleGames().length === 0) {
         schedList.innerHTML = '<p class="text-xs text-slate-400 py-2">No games added yet.</p>';
         return;
       }
 
-      schedList.innerHTML = state.games.map((g) => {
+      schedList.innerHTML = visibleGames().map((g) => {
         const localResetStr = formatLocalResetTime(g.resetTime, g.resetZone);
         const nextIn = formatDurationHMS(getMsUntilNextReset(g.resetTime, g.resetZone));
         return `
@@ -3048,6 +3365,7 @@
       const fromEl = document.getElementById(TAB_VIEW_IDS[previous]);
       activeTab = normalized;
       if (normalized !== 'dashboard') hideReturnPrompt();
+      if (normalized !== 'dashboard' && selectMode) setSelectMode(false);
       syncBackInterceptState();
 
       const views = {
@@ -3100,7 +3418,7 @@
 
     let lastBackInterceptState = null;
     function syncBackInterceptState() {
-      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId);
+      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId) || selectMode;
       if (wantsBack === lastBackInterceptState) return;
       lastBackInterceptState = wantsBack;
       try {
@@ -3111,7 +3429,7 @@
     }
 
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
-    const MODAL_IDS = ['modalAddGame', 'modalLogScore', 'modalDeleteGame'];
+    const MODAL_IDS = ['modalAddGame', 'modalLogScore', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -3278,6 +3596,8 @@
       if (window.__updateZoneHint) window.__updateZoneHint();
       const removeBtn = document.getElementById('btnRemoveFromEdit');
       if (removeBtn) removeBtn.classList.toggle('hidden', !existingGame);
+      const archiveBtn = document.getElementById('btnArchiveFromEdit');
+      if (archiveBtn) archiveBtn.classList.toggle('hidden', !existingGame);
       // Keep an unusual stored category selectable instead of silently blanking it.
       const catSel = document.getElementById('inputGameCategory');
       if (catSel && source.category && ![...catSel.options].some((o) => o.value === source.category)) {
@@ -3706,6 +4026,10 @@
         hideReturnPrompt();
         return true;
       }
+      if (selectMode) {
+        setSelectMode(false);
+        return true;
+      }
       if (activeTab !== 'dashboard') {
         switchNavigation('dashboard');
         return true;
@@ -3911,7 +4235,7 @@
       } catch (e) {}
 
       // Keep Android's predictive-back state in sync with modal visibility.
-      ['modalAddGame', 'modalLogScore', 'modalDeleteGame', 'returnPrompt'].forEach((id) => {
+      ['modalAddGame', 'modalLogScore', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList', 'returnPrompt'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) new MutationObserver(syncBackInterceptState).observe(el, { attributes: true, attributeFilter: ['class'] });
       });
@@ -4096,6 +4420,7 @@
       bindSetting('settingBlockAds', 'blockAdsInGames', true);
       bindSetting('settingThemeMode', 'themeMode', false);
       bindSetting('settingGroupDone', 'groupDone', true);
+      bindSetting('settingOneHanded', 'oneHanded', true);
       bindSetting('settingStreakReminder', 'streakReminderMinutes', false);
       bindSetting('settingUpdateCheck', 'updateCheck', true);
       try {
@@ -4110,6 +4435,18 @@
       } catch (e) {}
 
       const onClick = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+      onClick('btnSelectMode', () => setSelectMode(!selectMode));
+      document.querySelectorAll('#bulkBar [data-bulk]').forEach((b) => b.addEventListener('click', () => runBulk(b.dataset.bulk)));
+      onClick('btnApplyBulkTime', applyBulkTime);
+      onClick('btnExportCsv', exportCsv);
+      onClick('btnShareGameList', openShareList);
+      onClick('btnImportListAdd', addImportedGames);
+      onClick('btnShareListLink', () => {
+        if (!shareListPayload) return;
+        const names = shareListPayload.games.map((g) => `• ${g.name}`).join('\n');
+        shareText(`My daily games in Dailies:\n${names}\n\nAdd them all in Dailies: ${shareListPayload.link}`, 'My daily games');
+      });
+      document.querySelectorAll('[data-close-modal]').forEach((b) => b.addEventListener('click', () => closeModal(b.getAttribute('data-close-modal'))));
       onClick('btnAutoBackupFolder', () => {
         try { window.AndroidBridge && window.AndroidBridge.chooseAutoBackupFolder && (autoBackupBusy = true, window.AndroidBridge.chooseAutoBackupFolder()); } catch (e) {}
       });
@@ -4333,6 +4670,17 @@
         const game = state.games.find((g) => g.id === id);
         if (!game) return;
 
+        if (action === 'toggle-select') {
+          if (selectedIds.has(game.id)) selectedIds.delete(game.id); else selectedIds.add(game.id);
+          haptic('tick');
+          renderGamesGrid();
+          renderBulkBar();
+          return;
+        }
+        if (action === 'unarchive') {
+          setArchived([game.id], false);
+          return;
+        }
         if (action === 'play') {
           openGameInPlayer(game.id);
         } else if (action === 'log') {
@@ -4373,6 +4721,11 @@
 
       // Add/Edit Modal handlers (closeAddModal is global so Back closes it the same way)
       document.getElementById('btnCloseAddModal').addEventListener('click', closeAddModal);
+      document.getElementById('btnArchiveFromEdit').addEventListener('click', () => {
+        const game = state.games.find((g) => g.id === document.getElementById('editGameId').value);
+        closeAddModal();
+        if (game) setArchived([game.id], true);
+      });
       document.getElementById('btnRemoveFromEdit').addEventListener('click', () => {
         const game = state.games.find((g) => g.id === document.getElementById('editGameId').value);
         closeAddModal();
@@ -4419,6 +4772,17 @@
       });
 
       const urlInputEl = document.getElementById('inputGameUrl');
+      // A friend's whole list pasted here (dailies://add?… link or the message holding it).
+      urlInputEl.addEventListener('input', () => {
+        const v = urlInputEl.value || '';
+        if (!v.includes('dailies://add?')) return;
+        let json = '';
+        try { json = window.AndroidBridge && window.AndroidBridge.decodeGameList ? window.AndroidBridge.decodeGameList(v) : ''; } catch (e) {}
+        if (!json) return;
+        urlInputEl.value = '';
+        closeAddModal();
+        try { window.onSharedGameList(JSON.parse(json)); } catch (e) {}
+      });
 
       // 1) Standard clipboard paste event (captures clipboardData immediately & after input updates)
       urlInputEl.addEventListener('paste', (e) => {

@@ -41,6 +41,14 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+
+            <!-- Game lists from friends: dailies://add?v=1&d=… (a link or a scanned QR code). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dailies" android:host="add" />
+            </intent-filter>
         </activity>
 
         <!-- Full-screen native player for a single daily game (no JS bridge) -->
