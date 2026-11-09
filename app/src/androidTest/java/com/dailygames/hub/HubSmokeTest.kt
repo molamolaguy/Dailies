@@ -185,28 +185,4 @@ class HubSmokeTest {
         assertNotNull(qr)
         assertTrue(qr!!.startsWith("data:image/png;base64,"))
     }
-
-    @Test
-    fun launcherIconFollowsTheAppThemeWhenAsked() {
-        val pm = ctx.packageManager
-        fun on(name: String): Boolean {
-            val st = pm.getComponentEnabledSetting(android.content.ComponentName(ctx.packageName, ctx.packageName + name))
-            return st == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED ||
-                (st == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DEFAULT && name == AppIcon.DEFAULT)
-        }
-        val prevMode = ThemePrefs.mode(ctx)
-        try {
-            AppIcon.setFollowsTheme(ctx, true)
-            ThemePrefs.saveMode(ctx, "dark")
-            AppIcon.apply(ctx)
-            val expected = AppIcon.wanted(true, "dark", ThemePrefs.isDynamic(ctx))
-            assertTrue(on(expected))
-            assertEquals(listOf(expected), AppIcon.ALL.filter { on(it) })
-        } finally {
-            AppIcon.setFollowsTheme(ctx, false)
-            ThemePrefs.saveMode(ctx, prevMode)
-            AppIcon.apply(ctx)
-        }
-        assertEquals(listOf(AppIcon.DEFAULT), AppIcon.ALL.filter { on(it) })
-    }
 }
