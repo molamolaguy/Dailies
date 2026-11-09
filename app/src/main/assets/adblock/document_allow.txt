@@ -6,7 +6,6 @@ clientlogin.cdn.skype.com
 content.googleapis.com
 content.newegg.com
 dashboard.jwplayer.com
-detectportal.firefox.com
 go.redirectingat.com
 googledrive.com
 huntington.com
@@ -23,7 +22,6 @@ redactor.creatium.io
 router.asus.com
 routerlogin.com
 routerlogin.net
-scorecard.api.mywot.com
 securitykiss.com
 swedbank.ee
 sync.maxthon.com
@@ -31,6 +29,5 @@ tagmanager.google.com
 target.my.com
 tiles.mapbox.com
 time.adp.com
-transfemscience.org
 tryit.w3schools.com
 web.any.do
