@@ -89,6 +89,7 @@ class GameActivity : ComponentActivity() {
     /** The game's own host: per-site ad-blocking choices are keyed on the game, not wherever it navigated. */
     private var gameHost = ""
     private var surfaceColor = 0
+    private var titleColor = Color.WHITE
     /** Last http(s) page shown, so a replacement WebView can reload it after the renderer is gone. */
     private var lastPageUrl: String? = null
     private var lastRendererCrashAt = 0L
@@ -175,25 +176,27 @@ class GameActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
+        // Same Display settings as the hub: light / dark theme, AMOLED black, wallpaper colours (Android 12+).
+        val light = ThemePrefs.isLight(this)
         WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false
-            isAppearanceLightNavigationBars = false
+            isAppearanceLightStatusBars = light
+            isAppearanceLightNavigationBars = light
         }
-
-        // Extract device wallpaper Material You dynamic colors on Android 12+ (API 31+)
-        // Same Display settings as the hub: AMOLED = true black bar and page backdrop.
         val amoled = ThemePrefs.isAmoled(this)
         val isDynamic = ThemePrefs.isDynamic(this)
         surfaceColor = ThemePrefs.surfaceColor(this)
         val containerColor = when {
+            light && isDynamic -> getColor(android.R.color.system_neutral2_50)
+            light -> LIGHT_CONTAINER
             amoled -> Color.BLACK
             isDynamic -> getColor(android.R.color.system_neutral2_800)
             else -> CONTAINER
         }
-        val primaryColor = if (isDynamic) getColor(android.R.color.system_accent1_200) else PRIMARY
-        val onPrimaryColor = if (isDynamic) getColor(android.R.color.system_accent1_800) else ON_PRIMARY
-        val primaryContainerColor = if (isDynamic) getColor(android.R.color.system_accent1_700) else PRIMARY_CONTAINER
-        val onPrimaryContainerColor = if (isDynamic) getColor(android.R.color.system_accent1_100) else ON_PRIMARY_CONTAINER
+        val primaryColor = when { light && isDynamic -> getColor(android.R.color.system_accent1_600); light -> LIGHT_PRIMARY; isDynamic -> getColor(android.R.color.system_accent1_200); else -> PRIMARY }
+        val onPrimaryColor = when { light -> Color.WHITE; isDynamic -> getColor(android.R.color.system_accent1_800); else -> ON_PRIMARY }
+        val primaryContainerColor = when { light && isDynamic -> getColor(android.R.color.system_accent1_100); light -> LIGHT_PRIMARY_CONTAINER; isDynamic -> getColor(android.R.color.system_accent1_700); else -> PRIMARY_CONTAINER }
+        val onPrimaryContainerColor = when { light && isDynamic -> getColor(android.R.color.system_accent1_900); light -> LIGHT_ON_PRIMARY_CONTAINER; isDynamic -> getColor(android.R.color.system_accent1_100); else -> ON_PRIMARY_CONTAINER }
+        titleColor = if (light) LIGHT_ON_SURFACE else Color.WHITE
         barColors = intArrayOf(containerColor, primaryContainerColor, onPrimaryContainerColor)
 
         // ---- Top app bar (Material 3 Expressive tonal pills + Google Sans) ----
@@ -208,7 +211,7 @@ class GameActivity : ComponentActivity() {
         bar.addView(TextView(this).apply {
             text = gameName
             contentDescription = gameName
-            setTextColor(Color.WHITE)
+            setTextColor(titleColor)
             textSize = 15f
             typeface = googleSansBold
             // Google Sans's extra top/bottom font padding is uneven; without it text centres on its letters.
@@ -602,7 +605,7 @@ class GameActivity : ComponentActivity() {
         val dlg = ComponentDialog(this, android.R.style.Theme_DeviceDefault_NoActionBar)
         val title = TextView(this).apply {
             text = host
-            setTextColor(Color.WHITE)
+            setTextColor(titleColor)
             textSize = 14f
             typeface = googleSansBold
             includeFontPadding = false
@@ -1322,6 +1325,12 @@ class GameActivity : ComponentActivity() {
         private val ON_PRIMARY = Color.parseColor("#381E72")
         private val PRIMARY_CONTAINER = Color.parseColor("#4F378B")
         private val ON_PRIMARY_CONTAINER = Color.parseColor("#EADDFF")
+        // Light theme (Material 3 baseline light roles, as in the hub's light theme).
+        private val LIGHT_CONTAINER = Color.parseColor("#F3EDF7")
+        private val LIGHT_PRIMARY = Color.parseColor("#6750A4")
+        private val LIGHT_PRIMARY_CONTAINER = Color.parseColor("#EADDFF")
+        private val LIGHT_ON_PRIMARY_CONTAINER = Color.parseColor("#21005D")
+        private val LIGHT_ON_SURFACE = Color.parseColor("#1D1B20")
     }
 }
 

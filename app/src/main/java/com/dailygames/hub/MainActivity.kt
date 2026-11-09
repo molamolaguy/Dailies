@@ -124,10 +124,8 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false
-            isAppearanceLightNavigationBars = false
-        }
+        applySystemBarAppearance()
+        lastSystemDark = ThemePrefs.systemIsDark(this)
 
         // Paint the window in the same surface colour the hub will use (wallpaper / AMOLED / Iris), so
         // there is no colour jump between the first frame and the WebView's first paint.
@@ -303,6 +301,30 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    /** Dark status / navigation bar icons on the light theme, light icons on the dark one. */
+    private fun applySystemBarAppearance() {
+        val light = ThemePrefs.isLight(this)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = light
+            isAppearanceLightNavigationBars = light
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // The phone switched between light and dark (uiMode is handled here, not by recreating).
+        val dark = ThemePrefs.systemIsDark(this)
+        if (dark != lastSystemDark) {
+            lastSystemDark = dark
+            applySystemBarAppearance()
+            surfaceColor = ThemePrefs.surfaceColor(this)
+            window.setBackgroundDrawable(ColorDrawable(surfaceColor))
+            runJs("window.onSystemThemeChanged && window.onSystemThemeChanged($dark)")
+            pushEdgeToEdgeAndDynamicThemeToWebView()
+        }
+    }
+    private var lastSystemDark: Boolean? = null
+
     private fun pushEdgeToEdgeAndDynamicThemeToWebView() {
         if (!::webView.isInitialized) return
         val paletteJson = extractDeviceWallpaperPalette().toString()
@@ -334,6 +356,21 @@ class MainActivity : ComponentActivity() {
                 obj.put("secondaryContainer", hex(android.R.color.system_accent2_700))
                 obj.put("tertiary", hex(android.R.color.system_accent3_200))
                 obj.put("tertiaryContainer", hex(android.R.color.system_accent3_700))
+                // Light-theme tones of the same wallpaper palette.
+                obj.put("light", JSONObject().apply {
+                    put("surface", hex(android.R.color.system_neutral1_10))
+                    put("containerLow", hex(android.R.color.system_neutral1_50))
+                    put("container", hex(android.R.color.system_neutral2_50))
+                    put("containerHigh", hex(android.R.color.system_neutral2_100))
+                    put("containerHighest", hex(android.R.color.system_neutral2_200))
+                    put("primary", hex(android.R.color.system_accent1_600))
+                    put("onPrimary", hex(android.R.color.system_accent1_0))
+                    put("primaryContainer", hex(android.R.color.system_accent1_100))
+                    put("onPrimaryContainer", hex(android.R.color.system_accent1_900))
+                    put("secondaryContainer", hex(android.R.color.system_accent2_100))
+                    put("tertiary", hex(android.R.color.system_accent3_600))
+                    put("tertiaryContainer", hex(android.R.color.system_accent3_100))
+                })
             } catch (e: Exception) {
                 // Fall back to the default Iris tokens if system tonal resources are unavailable.
             }
@@ -613,6 +650,7 @@ class MainActivity : ComponentActivity() {
                 put("bottomPx", if (lastImeVisible) 0 else lastBottomInsetDp)
                 put("imeOpen", lastImeVisible)
                 put("palette", extractDeviceWallpaperPalette())
+                put("systemDark", ThemePrefs.systemIsDark(this@MainActivity))
             }.toString()
         }
 
@@ -640,6 +678,17 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface
         fun setThemePrefs(dynamicWallpaper: Boolean, amoled: Boolean) {
             ThemePrefs.save(applicationContext, dynamicWallpaper, amoled)
+        }
+
+        /** Settings → Theme: "dark", "light" or "system". */
+        @JavascriptInterface
+        fun setThemeMode(mode: String) {
+            ThemePrefs.saveMode(applicationContext, mode)
+            runOnUiThread {
+                applySystemBarAppearance()
+                surfaceColor = ThemePrefs.surfaceColor(this@MainActivity)
+                window.setBackgroundDrawable(ColorDrawable(surfaceColor))
+            }
         }
 
         /** The hub tells us whether Back should close something (modal / non-home tab) or leave the app. */
