@@ -63,7 +63,9 @@ jobs:
           arch: x86_64
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          script: ./gradlew --no-daemon connectedDebugAndroidTest
+          # On failure, print the crash buffer and any fatal exception before the emulator shuts down.
+          script: >-
+            ./gradlew --no-daemon connectedDebugAndroidTest || { adb logcat -d -b crash | tail -n 120; adb logcat -d | grep -E -A40 "FATAL EXCEPTION|Process. com.dailygames" | head -n 200; exit 1; }
       - name: Show failing device tests
         if: failure()
         run: |
