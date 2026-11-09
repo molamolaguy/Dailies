@@ -165,10 +165,10 @@ class HubSmokeTest {
         ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof window.onSharedGameList)", "\"function\"")
             // The hub is singleTask: a tapped link or scanned QR code reaches the running hub (onNewIntent).
+            // Exactly what Android does for a singleTask activity that's already running.
             val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link))
                 .setClass(ctx, HubActivity::class.java)
-                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-            ctx.startActivity(intent)
+            s.onActivity { a -> InstrumentationRegistry.getInstrumentation().callActivityOnNewIntent(a, intent) }
             s.waitForJs("String(!document.getElementById('modalImportList').classList.contains('hidden'))", "\"true\"")
             assertEquals("\"Smoke List Game\"", s.js("document.querySelector('#importListRows .name').textContent"))
             s.js("closeModal('modalImportList'); 'ok'")
