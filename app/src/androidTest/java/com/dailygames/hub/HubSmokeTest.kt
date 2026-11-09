@@ -158,4 +158,23 @@ class HubSmokeTest {
             s.js("state.games=[]; saveState(); flushSyncNativeNow(); 'ok'")
         }
     }
+
+    @Test
+    fun aFriendsListLinkOpensTheAddGamesDialog() {
+        val link = GameListCodec.encode("""[{"name":"Smoke List Game","url":"https://example.org/daily","resetTime":"00:00","resetZone":"utc"}]""")!!
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link)).setClass(ctx, MainActivity::class.java)
+        ActivityScenario.launch<MainActivity>(intent).use { s ->
+            s.waitForJs("String(!document.getElementById('modalImportList').classList.contains('hidden'))", "\"true\"")
+            assertEquals("\"Smoke List Game\"", s.js("document.querySelector('#importListRows .name').textContent"))
+            s.js("closeModal('modalImportList'); 'ok'")
+        }
+    }
+
+    @Test
+    fun qrCodeIsGeneratedForAGameList() {
+        val link = GameListCodec.encode("""[{"name":"Wordle","url":"https://www.nytimes.com/games/wordle","resetTime":"00:00","resetZone":"local"}]""")!!
+        val qr = GameListCodec.qrDataUrl(link)
+        assertNotNull(qr)
+        assertTrue(qr!!.startsWith("data:image/png;base64,"))
+    }
 }

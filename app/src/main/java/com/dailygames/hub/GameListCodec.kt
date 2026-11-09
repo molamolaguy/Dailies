@@ -3,7 +3,6 @@ package com.dailygames.hub
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
-import java.util.Base64
 import java.util.zip.Deflater
 import java.util.zip.Inflater
 
@@ -38,13 +37,13 @@ object GameListCodec {
         val buf = ByteArray(raw.size + 64)
         val n = deflater.deflate(buf)
         deflater.end()
-        return PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(buf.copyOf(n))
+        return PREFIX + b64UrlEncode(buf.copyOf(n))
     }
 
     /** Finds a list link in [text] (a link, or a message containing one) → [{name,url,resetTime,resetZone}] JSON. */
     fun decode(text: String?): String? {
         val m = LINK_RE.find(text ?: return null) ?: return null
-        val bytes = runCatching { Base64.getUrlDecoder().decode(m.groupValues[1]) }.getOrNull() ?: return null
+        val bytes = b64UrlDecode(m.groupValues[1]) ?: return null
         val inflater = Inflater(true)
         inflater.setInput(bytes)
         val out = ByteArrayOutputStream()
@@ -71,6 +70,43 @@ object GameListCodec {
                 .put("resetTime", row.optString(2, "00:00")).put("resetZone", row.optString(3, "local")))
         }
         return if (games.length() > 0) games.toString() else null
+    }
+
+    private const val B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+
+    /** Unpadded base64url (java.util.Base64 needs Android 8, and android.util.Base64 isn't in unit tests). */
+    fun b64UrlEncode(data: ByteArray): String {
+        val sb = StringBuilder((data.size * 4 + 2) / 3)
+        var i = 0
+        while (i < data.size) {
+            val b0 = data[i].toInt() and 0xff
+            val b1 = if (i + 1 < data.size) data[i + 1].toInt() and 0xff else -1
+            val b2 = if (i + 2 < data.size) data[i + 2].toInt() and 0xff else -1
+            sb.append(B64[b0 shr 2])
+            sb.append(B64[((b0 and 3) shl 4) or (if (b1 >= 0) b1 shr 4 else 0)])
+            if (b1 >= 0) sb.append(B64[((b1 and 15) shl 2) or (if (b2 >= 0) b2 shr 6 else 0)])
+            if (b2 >= 0) sb.append(B64[b2 and 63])
+            i += 3
+        }
+        return sb.toString()
+    }
+
+    fun b64UrlDecode(text: String): ByteArray? {
+        if (text.length % 4 == 1) return null
+        val out = ByteArrayOutputStream(text.length * 3 / 4)
+        var acc = 0
+        var bits = 0
+        for (c in text) {
+            val v = B64.indexOf(c)
+            if (v < 0) return null
+            acc = (acc shl 6) or v
+            bits += 6
+            if (bits >= 8) {
+                bits -= 8
+                out.write((acc shr bits) and 0xff)
+            }
+        }
+        return out.toByteArray()
     }
 
     /** A QR code for [text] as a PNG data: URL (black on white, with a quiet zone). */

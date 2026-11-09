@@ -1,3 +1,34 @@
+# Dailies 1.2.0
+
+A feature update. It installs over 1.1.0 and keeps your games, streaks and history.
+
+## What's new since 1.1.0
+| | 1.1.0 | 1.2.0 |
+|---|---|---|
+| **Play time** | Not tracked | Timed per puzzle, with fastest and average times |
+| **Personal bests** | Not shown | Best score, fastest time and longest streak, with a note when you beat one |
+| **Achievements** | None | 14 badges, such as a 30-day streak, 100 solves and a perfect week |
+| **Monthly recap** | None | Games played, win rate, best streak and best result, ready to share |
+| **Screenshots** | Log by hand | Share a result screenshot to Dailies and it reads the result |
+| **Dark game pages** | Game sites' own colours | Sites without a dark mode are darkened in the dark theme |
+| **Games you've stopped playing** | Remove only | Archive: hidden, no alerts, history kept |
+| **Editing many games** | One at a time | Select several: alerts on/off, reset time, archive |
+| **Sharing your games** | Not possible | A link or QR code that adds the same games for a friend |
+| **Your history** | `.json` backup | Also a `.csv` spreadsheet |
+| **One-handed mode** | None | The page starts lower and dialogs open at the bottom |
+
+## Also changed
+- A simpler app icon in Material 3 colours.
+- Swiping between tabs follows your finger and glides into place.
+- The "Done today" section is a clear Show/Hide row that animates and brings the cards into view.
+
+## Requirements
+- Android 7.0 or newer.
+- Reading screenshots needs Google Play services (the text is read on the phone).
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.1.0
 
 A feature update. It installs over 1.0.x and keeps your games, streaks and history.

@@ -9,9 +9,11 @@
 - **Alerts you** when a new puzzle is out, and can remind you before a streak is lost.
 - **Plays games ad-free** in a built-in player.
 - **Logs results automatically** when you tap a game's Share button.
-- **Keeps your streaks and stats**: a calendar, win rate, score spread and your full history.
+- **Keeps your streaks and stats**: a calendar, win rate, score spread, play times, personal bests, achievements and a monthly recap.
+- **Reads results from screenshots** for games without a Share button.
 - **Light or dark**, with your wallpaper's colours.
-- **Keeps your data on your phone**: no server, no analytics. Back up by hand or weekly to a folder you choose.
+- **Keeps your data on your phone**: no server, no analytics. Back up by hand or weekly to a folder you choose, or export a `.csv`.
+- **Share your games** with a friend as a link or QR code.
 
 ## Install
 1. On your phone, open the [latest release](../../releases/latest) and download `Dailies-<version>.apk`.

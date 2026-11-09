@@ -1,0 +1,6 @@
+1.2.0
+• Play timer, personal bests, 14 achievements and a monthly recap you can share.
+• Read results from screenshots; dark mode for game sites without one.
+• Archive games, edit several at once, share your game list by link or QR code.
+• Export your history as a spreadsheet (.csv); one-handed mode.
+• Simpler app icon, smoother tab swipes, clearer "Done today" section.

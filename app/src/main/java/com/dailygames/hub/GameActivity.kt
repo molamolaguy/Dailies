@@ -277,7 +277,7 @@ class GameActivity : ComponentActivity() {
             androidx.core.content.ContextCompat.getDrawable(this@GameActivity, R.drawable.ic_bar_check)?.mutate()?.let { icon ->
                 icon.setBounds(0, 0, dp(18), dp(18))
                 setCompoundDrawablesRelative(icon, null, null, null)
-                compoundDrawableTintList = ColorStateList.valueOf(onPrimaryContainerColor)
+                androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(onPrimaryContainerColor))
                 compoundDrawablePadding = dp(8)
             }
         }
@@ -330,6 +330,8 @@ class GameActivity : ComponentActivity() {
         runCatching { androidx.webkit.WebSettingsCompat.setAlgorithmicDarkeningAllowed(view.settings, on) }
     }
 
+    // JavaScript is required: the games are web apps.
+    @android.annotation.SuppressLint("SetJavaScriptEnabled")
     private fun createGameWebView(): WebView = WebView(this).apply {
         setBackgroundColor(surfaceColor)
         applyDarkPages(this)
@@ -1249,7 +1251,7 @@ class GameActivity : ComponentActivity() {
                 val icon = androidx.core.content.ContextCompat.getDrawable(this@GameActivity, iconRes)?.mutate()
                 icon?.setBounds(0, 0, dp(20), dp(20))
                 setCompoundDrawablesRelative(icon, null, null, null)
-                compoundDrawableTintList = ColorStateList.valueOf(fg)
+                androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(fg))
                 compoundDrawablePadding = if (label.isEmpty()) 0 else dp(6)
             }
             contentDescription = desc

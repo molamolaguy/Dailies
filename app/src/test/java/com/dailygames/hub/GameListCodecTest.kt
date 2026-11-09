@@ -43,4 +43,16 @@ class GameListCodecTest {
         assertNull(GameListCodec.encode("[]"))
         assertNull(GameListCodec.encode("not json"))
     }
+
+    @Test
+    fun base64UrlMatchesTheJdk() {
+        val rnd = java.util.Random(7)
+        for (len in 0..40) {
+            val data = ByteArray(len).also { rnd.nextBytes(it) }
+            val mine = GameListCodec.b64UrlEncode(data)
+            assertEquals(java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(data), mine)
+            assertTrue(data.contentEquals(GameListCodec.b64UrlDecode(mine)))
+        }
+        assertNull(GameListCodec.b64UrlDecode("ab*c"))
+    }
 }
