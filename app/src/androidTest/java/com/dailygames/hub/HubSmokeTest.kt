@@ -4,12 +4,15 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
+import android.os.SystemClock
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -105,5 +108,54 @@ class HubSmokeTest {
         assertEquals(60, StreakReminders.leadMinutes(ctx))
         StreakReminders.setLeadMinutes(ctx, 45) // not an offered choice
         assertEquals(0, StreakReminders.leadMinutes(ctx))
+    }
+
+    /** Taps the element matched by [selector] with real touch events, like a finger on the screen. */
+    private fun ActivityScenario<MainActivity>.tapElement(selector: String) {
+        val rect = js("(function(){const e=document.querySelector(${org.json.JSONObject.quote(selector)}); if(!e) return ''; e.scrollIntoView({block:'center'}); const r=e.getBoundingClientRect(); return (r.left+r.width/2)+','+(r.top+r.height/2);})()")
+            .trim('"')
+        assertTrue("element $selector not found", rect.contains(','))
+        Thread.sleep(300)
+        val again = js("(function(){const r=document.querySelector(${org.json.JSONObject.quote(selector)}).getBoundingClientRect(); return (r.left+r.width/2)+','+(r.top+r.height/2);})()").trim('"')
+        val (cx, cy) = again.split(',').map { it.toFloat() }
+        var sx = 0f
+        var sy = 0f
+        onActivity { a ->
+            val wv = findWebView(a.window.decorView)!!
+            val loc = IntArray(2)
+            wv.getLocationOnScreen(loc)
+            val density = a.resources.displayMetrics.density
+            sx = loc[0] + cx * density
+            sy = loc[1] + cy * density
+        }
+        val inst = InstrumentationRegistry.getInstrumentation()
+        val t = SystemClock.uptimeMillis()
+        inst.sendPointerSync(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, sx, sy, 0))
+        inst.sendPointerSync(MotionEvent.obtain(t, t + 80, MotionEvent.ACTION_UP, sx, sy, 0))
+        inst.waitForIdleSync()
+        Thread.sleep(600)
+    }
+
+    @Test
+    fun doneTodaySectionFoldsWithARealTap() {
+        ActivityScenario.launch(MainActivity::class.java).use { s ->
+            s.waitForJs("String(typeof renderGamesGrid)", "\"function\"")
+            s.js(
+                "window.__errs=[]; window.addEventListener('error', e => window.__errs.push(String(e.message)));" +
+                    "const mk=(id,done)=>{const g={id,name:id,url:'https://example.com/'+id,resetTime:'00:00',resetZone:'utc',status:done?'completed':'ready'," +
+                    "streak:0,notifyEnabled:false,dayHistory:{}}; g.lastCycleKey=getCycleDateKey(g.resetTime,g.resetZone); if(done) g.dayHistory[g.lastCycleKey]='completed'; return g;};" +
+                    "state.games=[mk('fold-open',false),mk('fold-done',true)]; state.activeFilter='all'; state.settings.groupDone=true; state.settings.doneCollapsed=false;" +
+                    "switchNavigation('dashboard'); renderGamesGrid(); 'ok'"
+            )
+            s.waitForJs("String(!!document.querySelector('.done-section-head'))", "\"true\"")
+            assertEquals("\"true\"", s.js("document.querySelector('.done-section-head').getAttribute('aria-expanded')"))
+            s.tapElement(".done-section-head")
+            assertEquals("folded after one tap; errors: " + s.js("JSON.stringify(window.__errs)"),
+                "\"false\"", s.js("String(document.querySelector('.done-section-head').getAttribute('aria-expanded'))"))
+            assertEquals("\"1\"", s.js("String(document.querySelectorAll('#gamesGrid [data-card-game-id]').length)"))
+            s.tapElement(".done-section-head")
+            assertEquals("\"true\"", s.js("String(document.querySelector('.done-section-head').getAttribute('aria-expanded'))"))
+            s.js("state.games=[]; saveState(); flushSyncNativeNow(); 'ok'")
+        }
     }
 }
