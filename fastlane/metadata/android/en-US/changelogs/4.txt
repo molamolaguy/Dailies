@@ -3,4 +3,4 @@
 • Read results from screenshots; dark mode for game sites without one.
 • Archive games, edit several at once, share your game list by link or QR code.
 • Export your history as a spreadsheet (.csv); one-handed mode.
-• Simpler app icon, smoother tab swipes, clearer "Done today" section.
+• New app icon that follows your theme; smoother tab swipes; clearer "Done today" section.

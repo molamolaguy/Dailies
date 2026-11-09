@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="icon_auto_bg">#EADDFF</color>
+    <color name="icon_auto_shape">#6750A4</color>
+    <color name="icon_auto_mark">#FFFFFF</color>
+    <color name="icon_dark_bg">#1D1B20</color>
+    <color name="icon_dark_shape">#D0BCFF</color>
+    <color name="icon_dark_mark">#381E72</color>
+    <color name="icon_light_bg">#EADDFF</color>
+    <color name="icon_light_shape">#6750A4</color>
+    <color name="icon_light_mark">#FFFFFF</color>
+    <color name="icon_autoc_bg">#EADDFF</color>
+    <color name="icon_autoc_shape">#6750A4</color>
+    <color name="icon_autoc_mark">#FFFFFF</color>
+    <color name="icon_darkc_bg">#1D1B20</color>
+    <color name="icon_darkc_shape">#D0BCFF</color>
+    <color name="icon_darkc_mark">#381E72</color>
+    <color name="icon_lightc_bg">#EADDFF</color>
+    <color name="icon_lightc_shape">#6750A4</color>
+    <color name="icon_lightc_mark">#FFFFFF</color>
+</resources>

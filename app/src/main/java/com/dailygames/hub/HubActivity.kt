@@ -40,7 +40,7 @@ import java.io.File
 import java.util.Locale
 import java.util.concurrent.Executors
 
-class MainActivity : ComponentActivity() {
+class HubActivity : ComponentActivity() {
     private lateinit var scaffoldRoot: FrameLayout
     private lateinit var webView: WebView
     private lateinit var stateStore: HubStateStore
@@ -411,6 +411,12 @@ class MainActivity : ComponentActivity() {
         return obj
     }
 
+    override fun onStop() {
+        super.onStop()
+        // Swap the launcher icon only once the hub is off screen, so the switch can't disturb it.
+        if (!isChangingConfigurations) AppIcon.apply(applicationContext)
+    }
+
     override fun onPause() {
         super.onPause()
         if (::webView.isInitialized) webView.onPause()
@@ -563,7 +569,7 @@ class MainActivity : ComponentActivity() {
         if (intent == null) return
 
         val gameId = intent.getStringExtra(Notifier.EXTRA_GAME_ID)
-        // MainActivity is exported (launcher + share target): only our own notifications, which carry
+        // HubActivity is exported (launcher + share target): only our own notifications, which carry
         // the app-private token, may ask it to open a game.
         val trusted = intent.getStringExtra(Notifier.EXTRA_TOKEN) == Notifier.intentToken(this)
         if (!gameId.isNullOrBlank() && trusted) {
@@ -703,7 +709,7 @@ class MainActivity : ComponentActivity() {
                 put("bottomPx", if (lastImeVisible) 0 else lastBottomInsetDp)
                 put("imeOpen", lastImeVisible)
                 put("palette", extractDeviceWallpaperPalette())
-                put("systemDark", ThemePrefs.systemIsDark(this@MainActivity))
+                put("systemDark", ThemePrefs.systemIsDark(this@HubActivity))
             }.toString()
         }
 
@@ -739,7 +745,7 @@ class MainActivity : ComponentActivity() {
             ThemePrefs.saveMode(applicationContext, mode)
             runOnUiThread {
                 applySystemBarAppearance()
-                surfaceColor = ThemePrefs.surfaceColor(this@MainActivity)
+                surfaceColor = ThemePrefs.surfaceColor(this@HubActivity)
                 window.setBackgroundDrawable(surfaceColor.toDrawable())
             }
         }
@@ -829,6 +835,12 @@ class MainActivity : ComponentActivity() {
                 runCatching { screenshotPicker.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
                     .onFailure { runJs("window.onScreenshotText && window.onScreenshotText(null, 'picker')") }
             }
+        }
+
+        /** Settings → Display → App Icon Matches Theme (applied when leaving the app). */
+        @JavascriptInterface
+        fun setIconFollowsTheme(on: Boolean) {
+            AppIcon.setFollowsTheme(applicationContext, on)
         }
 
         /** Settings → Game Player → Dark Game Pages. */
@@ -951,7 +963,7 @@ class MainActivity : ComponentActivity() {
             runOnUiThread {
                 val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                 val text = runCatching {
-                    cm?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this@MainActivity)?.toString()
+                    cm?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this@HubActivity)?.toString()
                 }.getOrNull().orEmpty()
                 runJs("window.onClipboardText && window.onClipboardText($requestId, ${JSONObject.quote(text)})")
             }

@@ -11,7 +11,7 @@ import java.util.concurrent.Executors
 /**
  * Stores game icons on the device so the hub shows them instantly and offline.
  *
- * The hub requests icons as `https://favicon.dailes.invalid/?src=<original url>`; MainActivity's
+ * The hub requests icons as `https://favicon.dailes.invalid/?src=<original url>`; HubActivity's
  * WebViewClient intercepts that host (it never reaches the network) and answers from [load]. `.invalid`
  * is a reserved TLD, so the address can never belong to a real site.
  *

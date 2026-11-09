@@ -18,7 +18,7 @@ A feature update. It installs over 1.1.0 and keeps your games, streaks and histo
 | **One-handed mode** | None | The page starts lower and dialogs open at the bottom |
 
 ## Also changed
-- A simpler app icon in Material 3 colours.
+- A new app icon: a Material 3 flower shape with a sparkle. It follows your phone's light or dark theme and, on Android 12+, your wallpaper colours. Turn on **App Icon Matches Theme** to have it follow the app's own theme instead.
 - Swiping between tabs follows your finger and glides into place.
 - The "Done today" section is a clear Show/Hide row that animates and brings the cards into view.
 

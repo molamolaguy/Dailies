@@ -33,7 +33,7 @@ class HubSmokeTest {
         return null
     }
 
-    private fun ActivityScenario<MainActivity>.js(script: String): String {
+    private fun ActivityScenario<HubActivity>.js(script: String): String {
         var result: String? = null
         val latch = CountDownLatch(1)
         onActivity { a ->
@@ -44,7 +44,7 @@ class HubSmokeTest {
         return result ?: "null"
     }
 
-    private fun ActivityScenario<MainActivity>.waitForJs(script: String, expected: String, timeoutMs: Long = 20_000) {
+    private fun ActivityScenario<HubActivity>.waitForJs(script: String, expected: String, timeoutMs: Long = 20_000) {
         val end = System.currentTimeMillis() + timeoutMs
         var last = ""
         while (System.currentTimeMillis() < end) {
@@ -57,7 +57,7 @@ class HubSmokeTest {
 
     @Test
     fun hubLoadsAndSyncsGamesToNative() {
-        ActivityScenario.launch(MainActivity::class.java).use { s ->
+        ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof HubCore === 'object' && !!document.getElementById('gamesGrid'))", "\"true\"")
             // Add a game through the hub's own state and let it sync over the bridge.
             s.js(
@@ -78,7 +78,7 @@ class HubSmokeTest {
 
     @Test
     fun lightThemeAppliesFromSettings() {
-        ActivityScenario.launch(MainActivity::class.java).use { s ->
+        ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof applyThemeAndSettings)", "\"function\"")
             s.js("state.settings.themeMode='light'; applyThemeAndSettings(); 'ok'")
             assertEquals("\"light\"", s.js("document.documentElement.getAttribute('data-theme')"))
@@ -111,7 +111,7 @@ class HubSmokeTest {
     }
 
     /** Taps the element matched by [selector] with real touch events, like a finger on the screen. */
-    private fun ActivityScenario<MainActivity>.tapElement(selector: String) {
+    private fun ActivityScenario<HubActivity>.tapElement(selector: String) {
         val rect = js("(function(){const e=document.querySelector(${org.json.JSONObject.quote(selector)}); if(!e) return ''; e.scrollIntoView({block:'center'}); const r=e.getBoundingClientRect(); return (r.left+r.width/2)+','+(r.top+r.height/2);})()")
             .trim('"')
         assertTrue("element $selector not found", rect.contains(','))
@@ -138,7 +138,7 @@ class HubSmokeTest {
 
     @Test
     fun doneTodaySectionFoldsWithARealTap() {
-        ActivityScenario.launch(MainActivity::class.java).use { s ->
+        ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof renderGamesGrid)", "\"function\"")
             s.js(
                 "window.__errs=[]; window.addEventListener('error', e => window.__errs.push(String(e.message)));" +
@@ -162,8 +162,8 @@ class HubSmokeTest {
     @Test
     fun aFriendsListLinkOpensTheAddGamesDialog() {
         val link = GameListCodec.encode("""[{"name":"Smoke List Game","url":"https://example.org/daily","resetTime":"00:00","resetZone":"utc"}]""")!!
-        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link)).setClass(ctx, MainActivity::class.java)
-        ActivityScenario.launch<MainActivity>(intent).use { s ->
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(link)).setClass(ctx, HubActivity::class.java)
+        ActivityScenario.launch<HubActivity>(intent).use { s ->
             s.waitForJs("String(!document.getElementById('modalImportList').classList.contains('hidden'))", "\"true\"")
             assertEquals("\"Smoke List Game\"", s.js("document.querySelector('#importListRows .name').textContent"))
             s.js("closeModal('modalImportList'); 'ok'")
@@ -176,5 +176,29 @@ class HubSmokeTest {
         val qr = GameListCodec.qrDataUrl(link)
         assertNotNull(qr)
         assertTrue(qr!!.startsWith("data:image/png;base64,"))
+    }
+
+    @Test
+    fun launcherIconFollowsTheAppThemeWhenAsked() {
+        val pm = ctx.packageManager
+        fun on(name: String): Boolean {
+            val st = pm.getComponentEnabledSetting(android.content.ComponentName(ctx.packageName, ctx.packageName + name))
+            return st == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED ||
+                (st == android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DEFAULT && name == AppIcon.DEFAULT)
+        }
+        val prevMode = ThemePrefs.mode(ctx)
+        try {
+            AppIcon.setFollowsTheme(ctx, true)
+            ThemePrefs.saveMode(ctx, "dark")
+            AppIcon.apply(ctx)
+            val expected = AppIcon.wanted(true, "dark", ThemePrefs.isDynamic(ctx))
+            assertTrue(on(expected))
+            assertEquals(listOf(expected), AppIcon.ALL.filter { on(it) })
+        } finally {
+            AppIcon.setFollowsTheme(ctx, false)
+            ThemePrefs.saveMode(ctx, prevMode)
+            AppIcon.apply(ctx)
+        }
+        assertEquals(listOf(AppIcon.DEFAULT), AppIcon.ALL.filter { on(it) })
     }
 }

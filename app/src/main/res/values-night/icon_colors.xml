@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="icon_auto_bg">#1D1B20</color>
+    <color name="icon_auto_shape">#D0BCFF</color>
+    <color name="icon_auto_mark">#381E72</color>
+    <color name="icon_autoc_bg">#1D1B20</color>
+    <color name="icon_autoc_shape">#D0BCFF</color>
+    <color name="icon_autoc_mark">#381E72</color>
+</resources>

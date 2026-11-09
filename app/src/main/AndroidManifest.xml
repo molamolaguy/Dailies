@@ -25,15 +25,11 @@
 
         <!-- singleTask: sharing a link / tapping a notification reuses the running hub (onNewIntent) -->
         <activity
-            android:name=".MainActivity"
+            android:name=".HubActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|keyboardHidden|uiMode|screenLayout|smallestScreenSize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
 
             <!-- Allows sharing any daily game link directly from Chrome/browsers into Dailies -->
             <intent-filter>
@@ -57,6 +53,84 @@
                 <data android:scheme="dailies" android:host="add" />
             </intent-filter>
         </activity>
+
+        <!--
+          Launcher entries, one per icon look. ".MainActivity" (the name 1.x launched) is the default:
+          its icon follows the phone's dark theme and, on Android 12+, the wallpaper colours. With
+          Settings → "App Icon Matches Theme" on, AppIcon enables the one matching the app's own theme.
+        -->
+        <activity-alias
+            android:name=".MainActivity"
+            android:targetActivity=".HubActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconLight"
+            android:targetActivity=".HubActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_light"
+            android:roundIcon="@mipmap/ic_launcher_light_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconDark"
+            android:targetActivity=".HubActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_dark"
+            android:roundIcon="@mipmap/ic_launcher_dark_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconLightClassic"
+            android:targetActivity=".HubActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_lightc"
+            android:roundIcon="@mipmap/ic_launcher_lightc_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconDarkClassic"
+            android:targetActivity=".HubActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_darkc"
+            android:roundIcon="@mipmap/ic_launcher_darkc_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconAutoClassic"
+            android:targetActivity=".HubActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_autoc"
+            android:roundIcon="@mipmap/ic_launcher_autoc_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- Full-screen native player for a single daily game (no JS bridge) -->
         <activity
