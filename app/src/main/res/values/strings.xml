@@ -5,5 +5,6 @@
     <string name="adblock_on_site">Blocking ads on %1$s</string>
     <string name="adblock_off_site">Ads allowed on %1$s</string>
     <string name="download_saved">Download saved.</string>
+    <string name="download_fetching">Downloading…</string>
     <string name="download_failed">Couldn\'t save that download.</string>
 </resources>

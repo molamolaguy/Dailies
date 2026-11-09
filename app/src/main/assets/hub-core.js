@@ -439,7 +439,49 @@
     return mixedRows >= 4;
   }
 
+  /**
+   * Score statistics for one game's logged results ({outcome, score} rows): win rate and, when the
+   * scores are "N/M" guesses (Wordle-style), the average and the guess distribution for the most
+   * common M. Fails ("X/6", or a Missed row with an N/M score) count in an "X" bar.
+   */
+  function scoreStats(rows) {
+    const list = Array.isArray(rows) ? rows.filter((r) => r && typeof r === 'object') : [];
+    let won = 0;
+    let missed = 0;
+    const parsed = [];
+    const re = /(^|[^\d/])(\d{1,2}|[xX])\s*\/\s*(\d{1,2})(?![\d/])/;
+    for (const r of list) {
+      const ok = r.outcome === 'Completed';
+      if (ok) won += 1; else if (r.outcome === 'Missed') missed += 1; else continue;
+      const m = re.exec(String(r.score || ''));
+      if (!m) continue;
+      const max = Number(m[3]);
+      if (!(max >= 2 && max <= 20)) continue;
+      const fail = /x/i.test(m[2]) || !ok;
+      const n = fail ? null : Number(m[2]);
+      if (n !== null && (n < 1 || n > max)) continue;
+      parsed.push({ max, n });
+    }
+    const played = won + missed;
+    const out = { won, missed, played, winRate: played ? Math.round((won / played) * 100) : null, avg: null, max: null, dist: [] };
+    if (parsed.length < 2) return out;
+    const counts = new Map();
+    parsed.forEach((p) => counts.set(p.max, (counts.get(p.max) || 0) + 1));
+    let max = 0;
+    let best = -1;
+    counts.forEach((c, k) => { if (c > best || (c === best && k < max)) { best = c; max = k; } });
+    const same = parsed.filter((p) => p.max === max);
+    const solved = same.filter((p) => p.n !== null);
+    out.max = max;
+    out.avg = solved.length ? Math.round((solved.reduce((a, p) => a + p.n, 0) / solved.length) * 10) / 10 : null;
+    for (let i = 1; i <= max; i++) out.dist.push({ label: String(i), count: solved.filter((p) => p.n === i).length });
+    const fails = same.length - solved.length;
+    if (fails) out.dist.push({ label: 'X', count: fails });
+    return out;
+  }
+
   return {
+    scoreStats,
     isFailedShareResult,
     looksLikeShareResult,
     isStrictShareResult,

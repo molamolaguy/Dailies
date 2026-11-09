@@ -17,4 +17,5 @@ Transparent 96 px PNGs rendered from **Material Symbols Rounded** (Apache-2.0, s
 | paste | content_paste |
 | check / close | check / close |
 | verified | verified (filled) |
+| info | info |
 | arrow_back / refresh / open_in_new | same names |

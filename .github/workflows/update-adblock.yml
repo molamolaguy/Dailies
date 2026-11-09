@@ -1,0 +1,37 @@
+name: Update ad-block lists
+
+# Weekly: download the latest public filter lists, rebuild the bundled ad-block data, and open a
+# pull request if anything changed. Nothing ships until the pull request is reviewed and merged.
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download the filter lists
+        run: tools/fetch_adblock_lists.sh "$RUNNER_TEMP/lists"
+      - name: Builder tests
+        run: python3 tools/test_build_adblock.py
+      - name: Rebuild app/src/main/assets/adblock
+        run: python3 tools/build_adblock.py "$RUNNER_TEMP/lists"
+      - name: Open a pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: automation/adblock-lists
+          delete-branch: true
+          commit-message: Update the bundled ad-block lists
+          title: Update the bundled ad-block lists
+          body: |
+            Weekly refresh of the ad-block data in `app/src/main/assets/adblock/` from EasyList,
+            EasyPrivacy, AdGuard Base, HaGeZi Pro, StevenBlack and the Public Suffix List
+            (`tools/fetch_adblock_lists.sh` + `tools/build_adblock.py`). See `sources.json` for the new counts.
+            CI builds and tests the app on this pull request before it can be merged.
+          add-paths: app/src/main/assets/adblock/

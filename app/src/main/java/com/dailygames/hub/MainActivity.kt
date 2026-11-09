@@ -1,5 +1,8 @@
 package com.dailygames.hub
 
+import androidx.core.content.edit
+import androidx.core.net.toUri
+import androidx.core.graphics.drawable.toDrawable
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ClipboardManager
@@ -77,6 +80,20 @@ class MainActivity : ComponentActivity() {
         handleImportResult(uri)
     }
 
+    /** System folder picker for weekly automatic backups. */
+    private val backupFolderLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri == null) { pushAutoBackupStatus(); return@registerForActivityResult }
+        AutoBackup.enable(applicationContext, uri)
+        Thread {
+            AutoBackup.runIfDue(applicationContext, force = true)
+            runOnUiThread { pushAutoBackupStatus() }
+        }.start()
+    }
+
+    private fun pushAutoBackupStatus() {
+        runJs("window.onAutoBackupStatus && window.onAutoBackupStatus(${AutoBackup.statusJson(applicationContext)})")
+    }
+
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             runJs("window.onNotificationPermissionResult && window.onNotificationPermissionResult($granted)")
@@ -99,6 +116,7 @@ class MainActivity : ComponentActivity() {
         })
         Notifier.ensureChannel(this)
         DailyRefreshWorker.scheduleNextReset(this)
+        AutoBackup.schedule(this)
 
         // Edge-to-edge: draw behind the status & navigation bars.
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -109,15 +127,13 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
-        WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false
-            isAppearanceLightNavigationBars = false
-        }
+        applySystemBarAppearance()
+        lastSystemDark = ThemePrefs.systemIsDark(this)
 
         // Paint the window in the same surface colour the hub will use (wallpaper / AMOLED / Iris), so
         // there is no colour jump between the first frame and the WebView's first paint.
         surfaceColor = ThemePrefs.surfaceColor(this)
-        window.setBackgroundDrawable(ColorDrawable(surfaceColor))
+        window.setBackgroundDrawable(surfaceColor.toDrawable())
 
         // Accurate insets before the first layout pass (API 30+), so the page's very first frame already
         // has correct edge-to-edge padding instead of a guess that is corrected later.
@@ -288,6 +304,30 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    /** Dark status / navigation bar icons on the light theme, light icons on the dark one. */
+    private fun applySystemBarAppearance() {
+        val light = ThemePrefs.isLight(this)
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = light
+            isAppearanceLightNavigationBars = light
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // The phone switched between light and dark (uiMode is handled here, not by recreating).
+        val dark = ThemePrefs.systemIsDark(this)
+        if (dark != lastSystemDark) {
+            lastSystemDark = dark
+            applySystemBarAppearance()
+            surfaceColor = ThemePrefs.surfaceColor(this)
+            window.setBackgroundDrawable(surfaceColor.toDrawable())
+            runJs("window.onSystemThemeChanged && window.onSystemThemeChanged($dark)")
+            pushEdgeToEdgeAndDynamicThemeToWebView()
+        }
+    }
+    private var lastSystemDark: Boolean? = null
+
     private fun pushEdgeToEdgeAndDynamicThemeToWebView() {
         if (!::webView.isInitialized) return
         val paletteJson = extractDeviceWallpaperPalette().toString()
@@ -319,6 +359,21 @@ class MainActivity : ComponentActivity() {
                 obj.put("secondaryContainer", hex(android.R.color.system_accent2_700))
                 obj.put("tertiary", hex(android.R.color.system_accent3_200))
                 obj.put("tertiaryContainer", hex(android.R.color.system_accent3_700))
+                // Light-theme tones of the same wallpaper palette.
+                obj.put("light", JSONObject().apply {
+                    put("surface", hex(android.R.color.system_neutral1_10))
+                    put("containerLow", hex(android.R.color.system_neutral1_50))
+                    put("container", hex(android.R.color.system_neutral2_50))
+                    put("containerHigh", hex(android.R.color.system_neutral2_100))
+                    put("containerHighest", hex(android.R.color.system_neutral2_200))
+                    put("primary", hex(android.R.color.system_accent1_600))
+                    put("onPrimary", hex(android.R.color.system_accent1_0))
+                    put("primaryContainer", hex(android.R.color.system_accent1_100))
+                    put("onPrimaryContainer", hex(android.R.color.system_accent1_900))
+                    put("secondaryContainer", hex(android.R.color.system_accent2_100))
+                    put("tertiary", hex(android.R.color.system_accent3_600))
+                    put("tertiaryContainer", hex(android.R.color.system_accent3_100))
+                })
             } catch (e: Exception) {
                 // Fall back to the default Iris tokens if system tonal resources are unavailable.
             }
@@ -527,7 +582,7 @@ class MainActivity : ComponentActivity() {
         val nm = NotificationManagerCompat.from(this)
         val appEnabled = nm.areNotificationsEnabled()
         val channelBlocked = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
-            nm.getNotificationChannel(Notifier.CHANNEL_ID)?.importance == android.app.NotificationManager.IMPORTANCE_NONE
+            nm.getNotificationChannel(Notifier.channelId(this))?.importance == android.app.NotificationManager.IMPORTANCE_NONE
         return JSONObject()
             .put("enabled", appEnabled && !channelBlocked)
             .put("appEnabled", appEnabled)
@@ -558,7 +613,7 @@ class MainActivity : ComponentActivity() {
             val systemWillShowPrompt = !askedBefore ||
                 shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)
             if (systemWillShowPrompt) {
-                prefs.edit().putBoolean("asked_post_notifications", true).apply()
+                prefs.edit { putBoolean("asked_post_notifications", true) }
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 return
             }
@@ -571,7 +626,7 @@ class MainActivity : ComponentActivity() {
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && channelOnly ->
                 Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
                     .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-                    .putExtra(Settings.EXTRA_CHANNEL_ID, Notifier.CHANNEL_ID)
+                    .putExtra(Settings.EXTRA_CHANNEL_ID, Notifier.channelId(this))
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ->
                 Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
             else -> Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
@@ -598,6 +653,7 @@ class MainActivity : ComponentActivity() {
                 put("bottomPx", if (lastImeVisible) 0 else lastBottomInsetDp)
                 put("imeOpen", lastImeVisible)
                 put("palette", extractDeviceWallpaperPalette())
+                put("systemDark", ThemePrefs.systemIsDark(this@MainActivity))
             }.toString()
         }
 
@@ -627,6 +683,17 @@ class MainActivity : ComponentActivity() {
             ThemePrefs.save(applicationContext, dynamicWallpaper, amoled)
         }
 
+        /** Settings → Theme: "dark", "light" or "system". */
+        @JavascriptInterface
+        fun setThemeMode(mode: String) {
+            ThemePrefs.saveMode(applicationContext, mode)
+            runOnUiThread {
+                applySystemBarAppearance()
+                surfaceColor = ThemePrefs.surfaceColor(this@MainActivity)
+                window.setBackgroundDrawable(surfaceColor.toDrawable())
+            }
+        }
+
         /** The hub tells us whether Back should close something (modal / non-home tab) or leave the app. */
         @JavascriptInterface
         fun setBackInterceptEnabled(enabled: Boolean) {
@@ -638,6 +705,55 @@ class MainActivity : ComponentActivity() {
         fun syncGames(json: String) {
             GameStore.sync(applicationContext, json)
             DailyRefreshWorker.scheduleNextReset(applicationContext)
+        }
+
+        /** Weekly automatic backups: pick (or change) the folder, which also turns them on. */
+        @JavascriptInterface
+        fun chooseAutoBackupFolder() {
+            runOnUiThread { runCatching { backupFolderLauncher.launch(null) }.onFailure { pushAutoBackupStatus() } }
+        }
+
+        @JavascriptInterface
+        fun disableAutoBackup() {
+            AutoBackup.disable(applicationContext)
+            runOnUiThread { pushAutoBackupStatus() }
+        }
+
+        @JavascriptInterface
+        fun getAutoBackupStatus(): String = AutoBackup.statusJson(applicationContext)
+
+        @JavascriptInterface
+        fun runAutoBackupNow() {
+            Thread {
+                AutoBackup.runIfDue(applicationContext, force = true)
+                runOnUiThread { pushAutoBackupStatus() }
+            }.start()
+        }
+
+        /** Opt-in update check against the GitHub release; answers window.onUpdateCheckResult. */
+        @JavascriptInterface
+        fun checkForUpdate() {
+            val current = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: ""
+            Thread {
+                val json = UpdateCheck.check(current)
+                runOnUiThread { runJs("window.onUpdateCheckResult && window.onUpdateCheckResult($json)") }
+            }.start()
+        }
+
+        /** Opens the latest release page in the browser (a fixed address; the page can't pass one). */
+        @JavascriptInterface
+        fun openReleasePage() {
+            runOnUiThread {
+                runCatching {
+                    startActivity(Intent(Intent.ACTION_VIEW, UpdateCheck.RELEASES_PAGE.toUri()).addCategory(Intent.CATEGORY_BROWSABLE))
+                }
+            }
+        }
+
+        /** "Remind me before a reset" lead time in minutes (0 = off). */
+        @JavascriptInterface
+        fun setStreakReminder(minutes: Int) {
+            StreakReminders.setLeadMinutes(applicationContext, minutes)
         }
 
         /** In-game options from Settings: ad blocking and auto-logging captured share results. */

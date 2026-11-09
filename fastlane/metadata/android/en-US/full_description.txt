@@ -1,0 +1,11 @@
+<p>Dailies keeps every daily web puzzle you play in one place: Wordle, Connections, Nerdle, geography and trivia games, or any site with a once-a-day puzzle.</p>
+<ul>
+<li><b>Reset times that are right</b>: each game resets in its own time zone, shown in yours, with a live countdown.</li>
+<li><b>Alerts</b> when a new puzzle is out, and an optional reminder before a reset if a streak is at risk.</li>
+<li><b>Ad-free player</b>: games open in a built-in player that blocks ads and trackers.</li>
+<li><b>Automatic logging</b>: tap a game's Share button and your result is logged.</li>
+<li><b>Streaks and stats</b>: a calendar per game, best and current streaks, win rate and score spread.</li>
+<li><b>Light and dark themes</b>, Material You colours and a true-black mode.</li>
+<li><b>Your data stays on your phone</b>: no account, no server, no analytics. Back up to a file, or weekly to a folder you choose.</li>
+</ul>
+<p>Free and open source under the GPL-3.0.</p>

@@ -13,6 +13,8 @@
       let amoled = false;
       let useDynamic = true;
       let cachedPalette = null;
+      let themeMode = 'dark';
+      let systemDark = true;
       try {
         // Small launch-prefs record (the full hub state now lives in native storage and can be large).
         const rawPrefs = localStorage.getItem('dailydeck_launch_prefs_v1');
@@ -21,6 +23,7 @@
         if (prefs && typeof prefs === 'object') {
           amoled = Boolean(prefs.amoledDark);
           useDynamic = prefs.dynamicWallpaper !== false;
+          if (prefs.themeMode === 'light' || prefs.themeMode === 'system') themeMode = prefs.themeMode;
         }
         const rawThemeCache = localStorage.getItem('dailydeck_launch_theme_cache_v1');
         if (rawThemeCache) {
@@ -46,6 +49,7 @@
             if (env.palette && typeof env.palette === 'object' && Object.keys(env.palette).length > 0) {
               cachedPalette = env.palette;
             }
+            if (typeof env.systemDark === 'boolean') systemDark = env.systemDark;
             try {
               localStorage.setItem('dailydeck_launch_theme_cache_v1', JSON.stringify({
                 topPx: env.topPx,
@@ -57,9 +61,17 @@
         }
       } catch (e) {}
 
+      if (!window.AndroidBridge && window.matchMedia) systemDark = !window.matchMedia('(prefers-color-scheme: light)').matches;
+      const light = themeMode === 'light' || (themeMode === 'system' && !systemDark);
+      window.__SYSTEM_DARK__ = systemDark;
+      root.setAttribute('data-theme', light ? 'light' : 'dark');
+      root.classList.toggle('dark', !light);
+      if (light) amoled = false;
       root.setAttribute('data-amoled', amoled ? 'true' : 'false');
       root.setAttribute('data-m4-seed', useDynamic ? 'wallpaper' : 'iris');
       window.__INITIAL_WALLPAPER_PALETTE__ = cachedPalette;
+      // The wallpaper palette carries dark tones at the top level and light tones under "light".
+      if (light) cachedPalette = cachedPalette && cachedPalette.light && typeof cachedPalette.light === 'object' ? cachedPalette.light : null;
 
       // Defined here (not in the main script) so native inset updates apply even while the rest of the
       // page is still parsing or images are still downloading.
@@ -101,10 +113,12 @@
             <svg width="22" height="22" viewBox="0 0 108 108" class="rounded-md shrink-0">
               <rect width="108" height="108" rx="26" fill="#141218"/>
               <circle cx="54" cy="54" r="44" fill="#211F26"/>
+              <g transform="translate(-1 4.5)">
               <rect x="30" y="28" width="20" height="20" rx="4.5" fill="#4F378B"/>
               <rect x="30" y="54" width="20" height="20" rx="4.5" fill="#D0BCFF"/>
               <rect x="56" y="54" width="20" height="20" rx="4.5" fill="#4F378B"/>
               <path d="M67,25 C69,33 72,36 80,38 C72,40 69,43 67,51 C65,43 62,40 54,38 C62,36 65,33 67,25 Z" fill="#EADDFF"/>
+              </g>
             </svg>
             Dailies
           </span>
@@ -124,6 +138,18 @@
           <button id="btnOpenAddModal" type="button" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shrink-0">
             + Add Game
           </button>
+        </div>
+      </div>
+
+      <!-- Shown when "Check for Updates" finds a newer release -->
+      <div id="updateBanner" class="hidden glass-card rounded-2xl p-3.5 border border-indigo-500/40 flex items-center justify-between gap-3" role="status">
+        <div class="min-w-0">
+          <p id="updateBannerTitle" class="text-sm font-bold text-white">Update available</p>
+          <p class="text-xs text-slate-400">Download it from GitHub; it installs over this version and keeps your data.</p>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button id="btnUpdateOpen" type="button" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold">Get it</button>
+          <button id="btnUpdateDismiss" type="button" class="icon-btn ghost" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
         </div>
       </div>
 
@@ -192,6 +218,9 @@
             <p id="calSummarySubPlays" class="s">0 won · 0 missed</p>
           </div>
         </div>
+
+        <!-- Win rate, average and guess distribution for the selected game -->
+        <div id="gameScoreStats" class="score-stats pt-3 border-t border-slate-800"></div>
       </div>
 
       <!-- Daily Completion & Score History -->
@@ -227,6 +256,18 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+            <div>
+              <p class="font-bold text-white">Theme</p>
+              <p class="text-[11px] text-slate-400">Dark, light, or follow your phone</p>
+            </div>
+            <select id="settingThemeMode" aria-label="Theme" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="system">Match phone</option>
+            </select>
+          </div>
+
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Match Device Wallpaper Colors</p>
@@ -238,7 +279,7 @@
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">AMOLED Pitch-Black Surface</p>
-              <p class="text-[11px] text-slate-400">Pure black background</p>
+              <p class="text-[11px] text-slate-400">Pure black background in dark theme</p>
             </div>
             <input id="settingAmoledDark" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
@@ -249,6 +290,14 @@
               <p class="text-[11px] text-slate-400">Hide reset times &amp; shrink cards</p>
             </div>
             <input id="settingCompactCards" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Group Finished Games</p>
+              <p class="text-[11px] text-slate-400">Move today's done games into a section you can fold away</p>
+            </div>
+            <input id="settingGroupDone" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
         </div>
       </div>
@@ -341,6 +390,21 @@
           </div>
         </div>
 
+        <div class="mt-3.5 p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 text-xs">
+          <div>
+            <p class="font-bold text-white">Streak Reminder</p>
+            <p class="text-[11px] text-slate-400">If you haven't logged a game you have a streak in</p>
+          </div>
+          <select id="settingStreakReminder" aria-label="Streak reminder" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+            <option value="0">Off</option>
+            <option value="30">30 min before reset</option>
+            <option value="60">1 hr before reset</option>
+            <option value="120">2 hr before reset</option>
+            <option value="180">3 hr before reset</option>
+            <option value="360">6 hr before reset</option>
+          </select>
+        </div>
+
         <!-- Per-Game Notification Schedule List -->
         <div class="mt-3.5 space-y-2" id="notificationScheduleList"></div>
       </div>
@@ -355,6 +419,36 @@
           <button id="btnSettingsExportJson" type="button" class="w-full px-4 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold text-center">Save Backup (.json)</button>
           <button id="btnSettingsImportJson" type="button" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold text-center">Import Backup (.json or .txt)</button>
           <input id="inputImportBackupFile" type="file" accept=".txt,.json,text/plain,application/json" class="hidden" />
+        </div>
+        <div id="autoBackupBlock" class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs space-y-2.5">
+          <div>
+            <p class="font-bold text-white">Weekly Automatic Backup</p>
+            <p id="autoBackupStatus" class="text-[11px] text-slate-400 mt-0.5">Off. Choose a folder and Dailies saves a backup there every week (the last 5 are kept).</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="btnAutoBackupFolder" type="button" class="px-3 py-2 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold">Choose folder</button>
+            <button id="btnAutoBackupNow" type="button" class="hidden px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Back up now</button>
+            <button id="btnAutoBackupOff" type="button" class="hidden px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Turn off</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. About & updates -->
+      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+        <div>
+          <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-info section-icon" aria-hidden="true"></span>About</h3>
+          <p id="aboutVersion" class="text-xs text-slate-400">Dailies</p>
+        </div>
+        <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer text-xs">
+          <div>
+            <p class="font-bold text-white">Check for Updates</p>
+            <p class="text-[11px] text-slate-400">Once a day, ask GitHub if a newer version is out. Nothing about you is sent.</p>
+          </div>
+          <input id="settingUpdateCheck" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+        </label>
+        <div class="flex items-center gap-2 text-xs">
+          <button id="btnCheckUpdateNow" type="button" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Check now</button>
+          <p id="updateCheckResult" class="text-[11px] text-slate-400" role="status" aria-live="polite"></p>
         </div>
       </div>
     </section>
@@ -636,7 +730,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.1.0';
     const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
 
     const TIME_FMT_12 = (() => {
@@ -675,7 +769,11 @@
         askToLogOnReturn: true,
         autoLogFromShare: true,
         blockAdsInGames: true,
-        confirmDelete: true
+        confirmDelete: true,
+        themeMode: 'dark',
+        groupDone: true,
+        streakReminderMinutes: 0,
+        updateCheck: false
       };
     }
 
@@ -935,13 +1033,20 @@
         const s = state.settings || {};
         localStorage.setItem('dailydeck_launch_prefs_v1', JSON.stringify({
           amoledDark: Boolean(s.amoledDark),
-          dynamicWallpaper: s.dynamicWallpaper !== false
+          dynamicWallpaper: s.dynamicWallpaper !== false,
+          themeMode: s.themeMode || 'dark'
         }));
       } catch (e) {}
       try {
         if (window.AndroidBridge && typeof window.AndroidBridge.setThemePrefs === 'function') {
           const s = state.settings || {};
           window.AndroidBridge.setThemePrefs(s.dynamicWallpaper !== false, Boolean(s.amoledDark));
+        }
+        if (window.AndroidBridge && typeof window.AndroidBridge.setThemeMode === 'function') {
+          window.AndroidBridge.setThemeMode((state.settings || {}).themeMode || 'dark');
+        }
+        if (window.AndroidBridge && typeof window.AndroidBridge.setStreakReminder === 'function') {
+          window.AndroidBridge.setStreakReminder(Number((state.settings || {}).streakReminderMinutes) || 0);
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setGamePrefs === 'function') {
           const s = state.settings || {};
@@ -1038,6 +1143,9 @@
             notifyEnabled: Boolean(g.notifyEnabled),
             lastCycleKey: g.lastCycleKey || getCycleDateKey(g.resetTime, g.resetZone),
             lastPlayedCycle: g.status === 'completed' ? getCycleDateKey(g.resetTime, g.resetZone) : '',
+            // Logged anything (solved or missed) for the current puzzle: no streak reminder needed.
+            loggedCycle: (g.status === 'completed' || g.status === 'missed') && g.lastCycleKey === getCycleDateKey(g.resetTime, g.resetZone)
+              ? g.lastCycleKey : '',
             status: g.status || 'ready',
             streak: g.streak || 0
           }))));
@@ -1066,14 +1174,34 @@
       applyThemeAndSettings();
     };
 
+    /** Light or dark, from Settings → Theme ("system" follows the phone's dark-theme setting). */
+    function isLightTheme() {
+      const mode = (state.settings && state.settings.themeMode) || 'dark';
+      if (mode === 'light') return true;
+      if (mode === 'system') return window.__SYSTEM_DARK__ === false;
+      return false;
+    }
+
+    /** Native calls this when the phone switches between light and dark. */
+    window.onSystemThemeChanged = function (dark) {
+      window.__SYSTEM_DARK__ = Boolean(dark);
+      if (state && state.settings && state.settings.themeMode === 'system') applyThemeAndSettings();
+    };
+
     function applyThemeAndSettings() {
       if (!state.settings) state.settings = getDefaultSettings();
       const root = document.documentElement;
       const s = state.settings;
 
-      root.setAttribute('data-amoled', s.amoledDark ? 'true' : 'false');
+      const light = isLightTheme();
+      root.setAttribute('data-theme', light ? 'light' : 'dark');
+      root.classList.toggle('dark', !light);
+      root.setAttribute('data-amoled', s.amoledDark && !light ? 'true' : 'false');
       const seed = s.dynamicWallpaper ? 'wallpaper' : (s.themeSeed || 'iris');
       root.setAttribute('data-m4-seed', seed);
+      const palette = !deviceWallpaperPalette ? null
+        : (light ? (deviceWallpaperPalette.light && typeof deviceWallpaperPalette.light === 'object' ? deviceWallpaperPalette.light : null) : deviceWallpaperPalette);
+      const amoledOn = s.amoledDark && !light;
 
       const props = [
         '--md-surface', '--md-container-low', '--md-container',
@@ -1084,19 +1212,23 @@
         '--md-outline', '--md-glow'
       ];
 
-      if (s.dynamicWallpaper && deviceWallpaperPalette) {
-        if (!s.amoledDark && deviceWallpaperPalette.surface) root.style.setProperty('--md-surface', deviceWallpaperPalette.surface);
-        if (!s.amoledDark && deviceWallpaperPalette.containerLow) root.style.setProperty('--md-container-low', deviceWallpaperPalette.containerLow);
-        if (!s.amoledDark && deviceWallpaperPalette.container) root.style.setProperty('--md-container', deviceWallpaperPalette.container);
-        if (deviceWallpaperPalette.containerHigh) root.style.setProperty('--md-container-high', deviceWallpaperPalette.containerHigh);
-        if (deviceWallpaperPalette.containerHighest) root.style.setProperty('--md-container-highest', deviceWallpaperPalette.containerHighest);
-        if (deviceWallpaperPalette.primary) root.style.setProperty('--md-primary', deviceWallpaperPalette.primary);
-        if (deviceWallpaperPalette.onPrimary) root.style.setProperty('--md-on-primary', deviceWallpaperPalette.onPrimary);
-        if (deviceWallpaperPalette.primaryContainer) root.style.setProperty('--md-primary-container', deviceWallpaperPalette.primaryContainer);
-        if (deviceWallpaperPalette.onPrimaryContainer) root.style.setProperty('--md-on-primary-container', deviceWallpaperPalette.onPrimaryContainer);
-        if (deviceWallpaperPalette.secondaryContainer) root.style.setProperty('--md-secondary-container', deviceWallpaperPalette.secondaryContainer);
-        if (deviceWallpaperPalette.tertiary) root.style.setProperty('--md-tertiary', deviceWallpaperPalette.tertiary);
-        if (deviceWallpaperPalette.tertiaryContainer) root.style.setProperty('--md-tertiary-container', deviceWallpaperPalette.tertiaryContainer);
+      if (s.dynamicWallpaper && palette) {
+        props.forEach((p) => root.style.removeProperty(p));
+        const set = (prop, key, skipWhenAmoled) => {
+          if (palette[key] && !(skipWhenAmoled && amoledOn)) root.style.setProperty(prop, palette[key]);
+        };
+        set('--md-surface', 'surface', true);
+        set('--md-container-low', 'containerLow', true);
+        set('--md-container', 'container', true);
+        set('--md-container-high', 'containerHigh');
+        set('--md-container-highest', 'containerHighest');
+        set('--md-primary', 'primary');
+        set('--md-on-primary', 'onPrimary');
+        set('--md-primary-container', 'primaryContainer');
+        set('--md-on-primary-container', 'onPrimaryContainer');
+        set('--md-secondary-container', 'secondaryContainer');
+        set('--md-tertiary', 'tertiary');
+        set('--md-tertiary-container', 'tertiaryContainer');
       } else {
         props.forEach((p) => root.style.removeProperty(p));
       }
@@ -1751,6 +1883,7 @@
         if (state.activeFilter !== 'all' && g.status !== state.activeFilter) return false;
         return true;
       });
+      const sections = gameSections(list);
 
       if (list.length === 0) {
         const noGamesAtAll = state.games.length === 0;
@@ -1768,7 +1901,18 @@
         return;
       }
 
-      grid.innerHTML = list.map((g, idx) => buildGameCardHtml(g, idx, list.length, isCompact)).join('');
+      const cardsHtml = (games) => games.map((g, idx) => buildGameCardHtml(g, idx, games.length, isCompact)).join('');
+      if (!sections.grouped) {
+        grid.innerHTML = cardsHtml(list);
+      } else {
+        const collapsed = Boolean(state.settings && state.settings.doneCollapsed);
+        const n = sections.done.length;
+        grid.innerHTML = cardsHtml(sections.open) + `
+          <button type="button" data-action="toggle-done-section" class="done-section-head" aria-expanded="${collapsed ? 'false' : 'true'}">
+            <span class="icon-label"><span class="ico ico-check" aria-hidden="true"></span>Done today · ${n}</span>
+            <span class="chev" aria-hidden="true"></span>
+          </button>` + (collapsed ? '' : cardsHtml(sections.done));
+      }
       if (!isCompact) {
         grid.querySelectorAll('.game-countdown').forEach((el) => {
           const id = el.getAttribute('data-game-id');
@@ -1777,8 +1921,24 @@
       }
     }
 
+    /**
+     * With "Group finished games" on and the All filter, today's finished games go in their own
+     * section below the rest (each section keeps the user's order).
+     */
+    function gameSections(list) {
+      const grouped = Boolean(state.settings && state.settings.groupDone !== false) && state.activeFilter === 'all';
+      if (!grouped) return { grouped: false, open: list, done: [] };
+      const done = list.filter((g) => g.status === 'completed');
+      const open = list.filter((g) => g.status !== 'completed');
+      if (!done.length || !open.length) return { grouped: false, open: list, done: [] };
+      return { grouped: true, open, done };
+    }
+
     function moveGameInOrder(gameId, direction) {
-      const visibleList = state.games.filter((g) => state.activeFilter === 'all' || g.status === state.activeFilter);
+      const filtered = state.games.filter((g) => state.activeFilter === 'all' || g.status === state.activeFilter);
+      const sec = gameSections(filtered);
+      // The arrows move a card within the section it's shown in.
+      const visibleList = !sec.grouped ? filtered : (sec.done.some((g) => g.id === gameId) ? sec.done : sec.open);
       const visIdx = visibleList.findIndex((g) => g.id === gameId);
       if (visIdx < 0) return;
       const targetVisIdx = visIdx + direction;
@@ -2321,6 +2481,29 @@
       if (subPlaysEl) subPlaysEl.innerHTML = `${totalWon} <span class="ico ico-check" aria-hidden="true"></span> ${Math.max(0, totalPlays - totalWon)} <span class="ico ico-close" aria-hidden="true"></span>`;
       if (currentStreakEl) currentStreakEl.textContent = `${game.streak || 0}d`;
       if (monthCountsEl) monthCountsEl.innerHTML = `${escapeHtml(formatCalendarMonthShort(calendarYear, calendarMonth))}: ${monthCompletedCount} <span class="ico ico-check" aria-hidden="true"></span> ${monthMissedCount} <span class="ico ico-close" aria-hidden="true"></span>`;
+      renderScoreStats(game);
+    }
+
+    /** Win rate, average guesses and the guess distribution for the calendar's game. */
+    function renderScoreStats(game) {
+      const el = document.getElementById('gameScoreStats');
+      if (!el) return;
+      const rows = state.historyLogs.filter((l) => l && (l.gameId === game.id || (!l.gameId && l.gameName === game.name)));
+      const st = HubCore.scoreStats(rows);
+      if (!st.played) {
+        el.innerHTML = '<p class="text-xs text-slate-400">Log a few results to see your win rate and score spread here.</p>';
+        return;
+      }
+      const head = [`<span><strong>${st.winRate}%</strong> win rate</span>`, `<span>${plural(st.played, 'logged result')}</span>`];
+      if (st.avg !== null) head.splice(1, 0, `<span><strong>${st.avg}</strong> average (of ${st.max})</span>`);
+      let bars = '';
+      if (st.dist.length) {
+        const top = Math.max(1, ...st.dist.map((d) => d.count));
+        bars = `<div class="score-dist" role="img" aria-label="${escapeHtml(st.dist.map((d) => `${d.label}: ${d.count}`).join(', '))}">` +
+          st.dist.map((d) => `<div class="row"><span class="lbl">${escapeHtml(d.label)}</span><span class="bar${d.label === 'X' ? ' fail' : ''}" style="width:${Math.max(6, Math.round((d.count / top) * 100))}%">${d.count}</span></div>`).join('') +
+          '</div>';
+      }
+      el.innerHTML = `<p class="text-xs font-bold text-white mb-0.5">Score stats</p><p class="score-head">${head.join('<span aria-hidden="true">·</span>')}</p>${bars}`;
     }
 
     /** Permanently drops a removed game's kept history and its score-log rows (after confirming). */
@@ -2446,7 +2629,7 @@
         btn.className = 'notif-btn-on';
         btn.disabled = true;
         btn.setAttribute('aria-label', 'Notifications enabled');
-        btn.innerHTML = `<span class="ico ico-check" aria-hidden="true"></span>Notifications enabled`;
+        btn.innerHTML = `<span class="icon-label"><span class="ico ico-check" aria-hidden="true"></span>Notifications enabled</span>`;
       } else {
         btn.className = NOTIF_BTN_OFF_CLASS;
         btn.disabled = false;
@@ -2476,6 +2659,13 @@
       setChk('settingAskOnReturn', s.askToLogOnReturn !== false);
       setChk('settingAutoLogShare', s.autoLogFromShare !== false);
       setChk('settingBlockAds', s.blockAdsInGames !== false);
+      setVal('settingThemeMode', s.themeMode || 'dark');
+      setChk('settingGroupDone', s.groupDone !== false);
+      setVal('settingStreakReminder', String(Number(s.streakReminderMinutes) || 0));
+      setChk('settingUpdateCheck', Boolean(s.updateCheck));
+      renderAutoBackupStatus();
+      const v = document.getElementById('aboutVersion');
+      if (v) v.textContent = `Dailies ${APP_VERSION} · free and open source (GPL-3.0)`;
     }
 
     function renderNotificationsView() {
@@ -2510,6 +2700,87 @@
         if (id) schedTimerElements.set(id, el);
       });
     }
+
+    // ---- Weekly automatic backup (Settings → Data & Backup) ----
+    function readAutoBackupStatus() {
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.getAutoBackupStatus === 'function') {
+          return JSON.parse(window.AndroidBridge.getAutoBackupStatus() || '{}');
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    function renderAutoBackupStatus(status) {
+      const block = document.getElementById('autoBackupBlock');
+      if (!block) return;
+      const st = status && typeof status === 'object' ? status : readAutoBackupStatus();
+      if (!st) { block.classList.add('hidden'); return; }
+      const text = document.getElementById('autoBackupStatus');
+      const on = Boolean(st.enabled);
+      document.getElementById('btnAutoBackupFolder').textContent = on ? 'Change folder' : 'Choose folder';
+      document.getElementById('btnAutoBackupNow').classList.toggle('hidden', !on);
+      document.getElementById('btnAutoBackupOff').classList.toggle('hidden', !on);
+      if (!text) return;
+      text.classList.toggle('text-rose-300', Boolean(st.error));
+      if (!on) {
+        text.textContent = 'Off. Choose a folder and Dailies saves a backup there every week (the last 5 are kept).';
+      } else if (st.error) {
+        text.textContent = st.error;
+      } else {
+        const where = st.folder ? `in ${st.folder}` : 'in the folder you chose';
+        let last = 'No backup yet.';
+        if (Number(st.lastAt) > 0) {
+          const d = new Date(Number(st.lastAt));
+          const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+          const when = days <= 0 ? 'today' : (days === 1 ? 'yesterday' : `${days} days ago`);
+          last = `Last backup ${when} (${d.toLocaleDateString()}).`;
+        }
+        text.textContent = `On · weekly, ${where}. ${last}`;
+      }
+    }
+
+    window.onAutoBackupStatus = function (status) {
+      const wasBusy = autoBackupBusy;
+      autoBackupBusy = false;
+      renderAutoBackupStatus(status);
+      if (wasBusy && status && status.enabled && !status.error) showToast('Backup saved', status.lastName || 'Saved to your backup folder.', 'emerald');
+    };
+    let autoBackupBusy = false;
+
+    // ---- Opt-in update check (Settings → About) ----
+    let updateCheckManual = false;
+    function runUpdateCheck(manual) {
+      updateCheckManual = Boolean(manual);
+      const out = document.getElementById('updateCheckResult');
+      if (!(window.AndroidBridge && typeof window.AndroidBridge.checkForUpdate === 'function')) {
+        if (out && manual) out.textContent = 'Update checks need the Android app.';
+        return;
+      }
+      if (out && manual) out.textContent = 'Checking…';
+      try { window.AndroidBridge.checkForUpdate(); } catch (e) {}
+    }
+
+    window.onUpdateCheckResult = function (r) {
+      const res = r && typeof r === 'object' ? r : {};
+      if (!state.settings) state.settings = getDefaultSettings();
+      const out = document.getElementById('updateCheckResult');
+      if (res.ok) {
+        state.settings.lastUpdateCheckAt = Date.now();
+        saveState({ sync: false });
+      }
+      if (out && updateCheckManual) {
+        out.textContent = !res.ok ? "Couldn't reach GitHub. Try again later."
+          : (res.newer ? `Dailies ${res.latest} is available.` : `You're up to date (${res.current || APP_VERSION}).`);
+      }
+      if (res.ok && res.newer && (updateCheckManual || res.latest !== state.settings.dismissedUpdate)) {
+        const t = document.getElementById('updateBannerTitle');
+        if (t) t.textContent = `Dailies ${res.latest} is available`;
+        const b = document.getElementById('updateBanner');
+        if (b) { b.classList.remove('hidden'); b.dataset.version = res.latest; }
+      }
+      updateCheckManual = false;
+    };
 
     function renderVisibleTab() {
       renderKPIs();
@@ -3379,6 +3650,10 @@
       renderVisibleTab();
       flushSyncNativeNow();
       startLiveTickTimer();
+      // Opt-in daily update check (Settings → About).
+      if (state.settings && state.settings.updateCheck && Date.now() - (Number(state.settings.lastUpdateCheckAt) || 0) > 20 * 3600 * 1000) {
+        setTimeout(() => runUpdateCheck(false), 4000);
+      }
 
       // Enable button micro-animations only after first paint so initial load has zero transition lag
       requestAnimationFrame(() => {
@@ -3528,7 +3803,13 @@
           state.settings.autoMarkMissed = true;
           saveState({ sync: false });
           applyThemeAndSettings();
-          if (key === 'compactCards') {
+          if (key === 'streakReminderMinutes') {
+            state.settings.streakReminderMinutes = Number(el.value) || 0;
+            try { window.AndroidBridge && window.AndroidBridge.setStreakReminder && window.AndroidBridge.setStreakReminder(state.settings.streakReminderMinutes); } catch (e) {}
+          }
+          if (key === 'themeMode') saveLaunchPrefs();
+          if (key === 'updateCheck' && el.checked) runUpdateCheck(true);
+          if (key === 'compactCards' || key === 'groupDone') {
             renderGamesGrid();
           } else if (key === 'timeFormat' || key === 'showSeconds') {
             renderVisibleTab();
@@ -3544,6 +3825,10 @@
       bindSetting('settingAskOnReturn', 'askToLogOnReturn', true);
       bindSetting('settingAutoLogShare', 'autoLogFromShare', true);
       bindSetting('settingBlockAds', 'blockAdsInGames', true);
+      bindSetting('settingThemeMode', 'themeMode', false);
+      bindSetting('settingGroupDone', 'groupDone', true);
+      bindSetting('settingStreakReminder', 'streakReminderMinutes', false);
+      bindSetting('settingUpdateCheck', 'updateCheck', true);
       try {
         if (window.AndroidBridge && typeof window.AndroidBridge.getAdBlockInfo === 'function') {
           const info = JSON.parse(window.AndroidBridge.getAdBlockInfo() || '{}');
@@ -3554,6 +3839,29 @@
           }
         }
       } catch (e) {}
+
+      const onClick = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+      onClick('btnAutoBackupFolder', () => {
+        try { window.AndroidBridge && window.AndroidBridge.chooseAutoBackupFolder && (autoBackupBusy = true, window.AndroidBridge.chooseAutoBackupFolder()); } catch (e) {}
+      });
+      onClick('btnAutoBackupNow', () => {
+        try { autoBackupBusy = true; window.AndroidBridge.runAutoBackupNow(); } catch (e) {}
+      });
+      onClick('btnAutoBackupOff', () => {
+        try { window.AndroidBridge.disableAutoBackup(); } catch (e) {}
+      });
+      onClick('btnCheckUpdateNow', () => runUpdateCheck(true));
+      onClick('btnUpdateOpen', () => {
+        try { window.AndroidBridge && window.AndroidBridge.openReleasePage && window.AndroidBridge.openReleasePage(); } catch (e) {}
+      });
+      onClick('btnUpdateDismiss', () => {
+        const b = document.getElementById('updateBanner');
+        if (!b) return;
+        b.classList.add('hidden');
+        if (!state.settings) state.settings = getDefaultSettings();
+        state.settings.dismissedUpdate = b.dataset.version || '';
+        saveState({ sync: false });
+      });
 
       window.onBackupFileSaved = function (success) {
         if (success) {
@@ -3748,6 +4056,13 @@
         const target = e.target.closest('[data-action]');
         if (!target) return;
         const action = target.getAttribute('data-action');
+        if (action === 'toggle-done-section') {
+          if (!state.settings) state.settings = getDefaultSettings();
+          state.settings.doneCollapsed = !state.settings.doneCollapsed;
+          saveState({ sync: false });
+          renderGamesGrid();
+          return;
+        }
         const id = target.getAttribute('data-id');
         const game = state.games.find((g) => g.id === id);
         if (!game) return;

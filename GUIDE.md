@@ -1,8 +1,8 @@
-# Dailies 1.0.1: How the App Works
+# Dailies 1.1.0: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.0.1` (`versionCode = 2`)
+- **Version**: `1.1.0` (`versionCode = 3`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **Licence**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -85,7 +85,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - Only the game's own page can submit a result; ads and embedded frames can't.
   - The result is logged against the puzzle that was live when you opened the game.
 - **Downloads**:
-  - Web links go to your browser.
+  - Web links download with the game's login: into Downloads on Android 10+, or through Android's **Save to…** picker on Android 7–9 (up to 25 MB). If that fails, the link goes to your browser.
   - Files the game builds itself (`blob:` and `data:` links, e.g. a "save image" button) open Android's **Save to…** picker. They can be up to 25 MB.
 - **Links to other apps** (`intent://`) only open an installed app through a normal "view" request, or fall back to the web page the link names.
 
@@ -93,6 +93,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 - **Completion calendar**:
   - Pick a game, use ‹ › to change month, and **Today** to jump back.
   - The tiles show **Best streak**, **Current** and **Plays**.
+  - **Score stats** below them: win rate, and for "3/6"-style scores the average and a bar for each number of guesses (X = failed).
 - **Score history**:
   - Every result is listed newest first, 5 per page.
   - From the 6th result, a pager appears: tap ‹ › or swipe on the list.
@@ -100,9 +101,11 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 
 ### Tab 3: Settings
 - **Display**:
+  - Theme: Dark, Light or Match phone
   - Match Device Wallpaper Colors
-  - AMOLED Pitch-Black Surface
+  - AMOLED Pitch-Black Surface (dark theme only)
   - Compact Game Cards
+  - Group Finished Games: today's done games move under a **Done today** header you can fold away (with the All filter)
 - **Gameplay & Time**:
   - 12h / 24h clock
   - Seconds in countdowns
@@ -113,8 +116,11 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - Auto-Log Shared Results
 - **Reset Alerts**:
   - The button reads **✓ Notifications enabled** when Android allows them. Otherwise it reads **Allow Notifications**, which asks for permission or opens the right Android settings page.
+  - **Streak Reminder**: off, or 30 min to 6 hr before a reset. If a game you have a streak in isn't logged by then, one notification lists them (on its own "Streak Reminders" channel).
   - Below it, each game has its own alert toggle.
 - **Data & Backup**: **Save Backup (.json)** and **Import Backup (.json or .txt)** through the Android file picker.
+  - **Weekly Automatic Backup**: choose a folder and a backup in the same format is written there every week (`dailies_autobackup_<date>.json`, the newest 5 kept). **Back up now** and **Turn off** appear once it's on.
+- **About**: the version, and an opt-in **Check for Updates** (once a day, one anonymous request to GitHub's releases API). A newer release shows a banner on the hub.
 
 ### Undo
 - Auto-logged results, quick actions, manual logs and backup imports show a toast with an **Undo** button. The toast stays up for 20 seconds.
@@ -236,11 +242,12 @@ The debug APK is `app/build/outputs/apk/debug/Dailies-debug.apk`.
 
   | Command | What it runs |
   |---|---|
-  | `testDebugUnitTest` | 49 Kotlin tests |
+  | `testDebugUnitTest` | 78 Kotlin tests |
+  | `connectedDebugAndroidTest` | On-device smoke tests (needs an emulator or phone; CI runs them on an Android 14 emulator) |
   | `testHubJs` | The Node tests |
   | `python3 tools/test_build_adblock.py` | The list-builder tests |
 
-- **Refreshing the ad-block lists**: download the sources into a folder, run `python3 tools/build_adblock.py <folder>`, then rebuild. The file names to use are in the comment at the top of the script:
+- **Refreshing the ad-block lists**: `tools/fetch_adblock_lists.sh <folder>` downloads the sources, then run `python3 tools/build_adblock.py <folder>` and rebuild. The **Update ad-block lists** workflow does this every Monday and opens a pull request (allow it under **Settings → Actions → General → Allow GitHub Actions to create pull requests**). The file names to use are in the comment at the top of the script:
   - the EasyList / EasyPrivacy component files;
   - AdGuard Base (`adguard_base.txt`);
   - HaGeZi Pro (`hagezi_pro.txt`);
@@ -266,6 +273,7 @@ The debug APK is `app/build/outputs/apk/debug/Dailies-debug.apk`.
 - **Ads the blocker can't catch**: ads a game draws itself from its own server with no telltale paths, and anti-adblock walls. Use the shield for those sites.
 - **System UI fonts**: some parts are drawn by Android in the phone's system font: dropdown pop-up lists, the file pickers and notification text.
 - **Exact alarm timing**: Android may still delay an alert by a few minutes if exact alarms aren't allowed on your phone.
+- **Alert sound**: Android doesn't let apps change a channel's sound. 1.1.0 moves reset alerts to a new channel with sound, unless you had blocked the old one or turned its sound on yourself; then your choice stays.
 
 ---
 
@@ -349,3 +357,17 @@ The debug APK is `app/build/outputs/apk/debug/Dailies-debug.apk`.
 - `SafeHttp` connects directly (no proxy) to the address it checked, so DNS rebinding can't reach the local network; IPv4 addresses embedded in IPv6 (NAT64, 6to4) are checked too.
 - The zone picker only offers zones that Android's own time-zone database knows, so alerts and the hub always agree on the zone.
 - New tests: `BackgroundFixesTest`, `GamePlayerPolicyTest`, `SurrogatesTest`, more `HubStateStore` cases, and new schedule and share fixtures shared by the Kotlin and Node tests.
+
+## 9. New in 1.1.0
+
+The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for developers:
+- **New Kotlin files**: `StreakReminders.kt` (planner, alarm, receiver, "Streak Reminders" channel), `AutoBackup.kt` (folder access via the Storage Access Framework, daily WorkManager check, weekly write, pruning) and `UpdateCheck.kt`.
+- **Bridge methods**: `setThemeMode`, `setStreakReminder`, `chooseAutoBackupFolder`, `disableAutoBackup`, `getAutoBackupStatus`, `runAutoBackupNow`, `checkForUpdate`, `openReleasePage`. The hub also sends `loggedCycle` per game so reminders skip games already logged.
+- **Light theme**: `html[data-theme="light"]` overrides at the end of `app.css`; native screens read `ThemePrefs.isLight()`. The wallpaper palette now carries light tones under `palette.light`.
+- **Alert channel**: reset alerts post on `reset_alerts` (with sound). `Notifier.channelMigration()` decides once whether to keep the old silent `daily_game_refresh` channel.
+- **SafeHttp** uses the phone's HTTP proxy when one is set; it still refuses local names and every spelling of a local IPv4 address (`proxiedHostAllowed`).
+- **Popups** get network and element-hiding ad blocking judged against the popup's own site.
+- **Centring**: Google Sans's uneven font padding is turned off on native labels (`includeFontPadding = false`); hub fixes are in the "Optical centring" block of `app.css`.
+- **CI**: a `device-tests` job runs `connectedDebugAndroidTest`; `release.yml` also checks `APP_VERSION` in `index.html` and publishes only the newest section of the release notes. Lint is at 0 warnings.
+- **Store metadata** for F-Droid / Obtainium is in `fastlane/metadata/android/en-US/`.
+- New tests: `V110FeaturesTest`, proxy tests in `SafeHttpTest`, `scoreStats` in the Node tests, and `HubSmokeTest` on device.

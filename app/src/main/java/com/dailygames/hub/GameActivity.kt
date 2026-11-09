@@ -1,5 +1,8 @@
 package com.dailygames.hub
 
+import androidx.core.graphics.toColorInt
+import androidx.core.net.toUri
+import androidx.core.graphics.drawable.toDrawable
 import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.ClipboardManager
@@ -89,6 +92,7 @@ class GameActivity : ComponentActivity() {
     /** The game's own host: per-site ad-blocking choices are keyed on the game, not wherever it navigated. */
     private var gameHost = ""
     private var surfaceColor = 0
+    private var titleColor = Color.WHITE
     /** Last http(s) page shown, so a replacement WebView can reload it after the renderer is gone. */
     private var lastPageUrl: String? = null
     private var lastRendererCrashAt = 0L
@@ -159,7 +163,7 @@ class GameActivity : ComponentActivity() {
         autoLogEnabled = GamePrefs.autoLogShare(this)
         blockAdsSetting = GamePrefs.blockAds(this)
         PublicSuffix.ensureLoaded(this) // so per-site choices use the same "site" as the blocker
-        gameHost = Uri.parse(gameUrl).host?.lowercase(Locale.US).orEmpty()
+        gameHost = gameUrl.toUri().host?.lowercase(Locale.US).orEmpty()
         pageHost = gameHost.ifEmpty { null }
         adBlockActive = blockAdsSetting && !GamePrefs.isSiteAllowed(this, gameHost)
         if (blockAdsSetting) AdBlocker.warmUp(this)
@@ -175,25 +179,27 @@ class GameActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
         }
+        // Same Display settings as the hub: light / dark theme, AMOLED black, wallpaper colours (Android 12+).
+        val light = ThemePrefs.isLight(this)
         WindowCompat.getInsetsController(window, window.decorView).apply {
-            isAppearanceLightStatusBars = false
-            isAppearanceLightNavigationBars = false
+            isAppearanceLightStatusBars = light
+            isAppearanceLightNavigationBars = light
         }
-
-        // Extract device wallpaper Material You dynamic colors on Android 12+ (API 31+)
-        // Same Display settings as the hub: AMOLED = true black bar and page backdrop.
         val amoled = ThemePrefs.isAmoled(this)
         val isDynamic = ThemePrefs.isDynamic(this)
         surfaceColor = ThemePrefs.surfaceColor(this)
         val containerColor = when {
+            light && isDynamic -> getColor(android.R.color.system_neutral2_50)
+            light -> LIGHT_CONTAINER
             amoled -> Color.BLACK
             isDynamic -> getColor(android.R.color.system_neutral2_800)
             else -> CONTAINER
         }
-        val primaryColor = if (isDynamic) getColor(android.R.color.system_accent1_200) else PRIMARY
-        val onPrimaryColor = if (isDynamic) getColor(android.R.color.system_accent1_800) else ON_PRIMARY
-        val primaryContainerColor = if (isDynamic) getColor(android.R.color.system_accent1_700) else PRIMARY_CONTAINER
-        val onPrimaryContainerColor = if (isDynamic) getColor(android.R.color.system_accent1_100) else ON_PRIMARY_CONTAINER
+        val primaryColor = when { light && isDynamic -> getColor(android.R.color.system_accent1_600); light -> LIGHT_PRIMARY; isDynamic -> getColor(android.R.color.system_accent1_200); else -> PRIMARY }
+        val onPrimaryColor = when { light -> Color.WHITE; isDynamic -> getColor(android.R.color.system_accent1_800); else -> ON_PRIMARY }
+        val primaryContainerColor = when { light && isDynamic -> getColor(android.R.color.system_accent1_100); light -> LIGHT_PRIMARY_CONTAINER; isDynamic -> getColor(android.R.color.system_accent1_700); else -> PRIMARY_CONTAINER }
+        val onPrimaryContainerColor = when { light && isDynamic -> getColor(android.R.color.system_accent1_900); light -> LIGHT_ON_PRIMARY_CONTAINER; isDynamic -> getColor(android.R.color.system_accent1_100); else -> ON_PRIMARY_CONTAINER }
+        titleColor = if (light) LIGHT_ON_SURFACE else Color.WHITE
         barColors = intArrayOf(containerColor, primaryContainerColor, onPrimaryContainerColor)
 
         // ---- Top app bar (Material 3 Expressive tonal pills + Google Sans) ----
@@ -208,9 +214,11 @@ class GameActivity : ComponentActivity() {
         bar.addView(TextView(this).apply {
             text = gameName
             contentDescription = gameName
-            setTextColor(Color.WHITE)
+            setTextColor(titleColor)
             textSize = 15f
             typeface = googleSansBold
+            // Google Sans's extra top/bottom font padding is uneven; without it text centres on its letters.
+            includeFontPadding = false
             setSingleLine(true)
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
@@ -223,7 +231,7 @@ class GameActivity : ComponentActivity() {
         bar.addView(pill("", "Reload", primaryContainerColor, onPrimaryContainerColor, R.drawable.ic_bar_refresh) { webView.reload() })
         bar.addView(pill("", "Open in browser", primaryContainerColor, onPrimaryContainerColor, R.drawable.ic_bar_open_in_new) {
             val current = webView.url?.takeIf { it.startsWith("http://", true) || it.startsWith("https://", true) } ?: gameUrl
-            viewExternally(Uri.parse(current))
+            viewExternally(current.toUri())
         })
         if (blockAdsSetting) {
             shieldPill = pill("", "Ad blocking", primaryContainerColor, onPrimaryContainerColor,
@@ -257,6 +265,8 @@ class GameActivity : ComponentActivity() {
             setTextColor(onPrimaryContainerColor)
             textSize = 13f
             typeface = googleSansBold
+            // Google Sans's extra top/bottom font padding is uneven; without it text centres on its letters.
+            includeFontPadding = false
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(14), dp(10), dp(16), dp(10))
             background = GradientDrawable().apply { cornerRadius = dp(18).toFloat(); setColor(primaryContainerColor) }
@@ -294,7 +304,7 @@ class GameActivity : ComponentActivity() {
             WindowInsetsCompat.CONSUMED
         }
 
-        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(surfaceColor))
+        window.setBackgroundDrawable(surfaceColor.toDrawable())
         setContentView(container)
         onBackPressedDispatcher.addCallback(this, backCallback)
 
@@ -358,7 +368,7 @@ class GameActivity : ComponentActivity() {
                 this@GameActivity.progress.visibility = View.VISIBLE
                 // Commit the new page's host now (main-frame requests only record it as pending, so a
                 // cancelled navigation can't change which site the blocker treats as first-party).
-                val started = url?.let { Uri.parse(it).host }?.lowercase(Locale.US)
+                val started = url?.toUri()?.host?.lowercase(Locale.US)
                 pageHost = started ?: pendingPageHost ?: pageHost
                 pendingPageHost = null
                 rememberPageUrl(url)
@@ -509,7 +519,13 @@ class GameActivity : ComponentActivity() {
      * tapped link to another site opens in the browser, anything else is dropped.
      */
     @SuppressLint("SetJavaScriptEnabled")
+    /** The site the popup is showing, for first-party checks in its ad blocking. */
+    @Volatile private var popupHost: String? = null
+
+    // JavaScript is required: popups are sign-in pages and game windows.
+    @android.annotation.SuppressLint("SetJavaScriptEnabled")
     private fun createPopupWebView(userGesture: Boolean): WebView {
+        popupHost = null
         val child = WebView(this)
         popupView = child
         child.setBackgroundColor(surfaceColor)
@@ -554,8 +570,24 @@ class GameActivity : ComponentActivity() {
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 // Fallback in case the first load didn't pass through shouldOverrideUrlLoading.
-                if (!decided && url != null && !decide(Uri.parse(url))) view?.stopLoading()
-                popupTitle?.text = url?.let { Uri.parse(it).host }.orEmpty()
+                if (!decided && url != null && !decide(url.toUri())) view?.stopLoading()
+                popupTitle?.text = url?.toUri()?.host.orEmpty()
+                url?.toUri()?.host?.lowercase(Locale.US)?.let { popupHost = it }
+                if (!documentStartScriptsSupported && blockAdsSetting && adBlockActive &&
+                    WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
+                    view?.evaluateJavascript(pageScript("game/cosmetic.js"), null)
+                }
+            }
+
+            // Popups get the same ad and tracker blocking as the game page, judged against the
+            // popup's own site (a sign-in page's own scripts are first-party there).
+            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                val r = request ?: return null
+                if (r.isForMainFrame) {
+                    r.url?.host?.let { popupHost = it.lowercase(Locale.US) }
+                    return null
+                }
+                return blockedResponseFor(r, popupHost)
             }
 
             override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
@@ -566,6 +598,7 @@ class GameActivity : ComponentActivity() {
         child.webChromeClient = object : WebChromeClient() {
             override fun onCloseWindow(window: WebView?) { closePopup() }
         }
+        if (blockAdsSetting) installCosmeticHooks(child)
         return child
     }
 
@@ -577,9 +610,10 @@ class GameActivity : ComponentActivity() {
         val dlg = ComponentDialog(this, android.R.style.Theme_DeviceDefault_NoActionBar)
         val title = TextView(this).apply {
             text = host
-            setTextColor(Color.WHITE)
+            setTextColor(titleColor)
             textSize = 14f
             typeface = googleSansBold
+            includeFontPadding = false
             setSingleLine(true)
             ellipsize = TextUtils.TruncateAt.END
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(8) }
@@ -661,24 +695,7 @@ class GameActivity : ComponentActivity() {
                     offerShare(text, "page")
                 }
             }
-            if (blockAdsSetting) {
-                WebViewCompat.addWebMessageListener(webView, "DailesAdBlock", anyOrigin) { _, message, sourceOrigin, isMainFrame, reply ->
-                    if (!adBlockActive) {
-                        // Tell the page script to stop scanning (blocking is off for this site).
-                        runCatching { reply.postMessage("{\"disabled\":true}") }
-                        return@addWebMessageListener
-                    }
-                    val host = sourceOrigin.host?.lowercase(Locale.US) ?: return@addWebMessageListener
-                    val data = message.data ?: return@addWebMessageListener
-                    if (data.length > MAX_COSMETIC_MESSAGE) return@addWebMessageListener
-                    runCatching {
-                        cosmeticExecutor.execute {
-                            val css = cosmeticCssFor(host, data, isMainFrame) ?: return@execute
-                            runOnUiThread { runCatching { reply.postMessage(JSONObject().put("css", css).toString()) } }
-                        }
-                    }
-                }
-            }
+            if (blockAdsSetting) addCosmeticListener(webView)
             WebViewCompat.addWebMessageListener(webView, "DailesDownload", anyOrigin) { _, message, sourceOrigin, _, reply ->
                 onDownloadChannelMessage(message.data, sourceOrigin, reply)
             }
@@ -690,6 +707,38 @@ class GameActivity : ComponentActivity() {
             }
         } catch (e: Exception) {
             // Older WebView: the clipboard listener (layer 1) still captures results.
+        }
+    }
+
+    /** Element hiding for [target]: answers cosmetic.js's requests for a page's CSS. */
+    private fun addCosmeticListener(target: WebView) {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return
+        WebViewCompat.addWebMessageListener(target, "DailesAdBlock", setOf("*")) { _, message, sourceOrigin, isMainFrame, reply ->
+            if (!adBlockActive) {
+                // Tell the page script to stop scanning (blocking is off for this site).
+                runCatching { reply.postMessage("{\"disabled\":true}") }
+                return@addWebMessageListener
+            }
+            val host = sourceOrigin.host?.lowercase(Locale.US) ?: return@addWebMessageListener
+            val data = message.data ?: return@addWebMessageListener
+            if (data.length > MAX_COSMETIC_MESSAGE) return@addWebMessageListener
+            runCatching {
+                cosmeticExecutor.execute {
+                    val css = cosmeticCssFor(host, data, isMainFrame) ?: return@execute
+                    runOnUiThread { runCatching { reply.postMessage(JSONObject().put("css", css).toString()) } }
+                }
+            }
+        }
+    }
+
+    /** Cosmetic filtering for a popup window (the game page sets its hooks up in [setUpPageHooks]). */
+    private fun installCosmeticHooks(target: WebView) {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return
+        runCatching {
+            addCosmeticListener(target)
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+                WebViewCompat.addDocumentStartJavaScript(target, pageScript("game/cosmetic.js"), setOf("*"))
+            }
         }
     }
 
@@ -765,6 +814,12 @@ class GameActivity : ComponentActivity() {
             url.host?.let { pendingPageHost = it.lowercase(Locale.US) }
             return null
         }
+        return blockedResponseFor(request, pageHost)
+    }
+
+    /** The ad-blocking verdict for a sub-resource of a page on [firstPartyHost]: null to let it load. */
+    private fun blockedResponseFor(request: WebResourceRequest, firstPartyHost: String?): WebResourceResponse? {
+        val url = request.url ?: return null
         if (!adBlockActive) return null
         val scheme = url.scheme?.lowercase(Locale.US)
         if (scheme != "http" && scheme != "https") return null
@@ -774,7 +829,7 @@ class GameActivity : ComponentActivity() {
         val accept = headers.entries.firstOrNull { it.key.equals("Accept", true) }?.value
         val requestedWith = headers.entries.firstOrNull { it.key.equals("X-Requested-With", true) }?.value
         val type = AdBlockEngine.inferType(s, accept, false, requestedWith)
-        if (!engine.shouldBlock(s, pageHost, type)) return null
+        if (!engine.shouldBlock(s, firstPartyHost, type)) return null
         onRequestBlocked()
         // Ad libraries a game may call directly get a harmless stand-in so the game doesn't stall.
         Surrogates.forUrl(s)?.let { js -> return scriptResponse(js) }
@@ -1001,7 +1056,7 @@ class GameActivity : ComponentActivity() {
         }
         val launched = safe.data != null && runCatching { startActivity(safe) }.isSuccess
         if (!launched) {
-            val fb = fallback?.let { Uri.parse(it) }
+            val fb = fallback?.toUri()
             val s = fb?.scheme?.lowercase(Locale.US)
             if (fb != null && (s == "https" || s == "http")) webView.loadUrl(fb.toString())
         }
@@ -1063,14 +1118,16 @@ class GameActivity : ComponentActivity() {
 
     /**
      * Web downloads keep the game's login: on Android 10+ DownloadManager fetches them with the page's
-     * cookies into Downloads (no storage permission needed). Older phones hand the link to the browser.
+     * cookies into Downloads (no storage permission needed). On Android 7-9, where DownloadManager
+     * would need storage permission, the app fetches the file itself and saves it through the system
+     * file picker; only if that fails does the link go to the browser.
      */
     private fun startHttpDownload(url: String, userAgent: String?, contentDisposition: String?, mimeType: String?) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) { viewExternally(Uri.parse(url)); return }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) { fetchForSave(url, userAgent, contentDisposition, mimeType); return }
         val name = GamePlayerPolicy.filenameFromContentDisposition(contentDisposition)
             ?: URLUtil.guessFileName(url, contentDisposition, mimeType)
         val ok = runCatching {
-            val req = DownloadManager.Request(Uri.parse(url)).apply {
+            val req = DownloadManager.Request(url.toUri()).apply {
                 CookieManager.getInstance().getCookie(url)?.let { addRequestHeader("Cookie", it) }
                 if (!userAgent.isNullOrBlank()) addRequestHeader("User-Agent", userAgent)
                 if (!mimeType.isNullOrBlank()) setMimeType(mimeType)
@@ -1080,7 +1137,34 @@ class GameActivity : ComponentActivity() {
             }
             (getSystemService(DOWNLOAD_SERVICE) as DownloadManager).enqueue(req)
         }.isSuccess
-        if (ok) showBanner("Downloading $name") else viewExternally(Uri.parse(url))
+        if (ok) showBanner("Downloading $name") else viewExternally(url.toUri())
+    }
+
+    private fun fetchForSave(url: String, userAgent: String?, contentDisposition: String?, mimeType: String?) {
+        showBanner(getString(R.string.download_fetching))
+        val cookie = runCatching { CookieManager.getInstance().getCookie(url) }.getOrNull()
+        Thread {
+            val headers = buildMap {
+                if (!cookie.isNullOrBlank()) put("Cookie", cookie)
+                if (!userAgent.isNullOrBlank()) put("User-Agent", userAgent)
+            }
+            val r = SafeHttp.get(url, headers, maxBytes = MAX_DOWNLOAD_BYTES + 1, deadlineMs = 60_000)
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                when {
+                    r == null || r.code !in 200..299 -> viewExternally(url.toUri())
+                    r.body.size > MAX_DOWNLOAD_BYTES -> showBanner(DOWNLOAD_TOO_BIG)
+                    else -> {
+                        val mime = mimeType?.takeIf { it.isNotBlank() && it != "application/octet-stream" }
+                            ?: r.contentType?.substringBefore(';')?.trim()?.ifBlank { null }
+                            ?: "application/octet-stream"
+                        val name = GamePlayerPolicy.filenameFromContentDisposition(contentDisposition)
+                            ?: URLUtil.guessFileName(url, contentDisposition, mime)
+                        promptSave(r.body, mime, name)
+                    }
+                }
+            }
+        }.start()
     }
 
     /** DailesDownload channel: "hi" from a frame that made blob: URLs, or the bytes of a requested blob. */
@@ -1158,6 +1242,8 @@ class GameActivity : ComponentActivity() {
             setTextColor(fg)
             textSize = 13f
             typeface = googleSansBold
+            // Google Sans's extra top/bottom font padding is uneven; without it text centres on its letters.
+            includeFontPadding = false
             gravity = Gravity.CENTER
             setSingleLine(true)
             minWidth = dp(48)
@@ -1240,11 +1326,17 @@ class GameActivity : ComponentActivity() {
         private val IMAGE_EXTENSIONS = setOf(".png", ".jpg", ".jpeg", ".gif", ".webp", ".heic", ".bmp")
 
         // Same Material 3 "Iris" dark roles used by the web UI (--md-* variables).
-        private val CONTAINER = Color.parseColor("#211E2B")
-        private val PRIMARY = Color.parseColor("#D3BCFF")
-        private val ON_PRIMARY = Color.parseColor("#381E72")
-        private val PRIMARY_CONTAINER = Color.parseColor("#4F378B")
-        private val ON_PRIMARY_CONTAINER = Color.parseColor("#EADDFF")
+        private val CONTAINER = "#211E2B".toColorInt()
+        private val PRIMARY = "#D3BCFF".toColorInt()
+        private val ON_PRIMARY = "#381E72".toColorInt()
+        private val PRIMARY_CONTAINER = "#4F378B".toColorInt()
+        private val ON_PRIMARY_CONTAINER = "#EADDFF".toColorInt()
+        // Light theme (Material 3 baseline light roles, as in the hub's light theme).
+        private val LIGHT_CONTAINER = "#F3EDF7".toColorInt()
+        private val LIGHT_PRIMARY = "#6750A4".toColorInt()
+        private val LIGHT_PRIMARY_CONTAINER = "#EADDFF".toColorInt()
+        private val LIGHT_ON_PRIMARY_CONTAINER = "#21005D".toColorInt()
+        private val LIGHT_ON_SURFACE = "#1D1B20".toColorInt()
     }
 }
 
