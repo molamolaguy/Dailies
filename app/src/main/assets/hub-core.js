@@ -401,6 +401,19 @@
   const STRICT_COUNTED_RE = /#[ \u00A0]?[0-9]+|(?<![A-Za-z0-9_])[0-9]+[ \t\u00A0]*(?:guess|guesses|tries|attempts?|mistakes?|points?|pts|moves?|swaps?|seconds?|secs?|minutes?|mins?)(?![A-Za-z0-9_])/i;
   const STRICT_HELP_RE = /(?<![A-Za-z0-9_])(?:how to play|you have[ \t ]+[0-9]+|you get[ \t ]+[0-9]+|in[ \t ]+[0-9]+[ \t ]+(?:tries|guesses|attempts|chances)|guess the|find the|can you|each guess|tap to|rules)(?![A-Za-z0-9_])/i;
   const STRICT_PUZZLE_NO_RE = /#[  ]?[0-9]/;
+  // Results scored in other units (Krillion's "4,250m" depth, "87%", "1,200 XP"), or emoji plus numbers;
+  // only when the text also names the game or its site.
+  const STRICT_MEASURED_RE = /(?<![A-Za-z0-9_])[0-9][0-9,.]*[ \t\u00A0]*(?:m|meters?|metres?|km|ft|feet|%|xp|pts|points?|depth|rank)(?![A-Za-z0-9_])/i;
+  const STRICT_EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u2B50]/u;
+  /** The site's own name from its host: "krillion" for krillion.io, "bbc" for www.bbc.co.uk. */
+  function siteLabel(host) {
+    const parts = String(host || '').toLowerCase().split('.').filter(Boolean);
+    if (parts.length < 2) return '';
+    let label = parts[parts.length - 2];
+    if (parts.length >= 3 && /^(co|com|org|net|ac|gov|edu)$/.test(label)) label = parts[parts.length - 3];
+    return /^[a-z0-9-]+$/.test(label) ? label : '';
+  }
+
   function isStrictShareResult(text, game) {
     const t = String(text || '').trim();
     if (t.length < 3 || t.length > 4000) return false;
@@ -410,11 +423,14 @@
     const name = String((game && game.name) || '').trim().toLowerCase();
     let host = '';
     try { host = new URL(String((game && game.url) || '')).hostname.replace(/^www\./, '').toLowerCase(); } catch (e) {}
-    const mentionsGame = (name.length >= 3 && lower.includes(name)) || (host && lower.includes(host));
+    const label = siteLabel(host);
+    const mentionsGame = (name.length >= 3 && lower.includes(name)) || (host && lower.includes(host)) ||
+      (label.length >= 4 && new RegExp(`(?<![a-z0-9])${label}(?![a-z0-9])`).test(lower));
     // Rules / help text ("Guess the Wordle in 6 tries") names the game and a count but isn't a result.
     if (STRICT_HELP_RE.test(t) && !STRICT_PUZZLE_NO_RE.test(t)) return false;
     if (STRICT_FRACTION_RE.test(t) && (STRICT_CONTEXT_RE.test(t) || mentionsGame)) return true;
-    return Boolean(mentionsGame && STRICT_COUNTED_RE.test(t));
+    if (!mentionsGame) return false;
+    return STRICT_COUNTED_RE.test(t) || STRICT_MEASURED_RE.test(t) || (STRICT_EMOJI_RE.test(t) && /[0-9]/.test(t));
   }
 
   // A share result that says the puzzle was NOT solved ("X/6", "Next time", Connections with four
@@ -466,9 +482,8 @@
 
   /**
    * Score statistics for one game's logged results ({outcome, score, timeMs} rows): win rate and, when
-   * the scores are "N/M" guesses (Wordle-style), the average and the guess distribution for the most
-   * common M. Fails ("X/6", or a Missed row with an N/M score) count in an "X" bar. Solved rows with a
-   * play time give the fastest and average time.
+   * the scores are "N/M" guesses (Wordle-style), the average for the most common M. Solved rows with
+   * a play time give the fastest and average time.
    */
   function scoreStats(rows) {
     const list = Array.isArray(rows) ? rows.filter((r) => r && typeof r === 'object') : [];
@@ -486,7 +501,7 @@
     }
     const played = won + missed;
     const out = {
-      won, missed, played, winRate: played ? Math.round((won / played) * 100) : null, avg: null, max: null, dist: [],
+      won, missed, played, winRate: played ? Math.round((won / played) * 100) : null, avg: null, max: null,
       fastestMs: times.length ? Math.min(...times) : null,
       avgMs: times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null,
       timed: times.length
@@ -501,9 +516,6 @@
     const solved = same.filter((p) => p.n !== null);
     out.max = max;
     out.avg = solved.length ? Math.round((solved.reduce((a, p) => a + p.n, 0) / solved.length) * 10) / 10 : null;
-    for (let i = 1; i <= max; i++) out.dist.push({ label: String(i), count: solved.filter((p) => p.n === i).length });
-    const fails = same.length - solved.length;
-    if (fails) out.dist.push({ label: 'X', count: fails });
     return out;
   }
 

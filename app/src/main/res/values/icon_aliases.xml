@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Android 7.x has no adaptive icons: the launcher entries share the two pre-drawn PNGs (light and dark). -->
 <resources>
+    <item name="ic_launcher_auto" type="mipmap">@mipmap/ic_launcher</item>
+    <item name="ic_launcher_auto_round" type="mipmap">@mipmap/ic_launcher_round</item>
     <item name="ic_launcher_light" type="mipmap">@mipmap/ic_launcher</item>
     <item name="ic_launcher_light_round" type="mipmap">@mipmap/ic_launcher_round</item>
     <item name="ic_launcher_lightc" type="mipmap">@mipmap/ic_launcher</item>

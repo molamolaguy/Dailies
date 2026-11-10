@@ -669,6 +669,34 @@ button:active {
   color: #e2e6ee; white-space: pre-wrap; overflow-wrap: anywhere; tab-size: 4;
 }
 
+/* Result text folds away under each history row. */
+.hist-more { margin-top: 6px; }
+.hist-more > summary {
+  list-style: none; display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: 9999px;
+  font-size: 12px; font-weight: 600; color: var(--md-on-primary-container); background: var(--md-container-high); cursor: pointer; user-select: none;
+}
+.hist-more > summary::-webkit-details-marker { display: none; }
+.hist-more > summary .chev {
+  width: 7px; height: 7px; border: solid currentColor; border-width: 0 2px 2px 0; transform: translateY(-2px) rotate(45deg); transition: transform 0.2s;
+}
+.hist-more[open] > summary .chev { transform: translateY(1px) rotate(-135deg); }
+.hist-copy {
+  margin-top: 8px; min-height: 36px; padding: 0 14px; border-radius: 9999px; font-size: 12px; font-weight: 600;
+  color: var(--md-on-primary-container); background: var(--md-primary-container);
+}
+.day-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.day-chip {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border-radius: 9999px; font-size: 12px; font-weight: 600;
+  color: #d5dae4; background: var(--md-container-high); white-space: nowrap;
+}
+.day-chip.ok { color: #86efc0; background: rgba(16, 185, 129, 0.16); }
+.day-chip.bad { color: #fda4af; background: rgba(244, 63, 94, 0.16); }
+.day-chip.streak { color: #fcd34d; }
+html[data-theme="light"] .day-chip { color: var(--lt-strong); }
+html[data-theme="light"] .day-chip.ok { color: #116a43; }
+html[data-theme="light"] .day-chip.bad { color: var(--lt-bad); }
+html[data-theme="light"] .day-chip.streak { color: #8a5a00; }
+
 /* ---- Settings rows ---- */
 .alert-row { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; border-radius: 16px; background: var(--md-container-low); border: 1px solid var(--md-outline); min-width: 0; }
 .alert-row .info { flex: 1 1 auto; min-width: 0; }
@@ -1113,17 +1141,8 @@ html[data-theme="light"] .done-section-head { color: var(--lt-variant); }
 /* Score stats (Streaks & Log). */
 .score-head { display: flex; flex-wrap: wrap; column-gap: 8px; row-gap: 2px; font-size: 12px; color: #a9b1c1; margin-bottom: 8px; }
 .score-head strong { color: #fff; font-weight: 700; }
-.score-dist { display: grid; gap: 4px; }
-.score-dist .row { display: flex; align-items: center; gap: 8px; }
-.score-dist .lbl { width: 14px; text-align: center; font-size: 12px; font-weight: 700; color: #a9b1c1; font-variant-numeric: tabular-nums; }
-.score-dist .bar {
-  min-width: 22px; height: 20px; padding: 0 7px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: flex-end;
-  font-size: 11px; font-weight: 700; color: var(--md-on-primary-container); background: var(--md-primary-container);
-}
-.score-dist .bar.fail { background: rgba(244, 63, 94, 0.22); color: #fecdd3; }
-html[data-theme="light"] .score-head, html[data-theme="light"] .score-dist .lbl { color: var(--lt-muted); }
+html[data-theme="light"] .score-head { color: var(--lt-muted); }
 html[data-theme="light"] .score-head strong { color: var(--lt-on-surface); }
-html[data-theme="light"] .score-dist .bar.fail { background: rgba(179, 38, 30, 0.12); color: var(--lt-bad); }
 
 /* 1.2.0: play time in the log, personal bests, achievements. */
 .hist-time { white-space: nowrap; }
@@ -1148,9 +1167,12 @@ html[data-theme="light"] .ach-desc { color: var(--lt-muted); }
 /* 1.2.0: select mode and the bulk-edit bar. */
 #gamesGrid.select-mode [data-card-game-id] { position: relative; }
 .sel-cover {
-  position: absolute; inset: 0; z-index: 3; border-radius: inherit; display: flex; align-items: flex-start; justify-content: flex-end;
-  padding: 12px; background: transparent;
+  position: absolute; inset: 0; z-index: 3; border-radius: inherit; display: flex; align-items: flex-end; justify-content: flex-end;
+  padding: 14px 16px; background: transparent;
 }
+/* The tick box takes the place of the card's buttons, so the Ready / Done tag stays visible. */
+#gamesGrid.select-mode .gc-actions { visibility: hidden; }
+#gamesGrid.select-mode .game-card.compact .sel-cover { align-items: center; padding: 0 12px; }
 .sel-cover:active { transform: none; }
 .sel-box {
   width: 24px; height: 24px; border-radius: 8px; border: 2px solid var(--md-outline); background: var(--md-container-high);
@@ -1178,9 +1200,22 @@ html[data-theme="light"] .ach-desc { color: var(--lt-muted); }
 html[data-theme="light"] .bulk-count { color: var(--lt-strong); }
 html[data-theme="light"] .bulk-bar { box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.25); }
 
-/* One-handed mode: the page starts lower on tall screens and dialogs open as bottom sheets. */
-@media (min-height: 640px) {
-  html[data-onehand="true"] .m3-scaffold { padding-top: calc(var(--safe-top, 0px) + 1.15rem + 22vh); }
-  html[data-onehand="true"] [role="dialog"].flex { align-items: flex-end; padding-bottom: calc(var(--safe-bottom, 0px) + 12px); }
-  html[data-onehand="true"] [role="dialog"] .modal-panel { animation: sheet-in 0.24s var(--m3-spring-effects); }
-}
+/* The three tab pages share one slot, so each starts at the same height (the pager relies on it). */
+#m3Scaffold > section { margin-top: 0 !important; }
+
+/* Calendar: swipe sideways to change month (vertical scrolling still works). */
+.cal-swipe { overflow-x: clip; touch-action: pan-y; }
+
+/* Open dialogs: the page behind stays put, and nothing rubber-bands or stretches. */
+html.modal-open, html.modal-open body { overflow: hidden; overscroll-behavior: none; }
+[role="dialog"].fixed { overscroll-behavior: contain; }
+/* The share-list QR sheet is fixed in place: no scrolling, pinch-zoom or stretch. */
+html.qr-open #modalShareList, html.qr-open #modalShareList * { touch-action: none; }
+html.qr-open #modalShareList { overflow: hidden; }
+#shareListQr { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; pointer-events: none; }
+
+/* In-app update download progress (in the update banner). */
+.update-progress { margin-top: 8px; height: 4px; border-radius: 9999px; background: var(--md-container-high); overflow: hidden; }
+.update-progress > span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--md-primary); transition: width 0.2s linear; }
+.update-progress.indeterminate > span { width: 35%; animation: update-indet 1.1s ease-in-out infinite; }
+@keyframes update-indet { from { transform: translateX(-100%); } to { transform: translateX(290%); } }

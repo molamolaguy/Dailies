@@ -144,17 +144,19 @@ class HubSmokeTest {
                 "window.__errs=[]; window.addEventListener('error', e => window.__errs.push(String(e.message)));" +
                     "const mk=(id,done)=>{const g={id,name:id,url:'https://example.com/'+id,resetTime:'00:00',resetZone:'utc',status:done?'completed':'ready'," +
                     "streak:0,notifyEnabled:false,dayHistory:{}}; g.lastCycleKey=getCycleDateKey(g.resetTime,g.resetZone); if(done) g.dayHistory[g.lastCycleKey]='completed'; return g;};" +
-                    "state.games=[mk('fold-open',false),mk('fold-done',true)]; state.activeFilter='all'; state.settings.groupDone=true; state.settings.doneCollapsed=false;" +
+                    "state.games=[mk('fold-open',false),mk('fold-done',true)]; state.activeFilter='all'; state.settings.groupDone=true; doneSectionOpen=false;" +
                     "switchNavigation('dashboard'); renderGamesGrid(); 'ok'"
             )
             s.waitForJs("String(!!document.querySelector('.done-section-head'))", "\"true\"")
-            assertEquals("\"true\"", s.js("document.querySelector('.done-section-head').getAttribute('aria-expanded')"))
-            s.tapElement(".done-section-head")
-            assertEquals("folded after one tap; errors: " + s.js("JSON.stringify(window.__errs)"),
-                "\"false\"", s.js("String(document.querySelector('.done-section-head').getAttribute('aria-expanded'))"))
+            // Folded by default: only the unplayed game shows.
+            assertEquals("\"false\"", s.js("document.querySelector('.done-section-head').getAttribute('aria-expanded')"))
             assertEquals("\"1\"", s.js("String(document.querySelectorAll('#gamesGrid [data-card-game-id]').length)"))
             s.tapElement(".done-section-head")
-            assertEquals("\"true\"", s.js("String(document.querySelector('.done-section-head').getAttribute('aria-expanded'))"))
+            assertEquals("unfolded after one tap; errors: " + s.js("JSON.stringify(window.__errs)"),
+                "\"true\"", s.js("String(document.querySelector('.done-section-head').getAttribute('aria-expanded'))"))
+            assertEquals("\"2\"", s.js("String(document.querySelectorAll('#gamesGrid [data-card-game-id]').length)"))
+            s.tapElement(".done-section-head")
+            assertEquals("\"false\"", s.js("String(document.querySelector('.done-section-head').getAttribute('aria-expanded'))"))
             s.js("state.games=[]; saveState(); flushSyncNativeNow(); 'ok'")
         }
     }

@@ -12,7 +12,7 @@ class AppIconTest {
         assertEquals(".IconDark", AppIcon.wanted(true, "dark", true))
         assertEquals(".IconLightClassic", AppIcon.wanted(true, "light", false))
         assertEquals(".IconDarkClassic", AppIcon.wanted(true, "dark", false))
-        assertEquals(AppIcon.DEFAULT, AppIcon.wanted(true, "system", true))
+        assertEquals(".IconAuto", AppIcon.wanted(true, "system", true))
         assertEquals(".IconAutoClassic", AppIcon.wanted(true, "system", false))
         // Every answer is a declared launcher entry, and ".MainActivity" (1.x's launcher name) stays the default.
         listOf(true, false).forEach { f -> listOf("dark", "light", "system").forEach { m -> listOf(true, false).forEach { w ->

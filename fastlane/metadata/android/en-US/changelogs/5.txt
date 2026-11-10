@@ -1,0 +1,9 @@
+1.3.0
+• Download and install updates inside the app.
+• Auto-logging catches more games, such as Krillion.
+• Smoother tab swipes; swipe the calendar to change month.
+• Calendar days show the result first, with Copy and Edit.
+• Score history: tap Result to see and copy the full text.
+• "Done today" starts folded; edit today's entry from a game's settings.
+• New white icon with a yellow-to-green star.
+• Removed the score distribution chart and one-handed mode.

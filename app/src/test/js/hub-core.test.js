@@ -195,7 +195,7 @@ test('isFailedShareResult spots unsolved results', () => {
   solved.forEach((t) => assert.equal(core.isFailedShareResult(t), false, t));
 });
 
-test('scoreStats: win rate, average and guess distribution (1.1.0)', () => {
+test('scoreStats: win rate and average (1.1.0)', () => {
   const rows = [
     { outcome: 'Completed', score: 'Wordle 1,234 3/6\n⬛🟩🟩🟩🟩' },
     { outcome: 'Completed', score: '4/6' },
@@ -210,12 +210,11 @@ test('scoreStats: win rate, average and guess distribution (1.1.0)', () => {
   assert.equal(st.winRate, 83);
   assert.equal(st.max, 6);
   assert.equal(st.avg, 3);
-  assert.deepEqual(st.dist.map((d) => `${d.label}:${d.count}`), ['1:0', '2:1', '3:1', '4:1', '5:0', '6:0', 'X:1']);
+  assert.equal(st.dist, undefined); // 1.3.0: no distribution any more
   // Free-form scores: win rate only.
   const plain = core.scoreStats([{ outcome: 'Completed', score: '2,450 pts' }, { outcome: 'Missed', score: '' }]);
   assert.equal(plain.winRate, 50);
   assert.equal(plain.avg, null);
-  assert.deepEqual(plain.dist, []);
   assert.equal(core.scoreStats([]).winRate, null);
   assert.equal(core.scoreStats(null).played, 0);
 });

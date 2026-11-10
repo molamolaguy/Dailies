@@ -7,12 +7,12 @@ import androidx.core.content.edit
 
 /**
  * Picks which launcher entry (activity-alias in the manifest) is enabled, so the home-screen icon can
- * match the app's own theme. Off by default: the default icon already follows the phone's dark theme
- * and wallpaper colours, and some launchers drop a home-screen shortcut when its entry changes.
+ * match the app's theme. Off by default: the default icon is the white one with the yellow-to-green
+ * star, and some launchers drop a home-screen shortcut when its entry changes.
  */
 object AppIcon {
     const val DEFAULT = ".MainActivity"
-    val ALL = listOf(DEFAULT, ".IconLight", ".IconDark", ".IconLightClassic", ".IconDarkClassic", ".IconAutoClassic")
+    val ALL = listOf(DEFAULT, ".IconAuto", ".IconLight", ".IconDark", ".IconLightClassic", ".IconDarkClassic", ".IconAutoClassic")
     private const val PREFS = "dailes_theme_prefs"
     private const val KEY_FOLLOW = "icon_follows_theme"
 
@@ -26,7 +26,7 @@ object AppIcon {
         !follow -> DEFAULT
         mode == "light" -> if (wallpaperColors) ".IconLight" else ".IconLightClassic"
         mode == "dark" -> if (wallpaperColors) ".IconDark" else ".IconDarkClassic"
-        else -> if (wallpaperColors) DEFAULT else ".IconAutoClassic"
+        else -> if (wallpaperColors) ".IconAuto" else ".IconAutoClassic"
     }
 
     /** Enables the wanted entry first, then disables the rest (so there's always one). Call when leaving the app. */
