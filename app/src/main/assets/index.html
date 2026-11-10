@@ -144,10 +144,11 @@
       <div id="updateBanner" class="hidden glass-card rounded-2xl p-3.5 border border-indigo-500/40 flex items-center justify-between gap-3" role="status">
         <div class="min-w-0">
           <p id="updateBannerTitle" class="text-sm font-bold text-white">Update available</p>
-          <p class="text-xs text-slate-400">Download it from GitHub; it installs over this version and keeps your data.</p>
+          <p id="updateBannerSub" class="text-xs text-slate-400">Installs over this version and keeps your data.</p>
+          <div id="updateProgress" class="update-progress hidden" aria-hidden="true"><span></span></div>
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          <button id="btnUpdateOpen" type="button" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold">Get it</button>
+          <button id="btnUpdateOpen" type="button" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold">Update</button>
           <button id="btnUpdateDismiss" type="button" class="icon-btn ghost" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
         </div>
       </div>
@@ -163,6 +164,16 @@
       </div>
 
       <!-- Clean Minimal Games List -->
+      <!-- Play next: the next unplayed game, once today's run has started -->
+      <div id="playNextBar" class="play-next hidden" role="region" aria-label="Play next">
+        <div class="pn-icon" id="playNextIcon" aria-hidden="true"></div>
+        <div class="pn-text">
+          <p class="pn-k">Up next</p>
+          <p class="pn-name" id="playNextName" dir="auto"></p>
+        </div>
+        <span class="pn-left" id="playNextLeft"></span>
+        <button id="btnPlayNext" type="button" class="play-btn m4-primary-fab">Play next</button>
+      </div>
       <div id="gamesGrid" class="space-y-2.5"></div>
     </section>
 
@@ -187,7 +198,7 @@
           <button id="btnCalToday" type="button" class="cal-today-btn">Today</button>
         </div>
 
-        <div>
+        <div id="calendarSwipeArea" class="cal-swipe">
           <div id="calendarDowRow" class="cal-grid mb-1.5" aria-hidden="true">
             <div class="cal-dow">S</div><div class="cal-dow">M</div><div class="cal-dow">T</div><div class="cal-dow">W</div><div class="cal-dow">T</div><div class="cal-dow">F</div><div class="cal-dow">S</div>
           </div>
@@ -218,7 +229,7 @@
           </div>
         </div>
 
-        <!-- Win rate, average and guess distribution for the selected game -->
+        <!-- Win rate, average and personal bests for the selected game -->
         <div id="gameScoreStats" class="score-stats pt-3 border-t border-slate-800"></div>
       </div>
 
@@ -239,6 +250,14 @@
         <div class="mb-3">
           <h3 class="text-base font-bold text-white">Score History</h3>
           <p class="text-xs text-slate-400 mt-0.5">Every result you've logged, newest first.</p>
+        </div>
+        <div id="historyFilters" class="hist-filters">
+          <select id="historyFilterGame" aria-label="Show results for" class="cal-select px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-semibold"></select>
+          <div class="hist-chips" role="group" aria-label="Outcome">
+            <button type="button" class="hist-chip on" data-hist-outcome="all" aria-pressed="true">All</button>
+            <button type="button" class="hist-chip" data-hist-outcome="Completed" aria-pressed="false">Completed</button>
+            <button type="button" class="hist-chip" data-hist-outcome="Missed" aria-pressed="false">Missed</button>
+          </div>
         </div>
         <div id="historyBlock">
           <div id="historyTableBody" class="hist-list"></div>
@@ -306,17 +325,9 @@
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">App Icon Matches Theme</p>
-              <p class="text-[11px] text-slate-400">Light or dark icon to match the theme above, set when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
+              <p class="text-[11px] text-slate-400">Off: white icon with a yellow-to-green star. On: the icon follows the theme above, set when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
             </div>
             <input id="settingIconTheme" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">One-Handed Mode</p>
-              <p class="text-[11px] text-slate-400">Start the page lower and open dialogs at the bottom, within thumb reach</p>
-            </div>
-            <input id="settingOneHanded" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
@@ -403,7 +414,7 @@
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Block Ads in Games</p>
-              <p id="adBlockInfo" class="text-[11px] text-slate-400">Blocks ads, trackers and ad pop-ups. Tap the shield in a game to allow ads on that site.</p>
+              <p id="adBlockInfo" class="text-[11px] text-slate-400">Blocks ads, trackers and pop-ups. Tap the shield in a game to allow ads there.</p>
             </div>
             <input id="settingBlockAds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
@@ -513,6 +524,14 @@
       <form id="formSaveGame" class="p-4 space-y-3.5 text-xs sm:text-sm">
         <input type="hidden" id="editGameId" value="" />
 
+        <div id="editTodayEntry" class="hidden p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-xs font-semibold text-slate-200">Today's entry</p>
+            <p id="editTodayEntrySummary" class="text-[11px] text-slate-400 truncate"></p>
+          </div>
+          <button id="btnEditTodayEntry" type="button" class="shrink-0 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">Edit entry</button>
+        </div>
+
         <div>
           <div class="flex items-center justify-between mb-1">
             <label for="inputGameUrl" class="block text-xs font-semibold text-slate-300">Daily Game URL *</label>
@@ -573,6 +592,20 @@
           <input id="inputGameDesc" type="text" placeholder="e.g. Color-coded character attributes across 14 Fire Emblem releases" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
         </div>
 
+        <div>
+          <label for="inputGameReminder" class="block text-xs font-semibold text-slate-300 mb-1">Streak reminder for this game</label>
+          <select id="inputGameReminder" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white">
+            <option value="-1">Same as Settings</option>
+            <option value="0">Off for this game</option>
+            <option value="30">30 min before reset</option>
+            <option value="60">1 hr before reset</option>
+            <option value="120">2 hr before reset</option>
+            <option value="180">3 hr before reset</option>
+            <option value="360">6 hr before reset</option>
+          </select>
+          <p class="mt-1 text-[11px] text-slate-400">Reminds you when you have a streak and haven't logged today.</p>
+        </div>
+
         <label class="flex items-center gap-2.5 cursor-pointer select-none pt-1">
           <input id="inputNotifyEnabled" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500" />
           <span class="text-xs text-slate-200">Notify me right when this game's next puzzle reset occurs</span>
@@ -617,6 +650,28 @@
           <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg">Save Progress</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- CALENDAR DAY SNAPSHOT (read-only; Edit opens the log editor) -->
+  <div id="modalDayEntry" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="dayEntryTitle">
+    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl overflow-hidden">
+      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <h3 id="dayEntryTitle" class="text-sm sm:text-base font-bold text-white truncate">Result</h3>
+          <p id="dayEntryDate" class="text-[11px] text-slate-400"></p>
+        </div>
+        <button type="button" data-close-modal="modalDayEntry" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="p-4 space-y-3 text-xs sm:text-sm">
+        <div id="dayEntryChips" class="day-chips"></div>
+        <pre id="dayEntryScore" class="hist-score hidden"></pre>
+        <p id="dayEntryEmpty" class="hidden text-xs text-slate-400">Nothing logged for this day.</p>
+        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+          <button id="btnDayEntryCopy" type="button" class="hidden px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Copy</button>
+          <button id="btnDayEntryEdit" type="button" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg">Edit</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -672,7 +727,7 @@
       </div>
       <div class="p-4 space-y-3 text-xs text-center">
         <p class="text-slate-300">A friend can scan this with their phone camera, or open the link, to add the same games in Dailies.</p>
-        <img id="shareListQr" alt="QR code for your game list" class="share-qr mx-auto" />
+        <img id="shareListQr" alt="QR code for your game list" class="share-qr mx-auto" draggable="false" />
         <p id="shareListCount" class="text-slate-400"></p>
         <div class="flex justify-center gap-2 pt-1">
           <button id="btnShareListLink" type="button" class="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold">Share link</button>
@@ -850,7 +905,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.2.0';
+    const APP_VERSION = '1.3.0';
     const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
 
     const TIME_FMT_12 = (() => {
@@ -892,7 +947,6 @@
         confirmDelete: true,
         themeMode: 'dark',
         groupDone: true,
-        oneHanded: false,
         darkGamePages: true,
         iconFollowsTheme: false,
         streakReminderMinutes: 0,
@@ -916,6 +970,12 @@
 
     function recomputeGameStatsFromHistory(game) {
       return HubCore.recomputeGameStatsFromHistory(game);
+    }
+
+    const REMINDER_MINUTES = [0, 30, 60, 120, 180, 360];
+    function normalizeReminderMinutes(v) {
+      const n = Number(v);
+      return v !== undefined && v !== null && v !== '' && REMINDER_MINUTES.includes(n) ? n : -1;
     }
 
     function normalizeGameObject(g, idx) {
@@ -943,6 +1003,8 @@
         maxTries: String(g.maxTries || 'Daily Puzzle'),
         desc: String(g.desc || ''),
         notifyEnabled: g.notifyEnabled !== false,
+        // Streak reminder lead for this game: -1 = the app-wide setting, 0 = never, else minutes.
+        reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
         status: (g.status === 'completed' || g.status === 'missed') ? g.status : 'ready',
         todayScore: typeof g.todayScore === 'string' ? g.todayScore : '',
         streak: Math.max(0, parseInt(g.streak, 10) || 0),
@@ -1193,7 +1255,10 @@
     // Several saveState() calls in the same task (e.g. a rollover + a log) are merged into one write.
     let saveQueued = false;
     let syncWanted = false;
+    // Bumped on every change to the saved state, so a tab knows when its render is out of date.
+    let stateRev = 0;
     function saveState(opts) {
+      stateRev += 1;
       if (!opts || opts.sync !== false) syncWanted = true;
       if (opts && opts.syncNow) syncWanted = 'now';
       if (saveQueued) return;
@@ -1277,6 +1342,7 @@
             resetZone: HubCore.normalizeZone(g.resetZone),
             // Archived games keep their settings but never alert or remind.
             notifyEnabled: Boolean(g.notifyEnabled) && !g.archived,
+            reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
             lastCycleKey: g.lastCycleKey || getCycleDateKey(g.resetTime, g.resetZone),
             lastPlayedCycle: g.status === 'completed' ? getCycleDateKey(g.resetTime, g.resetZone) : '',
             // Logged anything (solved or missed) for the current puzzle: no streak reminder needed.
@@ -1331,7 +1397,6 @@
 
       const light = isLightTheme();
       root.setAttribute('data-theme', light ? 'light' : 'dark');
-      root.setAttribute('data-onehand', s.oneHanded ? 'true' : 'false');
       root.classList.toggle('dark', !light);
       root.setAttribute('data-amoled', s.amoledDark && !light ? 'true' : 'false');
       const seed = s.dynamicWallpaper ? 'wallpaper' : (s.themeSeed || 'iris');
@@ -1964,6 +2029,11 @@
 
     const STATUS_LABELS = { ready: 'Ready', completed: 'Done', missed: 'Missed' };
 
+    /** True when the game's current puzzle already has a row in the score log. */
+    function hasTodayEntry(g) {
+      return Boolean(g && findLogRow(g, getCycleDateKey(g.resetTime, g.resetZone)));
+    }
+
     function buildGameCardHtml(g, idx, totalVisible, isCompact) {
       const status = (g.status === 'completed' || g.status === 'missed') ? g.status : 'ready';
       const statusLabel = STATUS_LABELS[status];
@@ -1976,8 +2046,10 @@
           <button type="button" data-action="move-up" data-id="${id}" ${isFirst ? 'disabled' : ''} class="icon-btn" aria-label="Move up">${img('up', '')}</button>
           <button type="button" data-action="move-down" data-id="${id}" ${isLast ? 'disabled' : ''} class="icon-btn" aria-label="Move down">${img('down', '')}</button>
         </div>`;
+      // A finished game with today's entry logged hides ✓; the entry is edited from the game's settings.
+      const loggedToday = status === 'completed' && hasTodayEntry(g);
       const actions = `
-        <button type="button" data-action="log" data-id="${id}" class="icon-btn" aria-label="Log result" title="Log result">${img('check', '')}</button>
+        ${loggedToday ? '' : `<button type="button" data-action="log" data-id="${id}" class="icon-btn" aria-label="Log result" title="Log result">${img('check', '')}</button>`}
         <button type="button" data-action="edit" data-id="${id}" class="icon-btn ghost" aria-label="Edit game" title="Edit game">${img('settings', '')}</button>
         <button type="button" data-action="delete" data-id="${id}" class="icon-btn ghost danger" aria-label="Remove game" title="Remove game"><span class="ico ico-close ico-lg" aria-hidden="true"></span></button>
         <button type="button" data-action="play" data-id="${id}" class="play-btn m4-primary-fab">Play</button>`;
@@ -2020,6 +2092,7 @@
       const grid = document.getElementById('gamesGrid');
       if (!grid) return;
       if (grid.classList.contains('drag-active')) return; // never rebuild cards mid-drag
+      renderPlayNext();
       cardTimerElements.clear();
       const isCompact = Boolean(state.settings && state.settings.compactCards);
       grid.className = isCompact ? 'space-y-1.5' : 'space-y-2.5';
@@ -2051,7 +2124,7 @@
       if (!sections.grouped) {
         grid.innerHTML = cardsHtml(list);
       } else {
-        const collapsed = Boolean(state.settings && state.settings.doneCollapsed);
+        const collapsed = !doneSectionOpen;
         const n = sections.done.length;
         grid.innerHTML = cardsHtml(sections.open) + `
           <button type="button" data-action="toggle-done-section" class="done-section-head" aria-expanded="${collapsed ? 'false' : 'true'}" aria-controls="doneSection">
@@ -2356,19 +2429,20 @@
       return { grouped: true, open, done };
     }
 
+    // "Done today" starts folded every time the app opens; the user unfolds it to see played games.
+    let doneSectionOpen = false;
+
     /**
      * Folds or unfolds "Done today" with a height animation, and brings the cards into view when they
      * open (they're often below the bottom of the screen, where a change would go unnoticed).
      */
     function toggleDoneSection() {
-      if (!state.settings) state.settings = getDefaultSettings();
       const grid = document.getElementById('gamesGrid');
       const before = grid && grid.querySelector('#doneSection');
       const startH = before ? before.getBoundingClientRect().height : 0;
-      state.settings.doneCollapsed = !state.settings.doneCollapsed;
-      saveState({ sync: false });
+      doneSectionOpen = !doneSectionOpen;
       haptic('tick');
-      if (state.settings.doneCollapsed && before && startH > 0 && !REDUCED_MOTION && before.animate) {
+      if (!doneSectionOpen && before && startH > 0 && !REDUCED_MOTION && before.animate) {
         // Fold: shrink the open section first, then re-render without it.
         // The header flips straight away; the cards are removed when the shrink ends (or after a
         // short timeout, so the fold never depends on the animation actually running).
@@ -2389,7 +2463,7 @@
       }
       renderGamesGrid();
       const sec = document.getElementById('doneSection');
-      if (!state.settings.doneCollapsed && sec) {
+      if (doneSectionOpen && sec) {
         const h = sec.getBoundingClientRect().height;
         if (!REDUCED_MOTION && sec.animate && h > 0) {
           sec.style.overflow = 'hidden';
@@ -2634,8 +2708,43 @@
       }
     }
 
+    // ---- Play next ----
+    let lastOpenedGameId = '';
+    /** The next unplayed game after the one played last (in the hub's order, wrapping), or null. */
+    function nextGameToPlay() {
+      const list = visibleGames();
+      const ready = list.filter((g) => g.status === 'ready');
+      if (!ready.length) return null;
+      const from = list.findIndex((g) => g.id === lastOpenedGameId);
+      if (from >= 0) {
+        for (let i = 1; i <= list.length; i++) {
+          const g = list[(from + i) % list.length];
+          if (g.status === 'ready' && g.id !== lastOpenedGameId) return g;
+        }
+      }
+      return ready[0];
+    }
+    /** Shown once at least one game is done today and another is still waiting. */
+    function renderPlayNext() {
+      const bar = document.getElementById('playNextBar');
+      if (!bar) return;
+      const list = visibleGames();
+      const next = nextGameToPlay();
+      const started = list.some((g) => g.status === 'completed' || g.status === 'missed');
+      const show = Boolean(next && started && !selectMode);
+      bar.classList.toggle('hidden', !show);
+      if (!show) return;
+      const left = list.filter((g) => g.status === 'ready').length;
+      bar.dataset.id = next.id;
+      document.getElementById('playNextName').textContent = next.name;
+      document.getElementById('playNextIcon').innerHTML = renderGameIconHtml(next.icon, next.name, 'w-5 h-5');
+      document.getElementById('playNextLeft').textContent = `${left} left`;
+      document.getElementById('btnPlayNext').setAttribute('aria-label', `Play next: ${next.name}, ${plural(left, 'game')} left`);
+    }
+
     function openGameInPlayer(gameId) {
       checkDailyRollovers({ silent: true });
+      lastOpenedGameId = gameId;
       const game = state.games.find((g) => g.id === gameId);
       if (!game) {
         showToast('Game not found', 'That game is no longer in your hub.', 'indigo');
@@ -3061,18 +3170,67 @@
       } catch (e) {}
     }
 
-    /** Win rate, average guesses and the guess distribution for the calendar's game. */
+    /** Copies text exactly as logged (line breaks and emoji kept). */
+    function copyText(text) {
+      const t = String(text || '');
+      if (!t) return;
+      let done = false;
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.copyText === 'function') {
+          window.AndroidBridge.copyText(t);
+          done = true;
+        }
+      } catch (e) {}
+      if (!done) {
+        try { navigator.clipboard.writeText(t); done = true; } catch (e) {}
+      }
+      if (done) { haptic('tick'); showToast('Copied', 'Result copied with its formatting.', 'emerald'); }
+    }
+
+    let dayEntryRef = null; // { gameId, date }
+    /** Read-only snapshot of one calendar day: outcome, time, play time, streak and the result text. */
+    function openDayEntry(gameId, date) {
+      const game = state.games.find((g) => g.id === gameId);
+      if (!game) return;
+      dayEntryRef = { gameId, date };
+      const row = findLogRow(game, date);
+      const outcome = getGameDayOutcome(game, date, getLogIndex());
+      document.getElementById('dayEntryTitle').textContent = game.name;
+      document.getElementById('dayEntryDate').textContent = formatCycleDateLabel(date);
+      const chips = [];
+      if (outcome === 'completed') chips.push('<span class="day-chip ok">✓ Completed</span>');
+      else if (outcome === 'missed') chips.push('<span class="day-chip bad">✗ Missed</span>');
+      else chips.push('<span class="day-chip">Not played</span>');
+      if (row) {
+        const time = normalizeLogTimeLabel(row.localTime);
+        if (time) chips.push(`<span class="day-chip">🕒 ${escapeHtml(time)}</span>`);
+        if (Number(row.timeMs) > 0) chips.push(`<span class="day-chip">⏱ ${escapeHtml(HubCore.formatDuration(row.timeMs))}</span>`);
+        if (row.streak !== undefined && row.streak !== null && row.streak !== '') chips.push(`<span class="day-chip streak">🔥 ${escapeHtml(plural(row.streak, 'day'))}</span>`);
+      }
+      document.getElementById('dayEntryChips').innerHTML = chips.join('');
+      const score = row ? String(row.score || '').trim() : '';
+      const pre = document.getElementById('dayEntryScore');
+      pre.textContent = score;
+      pre.classList.toggle('hidden', !score);
+      document.getElementById('btnDayEntryCopy').classList.toggle('hidden', !score);
+      document.getElementById('dayEntryEmpty').classList.toggle('hidden', Boolean(row || outcome));
+      document.getElementById('btnDayEntryEdit').textContent = row || outcome ? 'Edit' : 'Log result';
+      openModal('modalDayEntry');
+    }
+
+    /** Win rate, average guesses and personal bests for the calendar's game. */
     function renderScoreStats(game) {
       const el = document.getElementById('gameScoreStats');
       if (!el) return;
       const rows = state.historyLogs.filter((l) => l && (l.gameId === game.id || (!l.gameId && l.gameName === game.name)));
       const st = HubCore.scoreStats(rows);
       if (!st.played) {
-        el.innerHTML = '<p class="text-xs text-slate-400">Log a few results to see your win rate and score spread here.</p>';
+        el.innerHTML = '<p class="text-xs text-slate-400">Log a few results to see your win rate and personal bests here.</p>';
         return;
       }
       const head = [`<span><strong>${st.winRate}%</strong> win rate</span>`, `<span>${plural(st.played, 'logged result')}</span>`];
       if (st.avg !== null) head.splice(1, 0, `<span><strong>${st.avg}</strong> average (of ${st.max})</span>`);
+      else if (st.avgText) head.splice(1, 0, `<span><strong>${escapeHtml(st.avgText)}</strong> ${st.scoreKind === 'time' ? 'average time' : 'average'}</span>`);
       if (st.fastestMs) {
         head.push(`<span>⏱ fastest <strong>${HubCore.formatDuration(st.fastestMs)}</strong></span>`);
         head.push(`<span>average <strong>${HubCore.formatDuration(st.avgMs)}</strong></span>`);
@@ -3082,15 +3240,8 @@
       if (pb.bestScore) bests.push(`<span class="pb-chip">🏆 Best ${escapeHtml(pb.bestScore)}</span>`);
       if (pb.fastestMs) bests.push(`<span class="pb-chip">⚡ ${escapeHtml(HubCore.formatDuration(pb.fastestMs))}</span>`);
       if (pb.bestStreak) bests.push(`<span class="pb-chip">🔥 ${escapeHtml(plural(pb.bestStreak, 'day'))}</span>`);
-      let bars = '';
-      if (st.dist.length) {
-        const top = Math.max(1, ...st.dist.map((d) => d.count));
-        bars = `<div class="score-dist" role="img" aria-label="${escapeHtml(st.dist.map((d) => `${d.label}: ${d.count}`).join(', '))}">` +
-          st.dist.map((d) => `<div class="row"><span class="lbl">${escapeHtml(d.label)}</span><span class="bar${d.label === 'X' ? ' fail' : ''}" style="width:${Math.max(6, Math.round((d.count / top) * 100))}%">${d.count}</span></div>`).join('') +
-          '</div>';
-      }
       el.innerHTML = `<p class="text-xs font-bold text-white mb-0.5">Score stats</p><p class="score-head">${head.join('<span aria-hidden="true">·</span>')}</p>`
-        + (bests.length ? `<p class="pb-row" aria-label="Personal bests">${bests.join('')}</p>` : '') + bars;
+        + (bests.length ? `<p class="pb-row" aria-label="Personal bests">${bests.join('')}</p>` : '');
     }
 
     /** Permanently drops a removed game's kept history and its score-log rows (after confirming). */
@@ -3113,17 +3264,62 @@
         });
     }
 
+    // ---- Score history filter (game and outcome; kept while the app is open) ----
+    const historyFilter = { game: '', outcome: 'all' };
+    const historyRowGameKey = (l) => (l.gameId ? `id:${l.gameId}` : `name:${l.gameName || ''}`);
+    function filteredHistoryLogs() {
+      return state.historyLogs.filter((l) => l
+        && (!historyFilter.game || historyRowGameKey(l) === historyFilter.game)
+        && (historyFilter.outcome === 'all' || l.outcome === historyFilter.outcome));
+    }
+    /** One option per game that has results (current names first, then removed games), newest name wins. */
+    function renderHistoryFilterOptions() {
+      const sel = document.getElementById('historyFilterGame');
+      if (!sel) return;
+      const seen = new Map();
+      state.historyLogs.forEach((l) => {
+        if (!l) return;
+        const key = historyRowGameKey(l);
+        if (!seen.has(key)) {
+          const live = l.gameId && state.games.find((g) => g.id === l.gameId);
+          seen.set(key, live ? live.name : (l.gameName || 'Game'));
+        }
+      });
+      if (historyFilter.game && !seen.has(historyFilter.game)) historyFilter.game = '';
+      const opts = [['', 'All games'], ...[...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]))];
+      const sig = JSON.stringify(opts);
+      if (sel.dataset.sig !== sig) {
+        sel.innerHTML = opts.map(([v, label]) => `<option value="${escapeHtml(v)}">${escapeHtml(label)}</option>`).join('');
+        sel.dataset.sig = sig;
+      }
+      sel.value = historyFilter.game;
+      document.querySelectorAll('[data-hist-outcome]').forEach((b) => {
+        const on = b.getAttribute('data-hist-outcome') === historyFilter.outcome;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+
+    let statsRenderedKey = '';
+    function statsRenderKey() {
+      return [stateRev, calendarYear, calendarMonth, selectedCalendarGameId, historyPage, historyFilter.game,
+        historyFilter.outcome, state.historyLogs.length, state.games.length, new Date().toDateString()].join('|');
+    }
+
     function renderStatsAndCharts() {
+      statsRenderedKey = statsRenderKey();
       renderGameCalendar();
       renderMonthlyRecap();
       renderAchievements();
 
       const tbody = document.getElementById('historyTableBody');
-      const total = state.historyLogs.length;
+      renderHistoryFilterOptions();
+      const shown = filteredHistoryLogs();
+      const total = shown.length;
       const pageCount = Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE));
       historyPage = Math.min(Math.max(0, historyPage), pageCount - 1);
       const start = historyPage * HISTORY_PAGE_SIZE;
-      const pageRows = state.historyLogs.slice(start, start + HISTORY_PAGE_SIZE);
+      const pageRows = shown.slice(start, start + HISTORY_PAGE_SIZE);
       // The pager only appears once there's more than one page (i.e. from the 6th result on).
       const pager = document.getElementById('historyPager');
       if (pager) pager.classList.toggle('hidden', pageCount <= 1);
@@ -3149,11 +3345,13 @@
       if (tbody) {
         if (state.historyLogs.length === 0) {
           tbody.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No results yet. Tap the check button on a game card, or log from the prompt after playing.</p>';
+        } else if (!shown.length) {
+          tbody.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No results match this filter.</p>';
         } else {
-          tbody.innerHTML = pageRows.map((item) => {
+          tbody.innerHTML = pageRows.map((item, i) => {
             const ok = item.outcome === 'Completed';
-            const when = [formatCycleDateLabel(item.date), normalizeLogTimeLabel(item.localTime)].filter(Boolean).join(' · ');
             const score = String(item.score || '').trim();
+            const time = normalizeLogTimeLabel(item.localTime);
             return `
               <div class="hist-row">
                 <div class="hist-head">
@@ -3162,8 +3360,12 @@
                   <span class="hist-badge ${ok ? 'ok' : 'bad'}">${ok ? 'Completed' : 'Missed'}</span>
                   <span class="hist-streak"><span class="sr-only">Streak after: ${escapeHtml(plural(item.streak, 'day'))}</span><span aria-hidden="true">🔥 ${escapeHtml(item.streak)}d</span></span>
                 </div>
-                <p class="hist-date">${escapeHtml(when)}${Number(item.timeMs) > 0 ? ` <span class="hist-time">· ⏱ ${escapeHtml(HubCore.formatDuration(item.timeMs))}</span>` : ''}</p>
-                ${score ? `<pre class="hist-score">${escapeHtml(score)}</pre>` : ''}
+                <p class="hist-date">${escapeHtml(formatCycleDateLabel(item.date))}${time ? ` · ${escapeHtml(time)}` : ''}${Number(item.timeMs) > 0 ? ` <span class="hist-time">· ⏱ ${escapeHtml(HubCore.formatDuration(item.timeMs))}</span>` : ''}</p>
+                ${score ? `<details class="hist-more">
+                  <summary><span>Result</span><span class="chev" aria-hidden="true"></span></summary>
+                  <pre class="hist-score">${escapeHtml(score)}</pre>
+                  <button type="button" class="hist-copy icon-label" data-copy-game="${escapeHtml(item.gameId || '')}" data-copy-name="${escapeHtml(item.gameName || '')}" data-copy-date="${escapeHtml(item.date || '')}"><span class="ico ico-paste" aria-hidden="true"></span>Copy result</button>
+                </details>` : ''}
               </div>`;
           }).join('');
         }
@@ -3250,7 +3452,6 @@
       setChk('settingBlockAds', s.blockAdsInGames !== false);
       setVal('settingThemeMode', s.themeMode || 'dark');
       setChk('settingGroupDone', s.groupDone !== false);
-      setChk('settingOneHanded', Boolean(s.oneHanded));
       setChk('settingDarkPages', s.darkGamePages !== false);
       setChk('settingIconTheme', Boolean(s.iconFollowsTheme));
       renderArchivedList();
@@ -3358,21 +3559,74 @@
       const res = r && typeof r === 'object' ? r : {};
       if (!state.settings) state.settings = getDefaultSettings();
       const out = document.getElementById('updateCheckResult');
+      const manual = updateCheckManual;
+      updateCheckManual = false;
       if (res.ok) {
         state.settings.lastUpdateCheckAt = Date.now();
         saveState({ sync: false });
       }
-      if (out && updateCheckManual) {
+      if (out && manual) {
         out.textContent = !res.ok ? "Couldn't reach GitHub. Try again later."
           : (res.newer ? `Dailies ${res.latest} is available.` : `You're up to date (${res.current || APP_VERSION}).`);
       }
-      if (res.ok && res.newer && (updateCheckManual || res.latest !== state.settings.dismissedUpdate)) {
+      if (res.ok && res.newer && (manual || res.latest !== state.settings.dismissedUpdate)) {
+        updateCanInstall = res.canInstall !== false;
         const t = document.getElementById('updateBannerTitle');
         if (t) t.textContent = `Dailies ${res.latest} is available`;
         const b = document.getElementById('updateBanner');
         if (b) { b.classList.remove('hidden'); b.dataset.version = res.latest; }
+        // "Check now": offer to download and install it straight away.
+        if (manual) {
+          openConfirmModal(`Update to Dailies ${res.latest}?`,
+            'It downloads from GitHub and installs over this version. Your games, streaks and history are kept.',
+            'Download & install', () => startInAppUpdate(), 'primary');
+        }
       }
-      updateCheckManual = false;
+    };
+
+    // ---- In-app update: download the release APK, then Android's install confirmation ----
+    let updateCanInstall = true;
+    let updateBusy = false;
+    function setUpdateBanner(sub, pct, busy) {
+      const b = document.getElementById('updateBanner');
+      if (b) b.classList.remove('hidden');
+      const subEl = document.getElementById('updateBannerSub');
+      if (subEl) subEl.textContent = sub;
+      const bar = document.getElementById('updateProgress');
+      if (bar) {
+        bar.classList.toggle('hidden', !busy);
+        bar.classList.toggle('indeterminate', busy && !(pct >= 0));
+        const fill = bar.firstElementChild;
+        if (fill) fill.style.width = pct >= 0 ? `${pct}%` : '';
+      }
+      const btn = document.getElementById('btnUpdateOpen');
+      if (btn) btn.disabled = Boolean(busy);
+      updateBusy = Boolean(busy);
+    }
+    function startInAppUpdate() {
+      if (updateBusy) return;
+      const bridge = window.AndroidBridge;
+      if (!updateCanInstall || !bridge || typeof bridge.downloadAndInstallUpdate !== 'function') {
+        try { bridge && bridge.openReleasePage && bridge.openReleasePage(); } catch (e) {}
+        return;
+      }
+      switchNavigation('dashboard');
+      setUpdateBanner('Starting download…', -1, true);
+      try { bridge.downloadAndInstallUpdate(); } catch (e) { setUpdateBanner("Couldn't start the download.", -1, false); }
+    }
+    window.onUpdateStatus = function (st) {
+      const s = st && typeof st === 'object' ? st : {};
+      if (s.state === 'downloading') {
+        setUpdateBanner(s.percent >= 0 ? `Downloading… ${s.percent}%` : 'Downloading…', s.percent, true);
+      } else if (s.state === 'installing') {
+        setUpdateBanner('Downloaded. Confirm the install on the next screen.', 100, false);
+      } else if (s.state === 'permission') {
+        setUpdateBanner('Allow "Install unknown apps" for Dailies, then come back and tap Update.', -1, false);
+        showToast('One more step', 'Turn on "Allow from this source" for Dailies, then tap Update again.', 'indigo');
+      } else if (s.state === 'error') {
+        setUpdateBanner(s.message || 'The update failed. Try again.', -1, false);
+        showToast('Update not installed', s.message || 'Try again in a moment.', 'indigo');
+      }
     };
 
     function renderVisibleTab() {
@@ -3417,40 +3671,99 @@
     let tabAnimating = false;
 
     /**
-     * Slides from the current tab to the next: the old page continues in the swipe's direction and
-     * fades, the new one comes in from the other side with Material's emphasized deceleration.
+     * Pager for the three tabs: the real neighbouring page sits beside the current one and both move
+     * together (no snapshot copies, no cross-fade), like Android's ViewPager.
      */
-    function animateTabChange(fromEl, toEl, dir, offset) {
-      if (REDUCED_MOTION || !fromEl || !toEl || fromEl === toEl || typeof toEl.animate !== 'function') return;
-      const w = window.innerWidth || 400;
-      const start = Number(offset) || 0;
-      const outTo = -dir * w * 0.28;
-      tabAnimating = true;
-      // Keep the outgoing page visible on top for the exit, without affecting layout.
-      const ghost = fromEl.cloneNode(true);
-      ghost.removeAttribute('id');
-      ghost.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
-      ghost.classList.remove('hidden');
-      ghost.setAttribute('aria-hidden', 'true');
-      ghost.classList.add('tab-ghost');
-      const r = fromEl.getBoundingClientRect();
-      ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;margin:0;pointer-events:none;z-index:5;transform:translate3d(${start}px,0,0);opacity:${fromEl.style.opacity || 1}`;
-      fromEl.style.transform = '';
-      fromEl.style.opacity = '';
-      fromEl.style.transition = '';
-      document.body.appendChild(ghost);
-      const ease = 'cubic-bezier(0.05, 0.7, 0.1, 1)';
-      const exit = ghost.animate(
-        [{ transform: `translate3d(${start}px,0,0)`, opacity: Number(ghost.style.opacity) || 1 }, { transform: `translate3d(${outTo}px,0,0)`, opacity: 0 }],
-        { duration: 180, easing: 'cubic-bezier(0.3, 0, 0.8, 0.15)', fill: 'forwards' });
-      const enter = toEl.animate(
-        [{ transform: `translate3d(${dir * w * 0.22}px,0,0)`, opacity: 0 }, { transform: 'translate3d(0,0,0)', opacity: 1 }],
-        { duration: 340, delay: 40, easing: ease, fill: 'backwards' });
-      const done = () => { ghost.remove(); tabAnimating = false; };
-      exit.onfinish = () => ghost.remove();
-      enter.onfinish = done;
-      enter.oncancel = done;
-      setTimeout(() => { if (ghost.isConnected) ghost.remove(); tabAnimating = false; }, 700);
+    const Pager = {
+      neighbour: null, // { tab, el, dir }
+      width() { return (document.documentElement.clientWidth || window.innerWidth || 400) + 24; },
+      /** Puts `tab`'s page beside the current one, rendered and ready to slide in from `dir`. */
+      attach(tab, dir) {
+        const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
+        const el = document.getElementById(TAB_VIEW_IDS[tab]);
+        if (!cur || !el || el === cur) return null;
+        if (this.neighbour && this.neighbour.tab === tab) { this.neighbour.dir = dir; return this.neighbour; }
+        this.detach();
+        prepareTab(tab);
+        const scaffold = document.getElementById('m3Scaffold');
+        // Pages slid off to the side mustn't widen the page (WebView would zoom out to fit them).
+        if (scaffold) { scaffold.style.position = 'relative'; scaffold.style.overflowX = 'clip'; }
+        // Same spot on screen as the current page's top once we scroll back to the top.
+        const top = cur.offsetTop + Math.max(0, window.scrollY);
+        el.classList.remove('hidden');
+        el.style.cssText = `position:absolute;left:${cur.offsetLeft}px;top:${top}px;width:${cur.offsetWidth}px;margin:0;will-change:transform;pointer-events:none;transition:none;transform:translate3d(${dir * this.width()}px,0,0)`;
+        cur.style.willChange = 'transform';
+        this.neighbour = { tab, el, dir };
+        return this.neighbour;
+      },
+      detach() {
+        const n = this.neighbour;
+        this.neighbour = null;
+        if (n && n.tab !== activeTab) { n.el.classList.add('hidden'); n.el.style.cssText = ''; }
+      },
+      /** Places both pages for a finger offset of `dx` px (no animation). */
+      follow(dx) {
+        const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
+        if (cur) { cur.style.transition = 'none'; cur.style.transform = `translate3d(${dx}px,0,0)`; }
+        const n = this.neighbour;
+        if (n) n.el.style.transform = `translate3d(${dx + n.dir * this.width()}px,0,0)`;
+      },
+      /** Glides to the neighbour (go) or back (stay), starting at `dx` with release velocity `v` px/ms. */
+      settle(dx, v, go, onDone) {
+        const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
+        const n = this.neighbour;
+        const w = this.width();
+        const target = go && n ? -n.dir * w : 0;
+        const remaining = Math.abs(target - dx);
+        const speed = Math.abs(v || 0);
+        // Duration from the remaining distance and the flick speed, within Material's 200-380 ms.
+        const ms = Math.round(Math.max(200, Math.min(380, speed > 0.3 ? remaining / speed * 1.6 : 160 + remaining / w * 220)));
+        const ease = speed > 0.3 ? 'cubic-bezier(0.25, 1, 0.5, 1)' : 'cubic-bezier(0.2, 0, 0, 1)';
+        tabAnimating = true;
+        const tr = `transform ${ms}ms ${ease}`;
+        if (cur) { cur.style.transition = tr; cur.style.transform = `translate3d(${target}px,0,0)`; }
+        if (n) { n.el.style.transition = tr; n.el.style.transform = `translate3d(${target + n.dir * w}px,0,0)`; }
+        let finished = false;
+        const finish = () => {
+          if (finished) return;
+          finished = true;
+          if (cur) { cur.style.transition = ''; cur.style.transform = ''; cur.style.willChange = ''; }
+          if (go && n) {
+            this.neighbour = null;
+            n.el.style.cssText = '';
+            onDone && onDone(n.tab);
+          } else {
+            this.detach();
+          }
+          const scaffold = document.getElementById('m3Scaffold');
+          if (scaffold) { scaffold.style.position = ''; scaffold.style.overflowX = ''; }
+          tabAnimating = false;
+        };
+        setTimeout(finish, ms + 30);
+      }
+    };
+
+    /** Renders `tab`'s page so it is ready before it becomes visible. */
+    function prepareTab(tab) {
+      if (tab === 'stats') {
+        const calGames = getCalendarGamesList();
+        const game = calGames.find((g) => g.id === selectedCalendarGameId) || calGames[0];
+        if (game) {
+          const cycleParts = getCycleDateKey(game.resetTime, game.resetZone).split('-');
+          calendarYear = parseInt(cycleParts[0], 10) || new Date().getFullYear();
+          calendarMonth = (parseInt(cycleParts[1], 10) || (new Date().getMonth() + 1)) - 1;
+        }
+        // Already drawn for this data and month: skip the (largest) render, so a swipe starts smoothly.
+        if (statsRenderKey() !== statsRenderedKey) renderStatsAndCharts();
+      } else if (tab === 'settings') {
+        renderSettingsControls();
+        renderNotificationsView();
+        updateLiveTimers();
+      } else {
+        renderKPIs();
+        renderGamesGrid();
+        updateLiveTimers();
+      }
     }
 
     function switchNavigation(targetView, anim) {
@@ -3458,7 +3771,14 @@
         ? 'settings'
         : (targetView === 'stats' ? 'stats' : 'dashboard');
       const previous = activeTab;
-      const fromEl = document.getElementById(TAB_VIEW_IDS[previous]);
+      // A tap on another tab slides the pages too (a swipe has already slid them).
+      if (previous !== normalized && !(anim && anim.settled) && !REDUCED_MOTION && !tabAnimating) {
+        const dir = TAB_ORDER.indexOf(normalized) > TAB_ORDER.indexOf(previous) ? 1 : -1;
+        if (Pager.attach(normalized, dir)) {
+          requestAnimationFrame(() => Pager.settle(0, 0, true, (tab) => switchNavigation(tab, { settled: true, prepared: true })));
+          return;
+        }
+      }
       activeTab = normalized;
       if (normalized !== 'dashboard') hideReturnPrompt();
       if (normalized !== 'dashboard' && selectMode) setSelectMode(false);
@@ -3486,34 +3806,15 @@
         }
       });
 
-      if (normalized === 'stats') {
-        const calGames = getCalendarGamesList();
-        const game = calGames.find((g) => g.id === selectedCalendarGameId) || calGames[0];
-        if (game) {
-          const cycleParts = getCycleDateKey(game.resetTime, game.resetZone).split('-');
-          calendarYear = parseInt(cycleParts[0], 10) || new Date().getFullYear();
-          calendarMonth = (parseInt(cycleParts[1], 10) || (new Date().getMonth() + 1)) - 1;
-        }
-        renderStatsAndCharts();
-      } else if (normalized === 'settings') {
-        renderSettingsControls();
-        renderNotificationsView();
-        updateLiveTimers();
-      } else {
-        renderKPIs();
-        renderGamesGrid();
-        updateLiveTimers();
-      }
-
-      if (previous !== normalized) {
-        const dir = anim && anim.dir ? anim.dir : (TAB_ORDER.indexOf(normalized) > TAB_ORDER.indexOf(previous) ? 1 : -1);
-        animateTabChange(fromEl, document.getElementById(TAB_VIEW_IDS[normalized]), dir, anim && anim.offset);
-        window.scrollTo(0, 0);
-      }
+      if (!(anim && anim.prepared)) prepareTab(normalized);
+      if (previous !== normalized) window.scrollTo(0, 0);
     }
 
     let lastBackInterceptState = null;
     function syncBackInterceptState() {
+      // While a dialog is open the page behind it doesn't scroll (or stretch at its ends).
+      document.documentElement.classList.toggle('modal-open', isAnyModalOpen());
+      document.documentElement.classList.toggle('qr-open', isModalOpen('modalShareList'));
       const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId) || selectMode;
       if (wantsBack === lastBackInterceptState) return;
       lastBackInterceptState = wantsBack;
@@ -3525,7 +3826,9 @@
     }
 
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
-    const MODAL_IDS = ['modalAddGame', 'modalLogScore', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
+    const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
+    const MODAL_IDS = ['modalAddGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -3556,6 +3859,7 @@
         document.getElementById('deleteGameId').value = '';
         pendingConfirmAction = null;
         document.getElementById('btnConfirmDeleteModal').textContent = 'Remove';
+        document.getElementById('btnConfirmDeleteModal').className = CONFIRM_BTN_DANGER;
       } else if (id === 'modalLogScore') {
         logModalCycleKey = '';
       }
@@ -3573,14 +3877,7 @@
     }
 
     function isAnyModalOpen() {
-      const mAdd = document.getElementById('modalAddGame');
-      const mLog = document.getElementById('modalLogScore');
-      const mDel = document.getElementById('modalDeleteGame');
-      return Boolean(
-        (mAdd && !mAdd.classList.contains('hidden')) ||
-        (mLog && !mLog.classList.contains('hidden')) ||
-        (mDel && !mDel.classList.contains('hidden'))
-      );
+      return MODAL_IDS.some(isModalOpen);
     }
 
     function openDeleteConfirmModal(game) {
@@ -3598,8 +3895,9 @@
 
     // The Remove dialog doubles as a generic "are you sure?" (import, forgetting a removed game).
     var pendingConfirmAction = null;
-    function openConfirmModal(title, message, confirmLabel, onConfirm) {
+    function openConfirmModal(title, message, confirmLabel, onConfirm, tone) {
       openModal('modalDeleteGame');
+      document.getElementById('btnConfirmDeleteModal').className = tone === 'primary' ? CONFIRM_BTN_PRIMARY : CONFIRM_BTN_DANGER;
       document.getElementById('deleteGameId').value = '';
       document.getElementById('modalDeleteTitle').textContent = title;
       document.getElementById('modalDeleteMessage').textContent = message;
@@ -3679,6 +3977,7 @@
       setZoneSelectValue(source.resetZone);
       document.getElementById('inputGameDesc').value = source.desc || '';
       document.getElementById('inputNotifyEnabled').checked = source.notifyEnabled !== false;
+      document.getElementById('inputGameReminder').value = String(normalizeReminderMinutes(source.reminderMinutes));
       updateModalIconPreview();
 
       const btn = document.getElementById('btnAutoDetectMeta');
@@ -3694,6 +3993,18 @@
       if (removeBtn) removeBtn.classList.toggle('hidden', !existingGame);
       const archiveBtn = document.getElementById('btnArchiveFromEdit');
       if (archiveBtn) archiveBtn.classList.toggle('hidden', !existingGame);
+      const todayBox = document.getElementById('editTodayEntry');
+      if (todayBox) {
+        const row = existingGame ? findLogRow(existingGame, getCycleDateKey(existingGame.resetTime, existingGame.resetZone)) : null;
+        todayBox.classList.toggle('hidden', !row);
+        if (row) {
+          const bits = [row.outcome === 'Completed' ? '✓ Solved' : (row.outcome === 'Missed' ? '✗ Missed' : String(row.outcome || ''))];
+          if (Number(row.timeMs) > 0) bits.push(`⏱ ${HubCore.formatDuration(row.timeMs)}`);
+          const first = String(row.score || '').split('\n')[0].trim();
+          if (first) bits.push(first.slice(0, 40));
+          document.getElementById('editTodayEntrySummary').textContent = bits.join(' · ');
+        }
+      }
       // Keep an unusual stored category selectable instead of silently blanking it.
       const catSel = document.getElementById('inputGameCategory');
       if (catSel && source.category && ![...catSel.options].some((o) => o.value === source.category)) {
@@ -4331,7 +4642,7 @@
       } catch (e) {}
 
       // Keep Android's predictive-back state in sync with modal visibility.
-      ['modalAddGame', 'modalLogScore', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList', 'returnPrompt'].forEach((id) => {
+      ['modalAddGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList', 'returnPrompt'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) new MutationObserver(syncBackInterceptState).observe(el, { attributes: true, attributeFilter: ['class'] });
       });
@@ -4339,7 +4650,7 @@
 
       // Score History pages: ‹ › buttons and horizontal swipes inside the block.
       const goHistoryPage = (delta) => {
-        const pageCount = Math.max(1, Math.ceil(state.historyLogs.length / HISTORY_PAGE_SIZE));
+        const pageCount = Math.max(1, Math.ceil(filteredHistoryLogs().length / HISTORY_PAGE_SIZE));
         const next = Math.min(Math.max(0, historyPage + delta), pageCount - 1);
         if (next === historyPage) return;
         historyPage = next;
@@ -4414,15 +4725,14 @@
       });
 
       // Horizontal swipe left/right to switch tabs (Daily Hub <-> Streaks & Log <-> Settings).
-      // The page follows the finger, then glides into the next tab or springs back.
+      // The current page and its real neighbour follow the finger, then glide or spring back.
       let swipe = null;
-      const viewOf = (tab) => document.getElementById(TAB_VIEW_IDS[tab]);
       document.addEventListener('touchstart', (e) => {
         swipe = null;
         if (!e.touches || e.touches.length !== 1 || isAnyModalOpen() || tabAnimating) return;
         const el = e.target;
-        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, .m4-floating-dock, .return-sheet')) return;
-        swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now(), dx: 0, locked: false, view: viewOf(activeTab) };
+        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .m4-floating-dock, .return-sheet')) return;
+        swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false };
       }, { passive: true });
 
       document.addEventListener('touchmove', (e) => {
@@ -4438,18 +4748,16 @@
         }
         const raw = e.touches[0].clientX - swipe.x;
         const idx = TAB_ORDER.indexOf(activeTab);
-        const blocked = (raw < 0 && idx >= TAB_ORDER.length - 1) || (raw > 0 && idx <= 0);
-        swipe.dx = blocked ? raw * 0.25 : raw; // rubber band at the first and last tab
-        // Recent samples for the release velocity (a quick flick switches even if it's short).
+        const nextIdx = raw < 0 ? idx + 1 : idx - 1;
+        const blocked = nextIdx < 0 || nextIdx >= TAB_ORDER.length;
+        swipe.dx = blocked ? raw * 0.2 : raw; // rubber band at the first and last tab
         const now = performance.now();
-        swipe.samples = (swipe.samples || []).filter((p) => now - p.t < 120);
+        swipe.samples = (swipe.samples || []).filter((p) => now - p.t < 100);
         swipe.samples.push({ t: now, x: raw });
-        if (swipe.view && !REDUCED_MOTION) {
-          const w = window.innerWidth || 400;
-          swipe.view.style.transition = 'none';
-          swipe.view.style.transform = `translate3d(${swipe.dx}px,0,0)`;
-          swipe.view.style.opacity = String(1 - Math.min(0.35, Math.abs(swipe.dx) / w * 0.6));
-        }
+        if (REDUCED_MOTION) return;
+        if (blocked) Pager.detach();
+        else Pager.attach(TAB_ORDER[nextIdx], raw < 0 ? 1 : -1);
+        Pager.follow(swipe.dx);
       }, { passive: true });
 
       const endSwipe = (e, cancelled) => {
@@ -4464,16 +4772,15 @@
         const velocity = first && last && last.t > first.t ? (last.x - first.x) / (last.t - first.t) : 0; // px per ms
         const idx = TAB_ORDER.indexOf(activeTab);
         const next = sw.dx < 0 ? idx + 1 : idx - 1;
-        const go = !cancelled && next >= 0 && next < TAB_ORDER.length &&
-          (Math.abs(sw.dx) > w * 0.22 || (Math.abs(velocity) > 0.45 && Math.abs(sw.dx) > 30));
-        if (go) {
-          switchNavigation(TAB_ORDER[next], { fromSwipe: true, dir: sw.dx < 0 ? 1 : -1, offset: sw.dx });
-        } else if (sw.view) {
-          sw.view.style.transition = 'transform 260ms var(--m3-spring-spatial), opacity 200ms ease-out';
-          sw.view.style.transform = '';
-          sw.view.style.opacity = '';
-          setTimeout(() => { if (sw.view) sw.view.style.transition = ''; }, 280);
+        // A flick back against the drag direction cancels it.
+        const flickBack = Math.abs(velocity) > 0.3 && Math.sign(velocity) !== Math.sign(sw.dx);
+        const go = !cancelled && !flickBack && next >= 0 && next < TAB_ORDER.length &&
+          (Math.abs(sw.dx) > w * 0.35 || (Math.abs(velocity) > 0.35 && Math.abs(sw.dx) > 24));
+        if (REDUCED_MOTION) {
+          if (go) switchNavigation(TAB_ORDER[next], { settled: true });
+          return;
         }
+        Pager.settle(sw.dx, velocity, go, (tab) => switchNavigation(tab, { settled: true, prepared: true }));
       };
       document.addEventListener('touchend', (e) => endSwipe(e, false), { passive: true });
       document.addEventListener('touchcancel', (e) => endSwipe(e, true), { passive: true });
@@ -4516,21 +4823,10 @@
       bindSetting('settingBlockAds', 'blockAdsInGames', true);
       bindSetting('settingThemeMode', 'themeMode', false);
       bindSetting('settingGroupDone', 'groupDone', true);
-      bindSetting('settingOneHanded', 'oneHanded', true);
       bindSetting('settingDarkPages', 'darkGamePages', true);
       bindSetting('settingIconTheme', 'iconFollowsTheme', true);
       bindSetting('settingStreakReminder', 'streakReminderMinutes', false);
       bindSetting('settingUpdateCheck', 'updateCheck', true);
-      try {
-        if (window.AndroidBridge && typeof window.AndroidBridge.getAdBlockInfo === 'function') {
-          const info = JSON.parse(window.AndroidBridge.getAdBlockInfo() || '{}');
-          const el = document.getElementById('adBlockInfo');
-          if (el && info.blocked_hosts) {
-            const n = (x) => Number(x || 0).toLocaleString();
-            el.textContent = `${n(info.blocked_hosts)} ad & tracker domains, ${n(info.url_rules)} URL rules, ${n(Number(info.generic_hide || 0) + Number(info.specific_hide || 0))} hiding rules. Tap the shield in a game to allow ads on that site.`;
-          }
-        }
-      } catch (e) {}
 
       const onClick = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
       onClick('btnSelectMode', () => setSelectMode(!selectMode));
@@ -4562,9 +4858,7 @@
         try { window.AndroidBridge.disableAutoBackup(); } catch (e) {}
       });
       onClick('btnCheckUpdateNow', () => runUpdateCheck(true));
-      onClick('btnUpdateOpen', () => {
-        try { window.AndroidBridge && window.AndroidBridge.openReleasePage && window.AndroidBridge.openReleasePage(); } catch (e) {}
-      });
+      onClick('btnUpdateOpen', () => startInAppUpdate());
       onClick('btnUpdateDismiss', () => {
         const b = document.getElementById('updateBanner');
         if (!b) return;
@@ -4678,27 +4972,78 @@
           renderGameCalendar();
         });
       }
+      // Month paging: ‹ › buttons, and a sideways swipe on the calendar (the grid follows the finger).
+      const shiftCalendarMonth = (delta, fromSwipe) => {
+        calendarMonth += delta;
+        if (calendarMonth < 0) { calendarMonth = 11; calendarYear -= 1; }
+        if (calendarMonth > 11) { calendarMonth = 0; calendarYear += 1; }
+        renderGameCalendar();
+        renderMonthlyRecap();
+        if (REDUCED_MOTION) return;
+        // The grid and the month name slide in together; the tiles and the recap below cross-fade.
+        const from = delta > 0 ? 1 : -1;
+        const ease = 'cubic-bezier(0.2, 0, 0, 1)';
+        const grid = document.getElementById('calendarDaysGrid');
+        if (grid && typeof grid.animate === 'function') {
+          grid.animate([{ transform: `translate3d(${from * (fromSwipe ? 40 : 28)}%,0,0)`, opacity: fromSwipe ? 0.4 : 0 }, { transform: 'none', opacity: 1 }],
+            { duration: 300, easing: ease });
+        }
+        const label = document.getElementById('calendarMonthLabel');
+        if (label && typeof label.animate === 'function') {
+          label.animate([{ transform: `translate3d(${from * 24}px,0,0)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: ease });
+        }
+        const calCard = grid && grid.closest('.glass-card');
+        [calCard && calCard.querySelector('.stat-tiles'), document.getElementById('gameScoreStats'), document.getElementById('recapCard')]
+          .forEach((el) => { if (el && typeof el.animate === 'function') el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' }); });
+      };
       const btnCalPrev = document.getElementById('btnCalPrevMonth');
-      if (btnCalPrev) {
-        btnCalPrev.addEventListener('click', () => {
-          calendarMonth -= 1;
-          if (calendarMonth < 0) {
-            calendarMonth = 11;
-            calendarYear -= 1;
-          }
-          renderGameCalendar();
-        });
-      }
+      if (btnCalPrev) btnCalPrev.addEventListener('click', () => shiftCalendarMonth(-1));
       const btnCalNext = document.getElementById('btnCalNextMonth');
-      if (btnCalNext) {
-        btnCalNext.addEventListener('click', () => {
-          calendarMonth += 1;
-          if (calendarMonth > 11) {
-            calendarMonth = 0;
-            calendarYear += 1;
+      if (btnCalNext) btnCalNext.addEventListener('click', () => shiftCalendarMonth(1));
+      const calArea = document.getElementById('calendarSwipeArea');
+      if (calArea) {
+        let cs = null;
+        const calGrid = () => document.getElementById('calendarDaysGrid');
+        calArea.addEventListener('touchstart', (e) => {
+          cs = e.touches && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false, t: performance.now() } : null;
+        }, { passive: true });
+        calArea.addEventListener('touchmove', (e) => {
+          if (!cs || !e.touches || e.touches.length !== 1) return;
+          const dx = e.touches[0].clientX - cs.x;
+          const dy = e.touches[0].clientY - cs.y;
+          if (!cs.locked) {
+            if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { cs = null; return; }
+            if (Math.abs(dx) < 10) return;
+            cs.locked = true;
           }
-          renderGameCalendar();
-        });
+          cs.dx = dx;
+          const g = calGrid();
+          if (g && !REDUCED_MOTION) {
+            g.style.transition = 'none';
+            g.style.transform = `translate3d(${dx}px,0,0)`;
+            g.style.opacity = String(1 - Math.min(0.6, Math.abs(dx) / (calArea.offsetWidth || 320)));
+          }
+        }, { passive: true });
+        const calEnd = () => {
+          const c = cs;
+          cs = null;
+          if (!c || !c.locked) return;
+          const g = calGrid();
+          const w = calArea.offsetWidth || 320;
+          const fast = Math.abs(c.dx) / Math.max(1, performance.now() - c.t) > 0.5;
+          if (Math.abs(c.dx) > w * 0.2 || (fast && Math.abs(c.dx) > 30)) {
+            if (g) { g.style.transition = ''; g.style.transform = ''; g.style.opacity = ''; }
+            haptic('tick');
+            shiftCalendarMonth(c.dx < 0 ? 1 : -1, true);
+          } else if (g) {
+            g.style.transition = 'transform 240ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms';
+            g.style.transform = '';
+            g.style.opacity = '';
+            setTimeout(() => { g.style.transition = ''; }, 260);
+          }
+        };
+        calArea.addEventListener('touchend', calEnd, { passive: true });
+        calArea.addEventListener('touchcancel', calEnd, { passive: true });
       }
       const btnCalToday = document.getElementById('btnCalToday');
       if (btnCalToday) {
@@ -4791,9 +5136,9 @@
         } else if (action === 'log') {
           openLogModal(game.id);
         } else if (action === 'cal-day') {
-          // Calendar tile: log or correct that day (today, or any past day).
+          // Calendar tile: a snapshot of that day's result; its Edit button opens the editor.
           const date = target.getAttribute('data-date') || '';
-          if (HubCore.DATE_KEY_RE.test(date)) openLogModal(game.id, { cycleKey: date, useRecordedStatus: true });
+          if (HubCore.DATE_KEY_RE.test(date)) openDayEntry(game.id, date);
         } else if (action === 'edit') {
           openAddOrEditModal(null, game);
         } else if (action === 'delete') {
@@ -4830,6 +5175,44 @@
         const game = state.games.find((g) => g.id === document.getElementById('editGameId').value);
         closeAddModal();
         if (game) setArchived([game.id], true);
+      });
+      document.getElementById('btnPlayNext').addEventListener('click', () => {
+        const id = document.getElementById('playNextBar').dataset.id;
+        if (id) openGameInPlayer(id);
+      });
+      document.getElementById('btnDayEntryEdit').addEventListener('click', () => {
+        const ref = dayEntryRef;
+        closeModal('modalDayEntry');
+        if (ref) openLogModal(ref.gameId, { cycleKey: ref.date, useRecordedStatus: true });
+      });
+      document.getElementById('btnDayEntryCopy').addEventListener('click', () => {
+        copyText(document.getElementById('dayEntryScore').textContent);
+      });
+      document.getElementById('historyFilterGame').addEventListener('change', (e) => {
+        historyFilter.game = e.target.value;
+        historyPage = 0;
+        renderStatsAndCharts();
+      });
+      document.querySelectorAll('[data-hist-outcome]').forEach((b) => b.addEventListener('click', () => {
+        historyFilter.outcome = b.getAttribute('data-hist-outcome');
+        historyPage = 0;
+        haptic('tick');
+        renderStatsAndCharts();
+      }));
+      document.getElementById('historyTableBody').addEventListener('click', (e) => {
+        const b = e.target && e.target.closest ? e.target.closest('.hist-copy') : null;
+        if (!b) return;
+        // Found by game and day, not by position, so a result logged meanwhile can't shift it.
+        const gid = b.getAttribute('data-copy-game');
+        const gname = b.getAttribute('data-copy-name');
+        const date = b.getAttribute('data-copy-date');
+        const row = state.historyLogs.find((l) => l && l.date === date && (gid ? l.gameId === gid : (!l.gameId && l.gameName === gname)));
+        if (row) copyText(String(row.score || '').trim());
+      });
+      document.getElementById('btnEditTodayEntry').addEventListener('click', () => {
+        const game = state.games.find((g) => g.id === document.getElementById('editGameId').value);
+        closeAddModal();
+        if (game) openLogModal(game.id, { cycleKey: getCycleDateKey(game.resetTime, game.resetZone), useRecordedStatus: true });
       });
       document.getElementById('btnRemoveFromEdit').addEventListener('click', () => {
         const game = state.games.find((g) => g.id === document.getElementById('editGameId').value);
@@ -4978,6 +5361,7 @@
         const resetZone = HubCore.normalizeZone(document.getElementById('inputResetZone').value);
         const desc = document.getElementById('inputGameDesc').value.trim() || `Daily game hosted at ${url}`;
         const notifyEnabled = document.getElementById('inputNotifyEnabled').checked;
+        const reminderMinutes = normalizeReminderMinutes(document.getElementById('inputGameReminder').value);
         const localResetStr = formatLocalResetTime(resetTime, resetZone);
         const newCycleKey = getCycleDateKey(resetTime, resetZone);
 
@@ -5003,6 +5387,7 @@
             existing.resetZone = resetZone;
             existing.desc = desc;
             existing.notifyEnabled = notifyEnabled;
+            existing.reminderMinutes = reminderMinutes;
             existing.lastCycleKey = newCycleKey;
             existing.status = (existing.dayHistory && existing.dayHistory[newCycleKey]) || 'ready';
             recomputeGameStatsFromHistory(existing);
@@ -5040,6 +5425,7 @@
             maxTries,
             desc,
             notifyEnabled,
+            reminderMinutes,
             status: restoredHistory[newCycleKey] || 'ready',
             todayScore: '',
             streak: (retained && retained.streak) || 0,

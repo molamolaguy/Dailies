@@ -1,3 +1,44 @@
+# Dailies 1.3.0
+
+An update with fixes and polish. It installs over 1.2.0 and keeps your games, streaks and history.
+
+## What's new since 1.2.0
+| | 1.2.0 | 1.3.0 |
+|---|---|---|
+| **Updates** | "Get it" opened GitHub in the browser | **Check now** offers to download and install the update inside the app |
+| **Auto-logging** | Could miss a result the game copied (e.g. Krillion) | Also checks for a copied result when you return to the game or close it, and accepts results scored in metres, % or points |
+| **Play next** | None | Once you've finished a game, "Up next" opens the next unplayed one |
+| **Score history** | Every game together | Filter by game and by Completed / Missed |
+| **Streak reminders** | One time for every game | Each game can have its own time, or none |
+| **Times and points** | Best and average only for "3/6"-style scores | Also for game times ("1:42"), points ("2,450 pts", Krillion's "60") and counts ("45 guesses") |
+| **Tab swipes** | The old page faded out as a copy, which could leave traces | The real next page slides in beside the current one and follows your finger |
+| **Calendar** | Tapping a day opened the editor | Shows that day's result first, with Copy and Edit buttons |
+| **Calendar months** | ‹ › buttons only | Also swipe left or right on the calendar |
+| **Score history entries** | Every result shown in full | Date, time, play time, result and streak; tap **Result** to see the text and copy it |
+| **Finished games** | "Done today" open by default | Folded away until you open it |
+| **Logged games** | ✓ button stayed on finished games | Hidden once today is logged; edit it from the game's settings (**Edit entry**) |
+| **App icon** | Purple, follows your phone | White with a yellow-to-green star; **App Icon Matches Theme** still gives the themed icons |
+
+## Removed
+- The score distribution chart, which didn't suit games that aren't scored in guesses.
+- One-handed mode.
+
+## Also fixed
+- Select mode no longer covers a game's Ready / Done tag.
+- The share-list QR code screen no longer scrolls or stretches.
+- Back closes every dialog, including the QR code and import screens.
+- Shorter description for **Block Ads in Games**.
+- The first swipe to Streaks & Log no longer stutters: the page is only redrawn when something changed.
+- Changing month moves the month name, tiles and recap along with the calendar.
+- A downloaded update file is deleted the next time the app starts.
+
+## Requirements
+- Android 7.0 or newer.
+- In-app updates need **Install unknown apps** allowed for Dailies (Android asks the first time), and work from 1.3.0 onwards. Install 1.3.0 itself the usual way.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.2.0
 
 A feature update. It installs over 1.1.0 and keeps your games, streaks and history.

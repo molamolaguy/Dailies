@@ -138,8 +138,12 @@ class HubActivity : ComponentActivity() {
         override fun handleOnBackPressed() = handleAppBackPress()
     }
 
+    @Volatile private var updateInProgress = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // A downloaded update (about 5 MB) isn't needed after the install it was for.
+        if (savedInstanceState == null) Thread { UpdateInstaller.clearDownloads(applicationContext) }.start()
         stateStore = HubStateStore(File(filesDir, HubStateStore.FILE_NAME), onWriteResult = { ok ->
             // Writer thread: tell the hub that saving is failing (e.g. storage full), or works again.
             runOnUiThread { runJs("window.onHubSaveResult && window.onHubSaveResult($ok)") }
@@ -426,6 +430,7 @@ class HubActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        current = java.lang.ref.WeakReference(this)
         if (::webView.isInitialized) {
             webView.onResume()
             // The wallpaper (and so the Material You palette) may have changed while we were away, and
@@ -796,6 +801,42 @@ class HubActivity : ComponentActivity() {
             }.start()
         }
 
+        /**
+         * Downloads the latest release's APK and opens Android's install confirmation. Progress goes to
+         * window.onUpdateStatus. The page can't choose what is downloaded: the release is fetched again here.
+         */
+        @JavascriptInterface
+        fun downloadAndInstallUpdate() {
+            if (updateInProgress) return
+            if (!UpdateInstaller.canInstall(this@HubActivity)) {
+                reportUpdateStatus("permission", -1, null)
+                runOnUiThread {
+                    runCatching {
+                        startActivity(
+                            Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:$packageName".toUri())
+                        )
+                    }
+                }
+                return
+            }
+            updateInProgress = true
+            reportUpdateStatus("downloading", 0, null)
+            Thread {
+                try {
+                    when (val r = UpdateInstaller.download(applicationContext) { pct -> reportUpdateStatus("downloading", pct, null) }) {
+                        is UpdateInstaller.Result.Failed -> reportUpdateStatus("error", -1, r.message)
+                        is UpdateInstaller.Result.Ready -> {
+                            reportUpdateStatus("installing", 100, null)
+                            runCatching { UpdateInstaller.install(applicationContext, r.file) }
+                                .onFailure { reportUpdateStatus("error", -1, "Android couldn't start the install. Try again.") }
+                        }
+                    }
+                } finally {
+                    updateInProgress = false
+                }
+            }.start()
+        }
+
         /** Opens the latest release page in the browser (a fixed address; the page can't pass one). */
         @JavascriptInterface
         fun openReleasePage() {
@@ -872,11 +913,6 @@ class HubActivity : ComponentActivity() {
         fun setGamePrefs(blockAds: Boolean, autoLogShare: Boolean) {
             GamePrefs.save(applicationContext, blockAds, autoLogShare)
         }
-
-        /** Summary of the bundled ad-blocking lists (counts, build date) for the Settings subtitle. */
-        @JavascriptInterface
-        fun getAdBlockInfo(): String =
-            runCatching { assets.open("adblock/sources.json").bufferedReader().use { it.readText() } }.getOrDefault("{}")
 
         /** Opens the game in the native full-screen player. */
         @JavascriptInterface
@@ -969,6 +1005,18 @@ class HubActivity : ComponentActivity() {
             }
         }
 
+        /** Puts a logged result on the clipboard exactly as written (Copy in the score history). */
+        @JavascriptInterface
+        fun copyText(text: String) {
+            if (text.isEmpty() || text.length > 20_000) return
+            runOnUiThread {
+                runCatching {
+                    val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                    cm?.setPrimaryClip(android.content.ClipData.newPlainText("Dailies result", text))
+                }
+            }
+        }
+
         /** Fetches the URL on a single-thread executor; replies via window.onWebsiteScraped (P9, K13, B5). */
         @JavascriptInterface
         fun scrapeWebsite(requestId: Int, rawUrl: String) {
@@ -990,6 +1038,16 @@ class HubActivity : ComponentActivity() {
     }
 
     companion object {
+        /** The running hub, for reporting install progress from the package installer's callback. */
+        @Volatile private var current: java.lang.ref.WeakReference<HubActivity>? = null
+
+        /** Tells the hub page how an in-app update is going (state: downloading / installing / permission / error). */
+        fun reportUpdateStatus(state: String, percent: Int, message: String?) {
+            val a = current?.get() ?: return
+            val json = JSONObject().put("state", state).put("percent", percent).put("message", message ?: "").toString()
+            a.runOnUiThread { a.runJs("window.onUpdateStatus && window.onUpdateStatus($json)") }
+        }
+
         private const val ASSET_PREFIX = "file:///android_asset/"
         private const val MAX_IMPORT_BYTES = 50 * 1024 * 1024
         private const val BACKUP_TEMP_FILE = "pending_backup_export.json"

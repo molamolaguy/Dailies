@@ -1,0 +1,9 @@
+1.3.0
+• Download and install updates inside the app.
+• "Up next" button to play your next unplayed game.
+• Score history filter by game and outcome; copy any result.
+• Per-game streak reminder times.
+• Bests and averages for timed and points games.
+• Auto-logging catches more games, such as Krillion.
+• Smoother tab swipes; swipe the calendar to change month.
+• New white icon with a yellow-to-green star.

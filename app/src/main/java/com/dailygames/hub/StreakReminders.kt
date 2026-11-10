@@ -13,6 +13,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import org.json.JSONArray
+import org.json.JSONObject
 import java.util.TimeZone
 
 /** The "Streak reminders" notification channel (separate from reset alerts, so each can be muted). */
@@ -33,11 +34,24 @@ object ReminderChannel {
  * Pure planning for streak reminders: which games to remind about now, and when to look next.
  * A game qualifies when it has a streak, the user hasn't logged it in the current cycle, and its
  * reset is within the reminder lead time. Each game is reminded at most once per cycle.
+ *
+ * The lead time is the app-wide setting unless the game sets its own `reminderMinutes`
+ * (0 = never remind for this game; absent or -1 = use the app-wide setting).
  */
 class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDefault()) {
-    class Candidate(val id: String, val name: String, val streak: Int, val msUntilReset: Long, val cycleKey: String)
+    class Candidate(val id: String, val name: String, val streak: Int, val msUntilReset: Long, val cycleKey: String, val leadMs: Long = 0L)
 
-    private fun candidates(games: JSONArray, nowMs: Long): List<Candidate> {
+    /** This game's lead time: its own setting when it has one, else [defaultLeadMs]. */
+    fun leadFor(g: JSONObject, defaultLeadMs: Long): Long {
+        val own = if (g.has("reminderMinutes")) g.optInt("reminderMinutes", -1) else -1
+        return when {
+            own < 0 -> defaultLeadMs
+            own in ALLOWED_LEAD_MINUTES -> own * 60_000L
+            else -> defaultLeadMs
+        }
+    }
+
+    private fun candidates(games: JSONArray, nowMs: Long, defaultLeadMs: Long): List<Candidate> {
         val out = ArrayList<Candidate>()
         for (i in 0 until games.length()) {
             val g = games.optJSONObject(i) ?: continue
@@ -48,30 +62,31 @@ class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDe
             val zone = g.optString("resetZone", "local")
             val key = GameStore.cycleKey(time, zone, nowMs, localTimeZone)
             if (g.optString("loggedCycle") == key) continue
+            val lead = leadFor(g, defaultLeadMs)
+            if (lead <= 0) continue
             out += Candidate(id, g.optString("name").ifBlank { "Your daily game" }, streak,
-                GameStore.msUntilNextReset(time, zone, nowMs, localTimeZone), key)
+                GameStore.msUntilNextReset(time, zone, nowMs, localTimeZone), key, lead)
         }
         return out
     }
 
     /** Games to remind about at [nowMs] (window open, not logged, not yet reminded this cycle). */
-    fun due(games: JSONArray, nowMs: Long, leadMs: Long, remindedCycle: (String) -> String?): List<Candidate> {
-        if (leadMs <= 0) return emptyList()
-        return candidates(games, nowMs).filter { it.msUntilReset <= leadMs + SLACK_MS && remindedCycle(it.id) != it.cycleKey }
+    fun due(games: JSONArray, nowMs: Long, leadMs: Long, remindedCycle: (String) -> String?): List<Candidate> =
+        candidates(games, nowMs, leadMs).filter { it.msUntilReset <= it.leadMs + SLACK_MS && remindedCycle(it.id) != it.cycleKey }
             .sortedBy { it.msUntilReset }
-    }
 
     /**
      * When to check next: now if a window is already open for a game that still needs a reminder,
      * otherwise the earliest upcoming "reset minus lead" among games with a streak; null if none.
      */
-    fun nextCheck(games: JSONArray, nowMs: Long, leadMs: Long, remindedCycle: (String) -> String?): Long? {
-        if (leadMs <= 0) return null
+    fun nextCheck(games: JSONArray, nowMs: Long, defaultLeadMs: Long, remindedCycle: (String) -> String?): Long? {
         var best: Long? = null
         for (i in 0 until games.length()) {
             val g = games.optJSONObject(i) ?: continue
             val id = g.optString("id")
             if (id.isEmpty() || g.optInt("streak", 0) <= 0 || !g.optBoolean("notifyEnabled", true)) continue
+            val leadMs = leadFor(g, defaultLeadMs)
+            if (leadMs <= 0) continue
             val time = g.optString("resetTime", "00:00")
             val zone = g.optString("resetZone", "local")
             val untilReset = GameStore.msUntilNextReset(time, zone, nowMs, localTimeZone)
@@ -90,7 +105,8 @@ class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDe
     }
 
     /** Notification text: "Wordle resets in 1 hr" / "3 streaks reset within 2 hr". */
-    fun message(due: List<Candidate>, leadMs: Long): Pair<String, String> {
+    fun message(due: List<Candidate>, defaultLeadMs: Long): Pair<String, String> {
+        val leadMs = due.maxOfOrNull { it.leadMs }?.takeIf { it > 0 } ?: defaultLeadMs
         val lead = formatLead(leadMs)
         return if (due.size == 1) {
             val c = due[0]

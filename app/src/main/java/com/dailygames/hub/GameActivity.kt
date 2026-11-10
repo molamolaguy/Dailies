@@ -701,9 +701,11 @@ class GameActivity : ComponentActivity() {
                 WebViewCompat.addWebMessageListener(webView, "DailesShare", anyOrigin) { _, message, sourceOrigin, isMainFrame, _ ->
                     val scheme = sourceOrigin.scheme?.lowercase(Locale.US)
                     if (scheme != "http" && scheme != "https") return@addWebMessageListener
-                    // Only the game page itself (not ad / embedded frames, not another site it navigated to)...
+                    // Only the game's own site: its page or a frame from the same site (some games run
+                    // inside one), never an ad frame or another site it navigated to...
                     val src = sourceOrigin.host?.lowercase(Locale.US) ?: return@addWebMessageListener
-                    if (!isMainFrame || gameHost.isEmpty() || !AdBlockEngine.sameSite(src, gameHost)) return@addWebMessageListener
+                    if (gameHost.isEmpty() || !AdBlockEngine.sameSite(src, gameHost)) return@addWebMessageListener
+                    if (!isMainFrame && pageHost?.let { AdBlockEngine.sameSite(it, gameHost) } == false) return@addWebMessageListener
                     // ...and only right after the player was really tapped: a script running in the
                     // game's page can't post a "result" on its own.
                     if (!userActedWithin(SHARE_GESTURE_WINDOW_MS)) return@addWebMessageListener
@@ -781,6 +783,29 @@ class GameActivity : ComponentActivity() {
             clipboardManager?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString()
         }.getOrNull()
         offerShare(text, "clipboard")
+    }
+
+    private val openedAtElapsed = SystemClock.elapsedRealtime()
+    private var lastClipStampChecked = 0L
+
+    /**
+     * Catches a result copied while the game was open that the clipboard listener missed (for example
+     * while a pop-up had focus). Looks only at the clip's timestamp until there's a new clip, so the
+     * "pasted from your clipboard" notice doesn't show for nothing. Android 8+ (needs the timestamp).
+     */
+    private fun checkClipboardSinceOpen() {
+        if (!autoLogEnabled || Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !hasWindowFocus()) return
+        val cm = clipboardManager ?: return
+        val stamp = runCatching { cm.primaryClipDescription?.timestamp }.getOrNull() ?: return
+        if (stamp < openedAtElapsed || stamp == lastClipStampChecked) return
+        lastClipStampChecked = stamp
+        val text = runCatching { cm.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this)?.toString() }.getOrNull()
+        offerShare(text, "clipboard-late")
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) checkClipboardSinceOpen()
     }
 
     /** Keeps the latest text that passes the strict share-result check; it is logged back in the hub. */
@@ -1043,6 +1068,7 @@ class GameActivity : ComponentActivity() {
 
     /** Every exit path (← Hub, ✓ Log, Back, renderer crash) reports how long the game was on screen. */
     override fun finish() {
+        checkClipboardSinceOpen()
         if (gameId.isNotEmpty()) setResultWithLog(openLogOnReturn)
         super.finish()
     }
@@ -1299,7 +1325,8 @@ class GameActivity : ComponentActivity() {
         private const val MAX_DATA_URL_CHARS = (MAX_DOWNLOAD_BYTES + 2) / 3 * 4 + 4096
         private const val BLOB_ANSWER_TIMEOUT_MS = 15_000L
         /** A share/copy hook result counts only this soon after a real tap or key press. */
-        private const val SHARE_GESTURE_WINDOW_MS = 10_000L
+        // Long enough for games that show a results animation before copying.
+        private const val SHARE_GESTURE_WINDOW_MS = 30_000L
         private const val DOWNLOAD_GESTURE_WINDOW_MS = 15_000L
         private const val RENDERER_CRASH_WINDOW_MS = 60_000L
         /** Below this width the shield shows only its icon, so the game title keeps some room. */

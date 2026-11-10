@@ -9,7 +9,7 @@
 - **Alerts you** when a new puzzle is out, and can remind you before a streak is lost.
 - **Plays games ad-free** in a built-in player.
 - **Logs results automatically** when you tap a game's Share button.
-- **Keeps your streaks and stats**: a calendar, win rate, score spread, play times, personal bests, achievements and a monthly recap.
+- **Keeps your streaks and stats**: a calendar, win rate, play times, personal bests, achievements and a monthly recap.
 - **Reads results from screenshots** for games without a Share button.
 - **Light or dark**, with your wallpaper's colours.
 - **Keeps your data on your phone**: no server, no analytics. Back up by hand or weekly to a folder you choose, or export a `.csv`.
@@ -20,7 +20,7 @@
 2. Open the file and allow installing when Android asks.
 
 Updates are signed with the same key, so they install over the previous version and keep your data.
-To be told about new versions, turn on **Settings → About → Check for Updates**, or add this repository to [Obtainium](https://obtainium.imranr.dev/) for automatic updates.
+To be told about new versions, turn on **Settings → About → Check for Updates**: the app then offers to download and install them. Or add this repository to [Obtainium](https://obtainium.imranr.dev/) for automatic updates.
 
 <details>
 <summary>Signing certificate SHA-256</summary>

@@ -62,6 +62,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - the reset time in your local time;
   - a status pill (Ready / Done / Missed);
   - a live countdown and the action buttons.
+- **Up next**: once you've finished a game today, a bar above the cards names the next unplayed game (after the one you played last, in your order). **Play next** opens it.
 - **Reordering**:
   - Long-press a card for about 0.4 s until it lifts, then drag it. The list auto-scrolls near the edges.
   - The ⌃/⌄ arrows also work.
@@ -91,13 +92,16 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 
 ### Tab 2: Streaks & Log
 - **Completion calendar**:
-  - Pick a game, use ‹ › to change month, and **Today** to jump back.
+  - Pick a game, swipe the calendar or use ‹ › to change month, and **Today** to jump back.
+  - Tap a day to see its result (outcome, time, play time, streak and the result text) with **Copy** and **Edit**.
   - The tiles show **Best streak**, **Current** and **Plays**.
-  - **Score stats** below them: win rate, and for "3/6"-style scores the average and a bar for each number of guesses (X = failed).
+  - **Score stats** below them: win rate, the average score, play times and personal bests. Scores are read as guesses ("3/6"), game times ("1:42", "1m 05s"), points ("2,450 pts", "4,250m", or a line that's just a number, like Krillion's "60") or counts ("45 guesses"); each game is compared in the kind it uses most.
 - **Score history**:
-  - Every result is listed newest first, 5 per page.
+  - Every result is listed newest first, 5 per page: game, date, time, play time, outcome and streak.
+  - Filter by game (the dropdown) and by **All / Completed / Missed**.
+  - Tap **Result** on an entry to see the text the game shared, and **Copy result** to copy it with its line breaks and emoji.
   - From the 6th result, a pager appears: tap ‹ › or swipe on the list.
-  - Logging the same day again (✓ on the card) replaces that day's entry. Stats are recalculated from the history, so they go down as well as up.
+  - Logging the same day again replaces that day's entry. Once today is logged as done, the card's ✓ is hidden; use **Edit entry** in the game's settings (⚙). Stats are recalculated from the history, so they go down as well as up.
 
 ### Tab 3: Settings
 - **Display**:
@@ -105,22 +109,23 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - Match Device Wallpaper Colors
   - AMOLED Pitch-Black Surface (dark theme only)
   - Compact Game Cards
-  - Group Finished Games: today's done games move under a **Done today** header you can fold away (with the All filter)
+  - Group Finished Games: today's done games move under a **Done today** header, folded away until you open it (with the All filter)
+  - App Icon Matches Theme: off gives the white icon with the yellow-to-green star; on, the icon follows the theme
 - **Gameplay & Time**:
   - 12h / 24h clock
   - Seconds in countdowns
   - Ask to Log After Playing
   - Auto-scrape on paste
 - **Game Player**:
-  - Block Ads in Games (shows the rule counts)
+  - Block Ads in Games
   - Auto-Log Shared Results
 - **Reset Alerts**:
   - The button reads **✓ Notifications enabled** when Android allows them. Otherwise it reads **Allow Notifications**, which asks for permission or opens the right Android settings page.
-  - **Streak Reminder**: off, or 30 min to 6 hr before a reset. If a game you have a streak in isn't logged by then, one notification lists them (on its own "Streak Reminders" channel).
+  - **Streak Reminder**: off, or 30 min to 6 hr before a reset. Each game can override it in its settings (⚙ → **Streak reminder for this game**: same as Settings, off, or its own time). If a game you have a streak in isn't logged by then, one notification lists them (on its own "Streak Reminders" channel).
   - Below it, each game has its own alert toggle.
 - **Data & Backup**: **Save Backup (.json)** and **Import Backup (.json or .txt)** through the Android file picker.
   - **Weekly Automatic Backup**: choose a folder and a backup in the same format is written there every week (`dailies_autobackup_<date>.json`, the newest 5 kept). **Back up now** and **Turn off** appear once it's on.
-- **About**: the version, and an opt-in **Check for Updates** (once a day, one anonymous request to GitHub's releases API). A newer release shows a banner on the hub.
+- **About**: the version, and an opt-in **Check for Updates** (once a day, one anonymous request to GitHub's releases API). A newer release shows a banner on the hub; **Update** (or **Check now**) downloads it and opens Android's install screen.
 
 ### Undo
 - Auto-logged results, quick actions, manual logs and backup imports show a toast with an **Undo** button. The toast stays up for 20 seconds.
@@ -385,3 +390,18 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Tab swipes**: the page follows the finger, and `animateTabChange` slides between views with the Web Animations API (with a timeout fallback). Reduced-motion settings are respected.
 - **App icon**: adaptive icons in six launcher entries (`activity-alias`). `.MainActivity`, the 1.x launcher name kept so home-screen shortcuts survive the update, is the default: it uses `-night` and `-v31` colours, so it follows the phone's dark theme and wallpaper. With **App Icon Matches Theme** on, `AppIcon` enables the entry for the app's theme when you leave the app. The activity itself is now `HubActivity`.
 - New tests: `AppIconTest`, `GameListCodecTest`, Node tests for the stats helpers, and device tests that tap the Done-today row with real touch events and open a shared list link.
+
+## 11. New in 1.3.0
+
+The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for developers:
+- **In-app updates**: `UpdateInstaller` fetches the latest release again (the page can't pass a URL), downloads its `.apk` asset from this repository's releases (redirects only to GitHub hosts), checks the package name, a higher version code and the same signing certificate as the installed app, then commits a `PackageInstaller` session. `UpdateInstallReceiver` shows Android's confirmation; progress reaches the page through `window.onUpdateStatus`. Needs `REQUEST_INSTALL_PACKAGES`.
+- **Auto-logging**: `isStrictShareResult` (JS and Kotlin, same fixtures) also accepts results that name the game (or the site's own name, e.g. "krillion" for krillion.io) with a measured score ("4,250m", "87%", "1,200 XP") or emoji plus numbers. The share channel accepts same-site frames, the gesture window is 30 s, and a clip copied while the game was open is checked again when the player regains focus or closes (using the clip's timestamp, Android 8+).
+- **Tab pager**: `Pager` places the real neighbouring view beside the current one (absolutely positioned, `overflow-x: clip` on the scaffold) and both follow the finger; the release velocity sets the glide duration. No cloned snapshots.
+- **Calendar**: a day opens `modalDayEntry` (read-only); its Edit opens the log editor. Month swipes are handled on `#calendarSwipeArea`, which the tab swipe ignores.
+- **Removed**: the guess distribution (`scoreStats().dist`) and one-handed mode.
+- **Icon**: the default launcher entry `.MainActivity` uses `ic_icon_default_*` (white, gradient star). The previous wallpaper-following icon is the `.IconAuto` entry, used when **App Icon Matches Theme** is on with the Match phone theme.
+- **Play next**: `nextGameToPlay()` picks the next game with status `ready` after the one opened last (hub order, wrapping). The bar shows once a game is finished today.
+- **Score history filter**: `historyFilter` (game key `id:<id>` or `name:<name>`, outcome) is kept in memory; copy buttons find their row by game and date.
+- **Per-game reminders**: `game.reminderMinutes` (-1 = app setting, 0 = off, or 30/60/120/180/360) is synced to the native side; `StreakReminderPlanner.leadFor` uses it per game.
+- **Scores**: `parseResultValue` in `hub-core.js` returns guesses, time, count or points with a comparable `rank` (lower is better); `personalBests`, `newRecords` and `scoreStats().avgText` use the group a game scores in most.
+- **Stats rendering** is skipped when nothing changed (`statsRenderKey`, bumped by `saveState`).
