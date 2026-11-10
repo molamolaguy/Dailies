@@ -240,7 +240,7 @@ test('1.2.0: play times, records, achievements and monthly recap', () => {
   assert.equal(rec[0].value, '2/6');
   assert.deepEqual(core.newRecords([], { outcome: 'Completed', score: '2/6', timeMs: 1000, streak: 1 }, 0), [], 'a first solve is not a record');
   assert.deepEqual(core.newRecords(rows, { outcome: 'Missed', score: 'X/6' }, 4), []);
-  assert.deepEqual(core.personalBests(rows, 4), { bestScore: '3/6', fastestMs: 120000, bestStreak: 4 });
+  assert.deepEqual(core.personalBests(rows, 4), { bestScore: '3/6', bestKind: 'guesses', fastestMs: 120000, bestStreak: 4 });
 
   const day = (n) => `2026-11-${String(n).padStart(2, '0')}`;
   const hist = (from, to, skip) => { const h = {}; for (let d = from; d <= to; d++) h[day(d)] = d === skip ? 'missed' : 'completed'; return h; };
@@ -273,4 +273,35 @@ test('extractResultText keeps the result lines of recognised screenshot text', (
   assert.ok(!out.includes('Statistics'));
   assert.equal(core.extractResultText(''), '');
   assert.equal(core.extractResultText('just\nsome\nwords'), 'just\nsome\nwords');
+});
+
+test('1.3.0: times, points and counts are scored like with like', () => {
+  const v = (t) => core.parseResultValue(t);
+  assert.deepEqual([v('Wordle 1,234 3/6').kind, v('Wordle 1,234 3/6').label], ['guesses', '3/6']);
+  assert.equal(v('Wordle 1,235 X/6'), null);
+  assert.deepEqual([v('Mini 1:42').kind, v('Mini 1:42').ms], ['time', 102000]);
+  assert.equal(v('Solved in 1m 05s').ms, 65000);
+  assert.equal(v('Queens #300 ⏱️ 42s').label, '0:42');
+  assert.equal(v('Played at 9:14 AM'), null); // a clock time, not a score
+  assert.deepEqual([v('Contexto #812 - 45 guesses').kind, v('Contexto #812 - 45 guesses').n], ['count', 45]);
+  assert.deepEqual([v('Score: 2,450').kind, v('Score: 2,450').value, v('Score: 2,450').label], ['points', 2450, '2,450 pts']);
+  assert.equal(v('Dove 4,250m').label, '4,250m');
+  const kr = v('Krillion #117 🦐\n60\n\n⬛⬛🫧🫧🫧🐟⬛');
+  assert.deepEqual([kr.kind, kr.value, kr.label], ['points', 60, '60']); // not the puzzle number
+  assert.equal(v('Strands #200\n🔵🟡'), null);
+
+  // Points: higher is better; times: lower is better.
+  const pts = [{ outcome: 'Completed', score: 'Krillion #117\n60' }, { outcome: 'Completed', score: 'Krillion #118\n85' },
+    { outcome: 'Missed', score: 'Krillion #119\n99' }, { outcome: 'Completed', score: 'Krillion #120\n40' }];
+  assert.equal(core.personalBests(pts, 0).bestScore, '85');
+  assert.equal(core.scoreStats(pts).avgText, '61.7');
+  assert.deepEqual(core.newRecords(pts, { outcome: 'Completed', score: 'Krillion #121\n90' }, 0).map((r) => r.value), ['90']);
+  assert.deepEqual(core.newRecords(pts, { outcome: 'Completed', score: 'Krillion #121\n70' }, 0), []);
+  const times = [{ outcome: 'Completed', score: 'Mini 1:42' }, { outcome: 'Completed', score: 'Mini 0:58' }];
+  assert.equal(core.personalBests(times, 0).bestScore, '0:58');
+  assert.equal(core.scoreStats(times).scoreKind, 'time');
+  assert.equal(core.scoreStats(times).avgText, '1:20');
+  assert.deepEqual(core.newRecords(times, { outcome: 'Completed', score: 'Mini 0:45' }, 0).map((r) => r.value), ['0:45']);
+  // Guess scores keep working as before.
+  assert.equal(core.personalBests([{ outcome: 'Completed', score: '4/6' }, { outcome: 'Completed', score: '2/6' }], 0).bestScore, '2/6');
 });

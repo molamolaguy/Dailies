@@ -430,7 +430,9 @@
     if (STRICT_HELP_RE.test(t) && !STRICT_PUZZLE_NO_RE.test(t)) return false;
     if (STRICT_FRACTION_RE.test(t) && (STRICT_CONTEXT_RE.test(t) || mentionsGame)) return true;
     if (!mentionsGame) return false;
-    return STRICT_COUNTED_RE.test(t) || STRICT_MEASURED_RE.test(t) || (STRICT_EMOJI_RE.test(t) && /[0-9]/.test(t));
+    // Emoji and a number only count with a puzzle number ("Krillion #117 🦐"), so a copied
+    // "Krillion 🦐 7 questions" isn't taken for a result.
+    return STRICT_COUNTED_RE.test(t) || STRICT_MEASURED_RE.test(t) || (STRICT_EMOJI_RE.test(t) && STRICT_PUZZLE_NO_RE.test(t));
   }
 
   // A share result that says the puzzle was NOT solved ("X/6", "Next time", Connections with four
@@ -469,6 +471,116 @@
     return { n, max, fail: false };
   }
 
+  // ---- Scores beyond "N/M" guesses: times, points and counts (1.3.0) ----
+  // "1:42" / "01:02:03" (not a clock time like "9:14 AM").
+  const TIME_COLON_RE = /(?<![0-9:.\/])([0-9]{1,2}):([0-5][0-9])(?::([0-5][0-9]))?(?![0-9:])(?![ \t ]*[ap]\.?m\b)/i;
+  // "1m 42s", "42s", "42.5 seconds", "1h 3m 5s".
+  const TIME_UNITS_RE = /(?<![A-Za-z0-9_.])(?:([0-9]{1,2})[ \t ]*h(?:ours?|rs?)?[ \t ,]*)?(?:([0-9]{1,3})[ \t ]*m(?:in(?:ute)?s?)?[ \t ,]*)?([0-9]{1,4}(?:\.[0-9]+)?)[ \t ]*s(?:ec(?:ond)?s?)?(?![A-Za-z0-9_])/i;
+  const TIME_MINUTES_RE = /(?<![A-Za-z0-9_.])([0-9]{1,3})[ \t ]*min(?:ute)?s?(?![A-Za-z0-9_])/i;
+  const POINTS_RE = /(?<![A-Za-z0-9_#.,])([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})(?:\.[0-9]+)?[ \t ]*(pts|points?|xp|m|meters?|metres?|km|%)(?![A-Za-z0-9_])/i;
+  const SCORE_LABEL_RE = /(?<![A-Za-z0-9_])(?:score|points|total)[ \t ]*[:=]?[ \t ]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})(?![0-9])/i;
+  const COUNT_RE = /(?<![A-Za-z0-9_#.,])([0-9]{1,4})[ \t ]*(guess(?:es)?|tries|try|attempts?|moves?|mistakes?|swaps?|clicks?|steps?)(?![A-Za-z0-9_])/i;
+  const BARE_NUMBER_LINE_RE = /^[ \t ]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})[ \t ]*$/;
+
+  const num = (s) => Number(String(s).replace(/,/g, ''));
+
+  /**
+   * What a result's score is, so like can be compared with like:
+   *   guesses "3/6"          -> { kind: 'guesses', n, max, group: 'g6', rank: n (lower is better) }
+   *   time "1:42", "1m 42s"  -> { kind: 'time', ms, group: 'time', rank: ms (lower is better) }
+   *   count "45 guesses"     -> { kind: 'count', n, unit, group: 'c:guesses', rank: n (lower is better) }
+   *   points "2,450 pts", "Score: 850", "4,250m", or a line that is only a number ("60")
+   *                          -> { kind: 'points', value, unit, group: 'p:pts', rank: -value (higher is better) }
+   * Each has a `label` for display. Null when the text has no score, or for a failed guess score.
+   */
+  function parseResultValue(text) {
+    const t = String(text || '');
+    if (!t.trim()) return null;
+    const g = parseScore(t);
+    if (g) return g.fail ? null : { kind: 'guesses', n: g.n, max: g.max, group: `g${g.max}`, rank: g.n, label: `${g.n}/${g.max}` };
+    let m = TIME_COLON_RE.exec(t);
+    if (m) {
+      const ms = (m[3] !== undefined ? (Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3])) : (Number(m[1]) * 60 + Number(m[2]))) * 1000;
+      if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
+    }
+    m = TIME_UNITS_RE.exec(t);
+    if (m) {
+      const ms = Math.round(((Number(m[1]) || 0) * 3600 + (Number(m[2]) || 0) * 60 + Number(m[3])) * 1000);
+      if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
+    }
+    m = COUNT_RE.exec(t);
+    if (m) {
+      const unit = m[2].toLowerCase().replace(/^(guess)(es)?$/, 'guesses').replace(/^(tries|try)$/, 'tries')
+        .replace(/^attempts?$/, 'attempts').replace(/^moves?$/, 'moves').replace(/^mistakes?$/, 'mistakes');
+      const n = Number(m[1]);
+      return { kind: 'count', n, unit, group: `c:${unit}`, rank: n, label: `${n} ${unit}` };
+    }
+    m = POINTS_RE.exec(t);
+    if (m) {
+      const unitRaw = m[2].toLowerCase();
+      const unit = /^(pts|points?)$/.test(unitRaw) ? 'pts' : (/^(m|meters?|metres?)$/.test(unitRaw) ? 'm' : unitRaw);
+      const value = num(m[1]);
+      return { kind: 'points', value, unit, group: `p:${unit}`, rank: -value, label: pointsLabel(value, unit) };
+    }
+    m = SCORE_LABEL_RE.exec(t);
+    if (m) { const value = num(m[1]); return { kind: 'points', value, unit: 'pts', group: 'p:pts', rank: -value, label: pointsLabel(value, 'pts') }; }
+    m = TIME_MINUTES_RE.exec(t);
+    if (m) { const ms = Number(m[1]) * 60000; if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) }; }
+    // A line that is only a number, after the first line (Krillion: "Krillion #117 🦐\n60").
+    const lines = t.split(/\r?\n/);
+    for (let i = 1; i < lines.length; i++) {
+      const b = BARE_NUMBER_LINE_RE.exec(lines[i]);
+      if (b) { const value = num(b[1]); return { kind: 'points', value, unit: '', group: 'p:', rank: -value, label: pointsLabel(value, '') }; }
+    }
+    return null;
+  }
+
+  function pointsLabel(value, unit) {
+    const v = Number(value).toLocaleString('en-US');
+    if (unit === '%') return `${v}%`;
+    if (unit === 'm' || unit === 'km') return `${v}${unit}`;
+    if (unit === 'xp') return `${v} XP`;
+    if (!unit) return v;
+    return `${v} pts`;
+  }
+
+  /** "1:42" / "1:02:03" for a game's own time score. */
+  function formatClock(ms) {
+    const t = Math.max(0, Math.round(Number(ms) / 1000) || 0);
+    const h = Math.floor(t / 3600);
+    const m = Math.floor((t % 3600) / 60);
+    const s = t % 60;
+    return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
+  }
+
+  /**
+   * The solved rows' scores of the kind this game mostly uses (its most common group), so a game
+   * that shows "60" one day and "#117" the next only compares its points.
+   */
+  function dominantScores(rows) {
+    const vals = (Array.isArray(rows) ? rows : [])
+      .filter((r) => r && r.outcome === 'Completed')
+      .map((r) => parseResultValue(r.score))
+      .filter(Boolean);
+    if (!vals.length) return { group: null, values: [] };
+    const counts = new Map();
+    vals.forEach((v) => counts.set(v.group, (counts.get(v.group) || 0) + 1));
+    let group = null;
+    let best = -1;
+    counts.forEach((c, k) => { if (c > best) { best = c; group = k; } });
+    return { group, values: vals.filter((v) => v.group === group) };
+  }
+
+  /** Average of a list of same-group scores, as a display label ("52 pts", "1:48", "14 guesses"). */
+  function averageLabel(values) {
+    if (!values.length) return null;
+    const v0 = values[0];
+    if (v0.kind === 'time') return formatClock(values.reduce((a, v) => a + v.ms, 0) / values.length);
+    if (v0.kind === 'points') return pointsLabel(Math.round(values.reduce((a, v) => a + v.value, 0) / values.length * 10) / 10, v0.unit);
+    if (v0.kind === 'count') return `${Math.round(values.reduce((a, v) => a + v.n, 0) / values.length * 10) / 10} ${v0.unit}`;
+    return null;
+  }
+
   /** "1m 05s" / "42s" / "1h 03m" for a play time in ms. */
   function formatDuration(ms) {
     const t = Math.max(0, Math.round(Number(ms) / 1000) || 0);
@@ -501,11 +613,15 @@
     }
     const played = won + missed;
     const out = {
-      won, missed, played, winRate: played ? Math.round((won / played) * 100) : null, avg: null, max: null,
+      won, missed, played, winRate: played ? Math.round((won / played) * 100) : null, avg: null, max: null, avgText: null,
       fastestMs: times.length ? Math.min(...times) : null,
       avgMs: times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null,
       timed: times.length
     };
+    // Times, points and counts: the average of the kind this game mostly scores in.
+    const dom = dominantScores(list);
+    out.scoreKind = dom.values.length ? dom.values[0].kind : null;
+    if (out.scoreKind && out.scoreKind !== 'guesses' && dom.values.length >= 2) out.avgText = averageLabel(dom.values);
     if (parsed.length < 2) return out;
     const counts = new Map();
     parsed.forEach((p) => counts.set(p.max, (counts.get(p.max) || 0) + 1));
@@ -528,10 +644,11 @@
     const out = [];
     if (!row || row.outcome !== 'Completed') return out;
     const prev = (Array.isArray(previousRows) ? previousRows : []).filter((r) => r && r.outcome === 'Completed');
-    const sc = parseScore(row.score);
-    if (sc && !sc.fail) {
-      const earlier = prev.map((r) => parseScore(r.score)).filter((p) => p && !p.fail && p.max === sc.max);
-      if (earlier.length && sc.n < Math.min(...earlier.map((p) => p.n))) out.push({ kind: 'score', value: `${sc.n}/${sc.max}` });
+    // Best score in the same terms: fewest guesses (same N/M), fastest game time, most points.
+    const sc = parseResultValue(row.score);
+    if (sc) {
+      const earlier = prev.map((r) => parseResultValue(r.score)).filter((p) => p && p.group === sc.group);
+      if (earlier.length && sc.rank < Math.min(...earlier.map((p) => p.rank))) out.push({ kind: 'score', value: sc.label });
     }
     const t = Number(row.timeMs);
     if (t > 0) {
@@ -543,16 +660,15 @@
     return out;
   }
 
-  /** A game's personal bests from its rows: { bestScore: "2/6", fastestMs, bestStreak }. */
+  /** A game's personal bests from its rows: { bestScore: "2/6" / "1:42" / "2,450 pts", bestKind, fastestMs, bestStreak }. */
   function personalBests(rows, bestStreak) {
     const solved = (Array.isArray(rows) ? rows : []).filter((r) => r && r.outcome === 'Completed');
+    // The best of the kind of score this game mostly uses (guesses, game time, points or a count).
+    const dom = dominantScores(solved);
     let best = null;
-    solved.forEach((r) => {
-      const p = parseScore(r.score);
-      if (p && !p.fail && (!best || p.n / p.max < best.n / best.max || (p.n / p.max === best.n / best.max && p.n < best.n))) best = p;
-    });
+    dom.values.forEach((v) => { if (!best || v.rank < best.rank) best = v; });
     const times = solved.map((r) => Number(r.timeMs)).filter((x) => x > 0);
-    return { bestScore: best ? `${best.n}/${best.max}` : null, fastestMs: times.length ? Math.min(...times) : null, bestStreak: Number(bestStreak) || 0 };
+    return { bestScore: best ? best.label : null, bestKind: best ? best.kind : null, fastestMs: times.length ? Math.min(...times) : null, bestStreak: Number(bestStreak) || 0 };
   }
 
   const ACHIEVEMENTS = [
@@ -675,6 +791,8 @@
   return {
     extractResultText,
     scoreStats,
+    parseResultValue,
+    formatClock,
     parseScore,
     formatDuration,
     newRecords,

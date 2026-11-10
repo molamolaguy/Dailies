@@ -23,11 +23,10 @@ object ShareResultDetector {
     // it is rejected unless it carries a puzzle number ("#512"), which help text doesn't.
     private val HELP = Regex("(?<![A-Za-z0-9_])(?:how to play|you have[ \\t\\x{A0}]+[0-9]+|you get[ \\t\\x{A0}]+[0-9]+|in[ \\t\\x{A0}]+[0-9]+[ \\t\\x{A0}]+(?:tries|guesses|attempts|chances)|guess the|find the|can you|each guess|tap to|rules)(?![A-Za-z0-9_])", RegexOption.IGNORE_CASE)
     private val PUZZLE_NO = Regex("#[ \\x{A0}]?[0-9]")
-    // Results that score in other units (Krillion's "4,250m" dive depth, "87%", "1,200 XP"), or that
-    // are emoji plus numbers. Only counted when the text also names the game or its site.
+    // Results that score in other units ("4,250m", "87%", "1,200 XP"), or emoji with a puzzle number
+    // ("Krillion #117 🦐"). Only counted when the text also names the game or its site.
     private val MEASURED = Regex("(?<![A-Za-z0-9_])[0-9][0-9,.]*[ \\t\\x{A0}]*(?:m|meters?|metres?|km|ft|feet|%|xp|pts|points?|depth|rank)(?![A-Za-z0-9_])", RegexOption.IGNORE_CASE)
     private val EMOJI = Regex("[\\x{1F000}-\\x{1FAFF}\\x{2600}-\\x{27BF}\\x{2B50}]")
-    private val DIGIT = Regex("[0-9]")
 
     fun isStrictShareResult(text: String?, gameName: String?, gameUrl: String?): Boolean {
         val t = text?.trim().orEmpty()
@@ -44,7 +43,7 @@ object ShareResultDetector {
         if (FRACTION.containsMatchIn(t) && (CONTEXT.containsMatchIn(t) || mentionsGame)) return true
         if (!mentionsGame) return false
         return COUNTED.containsMatchIn(t) || MEASURED.containsMatchIn(t) ||
-            (EMOJI.containsMatchIn(t) && DIGIT.containsMatchIn(t))
+            (EMOJI.containsMatchIn(t) && PUZZLE_NO.containsMatchIn(t))
     }
 
     /** The site's own name from its host: "krillion" for krillion.io, "bbc" for www.bbc.co.uk. */

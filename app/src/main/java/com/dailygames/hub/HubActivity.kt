@@ -142,6 +142,8 @@ class HubActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // A downloaded update (about 5 MB) isn't needed after the install it was for.
+        if (savedInstanceState == null) Thread { UpdateInstaller.clearDownloads(applicationContext) }.start()
         stateStore = HubStateStore(File(filesDir, HubStateStore.FILE_NAME), onWriteResult = { ok ->
             // Writer thread: tell the hub that saving is failing (e.g. storage full), or works again.
             runOnUiThread { runJs("window.onHubSaveResult && window.onHubSaveResult($ok)") }

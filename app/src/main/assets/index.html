@@ -164,6 +164,16 @@
       </div>
 
       <!-- Clean Minimal Games List -->
+      <!-- Play next: the next unplayed game, once today's run has started -->
+      <div id="playNextBar" class="play-next hidden" role="region" aria-label="Play next">
+        <div class="pn-icon" id="playNextIcon" aria-hidden="true"></div>
+        <div class="pn-text">
+          <p class="pn-k">Up next</p>
+          <p class="pn-name" id="playNextName" dir="auto"></p>
+        </div>
+        <span class="pn-left" id="playNextLeft"></span>
+        <button id="btnPlayNext" type="button" class="play-btn m4-primary-fab">Play next</button>
+      </div>
       <div id="gamesGrid" class="space-y-2.5"></div>
     </section>
 
@@ -240,6 +250,14 @@
         <div class="mb-3">
           <h3 class="text-base font-bold text-white">Score History</h3>
           <p class="text-xs text-slate-400 mt-0.5">Every result you've logged, newest first.</p>
+        </div>
+        <div id="historyFilters" class="hist-filters">
+          <select id="historyFilterGame" aria-label="Show results for" class="cal-select px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-semibold"></select>
+          <div class="hist-chips" role="group" aria-label="Outcome">
+            <button type="button" class="hist-chip on" data-hist-outcome="all" aria-pressed="true">All</button>
+            <button type="button" class="hist-chip" data-hist-outcome="Completed" aria-pressed="false">Completed</button>
+            <button type="button" class="hist-chip" data-hist-outcome="Missed" aria-pressed="false">Missed</button>
+          </div>
         </div>
         <div id="historyBlock">
           <div id="historyTableBody" class="hist-list"></div>
@@ -572,6 +590,20 @@
         <div>
           <label for="inputGameDesc" class="block text-xs font-semibold text-slate-300 mb-1">Notes / Rules Reminder</label>
           <input id="inputGameDesc" type="text" placeholder="e.g. Color-coded character attributes across 14 Fire Emblem releases" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+        </div>
+
+        <div>
+          <label for="inputGameReminder" class="block text-xs font-semibold text-slate-300 mb-1">Streak reminder for this game</label>
+          <select id="inputGameReminder" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white">
+            <option value="-1">Same as Settings</option>
+            <option value="0">Off for this game</option>
+            <option value="30">30 min before reset</option>
+            <option value="60">1 hr before reset</option>
+            <option value="120">2 hr before reset</option>
+            <option value="180">3 hr before reset</option>
+            <option value="360">6 hr before reset</option>
+          </select>
+          <p class="mt-1 text-[11px] text-slate-400">Reminds you when you have a streak and haven't logged today.</p>
         </div>
 
         <label class="flex items-center gap-2.5 cursor-pointer select-none pt-1">
@@ -940,6 +972,12 @@
       return HubCore.recomputeGameStatsFromHistory(game);
     }
 
+    const REMINDER_MINUTES = [0, 30, 60, 120, 180, 360];
+    function normalizeReminderMinutes(v) {
+      const n = Number(v);
+      return v !== undefined && v !== null && v !== '' && REMINDER_MINUTES.includes(n) ? n : -1;
+    }
+
     function normalizeGameObject(g, idx) {
       if (!g || typeof g !== 'object') return null;
       const cleanedUrl = cleanGameUrl(g.url);
@@ -965,6 +1003,8 @@
         maxTries: String(g.maxTries || 'Daily Puzzle'),
         desc: String(g.desc || ''),
         notifyEnabled: g.notifyEnabled !== false,
+        // Streak reminder lead for this game: -1 = the app-wide setting, 0 = never, else minutes.
+        reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
         status: (g.status === 'completed' || g.status === 'missed') ? g.status : 'ready',
         todayScore: typeof g.todayScore === 'string' ? g.todayScore : '',
         streak: Math.max(0, parseInt(g.streak, 10) || 0),
@@ -1215,7 +1255,10 @@
     // Several saveState() calls in the same task (e.g. a rollover + a log) are merged into one write.
     let saveQueued = false;
     let syncWanted = false;
+    // Bumped on every change to the saved state, so a tab knows when its render is out of date.
+    let stateRev = 0;
     function saveState(opts) {
+      stateRev += 1;
       if (!opts || opts.sync !== false) syncWanted = true;
       if (opts && opts.syncNow) syncWanted = 'now';
       if (saveQueued) return;
@@ -1299,6 +1342,7 @@
             resetZone: HubCore.normalizeZone(g.resetZone),
             // Archived games keep their settings but never alert or remind.
             notifyEnabled: Boolean(g.notifyEnabled) && !g.archived,
+            reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
             lastCycleKey: g.lastCycleKey || getCycleDateKey(g.resetTime, g.resetZone),
             lastPlayedCycle: g.status === 'completed' ? getCycleDateKey(g.resetTime, g.resetZone) : '',
             // Logged anything (solved or missed) for the current puzzle: no streak reminder needed.
@@ -2048,6 +2092,7 @@
       const grid = document.getElementById('gamesGrid');
       if (!grid) return;
       if (grid.classList.contains('drag-active')) return; // never rebuild cards mid-drag
+      renderPlayNext();
       cardTimerElements.clear();
       const isCompact = Boolean(state.settings && state.settings.compactCards);
       grid.className = isCompact ? 'space-y-1.5' : 'space-y-2.5';
@@ -2663,8 +2708,43 @@
       }
     }
 
+    // ---- Play next ----
+    let lastOpenedGameId = '';
+    /** The next unplayed game after the one played last (in the hub's order, wrapping), or null. */
+    function nextGameToPlay() {
+      const list = visibleGames();
+      const ready = list.filter((g) => g.status === 'ready');
+      if (!ready.length) return null;
+      const from = list.findIndex((g) => g.id === lastOpenedGameId);
+      if (from >= 0) {
+        for (let i = 1; i <= list.length; i++) {
+          const g = list[(from + i) % list.length];
+          if (g.status === 'ready' && g.id !== lastOpenedGameId) return g;
+        }
+      }
+      return ready[0];
+    }
+    /** Shown once at least one game is done today and another is still waiting. */
+    function renderPlayNext() {
+      const bar = document.getElementById('playNextBar');
+      if (!bar) return;
+      const list = visibleGames();
+      const next = nextGameToPlay();
+      const started = list.some((g) => g.status === 'completed' || g.status === 'missed');
+      const show = Boolean(next && started && !selectMode);
+      bar.classList.toggle('hidden', !show);
+      if (!show) return;
+      const left = list.filter((g) => g.status === 'ready').length;
+      bar.dataset.id = next.id;
+      document.getElementById('playNextName').textContent = next.name;
+      document.getElementById('playNextIcon').innerHTML = renderGameIconHtml(next.icon, next.name, 'w-5 h-5');
+      document.getElementById('playNextLeft').textContent = `${left} left`;
+      document.getElementById('btnPlayNext').setAttribute('aria-label', `Play next: ${next.name}, ${plural(left, 'game')} left`);
+    }
+
     function openGameInPlayer(gameId) {
       checkDailyRollovers({ silent: true });
+      lastOpenedGameId = gameId;
       const game = state.games.find((g) => g.id === gameId);
       if (!game) {
         showToast('Game not found', 'That game is no longer in your hub.', 'indigo');
@@ -3150,6 +3230,7 @@
       }
       const head = [`<span><strong>${st.winRate}%</strong> win rate</span>`, `<span>${plural(st.played, 'logged result')}</span>`];
       if (st.avg !== null) head.splice(1, 0, `<span><strong>${st.avg}</strong> average (of ${st.max})</span>`);
+      else if (st.avgText) head.splice(1, 0, `<span><strong>${escapeHtml(st.avgText)}</strong> ${st.scoreKind === 'time' ? 'average time' : 'average'}</span>`);
       if (st.fastestMs) {
         head.push(`<span>⏱ fastest <strong>${HubCore.formatDuration(st.fastestMs)}</strong></span>`);
         head.push(`<span>average <strong>${HubCore.formatDuration(st.avgMs)}</strong></span>`);
@@ -3183,17 +3264,62 @@
         });
     }
 
+    // ---- Score history filter (game and outcome; kept while the app is open) ----
+    const historyFilter = { game: '', outcome: 'all' };
+    const historyRowGameKey = (l) => (l.gameId ? `id:${l.gameId}` : `name:${l.gameName || ''}`);
+    function filteredHistoryLogs() {
+      return state.historyLogs.filter((l) => l
+        && (!historyFilter.game || historyRowGameKey(l) === historyFilter.game)
+        && (historyFilter.outcome === 'all' || l.outcome === historyFilter.outcome));
+    }
+    /** One option per game that has results (current names first, then removed games), newest name wins. */
+    function renderHistoryFilterOptions() {
+      const sel = document.getElementById('historyFilterGame');
+      if (!sel) return;
+      const seen = new Map();
+      state.historyLogs.forEach((l) => {
+        if (!l) return;
+        const key = historyRowGameKey(l);
+        if (!seen.has(key)) {
+          const live = l.gameId && state.games.find((g) => g.id === l.gameId);
+          seen.set(key, live ? live.name : (l.gameName || 'Game'));
+        }
+      });
+      if (historyFilter.game && !seen.has(historyFilter.game)) historyFilter.game = '';
+      const opts = [['', 'All games'], ...[...seen.entries()].sort((a, b) => a[1].localeCompare(b[1]))];
+      const sig = JSON.stringify(opts);
+      if (sel.dataset.sig !== sig) {
+        sel.innerHTML = opts.map(([v, label]) => `<option value="${escapeHtml(v)}">${escapeHtml(label)}</option>`).join('');
+        sel.dataset.sig = sig;
+      }
+      sel.value = historyFilter.game;
+      document.querySelectorAll('[data-hist-outcome]').forEach((b) => {
+        const on = b.getAttribute('data-hist-outcome') === historyFilter.outcome;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    }
+
+    let statsRenderedKey = '';
+    function statsRenderKey() {
+      return [stateRev, calendarYear, calendarMonth, selectedCalendarGameId, historyPage, historyFilter.game,
+        historyFilter.outcome, state.historyLogs.length, state.games.length, new Date().toDateString()].join('|');
+    }
+
     function renderStatsAndCharts() {
+      statsRenderedKey = statsRenderKey();
       renderGameCalendar();
       renderMonthlyRecap();
       renderAchievements();
 
       const tbody = document.getElementById('historyTableBody');
-      const total = state.historyLogs.length;
+      renderHistoryFilterOptions();
+      const shown = filteredHistoryLogs();
+      const total = shown.length;
       const pageCount = Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE));
       historyPage = Math.min(Math.max(0, historyPage), pageCount - 1);
       const start = historyPage * HISTORY_PAGE_SIZE;
-      const pageRows = state.historyLogs.slice(start, start + HISTORY_PAGE_SIZE);
+      const pageRows = shown.slice(start, start + HISTORY_PAGE_SIZE);
       // The pager only appears once there's more than one page (i.e. from the 6th result on).
       const pager = document.getElementById('historyPager');
       if (pager) pager.classList.toggle('hidden', pageCount <= 1);
@@ -3219,6 +3345,8 @@
       if (tbody) {
         if (state.historyLogs.length === 0) {
           tbody.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No results yet. Tap the check button on a game card, or log from the prompt after playing.</p>';
+        } else if (!shown.length) {
+          tbody.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No results match this filter.</p>';
         } else {
           tbody.innerHTML = pageRows.map((item, i) => {
             const ok = item.outcome === 'Completed';
@@ -3236,7 +3364,7 @@
                 ${score ? `<details class="hist-more">
                   <summary><span>Result</span><span class="chev" aria-hidden="true"></span></summary>
                   <pre class="hist-score">${escapeHtml(score)}</pre>
-                  <button type="button" class="hist-copy icon-label" data-copy-log="${start + i}"><span class="ico ico-paste" aria-hidden="true"></span>Copy result</button>
+                  <button type="button" class="hist-copy icon-label" data-copy-game="${escapeHtml(item.gameId || '')}" data-copy-name="${escapeHtml(item.gameName || '')}" data-copy-date="${escapeHtml(item.date || '')}"><span class="ico ico-paste" aria-hidden="true"></span>Copy result</button>
                 </details>` : ''}
               </div>`;
           }).join('');
@@ -3625,7 +3753,8 @@
           calendarYear = parseInt(cycleParts[0], 10) || new Date().getFullYear();
           calendarMonth = (parseInt(cycleParts[1], 10) || (new Date().getMonth() + 1)) - 1;
         }
-        renderStatsAndCharts();
+        // Already drawn for this data and month: skip the (largest) render, so a swipe starts smoothly.
+        if (statsRenderKey() !== statsRenderedKey) renderStatsAndCharts();
       } else if (tab === 'settings') {
         renderSettingsControls();
         renderNotificationsView();
@@ -3848,6 +3977,7 @@
       setZoneSelectValue(source.resetZone);
       document.getElementById('inputGameDesc').value = source.desc || '';
       document.getElementById('inputNotifyEnabled').checked = source.notifyEnabled !== false;
+      document.getElementById('inputGameReminder').value = String(normalizeReminderMinutes(source.reminderMinutes));
       updateModalIconPreview();
 
       const btn = document.getElementById('btnAutoDetectMeta');
@@ -4520,7 +4650,7 @@
 
       // Score History pages: ‹ › buttons and horizontal swipes inside the block.
       const goHistoryPage = (delta) => {
-        const pageCount = Math.max(1, Math.ceil(state.historyLogs.length / HISTORY_PAGE_SIZE));
+        const pageCount = Math.max(1, Math.ceil(filteredHistoryLogs().length / HISTORY_PAGE_SIZE));
         const next = Math.min(Math.max(0, historyPage + delta), pageCount - 1);
         if (next === historyPage) return;
         historyPage = next;
@@ -4848,12 +4978,23 @@
         if (calendarMonth < 0) { calendarMonth = 11; calendarYear -= 1; }
         if (calendarMonth > 11) { calendarMonth = 0; calendarYear += 1; }
         renderGameCalendar();
+        renderMonthlyRecap();
+        if (REDUCED_MOTION) return;
+        // The grid and the month name slide in together; the tiles and the recap below cross-fade.
+        const from = delta > 0 ? 1 : -1;
+        const ease = 'cubic-bezier(0.2, 0, 0, 1)';
         const grid = document.getElementById('calendarDaysGrid');
-        if (grid && !REDUCED_MOTION && typeof grid.animate === 'function') {
-          const from = delta > 0 ? 1 : -1;
+        if (grid && typeof grid.animate === 'function') {
           grid.animate([{ transform: `translate3d(${from * (fromSwipe ? 40 : 28)}%,0,0)`, opacity: fromSwipe ? 0.4 : 0 }, { transform: 'none', opacity: 1 }],
-            { duration: 300, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
+            { duration: 300, easing: ease });
         }
+        const label = document.getElementById('calendarMonthLabel');
+        if (label && typeof label.animate === 'function') {
+          label.animate([{ transform: `translate3d(${from * 24}px,0,0)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: ease });
+        }
+        const calCard = grid && grid.closest('.glass-card');
+        [calCard && calCard.querySelector('.stat-tiles'), document.getElementById('gameScoreStats'), document.getElementById('recapCard')]
+          .forEach((el) => { if (el && typeof el.animate === 'function') el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' }); });
       };
       const btnCalPrev = document.getElementById('btnCalPrevMonth');
       if (btnCalPrev) btnCalPrev.addEventListener('click', () => shiftCalendarMonth(-1));
@@ -5035,6 +5176,10 @@
         closeAddModal();
         if (game) setArchived([game.id], true);
       });
+      document.getElementById('btnPlayNext').addEventListener('click', () => {
+        const id = document.getElementById('playNextBar').dataset.id;
+        if (id) openGameInPlayer(id);
+      });
       document.getElementById('btnDayEntryEdit').addEventListener('click', () => {
         const ref = dayEntryRef;
         closeModal('modalDayEntry');
@@ -5043,10 +5188,25 @@
       document.getElementById('btnDayEntryCopy').addEventListener('click', () => {
         copyText(document.getElementById('dayEntryScore').textContent);
       });
+      document.getElementById('historyFilterGame').addEventListener('change', (e) => {
+        historyFilter.game = e.target.value;
+        historyPage = 0;
+        renderStatsAndCharts();
+      });
+      document.querySelectorAll('[data-hist-outcome]').forEach((b) => b.addEventListener('click', () => {
+        historyFilter.outcome = b.getAttribute('data-hist-outcome');
+        historyPage = 0;
+        haptic('tick');
+        renderStatsAndCharts();
+      }));
       document.getElementById('historyTableBody').addEventListener('click', (e) => {
-        const b = e.target && e.target.closest ? e.target.closest('[data-copy-log]') : null;
+        const b = e.target && e.target.closest ? e.target.closest('.hist-copy') : null;
         if (!b) return;
-        const row = state.historyLogs[Number(b.getAttribute('data-copy-log'))];
+        // Found by game and day, not by position, so a result logged meanwhile can't shift it.
+        const gid = b.getAttribute('data-copy-game');
+        const gname = b.getAttribute('data-copy-name');
+        const date = b.getAttribute('data-copy-date');
+        const row = state.historyLogs.find((l) => l && l.date === date && (gid ? l.gameId === gid : (!l.gameId && l.gameName === gname)));
         if (row) copyText(String(row.score || '').trim());
       });
       document.getElementById('btnEditTodayEntry').addEventListener('click', () => {
@@ -5201,6 +5361,7 @@
         const resetZone = HubCore.normalizeZone(document.getElementById('inputResetZone').value);
         const desc = document.getElementById('inputGameDesc').value.trim() || `Daily game hosted at ${url}`;
         const notifyEnabled = document.getElementById('inputNotifyEnabled').checked;
+        const reminderMinutes = normalizeReminderMinutes(document.getElementById('inputGameReminder').value);
         const localResetStr = formatLocalResetTime(resetTime, resetZone);
         const newCycleKey = getCycleDateKey(resetTime, resetZone);
 
@@ -5226,6 +5387,7 @@
             existing.resetZone = resetZone;
             existing.desc = desc;
             existing.notifyEnabled = notifyEnabled;
+            existing.reminderMinutes = reminderMinutes;
             existing.lastCycleKey = newCycleKey;
             existing.status = (existing.dayHistory && existing.dayHistory[newCycleKey]) || 'ready';
             recomputeGameStatsFromHistory(existing);
@@ -5263,6 +5425,7 @@
             maxTries,
             desc,
             notifyEnabled,
+            reminderMinutes,
             status: restoredHistory[newCycleKey] || 'ready',
             todayScore: '',
             streak: (retained && retained.streak) || 0,

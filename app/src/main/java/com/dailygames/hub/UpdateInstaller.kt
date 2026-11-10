@@ -29,6 +29,14 @@ object UpdateInstaller {
         data class Failed(val message: String) : Result()
     }
 
+    /**
+     * Deletes a downloaded update. The installer copies the APK into its own session when the install
+     * starts, so the file is never needed again once the app restarts (as the new version or not).
+     */
+    fun clearDownloads(ctx: Context) {
+        runCatching { File(ctx.cacheDir, "updates").deleteRecursively() }
+    }
+
     /** Whether Android lets this app install packages (Android 8+ asks per app). */
     fun canInstall(ctx: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ctx.packageManager.canRequestPackageInstalls()

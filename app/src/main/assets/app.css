@@ -1219,3 +1219,27 @@ html.qr-open #modalShareList { overflow: hidden; }
 .update-progress > span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--md-primary); transition: width 0.2s linear; }
 .update-progress.indeterminate > span { width: 35%; animation: update-indet 1.1s ease-in-out infinite; }
 @keyframes update-indet { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
+
+/* Score history filter: game picker and outcome chips. */
+.hist-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.hist-filters select { flex: 1 1 140px; min-width: 0; }
+.hist-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.hist-chip {
+  min-height: 32px; padding: 0 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; white-space: nowrap;
+  color: #a9b1c1; background: transparent; border: 1px solid var(--md-outline);
+}
+.hist-chip.on { color: var(--md-on-primary-container); background: var(--md-primary-container); border-color: transparent; }
+html[data-theme="light"] .hist-chip { color: var(--lt-muted); }
+html[data-theme="light"] .hist-chip.on { color: var(--md-on-primary-container); }
+
+/* Play next: the next unplayed game after one is finished. */
+.play-next {
+  display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 12px; border-radius: 20px;
+  background: var(--md-primary-container); color: var(--md-on-primary-container);
+}
+.play-next.hidden { display: none; }
+.play-next .pn-icon { width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--md-container-high); }
+.play-next .pn-text { flex: 1 1 auto; min-width: 0; }
+.play-next .pn-k { font-size: 11px; font-weight: 600; opacity: 0.8; line-height: 1.2; }
+.play-next .pn-name { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.play-next .pn-left { font-size: 11.5px; font-weight: 600; opacity: 0.8; white-space: nowrap; flex-shrink: 0; }

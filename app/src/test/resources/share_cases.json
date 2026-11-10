@@ -160,7 +160,7 @@
       "url": "https://krillion.io/"
     },
     {
-      "text": "Krillion 🦐🐋 2,950",
+      "text": "Krillion #118 🦐🐋 2,950",
       "strict": true,
       "name": "Krillion",
       "url": "https://krillion.io/"
@@ -188,6 +188,24 @@
       "name": "Krillion Daily Dive",
       "url": "https://krillion.io/daily",
       "strict": true
+    },
+    {
+      "text": "Krillion #117 🦐\n60\n\n⬛⬛🫧🫧🫧🐟⬛",
+      "strict": true,
+      "name": "Krillion",
+      "url": "https://krillion.io/"
+    },
+    {
+      "text": "Krillion – 7 questions",
+      "strict": false,
+      "name": "Krillion",
+      "url": "https://krillion.io/"
+    },
+    {
+      "text": "Krillion 🦐 7 questions",
+      "strict": false,
+      "name": "Krillion",
+      "url": "https://krillion.io/"
     }
   ]
 }

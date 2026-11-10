@@ -38,6 +38,22 @@ class V110FeaturesTest {
     }
 
     @Test
+    fun aGameCanSetItsOwnReminderTime() {
+        val now = ms("2026-11-08T22:30:00Z") // 90 min before the 00:00 UTC reset
+        fun withLead(id: String, minutes: Int) = game(id, 4).dropLast(1) + ",\"reminderMinutes\":$minutes}"
+        val list = games(withLead("own2h", 120), withLead("off", 0), withLead("asSettings", -1), game("plain", 2))
+        // App-wide 1 hr: only the game with its own 2 hr window is due yet.
+        assertEquals(listOf("own2h"), planner.due(list, now, hour) { null }.map { it.id })
+        // App-wide off: a game's own time still reminds; "off" never does.
+        assertEquals(listOf("own2h"), planner.due(list, now, 0) { null }.map { it.id })
+        assertEquals(listOf("own2h", "asSettings", "plain"), planner.due(list, now, 3 * hour) { null }.map { it.id }.sortedBy { listOf("own2h", "asSettings", "plain").indexOf(it) })
+        // Next check with the setting off: 22:00 for the 2 hr game (already passed, so now).
+        assertEquals(now, planner.nextCheck(list, now, 0) { null })
+        assertNull(planner.nextCheck(games(withLead("off", 0)), now, hour) { null })
+        assertTrue(planner.message(planner.due(list, now, 0) { null }, 0).second.contains("2 hr"))
+    }
+
+    @Test
     fun nextCheckIsTheEarliestWindowOrNowWhenOneIsOpen() {
         val list = games(game("wordle", 5), game("later", 2, reset = "06:00"))
         // 20:00: wordle's 1 h window opens at 23:00.
