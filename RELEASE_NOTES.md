@@ -6,8 +6,8 @@ An update with more achievements and a tidier layout. It installs over 1.4.0 and
 | | 1.4.0 | 1.5.0 |
 |---|---|---|
 | **Achievements** | 14 badges | 19 achievements with two tiers each (38 in all). New: Early bird, Night owl, Hole in one, Record breaker, Clean sweep, Bounce back, Regular, Marathon and Weekend warrior. Badges that overlapped were merged into tiers (Getting started II is 100 solves) |
-| **Gold app icon** | Every achievement | The first tier of every achievement |
-| **Gold accents** | — | New: earn every tier to unlock gold accents across the app (Settings → Display → Gold Accents), in the dark, light and AMOLED themes |
+| **Gold app icon** | Every achievement | A hidden reward to discover |
+| **Gold accents** | — | New and secret: a shiny gold look for the whole app, for those who find it |
 | **Achievements section** | Always open | Folded by default; tap to open |
 | **Settings** | Every section open | Each heading folds; all start folded |
 | **Reset alerts** | One notification per game, bundled when several came at once | One notification that lists every game that's ready (a single game still gets its own, as before) |
