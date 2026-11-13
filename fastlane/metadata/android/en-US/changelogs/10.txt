@@ -1,0 +1,9 @@
+1.6.0
+• Play all: today's unplayed games in a row, moving on after each result.
+• Recent changes: undo any of your last 25 logs, edits and removals.
+• Weekly and monthly recaps, compared with the period before; share as a picture.
+• Personal bests for every game, with a 🏆 PB badge on new records.
+• Tough days marked in the calendar and history.
+• Sort the hub: next reset, A–Z or least played.
+• Today's results as one neat message to copy or share.
+• Colour themes: Ocean, Forest, Sunset, Rose or your own accent (in-app notifications too).

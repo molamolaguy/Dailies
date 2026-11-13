@@ -107,6 +107,63 @@ class GamePlayerTest {
         }
     }
 
+    private fun playAllIntent(): Intent {
+        val lineup = JSONArray()
+            .put(JSONObject().put("id", "a").put("name", "Game A").put("url", "https://example.com/a").put("done", false))
+            .put(JSONObject().put("id", "b").put("name", "Game B").put("url", "https://example.com/b").put("done", false))
+        return Intent(ctx, GameActivity::class.java)
+            .putExtra(GameActivity.EXTRA_ID, "a")
+            .putExtra(GameActivity.EXTRA_NAME, "Game A")
+            .putExtra(GameActivity.EXTRA_URL, "https://example.com/a")
+            .putExtra(GameActivity.EXTRA_LINEUP, lineup.toString())
+            .putExtra(GameActivity.EXTRA_PLAY_ALL, true)
+    }
+
+    private fun offer(a: GameActivity, text: String) {
+        val m = GameActivity::class.java.getDeclaredMethod("offerShare", String::class.java, String::class.java)
+        m.isAccessible = true
+        m.invoke(a, text, "page")
+    }
+
+    @Test
+    fun playAllMovesOnToTheNextGameByItself() {
+        ActivityScenario.launchActivityForResult<GameActivity>(playAllIntent()).use { s ->
+            s.onActivity { a -> offer(a, "Game A #12 3/6\n🟩🟩🟩") }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            s.onActivity { a ->
+                val play = findByDescription(a.window.decorView, "Play Game B") as TextView?
+                assertNotNull(play)
+                assertTrue("counts down: ${play!!.text}", play.text.toString().startsWith("Play Game B in "))
+            }
+            Thread.sleep(5_500)
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            s.onActivity { a ->
+                assertNotNull("moved on to Game B", findText(a.window.decorView, "Game B"))
+                assertTrue(findByDescription(a.window.decorView, "Play Game B") == null)
+                a.finish()
+            }
+            assertEquals("b", s.result.resultData.getStringExtra(GameActivity.EXTRA_ID))
+        }
+    }
+
+    @Test
+    fun playAllStaysWhenYouKeepPlaying() {
+        ActivityScenario.launchActivityForResult<GameActivity>(playAllIntent()).use { s ->
+            s.onActivity { a -> offer(a, "Game A #12 3/6\n🟩🟩🟩") }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            s.onActivity { a -> findByDescription(a.window.decorView, "Copy result")!!.performClick() }
+            Thread.sleep(5_500)
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            s.onActivity { a ->
+                val play = findByDescription(a.window.decorView, "Play Game B") as TextView?
+                assertNotNull("still on Game A's card", play)
+                assertEquals("Play Game B", play!!.text.toString())
+                a.finish()
+            }
+            assertEquals("a", s.result.resultData.getStringExtra(GameActivity.EXTRA_ID))
+        }
+    }
+
     @Test
     fun theOldPageCantReportAResultForTheNewGame() {
         val lineup = JSONArray()

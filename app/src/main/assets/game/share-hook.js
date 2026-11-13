@@ -194,6 +194,11 @@
   // A countdown to the next puzzle ("Next puzzle in 05:12:44"), not a game's own timer.
   var COUNTDOWN_RE = /(next|new|until|tomorrow|available|refresh|resets?)[^\n]{0,40}?[0-2]?[0-9]:[0-5][0-9]:[0-5][0-9]/i;
   var BUTTON_RE = /(^|[^a-z])(share|copy)([^a-z]|$)/i;
+  // "Copy result", "Share my score", "Copy results 🦐": a button that only an end screen has, so it
+  // counts as finished on its own (Krillion shows no other end-screen wording).
+  var RESULT_BUTTON_RE = /(share|copy)[ \t]*(my|your|the|today'?s)?[ \t]*(results?|scores?|stats|grid|dive)/i;
+  // Buttons, and the clickable divs / spans some games use instead.
+  var CLICKABLE = 'button, [role="button"], a, [onclick], div[class*="button" i], div[class*="btn" i], span[class*="btn" i], div[tabindex="0"]';
   var AVOID_RE = /(link|invite|friend|twitter|(^|[^a-z])x([^a-z]|$)|facebook|whatsapp|messenger|telegram|sms|text message|reddit|discord|instagram|tiktok|threads|bluesky|mastodon|linkedin|email|e-mail|embed|code|url|image|picture|photo|screenshot|download|save)/i;
 
   function label(el) {
@@ -222,10 +227,12 @@
   }
   function candidates() {
     var out = [];
-    var nodes = document.querySelectorAll('button, [role="button"], a');
+    var nodes = document.querySelectorAll(CLICKABLE);
     for (var i = 0; i < nodes.length && out.length < 4; i++) {
       var el = nodes[i];
       if (tried && tried.has(el)) continue;
+      // A clickable wrapper around a real button: the button itself is the candidate.
+      if (el.tagName !== 'BUTTON' && el.tagName !== 'A' && el.querySelector && el.querySelector('button, [role="button"]')) continue;
       if (el.tagName === 'A') {
         var href = (el.getAttribute('href') || '').trim();
         if (href && href !== '#' && href.toLowerCase().indexOf('javascript:') !== 0) continue; // a real link: never follow it
@@ -255,7 +262,10 @@
     // Stop once a result went out (found, or shared by the player) or after a few presses.
     if (sentAny || presses >= MAX_PRESSES || document.hidden) return;
     var list = candidates(); // cheap; the page text is only read when there's a button to press
-    if (!list.length || !looksFinished()) return;
+    if (!list.length) return;
+    var strong = list.filter(function (el) { return RESULT_BUTTON_RE.test(label(el)); });
+    if (strong.length) { press(strong[0]); return; }
+    if (!looksFinished()) return;
     press(list[0]);
   }
   function schedule(delays) {
@@ -276,7 +286,7 @@
   window.addEventListener('pointerdown', function (e) {
     setProbing(false);
     try {
-      var b = e.target && e.target.closest && e.target.closest('button, [role="button"], a');
+      var b = e.target && e.target.closest && e.target.closest(CLICKABLE);
       if (b && tried) tried.add(b);
     } catch (x) {}
   }, true);

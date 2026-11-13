@@ -1,0 +1,6 @@
+1.5.1
+• Settings sections start open.
+• The bottom bar highlight follows your swipe between tabs.
+• Krillion results are found automatically.
+• Achievements: same-size tiles; tap for details; ★ for tier 2.
+• Themed game pickers, ★ on Done tags, no scroll bar, Robinhood-style gold.

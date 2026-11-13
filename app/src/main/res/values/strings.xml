@@ -15,6 +15,11 @@
     <string name="play_next_named">Play %1$s</string>
     <string name="back_to_hub">Back to hub</string>
     <string name="keep_playing">Keep playing</string>
+    <string name="next_game_in">Play %1$s in %2$d…</string>
+    <plurals name="play_all_banner">
+        <item quantity="one">%1$d more after this</item>
+        <item quantity="other">%1$d more after this</item>
+    </plurals>
     <string name="copy_result">Copy result</string>
     <string name="result_copied">Result copied</string>
     <string name="switcher_playing">playing now</string>

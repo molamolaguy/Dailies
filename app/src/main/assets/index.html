@@ -82,6 +82,14 @@
         if (bottomNav) bottomNav.classList.toggle('hidden', Boolean(imeOpen));
       };
 
+      if (!useDynamic || !cachedPalette) {
+        try {
+          const tt = JSON.parse(localStorage.getItem('dailydeck_theme_tokens_v1') || 'null');
+          if (tt && tt.light === light && tt.tokens && typeof tt.tokens === 'object') {
+            Object.keys(tt.tokens).forEach((k) => { if (/^--md-[a-z-]+$/.test(k)) root.style.setProperty(k, String(tt.tokens[k])); });
+          }
+        } catch (e) {}
+      }
       if (useDynamic && cachedPalette) {
         if (!amoled && cachedPalette.surface) root.style.setProperty('--md-surface', cachedPalette.surface);
         if (!amoled && cachedPalette.containerLow) root.style.setProperty('--md-container-low', cachedPalette.containerLow);
@@ -135,7 +143,7 @@
           <span><strong id="kpiDoneCount" class="text-slate-200 font-semibold">0 / 0</strong> done</span>
           <span>·</span>
           <span><span aria-hidden="true">🔥</span> <span class="sr-only">Top streak</span> <strong id="kpiTopStreak" class="text-amber-300 font-semibold">0d</strong></span>
-          <button id="btnCopyToday" type="button" class="copy-today hidden ml-auto shrink-0 icon-label" aria-label="Copy today's results" title="Copy today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Copy</span></button>
+          <button id="btnCopyToday" type="button" class="copy-today hidden ml-auto shrink-0 icon-label" aria-label="Today's results: copy or share" title="Today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Results</span></button>
         </div>
 
         <div class="hub-actions-row flex items-center gap-2">
@@ -144,6 +152,12 @@
             <button type="button" data-filter="ready" aria-pressed="false" class="filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Ready</button>
             <button type="button" data-filter="completed" aria-pressed="false" class="filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Done</button>
           </div>
+          <select id="hubSort" aria-label="Sort games" class="hub-sort px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold shrink-0">
+            <option value="custom">Custom order</option>
+            <option value="reset">Next reset</option>
+            <option value="alpha">A–Z</option>
+            <option value="least">Least played</option>
+          </select>
           <button id="btnSelectMode" type="button" aria-pressed="false" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold shrink-0">Select</button>
           <button id="btnOpenAddModal" type="button" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shrink-0">
             + Add Game
@@ -195,6 +209,7 @@
           <p class="pn-name" id="playNextName" dir="auto"></p>
         </div>
         <span class="pn-left" id="playNextLeft"></span>
+        <button id="btnPlayAll" type="button" class="pn-all hidden">Play all</button>
         <button id="btnPlayNext" type="button" class="play-btn m4-primary-fab">Play next</button>
       </div>
       <div id="gamesGrid" class="space-y-2.5"></div>
@@ -230,6 +245,7 @@
             <span><span class="status-dot status-ready legend-done"></span>Completed</span>
             <span><span class="status-dot status-missed"></span>Missed</span>
             <span><span class="status-dot" style="box-shadow: inset 0 0 0 2px var(--md-primary);"></span>Today</span>
+            <span id="legendTough" class="hidden"><span class="tough-dot" aria-hidden="true"></span>Tough day</span>
           </div>
         </div>
 
@@ -259,6 +275,15 @@
       <!-- Monthly recap (follows the calendar's month) -->
       <div id="recapCard" class="glass-card rounded-2xl p-4 border border-slate-800"></div>
 
+      <!-- Personal bests for every game (folded by default) -->
+      <div data-fold="bests" class="glass-card rounded-2xl p-4 border border-slate-800">
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="text-base font-bold text-white">Personal Bests</h3>
+          <span id="bestsCount" class="text-xs text-slate-400 ml-auto"></span>
+        </div>
+        <div id="bestsList" class="bests-list"></div>
+      </div>
+
       <!-- Achievements (folded by default) -->
       <div data-fold="achievements" class="glass-card rounded-2xl p-4 border border-slate-800">
         <div class="flex items-center justify-between gap-2">
@@ -270,9 +295,12 @@
 
       <!-- Daily Completion & Score History -->
       <div class="glass-card rounded-2xl p-4 border border-slate-800">
-        <div class="mb-3">
-          <h3 class="text-base font-bold text-white">Score History</h3>
-          <p class="text-xs text-slate-400 mt-0.5">Every result you've logged, newest first.</p>
+        <div class="mb-3 flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <h3 class="text-base font-bold text-white">Score History</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Every result you've logged, newest first.</p>
+          </div>
+          <button id="btnHistoryChanges" type="button" class="changes-btn shrink-0" aria-label="Recent changes (undo)"><span aria-hidden="true">↶</span> Changes</button>
         </div>
         <div id="historyFilters" class="hist-filters">
           <input id="historySearch" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search results (e.g. 2/6, #117, Krillion)" aria-label="Search results" class="hist-search px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500" />
@@ -302,7 +330,7 @@
     <!-- View 3: SETTINGS & REFRESH ALERTS TAB -->
     <section id="viewSettings" class="hidden space-y-4">
       <!-- 1. Display Settings -->
-      <div data-fold="display" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="display" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-palette section-icon" aria-hidden="true"></span>Display</span>
@@ -329,6 +357,13 @@
             </div>
             <input id="settingDynamicWallpaper" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
+
+          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 sm:col-span-3">
+            <p class="font-bold text-white">Color Theme</p>
+            <p class="text-[11px] text-slate-400">Your wallpaper's colors, a preset, or pick your own accent</p>
+            <div id="themeChoices" class="theme-choices" role="radiogroup" aria-label="Color theme"></div>
+            <input id="customAccentInput" type="color" value="#1E88C8" class="sr-only" tabindex="-1" aria-hidden="true" />
+          </div>
 
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
@@ -372,7 +407,7 @@
       </div>
 
       <!-- 2. Gameplay, Streaks & Local Time Settings -->
-      <div data-fold="gameplay" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="gameplay" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div class="min-w-0">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -421,7 +456,7 @@
       </div>
 
       <!-- Game Player: share capture + ad blocking -->
-      <div data-fold="player" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="player" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-shield section-icon" aria-hidden="true"></span>Game Player</span>
@@ -460,7 +495,7 @@
       </div>
 
       <!-- 3. Daily Game Refresh Notification Engine -->
-      <div data-fold="alerts" class="glass-card rounded-2xl p-4 border border-indigo-500/30">
+      <div data-fold="alerts" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-indigo-500/30">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800">
           <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -493,7 +528,7 @@
       </div>
 
       <!-- 4. Data & Backup Management -->
-      <div data-fold="data" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="data" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-save section-icon" aria-hidden="true"></span>Data &amp; Backup</h3>
           <p class="text-xs text-slate-400">Export or import your backup file.</p>
@@ -506,6 +541,7 @@
         <div class="grid grid-cols-2 gap-2.5">
           <button id="btnExportCsv" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Export history (.csv)</button>
           <button id="btnShareGameList" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
+          <button id="btnSettingsChanges" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">↶ Recent changes (undo)</button>
         </div>
         <div id="autoBackupBlock" class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs space-y-2.5">
           <div>
@@ -521,7 +557,7 @@
       </div>
 
       <!-- Archived games -->
-      <div data-fold="archived" id="archivedCard" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="archived" data-fold-default="open" id="archivedCard" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white">Archived Games</h3>
           <p class="text-xs text-slate-400">Hidden from the hub, with no alerts. Their history and stats are kept.</p>
@@ -530,7 +566,7 @@
       </div>
 
       <!-- 5. About & updates -->
-      <div data-fold="about" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="about" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-info section-icon" aria-hidden="true"></span>About</h3>
           <p id="aboutVersion" class="text-xs text-slate-400">Dailies</p>
@@ -730,6 +766,51 @@
   </div>
 
   <!-- After logging a game played in the player: open the next one, or stay home -->
+  <div id="modalAchievement" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="achDetailTitle">
+    <div tabindex="-1" class="modal-panel glass-card ach-detail-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <span id="achDetailIcon" class="ach-detail-icon" aria-hidden="true"></span>
+        <div class="min-w-0 flex-1">
+          <h3 id="achDetailTitle" class="text-base font-bold text-white">Achievement</h3>
+          <p id="achDetailSub" class="text-xs text-slate-400"></p>
+        </div>
+        <button type="button" data-close-modal="modalAchievement" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div id="achDetailTiers" class="ach-detail-tiers"></div>
+    </div>
+  </div>
+
+  <div id="modalTodayResults" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="todayResultsTitle">
+    <div tabindex="-1" class="modal-panel glass-card today-results-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="todayResultsTitle" class="text-base font-bold text-white">Today's results</h3>
+          <p id="todayResultsSub" class="text-xs text-slate-400">All of today's results in one message.</p>
+        </div>
+        <button type="button" data-close-modal="modalTodayResults" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <label class="today-results-opt"><input id="todayResultsGrids" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" /><span>Include emoji grids</span></label>
+      <pre id="todayResultsPreview" class="today-results-preview" dir="auto"></pre>
+      <div class="today-results-actions">
+        <button id="btnTodayResultsCopy" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Copy</button>
+        <button id="btnTodayResultsShare" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg">Share</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalChanges" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="changesTitle">
+    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="changesTitle" class="text-base font-bold text-white">Recent changes</h3>
+          <p class="text-xs text-slate-400">Your last 25 logs, edits and removals. Undo any of them.</p>
+        </div>
+        <button type="button" data-close-modal="modalChanges" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div id="changesList" class="changes-list"></div>
+    </div>
+  </div>
+
   <div id="modalNextGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="nextGameTitle">
     <div tabindex="-1" class="modal-panel glass-card next-game-panel w-full max-w-md border border-slate-700 shadow-2xl">
       <div class="flex items-center gap-3">
@@ -866,7 +947,8 @@
   <!-- ANDROID MATERIAL 3 EXPRESSIVE FLOATING NAVIGATION BAR -->
   <nav id="bottomNavWrapper" class="m3-bottom-nav-wrapper" aria-label="Primary Navigation">
     <div class="m4-floating-dock pointer-events-auto px-3 py-1.5 grid grid-cols-3 gap-2">
-      <button type="button" data-nav="dashboard" aria-current="page" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full m4-tonal-pill font-bold text-[11px]">
+      <span id="navIndicator" class="nav-indicator m4-tonal-pill" aria-hidden="true"></span>
+      <button type="button" data-nav="dashboard" aria-current="page" class="nav-btn nav-on relative flex flex-col items-center justify-center py-1 rounded-full font-bold text-[11px]">
         <span class="m3-floating-icon mb-0.5" aria-hidden="true">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="6" width="20" height="12" rx="6" />
@@ -976,7 +1058,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.5.0';
+    const APP_VERSION = '1.6.0';
     const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
 
     const TIME_FMT_12 = (() => {
@@ -1002,6 +1084,10 @@
     const cycleKeyToDay = HubCore.cycleKeyToDay;
     const addDaysToCycleKey = HubCore.addDaysToCycleKey;
 
+    // Recent changes kept for undo (1.6.0); used while loading the saved state, so defined first.
+    const CHANGES_MAX = 25;
+    let lastPlayerColorsSig = '';
+
     function getDefaultSettings() {
       return {
         dynamicWallpaper: true,
@@ -1024,7 +1110,10 @@
         appIcon: '',
         streakReminderMinutes: 0,
         updateCheck: false,
-        goldAccents: false
+        goldAccents: false,
+        hubSort: 'custom',
+        shareGrids: true,
+        customAccent: '#1E88C8'
       };
     }
 
@@ -1306,6 +1395,9 @@
         achievements: Array.isArray(parsed.achievements) ? HubCore.migrateAchievementKeys(parsed.achievements).slice(0, 200) : undefined,
         goldUnlocked: parsed.goldUnlocked === true,
         goldAccentsUnlocked: parsed.goldAccentsUnlocked === true,
+        // Recent changes (undo history) stay on this phone: never in a backup.
+        recentChanges: Array.isArray(parsed.recentChanges)
+          ? parsed.recentChanges.filter((c) => c && typeof c === 'object' && typeof c.id === 'string').slice(0, CHANGES_MAX) : [],
         __loadedFrom: source
       };
     }
@@ -1524,6 +1616,85 @@
       if (state && state.settings && state.settings.themeMode === 'system') applyThemeAndSettings();
     };
 
+
+    // ---- Colour themes (1.6.0): wallpaper colours, presets, or a custom accent ----
+    const COLOR_THEMES = [
+      { id: 'wallpaper', label: 'Wallpaper' },
+      { id: 'iris', label: 'Iris', seed: '#6750A4' },
+      { id: 'ocean', label: 'Ocean', seed: HubCore.THEME_PRESETS.ocean },
+      { id: 'forest', label: 'Forest', seed: HubCore.THEME_PRESETS.forest },
+      { id: 'sunset', label: 'Sunset', seed: HubCore.THEME_PRESETS.sunset },
+      { id: 'rose', label: 'Rose', seed: HubCore.THEME_PRESETS.rose },
+      { id: 'custom', label: 'Custom' }
+    ];
+    function validHex(v) { return /^#[0-9a-f]{6}$/i.test(String(v || '')); }
+    function colorThemeId() {
+      const s = state.settings || {};
+      if (s.dynamicWallpaper !== false) return 'wallpaper';
+      return COLOR_THEMES.some((t) => t.id === s.themeSeed && t.id !== 'wallpaper') ? s.themeSeed : 'iris';
+    }
+    /** The seed colour of the chosen theme, or null for Wallpaper and Iris (the built-in colours). */
+    function themeSeedHex() {
+      const id = colorThemeId();
+      if (id === 'custom') return validHex(state.settings.customAccent) ? state.settings.customAccent : null;
+      if (id === 'wallpaper' || id === 'iris') return null;
+      const t = COLOR_THEMES.find((x) => x.id === id);
+      return t ? t.seed : null;
+    }
+    function renderThemeChoices() {
+      const box = document.getElementById('themeChoices');
+      if (!box) return;
+      const cur = colorThemeId();
+      const light = isLightTheme();
+      const wp = deviceWallpaperPalette && (light ? (deviceWallpaperPalette.light || {}) : deviceWallpaperPalette);
+      box.innerHTML = COLOR_THEMES.map((t) => {
+        const on = t.id === cur;
+        let swatch;
+        if (t.id === 'wallpaper') {
+          swatch = wp && wp.primary
+            ? `background: conic-gradient(${wp.primary} 0 50%, ${wp.tertiary || wp.primaryContainer || wp.primary} 0 75%, ${wp.primaryContainer || wp.primary} 0)`
+            : 'background: conic-gradient(#F28B82, #FDD663, #81C995, #8AB4F8, #C58AF9, #F28B82)';
+        } else {
+          const seed = t.id === 'custom' ? (validHex(state.settings.customAccent) ? state.settings.customAccent : '#888888') : t.seed;
+          const tk = HubCore.themeTokens(seed, light);
+          swatch = `background: conic-gradient(${tk['--md-primary']} 0 50%, ${tk['--md-tertiary']} 0 75%, ${tk['--md-primary-container']} 0)`;
+        }
+        return `<button type="button" class="theme-choice${on ? ' on' : ''}" data-color-theme="${t.id}" role="radio" aria-checked="${on}" aria-label="${escapeHtml(t.label)} theme">`
+          + `<span class="theme-swatch" style="${swatch}">${t.id === 'custom' ? '<span class="theme-edit" aria-hidden="true">✎</span>' : ''}</span>`
+          + `<span class="theme-name">${escapeHtml(t.label)}</span></button>`;
+      }).join('');
+    }
+    function chooseColorTheme(id) {
+      if (!state.settings) state.settings = getDefaultSettings();
+      if (id === 'custom') {
+        const input = document.getElementById('customAccentInput');
+        if (input) {
+          input.value = validHex(state.settings.customAccent) ? state.settings.customAccent : '#1E88C8';
+          try { input.showPicker ? input.showPicker() : input.click(); } catch (e) { input.click(); }
+        }
+        if (colorThemeId() === 'custom' || !validHex(state.settings.customAccent)) return;
+      }
+      state.settings.dynamicWallpaper = id === 'wallpaper';
+      if (id !== 'wallpaper') state.settings.themeSeed = id;
+      const cb = document.getElementById('settingDynamicWallpaper');
+      if (cb) cb.checked = state.settings.dynamicWallpaper;
+      saveState({ sync: false });
+      applyThemeAndSettings();
+      saveLaunchPrefs();
+      haptic('tick');
+    }
+    function setCustomAccent(hex) {
+      if (!validHex(hex)) return;
+      state.settings.customAccent = hex.toUpperCase();
+      state.settings.dynamicWallpaper = false;
+      state.settings.themeSeed = 'custom';
+      const cb = document.getElementById('settingDynamicWallpaper');
+      if (cb) cb.checked = false;
+      saveState({ sync: false });
+      applyThemeAndSettings();
+      saveLaunchPrefs();
+    }
+
     function applyThemeAndSettings() {
       if (!state.settings) state.settings = getDefaultSettings();
       const root = document.documentElement;
@@ -1573,17 +1744,44 @@
       } else {
         props.forEach((p) => root.style.removeProperty(p));
       }
+      // A preset or custom colour theme (without wallpaper colours): tones made from its seed colour.
+      const seedHex = s.dynamicWallpaper && palette ? null : themeSeedHex();
+      const themeTokens = seedHex ? HubCore.themeTokens(seedHex, light) : null;
+      if (themeTokens) Object.keys(themeTokens).forEach((k) => root.style.setProperty(k, themeTokens[k]));
+      root.setAttribute('data-color-theme', themeTokens ? colorThemeId() : (s.dynamicWallpaper && palette ? 'wallpaper' : 'iris'));
+      // Remembered for the next launch, so the first frame already has these colours.
+      try {
+        if (themeTokens) localStorage.setItem('dailydeck_theme_tokens_v1', JSON.stringify({ light, tokens: themeTokens }));
+        else localStorage.removeItem('dailydeck_theme_tokens_v1');
+      } catch (e) {}
       // Gold accents (every achievement tier earned): gold in place of the theme's main colour.
       const gold = goldAccentsOn();
       root.setAttribute('data-gold', gold ? 'true' : 'false');
       if (gold) {
         const g = light
-          ? { '--md-primary': '#8A6100', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#FFE08A', '--md-on-primary-container': '#2B1F00',
-            '--md-secondary-container': '#F6E7BC', '--md-tertiary': '#A0522D', '--md-tertiary-container': '#FFDCC2', '--md-glow': 'rgba(184, 134, 11, 0.28)' }
-          : { '--md-primary': '#F2C94C', '--md-on-primary': '#3B2B00', '--md-primary-container': '#5A4300', '--md-on-primary-container': '#FFE29A',
-            '--md-secondary-container': '#4A3B12', '--md-tertiary': '#FFB870', '--md-tertiary-container': '#5C3A12', '--md-glow': 'rgba(242, 201, 76, 0.30)' };
+          ? { '--md-primary': '#7C6230', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#D3B45C', '--md-on-primary-container': '#1C1607',
+            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#7C6230', '--md-tertiary-container': '#F3E2C4', '--md-glow': 'rgba(152, 120, 65, 0.28)' }
+          : { '--md-primary': '#D1AB48', '--md-on-primary': '#1C1607', '--md-primary-container': '#4A3D22', '--md-on-primary-container': '#DCC273',
+            '--md-secondary-container': '#3F3313', '--md-tertiary': '#E8C27A', '--md-tertiary-container': '#4C3A16', '--md-glow': 'rgba(209, 171, 72, 0.30)' };
         Object.keys(g).forEach((k) => root.style.setProperty(k, g[k]));
       }
+      // The game player's bar uses the same colours.
+      try {
+        const b = window.AndroidBridge;
+        if (b && typeof b.setPlayerColors === 'function') {
+          const used = themeTokens || gold ? getComputedStyle(root) : null;
+          const pick = (n) => (used ? used.getPropertyValue(n).trim() : '');
+          const colors = used ? {
+            light,
+            container: themeTokens ? pick('--md-container') : '',
+            primary: pick('--md-primary'), onPrimary: pick('--md-on-primary'),
+            primaryContainer: pick('--md-primary-container'), onPrimaryContainer: pick('--md-on-primary-container')
+          } : null;
+          const sig = JSON.stringify(colors);
+          if (sig !== lastPlayerColorsSig) { lastPlayerColorsSig = sig; b.setPlayerColors(colors ? sig : ''); }
+        }
+      } catch (e) {}
+      renderThemeChoices();
     }
 
     // =========================================================================
@@ -1772,15 +1970,15 @@
         (plain || container.firstElementChild).remove();
       }
       const toast = document.createElement('div');
-      const borderClass = tone === 'emerald' ? 'border-emerald-500/50 bg-slate-900/95' : 'border-indigo-500/50 bg-slate-900/95';
-      toast.className = `pointer-events-auto rounded-2xl p-3.5 border ${borderClass} shadow-2xl flex items-start justify-between gap-2.5`;
+      // Coloured by the app's theme (wallpaper, preset, custom or gold); a success gets the accent stripe.
+      toast.className = `app-toast ${tone === 'emerald' ? 'tone-ok' : 'tone-info'} pointer-events-auto rounded-2xl p-3.5 shadow-2xl flex items-start justify-between gap-2.5`;
       toast.innerHTML = `
         <div class="min-w-0 flex-1 cursor-pointer">
-          <p class="text-xs font-bold text-white truncate">${escapeHtml(title)}</p>
-          <p class="text-[11px] text-slate-300 mt-0.5 line-clamp-2">${escapeHtml(message)}</p>
+          <p class="toast-title text-xs font-bold truncate">${escapeHtml(title)}</p>
+          <p class="toast-msg text-[11px] mt-0.5 line-clamp-2">${escapeHtml(message)}</p>
         </div>
         ${opts && opts.actionLabel ? `<button type="button" data-toast-action class="toast-action">${escapeHtml(opts.actionLabel)}</button>` : ''}
-        <button type="button" data-toast-close class="text-slate-400 hover:text-white px-1.5 py-1 rounded-lg bg-slate-800 inline-flex" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-toast-close class="toast-close px-1.5 py-1 rounded-lg inline-flex" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
       `;
       const closeBtn = toast.querySelector('[data-toast-close]');
       const actionBtn = toast.querySelector('[data-toast-action]');
@@ -2200,7 +2398,11 @@
           <button type="button" data-action="move-down" data-id="${id}" ${isLast ? 'disabled' : ''} class="icon-btn" aria-label="Move down">${img('down', '')}</button>
         </div>`;
       // A finished game with today's entry logged hides ✓; the entry is edited from the game's settings.
-      const loggedToday = status === 'completed' && hasTodayEntry(g);
+      const todayRow = findLogRow(g, getCycleDateKey(g.resetTime, g.resetZone));
+      const loggedToday = status === 'completed' && Boolean(todayRow);
+      // Today's result set a personal best.
+      const pb = loggedToday && Array.isArray(todayRow.records) && todayRow.records.length
+        ? `<span class="gc-pb" title="New personal best today"><span aria-hidden="true">🏆</span> PB</span>` : '';
       const actions = `
         ${loggedToday ? '' : `<button type="button" data-action="log" data-id="${id}" class="icon-btn" aria-label="Log result" title="Log result">${img('check', '')}</button>`}
         <button type="button" data-action="edit" data-id="${id}" class="icon-btn ghost" aria-label="Edit game" title="Edit game">${img('settings', '')}</button>
@@ -2212,7 +2414,7 @@
           <article data-card-game-id="${id}" class="glass-card game-card compact">
             <div class="m3-shape-avatar-compact m3-shape-${idx % 6} shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-4 h-4')}</div>
             <h3 class="gc-title" dir="auto" title="Edit ${escapeHtml(g.name)}" aria-label="Edit ${escapeHtml(g.name)}" data-action="edit" data-id="${id}" role="button" tabindex="0">${escapeHtml(g.name)}</h3>
-            <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>
+            <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>${pb}
             <span data-role="card-status-pill" class="status-dot status-${status}" role="img" aria-label="${statusLabel}" title="${statusLabel}"></span>
             <div class="gc-actions">${reorder}${actions}</div>
           </article>`;
@@ -2227,12 +2429,12 @@
             <div class="gc-main">
               <h3 class="gc-title" dir="auto" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</h3>
               <div class="gc-meta">
-                <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>
+                <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>${pb}
                 <span class="gc-sep">·</span>
                 <span data-role="card-reset" class="gc-reset">Resets ${escapeHtml(localResetStr)}</span>
               </div>
             </div>
-            <span data-role="card-status-pill" class="status-pill status-${status}"><span class="dot"></span>${statusLabel}</span>
+            <span data-role="card-status-pill" class="status-pill status-${status}">${status === 'completed' ? '<span class="dot-star" aria-hidden="true">★</span>' : '<span class="dot"></span>'}${statusLabel}</span>
           </div>
           <div class="gc-bottom">
             <div class="gc-countdown"><span class="label">Next in</span><span class="time game-countdown" data-game-id="${id}">${timerText}</span></div>
@@ -2252,7 +2454,16 @@
       grid.className = isCompact ? 'space-y-1.5' : 'space-y-2.5';
 
       // Preserve the user-configured order in state.games (no forced status sort)
-      const list = visibleGames().filter((g) => {
+      const sortSel = document.getElementById('hubSort');
+      const sortBtn = sortSel && sortSel.nextElementSibling;
+      if (sortBtn && sortBtn.classList.contains('tsel-btn')) {
+        const mode = hubSortMode();
+        sortBtn.classList.toggle('sorted', mode !== 'custom');
+        const o = [...sortSel.options].find((x) => x.value === mode);
+        sortBtn.setAttribute('aria-label', `Sort games: ${o ? o.textContent : mode}`);
+        sortBtn.title = `Sort: ${o ? o.textContent : mode}`;
+      }
+      const list = hubOrder().filter((g) => {
         if (state.activeFilter !== 'all' && g.status !== state.activeFilter) return false;
         return true;
       });
@@ -2314,6 +2525,11 @@
       const games = state.games.filter((g) => ids.includes(g.id) && Boolean(g.archived) !== archived);
       if (!games.length) return;
       const before = games.map((g) => ({ g, archived: g.archived, added: g.addedCycleKey }));
+      const what0 = games.length === 1 ? games[0].name : plural(games.length, 'game');
+      const changeId = recordChange({
+        kind: 'archive', archived, name: what0,
+        before: before.map(({ g, archived: a, added }) => ({ id: g.id, archived: Boolean(a), added: added || '' }))
+      });
       games.forEach((g) => {
         if (archived) {
           g.archived = true;
@@ -2329,14 +2545,7 @@
       const what = games.length === 1 ? games[0].name : plural(games.length, 'game');
       showToast(archived ? `${what} archived` : `${what} restored`,
         archived ? 'Hidden from the hub with no alerts. Find it under Settings → Archived Games.' : 'Back on your hub.', 'indigo', null,
-        { actionLabel: 'Undo', onAction: () => {
-          before.forEach(({ g, archived: a, added }) => {
-            if (a) g.archived = true; else delete g.archived;
-            if (added) g.addedCycleKey = added; else delete g.addedCycleKey;
-          });
-          saveState();
-          renderVisibleTab();
-        } });
+        { actionLabel: 'Undo', onAction: () => undoChange(changeId) });
     }
 
     function renderArchivedList() {
@@ -2635,6 +2844,7 @@
     }
 
     function moveGameInOrder(gameId, direction) {
+      adoptSortAsCustom();
       const filtered = visibleGames().filter((g) => state.activeFilter === 'all' || g.status === state.activeFilter);
       const sec = gameSections(filtered);
       // The arrows move a card within the section it's shown in.
@@ -2714,6 +2924,8 @@
         const from = cards.indexOf(card);
         clearPress();
         if (from < 0 || cards.length < 2) return;
+        // A sorted hub: the order on screen becomes the custom order, then the drag carries on.
+        adoptSortAsCustom();
         const scroll0 = window.scrollY;
         const tops = cards.map((c) => c.getBoundingClientRect().top + scroll0);
         const heights = cards.map((c) => c.getBoundingClientRect().height);
@@ -2965,15 +3177,105 @@
       renderResetSuggestion();
     }
 
+    // ---- Themed drop-downs (calendar game, Score history game) ----
+    // A button in the app's own style opens a list of the <select>'s options; picking one sets the
+    // select and fires its "change", so the rest of the app keeps using the select as before.
+    let themedSelectOpen = null; // { close }
+    function themeSelect(sel) {
+      if (!sel || sel.dataset.themed) return;
+      sel.dataset.themed = '1';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `${sel.className} tsel-btn`;
+      btn.setAttribute('aria-haspopup', 'listbox');
+      btn.setAttribute('aria-expanded', 'false');
+      if (sel.getAttribute('aria-label')) btn.setAttribute('aria-label', sel.getAttribute('aria-label'));
+      btn.innerHTML = '<span class="tsel-label"></span><span class="tsel-chev" aria-hidden="true"></span>';
+      sel.insertAdjacentElement('afterend', btn);
+      sel.classList.add('tsel-native');
+      const refresh = () => {
+        const o = sel.options[sel.selectedIndex];
+        btn.querySelector('.tsel-label').textContent = o ? o.textContent : '';
+      };
+      // The app sets the value in code too: keep the button's label in step.
+      const proto = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+      const protoIdx = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex');
+      try {
+        Object.defineProperty(sel, 'value', { configurable: true, get() { return proto.get.call(this); }, set(v) { proto.set.call(this, v); refresh(); } });
+        Object.defineProperty(sel, 'selectedIndex', { configurable: true, get() { return protoIdx.get.call(this); }, set(v) { protoIdx.set.call(this, v); refresh(); } });
+      } catch (e) {}
+      new MutationObserver(refresh).observe(sel, { childList: true, subtree: true, attributes: true });
+      sel.addEventListener('change', refresh);
+      refresh();
+      btn.addEventListener('click', () => {
+        if (themedSelectOpen) { themedSelectOpen.close(); return; }
+        const menu = document.createElement('div');
+        menu.className = 'tsel-menu';
+        menu.setAttribute('role', 'listbox');
+        if (sel.getAttribute('aria-label')) menu.setAttribute('aria-label', sel.getAttribute('aria-label'));
+        let html = '';
+        const item = (o) => `<button type="button" role="option" class="tsel-item${o.selected ? ' on' : ''}" aria-selected="${o.selected}" data-value="${escapeHtml(o.value)}"${o.disabled ? ' disabled' : ''}>${escapeHtml(o.textContent)}${o.selected ? '<span class="tsel-check" aria-hidden="true">✓</span>' : ''}</button>`;
+        [...sel.children].forEach((c) => {
+          if (c.tagName === 'OPTGROUP') html += `<p class="tsel-group">${escapeHtml(c.label)}</p>` + [...c.children].map(item).join('');
+          else html += item(c);
+        });
+        menu.innerHTML = html;
+        document.body.appendChild(menu);
+        const r = btn.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const below = vh - r.bottom - 12;
+        const above = r.top - 12;
+        const maxH = Math.min(380, Math.max(below, above));
+        menu.style.width = `${Math.max(r.width, 220)}px`;
+        menu.style.left = `${Math.min(Math.max(8, r.left), document.documentElement.clientWidth - Math.max(r.width, 220) - 8)}px`;
+        menu.style.maxHeight = `${maxH}px`;
+        if (below >= Math.min(260, menu.scrollHeight) || below >= above) menu.style.top = `${r.bottom + 6}px`;
+        else menu.style.bottom = `${vh - r.top + 6}px`;
+        btn.setAttribute('aria-expanded', 'true');
+        const on = menu.querySelector('.tsel-item.on');
+        if (on) on.scrollIntoView({ block: 'nearest' });
+        let closed = false;
+        const close = () => {
+          if (closed) return;
+          closed = true;
+          menu.remove();
+          btn.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('pointerdown', outside, true);
+          window.removeEventListener('scroll', onScroll, true);
+          if (themedSelectOpen && themedSelectOpen.close === close) themedSelectOpen = null;
+          syncBackInterceptState();
+        };
+        // Scrolling the page closes it (scrolling the list itself doesn't).
+        const onScroll = (e) => { if (!menu.contains(e.target)) close(); };
+        const outside = (e) => { if (!menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close(); };
+        menu.addEventListener('click', (e) => {
+          const it = e.target.closest('.tsel-item');
+          if (!it || it.disabled) return;
+          close();
+          if (sel.value !== it.dataset.value) {
+            sel.value = it.dataset.value;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          haptic('tick');
+        });
+        setTimeout(() => {
+          document.addEventListener('pointerdown', outside, true);
+          window.addEventListener('scroll', onScroll, true);
+        }, 0);
+        themedSelectOpen = { close };
+        syncBackInterceptState();
+      });
+    }
+
     // ---- Folding cards (Settings headings, Achievements) ----
-    // A card with data-fold shows only its first child (the heading) until it's opened. All start
-    // folded; what's opened stays open until the app is closed.
-    const openFolds = new Set();
+    // A card with data-fold shows only its first child (the heading) while folded. Settings cards
+    // start open (data-fold-default="open"), Achievements folded; a choice lasts until the app closes.
+    const foldState = new Map();
     function setFold(card, open) {
       card.classList.toggle('fold-open', open);
       const head = card.querySelector(':scope > .fold-head');
       if (head) head.setAttribute('aria-expanded', String(open));
-      if (open) openFolds.add(card.dataset.fold); else openFolds.delete(card.dataset.fold);
+      foldState.set(card.dataset.fold, open);
     }
     function initFolds() {
       document.querySelectorAll('[data-fold]').forEach((card) => {
@@ -3000,7 +3302,8 @@
         };
         head.addEventListener('click', toggle);
         head.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(e); } });
-        setFold(card, openFolds.has(card.dataset.fold));
+        const name = card.dataset.fold;
+        setFold(card, foldState.has(name) ? foldState.get(name) : card.dataset.foldDefault === 'open');
       });
     }
     /** Opens the folded card an element sits in (before scrolling to it). */
@@ -3013,7 +3316,7 @@
     const TODAY_RESULTS_DIVIDER = '\n\n— — —\n\n';
     /** Today's solved results as logged (formatting kept), in the hub's order. */
     function todaysResultTexts() {
-      return visibleGames().filter((g) => g.status === 'completed').map((g) => {
+      return hubOrder().filter((g) => g.status === 'completed').map((g) => {
         const row = findLogRow(g, getCycleDateKey(g.resetTime, g.resetZone));
         return String((row && row.score) || g.todayScore || '').replace(/\r\n/g, '\n').trim();
       }).filter(Boolean);
@@ -3022,6 +3325,187 @@
       const texts = todaysResultTexts();
       if (!texts.length) { showToast('Nothing to copy yet', 'Solve a game and log its result first.', 'indigo'); return; }
       copyText(texts.join(TODAY_RESULTS_DIVIDER), texts.length === 1 ? "Today's result copied, formatting kept." : `${texts.length} results copied, formatting kept.`);
+    }
+
+
+    // ---- Hub order (1.6.0): Custom (drag to arrange), Next reset, A–Z or Least played ----
+    const HUB_SORTS = ['custom', 'reset', 'alpha', 'least'];
+    function hubSortMode() {
+      const m = state.settings && state.settings.hubSort;
+      return HUB_SORTS.includes(m) ? m : 'custom';
+    }
+    /** Visible games in the hub's order (the chosen sort, else the arranged order). */
+    function hubOrder(list) {
+      const now = Date.now();
+      return HubCore.sortGames(list || visibleGames(), hubSortMode(), {
+        msUntilReset: (g) => msUntilNextResetCached(g, now),
+        playCount: (g) => Number(g.totalPlayed) || 0
+      });
+    }
+    /** Dragging or moving a card while a sort is on: the order on screen becomes the custom order. */
+    function adoptSortAsCustom() {
+      if (hubSortMode() === 'custom') return false;
+      const sorted = hubOrder(visibleGames());
+      const shown = new Set(sorted.map((g) => g.id));
+      let k = 0;
+      state.games = state.games.map((g) => (shown.has(g.id) ? sorted[k++] : g));
+      state.settings.hubSort = 'custom';
+      const sel = document.getElementById('hubSort');
+      if (sel) sel.value = 'custom';
+      saveState();
+      showToast('Custom order', 'Your games keep this order now, and you can drag them to rearrange.', 'indigo');
+      return true;
+    }
+
+    // ---- Play all (1.6.0): every unplayed game in a row; the player moves on after each result ----
+    function playAll() {
+      checkDailyRollovers({ silent: true });
+      const next = nextGameToPlay();
+      if (!next) return;
+      const ready = hubOrder().filter((g) => g.status === 'ready');
+      const at = Math.max(0, ready.findIndex((g) => g.id === next.id));
+      const queue = ready.slice(at).concat(ready.slice(0, at)).slice(0, 100);
+      lastOpenedGameId = next.id;
+      state.activeGameId = next.id;
+      saveState({ sync: false });
+      try {
+        const b = window.AndroidBridge;
+        if (b && typeof b.playAllGames === 'function') {
+          const lineup = queue.map((g) => ({ id: g.id, name: String(g.name || '').slice(0, 80), url: String(g.url || '').slice(0, 2000), done: false }));
+          b.playAllGames(next.id, next.name, next.url, JSON.stringify(lineup));
+          return;
+        }
+      } catch (e) {}
+      openGameInPlayer(next.id);
+    }
+
+    // ---- Today's results in one message (1.6.0) ----
+    function todaysResultEntries() {
+      return hubOrder().filter((g) => g.status === 'completed' || g.status === 'missed').map((g) => {
+        const row = findLogRow(g, getCycleDateKey(g.resetTime, g.resetZone));
+        const text = String((row && row.score) || (g.status === 'completed' ? g.todayScore : '') || '');
+        return { name: g.name, url: g.url, outcome: g.status, text };
+      });
+    }
+    function todayDateLabel() {
+      try { return new Intl.DateTimeFormat([], { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date()); } catch (e) { return ''; }
+    }
+    function todaysCombinedText() {
+      const cb = document.getElementById('todayResultsGrids');
+      return HubCore.combinedShareText(todaysResultEntries(), {
+        dateLabel: todayDateLabel(), total: visibleGames().length, grids: cb ? cb.checked : true
+      });
+    }
+    function openTodayResults() {
+      if (!todaysResultEntries().length) { showToast('Nothing to share yet', 'Solve a game and log its result first.', 'indigo'); return; }
+      document.getElementById('todayResultsGrids').checked = !(state.settings && state.settings.shareGrids === false);
+      renderTodayResultsPreview();
+      openModal('modalTodayResults');
+    }
+    function renderTodayResultsPreview() {
+      const entries = todaysResultEntries();
+      const solved = entries.filter((e) => e.outcome === 'completed').length;
+      document.getElementById('todayResultsSub').textContent = `${solved} of ${plural(visibleGames().length, 'game')} solved, in one message.`;
+      document.getElementById('todayResultsPreview').textContent = todaysCombinedText();
+    }
+
+    // ---- Recent changes: an undo history of logs, edits, removals and archiving (1.6.0) ----
+    function recordChange(entry) {
+      if (!Array.isArray(state.recentChanges)) state.recentChanges = [];
+      entry.id = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+      entry.at = Date.now();
+      state.recentChanges.unshift(entry);
+      if (state.recentChanges.length > CHANGES_MAX) state.recentChanges.length = CHANGES_MAX;
+      if (isModalOpen('modalChanges')) renderChanges();
+      return entry.id;
+    }
+    /** Undoing a day puts it back as it was before that change, so later changes to the same day go too. */
+    function markDayChangesUndone(gameId, date, since) {
+      (state.recentChanges || []).forEach((c) => {
+        if (c && c.kind === 'log' && !c.undone && c.gameId === gameId && c.date === date && c.at >= since) c.undone = Date.now();
+      });
+    }
+    function undoChange(id) {
+      const c = (state.recentChanges || []).find((x) => x && x.id === id);
+      if (!c || c.undone) return;
+      let ok = false;
+      if (c.kind === 'log' && c.snap) ok = restoreUndo(c.snap);
+      else if (c.kind === 'remove') ok = restoreRemovedGame(c);
+      else if (c.kind === 'archive') ok = restoreArchived(c);
+      if (!ok) return;
+      c.undone = Date.now();
+      saveState();
+      if (isModalOpen('modalChanges')) renderChanges();
+    }
+    function restoreRemovedGame(c) {
+      const g = c.game;
+      if (!g || !g.id) return false;
+      const key = normalizeUrlKey(g.url);
+      if (state.games.some((x) => x.id === g.id || (key && normalizeUrlKey(x.url) === key))) {
+        showToast(`${c.name} is already back`, 'It is in your hub again.', 'indigo');
+        c.undone = Date.now();
+        return false;
+      }
+      const game = normalizeGameObject(JSON.parse(JSON.stringify(g)), state.games.length);
+      if (!game) return false;
+      state.games.splice(Math.min(Math.max(0, Number(c.index) || 0), state.games.length), 0, game);
+      if (state.retainedGameStats) {
+        delete state.retainedGameStats[g.id];
+        if (key && state.retainedGameStats[key] && state.retainedGameStats[key].id === g.id) delete state.retainedGameStats[key];
+      }
+      checkDailyRollovers({ silent: true });
+      saveState();
+      renderVisibleTab();
+      showToast(`${c.name} is back`, 'Returned to your hub with its streak and history.', 'emerald');
+      return true;
+    }
+    function restoreArchived(c) {
+      let n = 0;
+      (c.before || []).forEach(({ id, archived, added }) => {
+        const g = state.games.find((x) => x.id === id);
+        if (!g) return;
+        if (archived) g.archived = true; else delete g.archived;
+        if (added) g.addedCycleKey = added; else delete g.addedCycleKey;
+        n += 1;
+      });
+      if (!n) return false;
+      saveState();
+      renderVisibleTab();
+      showToast(c.archived ? 'Archiving undone' : 'Restore undone', c.archived ? 'Back on your hub.' : 'Archived again.', 'indigo');
+      return true;
+    }
+    function changeLabel(c) {
+      if (c.kind === 'remove') return `Removed ${c.name}`;
+      if (c.kind === 'archive') return `${c.archived ? 'Archived' : 'Restored'} ${c.name}`;
+      const had = c.snap && c.snap.dayValue;
+      if (c.outcome === 'missed') return had ? `Changed ${c.name} to missed` : `Marked ${c.name} missed`;
+      return had ? `Updated ${c.name}` : `Logged ${c.name}`;
+    }
+    function timeAgo(at) {
+      const s = Math.max(0, Math.round((Date.now() - at) / 1000));
+      if (s < 60) return 'just now';
+      if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+      if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+      return `${Math.floor(s / 86400)} d ago`;
+    }
+    function renderChanges() {
+      const el = document.getElementById('changesList');
+      if (!el) return;
+      const list = (state.recentChanges || []).filter((c) => c && c.id);
+      if (!list.length) {
+        el.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">Nothing yet. Logs, edits, removals and archiving show up here.</p>';
+        return;
+      }
+      el.innerHTML = list.map((c) => {
+        const sub = [c.detail ? escapeHtml(c.detail) : '', c.date ? escapeHtml(formatCycleDateLabel(c.date)) : '', escapeHtml(timeAgo(c.at))].filter(Boolean).join(' · ');
+        const act = c.undone ? '<span class="chg-done">Undone</span>'
+          : `<button type="button" class="chg-undo" data-undo-change="${escapeHtml(c.id)}">Undo</button>`;
+        return `<div class="chg-row${c.undone ? ' undone' : ''}"><div class="min-w-0"><p class="chg-title" dir="auto">${escapeHtml(changeLabel(c))}</p><p class="chg-sub" dir="auto">${sub}</p></div>${act}</div>`;
+      }).join('');
+    }
+    function openChanges() {
+      renderChanges();
+      openModal('modalChanges');
     }
 
     // ---- "Play next game" after logging a game played in the player ----
@@ -3046,7 +3530,7 @@
     let lastOpenedGameId = '';
     /** The next unplayed game after the one played last (in the hub's order, wrapping), or null. */
     function nextGameToPlay() {
-      const list = visibleGames();
+      const list = hubOrder();
       const ready = list.filter((g) => g.status === 'ready');
       if (!ready.length) return null;
       const from = list.findIndex((g) => g.id === lastOpenedGameId);
@@ -3061,16 +3545,23 @@
     /** Shown once at least one game is done today and another is still waiting. */
     function renderPlayNext() {
       const copyBtn = document.getElementById('btnCopyToday');
-      if (copyBtn) copyBtn.classList.toggle('hidden', !todaysResultTexts().length);
+      if (copyBtn) copyBtn.classList.toggle('hidden', !todaysResultEntries().length);
       const bar = document.getElementById('playNextBar');
       if (!bar) return;
       const list = visibleGames();
       const next = nextGameToPlay();
       const started = list.some((g) => g.status === 'completed' || g.status === 'missed');
-      const show = Boolean(next && started && !selectMode);
+      const left = list.filter((g) => g.status === 'ready').length;
+      // Once today's run has started, or from the start with two or more games to play (Play all).
+      const show = Boolean(next && !selectMode && (started || left >= 2));
       bar.classList.toggle('hidden', !show);
       if (!show) return;
-      const left = list.filter((g) => g.status === 'ready').length;
+      bar.querySelector('.pn-k').textContent = started ? 'Up next' : 'Start with';
+      const all = document.getElementById('btnPlayAll');
+      if (all) {
+        all.classList.toggle('hidden', left < 2);
+        all.setAttribute('aria-label', `Play all ${left} games in a row`);
+      }
       bar.dataset.id = next.id;
       document.getElementById('playNextName').textContent = next.name;
       document.getElementById('playNextIcon').innerHTML = renderGameIconHtml(next.icon, next.name, 'w-5 h-5');
@@ -3094,7 +3585,7 @@
         if (bridge && typeof bridge.openGameInLineup === 'function') {
           // Today's games, so the player can switch between them and offer Next.
           // At most 100 games around the opened one (the player takes 200), names and links trimmed.
-          const all = visibleGames();
+          const all = hubOrder();
           const at = Math.max(0, all.findIndex((g) => g.id === game.id));
           const from = Math.max(0, Math.min(at - 50, all.length - 100));
           const lineup = all.slice(from, from + 100)
@@ -3146,7 +3637,8 @@
         game.dayHistory = {};
       }
       const undoSnap = snapshotForUndo(game, todayKey);
-      const undoOpts = { actionLabel: 'Undo', onAction: () => restoreUndo(undoSnap) };
+      let changeId = '';
+      const undoOpts = { actionLabel: 'Undo', onAction: () => (changeId ? undoChange(changeId) : restoreUndo(undoSnap)) };
       // For personal records: this game's other results and its best streak before this log.
       const recordBaseRows = state.historyLogs.filter((l) => l && l.date !== todayKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
       const prevBestStreak = Math.max(Number(game.bestStreak) || 0, ...recordBaseRows.map((r) => Number(r.streak) || 0));
@@ -3206,6 +3698,13 @@
         state.historyLogs.unshift(loggedRow);
       }
       const records = validStatus === 'completed' ? HubCore.newRecords(recordBaseRows, loggedRow, prevBestStreak) : [];
+      // Personal bests set by this result: a 🏆 on the card and in the history.
+      if (records.length) loggedRow.records = records.map((r) => r.kind);
+      else delete loggedRow.records;
+      changeId = recordChange({
+        kind: 'log', gameId: game.id, name: game.name, outcome: validStatus, date: todayKey,
+        detail: String(displayScore || '').split('\n')[0].slice(0, 60), snap: undoSnap
+      });
 
       if (opts && opts.quiet) {
         // caller shows its own message
@@ -3252,7 +3751,7 @@
       { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
       { id: 'ocean', label: 'Ocean', bg: ['#E0F7FA', '#CCF2F7'], star: [[0, '#22D3EE'], [1, '#2563EB']], mark: '#FFFFFF' },
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
-      { id: 'gold', label: 'Gold', bg: ['#2A1E06', '#120C02'], star: [[0, '#FFF7CC'], [0.22, '#F7D774'], [0.48, '#C9922B'], [0.68, '#FFE68A'], [1, '#8A5A10']], mark: '#FFFBEA', sparks: '#FFFDF2', locked: true }
+      { id: 'gold', label: 'Gold', bg: ['#141109', '#050403'], star: [[0, '#E4CC7E'], [0.28, '#C7A042'], [0.55, '#987841'], [0.78, '#AF8A39'], [1, '#64512E']], mark: '#2E2614', sparks: '#3E331D', locked: true }
     ];
     const earnedTierKeys = () => new Set(Array.isArray(state.achievements) ? state.achievements : []);
     /**
@@ -3523,6 +4022,8 @@
       let monthCompletedCount = 0;
       let monthMissedCount = 0;
       const logIndex = getLogIndex();
+      const tough = toughDaysFor(game.id, game.name);
+      let toughShown = false;
 
       for (let d = 1; d <= daysInMonth; d++) {
         const dateKey = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -3541,7 +4042,9 @@
           mark = '<span class="mark"><span class="ico ico-close" aria-hidden="true"></span></span>';
         }
         if (isToday) cls += ' today';
-        const label = `${game.name} • ${dateKey}${outcome ? ' (' + outcome + ')' : ''}${isToday ? ' • today' : ''}`;
+        const toughDay = outcome === 'completed' ? tough.get(dateKey) : null;
+        if (toughDay) { cls += ' tough'; toughShown = true; }
+        const label = `${game.name} • ${dateKey}${outcome ? ' (' + outcome + ')' : ''}${toughDay ? ` • tough day: ${toughDay.label}, usually ${toughDay.typical}` : ''}${isToday ? ' • today' : ''}`;
         // Today and past days of a game in the hub can be tapped to log or correct that day.
         const editable = isActiveGame && cycleKeyToDay(dateKey) <= cycleKeyToDay(todayKey);
         const editAttrs = editable
@@ -3551,6 +4054,8 @@
       }
 
       gridEl.innerHTML = cellsHtml;
+      const legendTough = document.getElementById('legendTough');
+      if (legendTough) legendTough.classList.toggle('hidden', !toughShown);
 
       // A removed game's history can be forgotten for good (it stays otherwise, ready for a re-add).
       let forgetBtn = document.getElementById('btnForgetRemovedGame');
@@ -3578,71 +4083,207 @@
       renderScoreStats(game);
     }
 
-    /** The calendar month's recap across all games, with a Share button. */
-    function monthlyRecapData() {
-      const r = HubCore.monthlyRecap(state.historyLogs, calendarYear, calendarMonth);
-      let label;
-      try { label = new Intl.DateTimeFormat([], { month: 'long', year: 'numeric' }).format(new Date(calendarYear, calendarMonth, 1)); }
-      catch (e) { label = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}`; }
-      return { r, label };
+    // ---- Recap (1.6.0): this week (or an earlier one) or the calendar's month, compared with the one before ----
+    let recapPeriod = 'week';
+    let recapWeekOffset = 0;
+    function localTodayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
-
-    function monthlyRecapText() {
-      const { r, label } = monthlyRecapData();
-      const lines = [`My ${label} in Dailies`, `🧩 ${plural(r.solved, 'puzzle')} solved of ${r.results} (${r.winRate}% win rate) over ${plural(r.days, 'day')}`];
+    function shortDayLabel(key) {
+      try {
+        const [y, m, d] = key.split('-').map(Number);
+        return new Intl.DateTimeFormat([], { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(Date.UTC(y, m - 1, d)));
+      } catch (e) { return key; }
+    }
+    function recapData() {
+      if (recapPeriod === 'month') {
+        const prefix = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-`;
+        const py = calendarMonth === 0 ? calendarYear - 1 : calendarYear;
+        const pm = calendarMonth === 0 ? 11 : calendarMonth - 1;
+        const prevPrefix = `${py}-${String(pm + 1).padStart(2, '0')}-`;
+        let label;
+        try { label = new Intl.DateTimeFormat([], { month: 'long', year: 'numeric' }).format(new Date(calendarYear, calendarMonth, 1)); }
+        catch (e) { label = prefix.slice(0, 7); }
+        const r = HubCore.periodRecap(state.historyLogs, `${prefix}01`, `${prefix}31`);
+        const prev = HubCore.periodRecap(state.historyLogs, `${prevPrefix}01`, `${prevPrefix}31`);
+        return { r, prev, change: HubCore.recapChange(r, prev), label, title: `My ${label}`, vs: 'last month', range: label };
+      }
+      const base = HubCore.addDaysToCycleKey(localTodayKey(), recapWeekOffset * 7);
+      const w = HubCore.weekBounds(base);
+      const pw = HubCore.weekBounds(HubCore.addDaysToCycleKey(w.from, -7));
+      const r = HubCore.periodRecap(state.historyLogs, w.from, w.to);
+      const prev = HubCore.periodRecap(state.historyLogs, pw.from, pw.to);
+      const range = `${shortDayLabel(w.from)} – ${shortDayLabel(w.to)}`;
+      const label = recapWeekOffset === 0 ? 'This week' : recapWeekOffset === -1 ? 'Last week' : range;
+      return { r, prev, change: HubCore.recapChange(r, prev), label, title: recapWeekOffset === 0 ? 'My week' : `My week of ${shortDayLabel(w.from)}`, vs: 'the week before', range };
+    }
+    const signed = (n, unit) => `${n > 0 ? '▲' : n < 0 ? '▼' : '='} ${n > 0 ? '+' : ''}${n}${unit || ''}`;
+    function recapText() {
+      const { r, change, title, range, vs } = recapData();
+      const lines = [`${title} in Dailies (${range})`, `🧩 ${plural(r.solved, 'puzzle')} solved of ${r.results} (${r.winRate}% win rate) over ${plural(r.days, 'day')}`];
+      if (change) lines.push(`📈 ${signed(change.solved)} solved${change.winRate !== null ? `, win rate ${signed(change.winRate, ' pts')}` : ''} vs ${vs}`);
+      if (r.bestGame) lines.push(`⭐ Best game: ${r.bestGame.name} (${r.bestGame.solved}/${r.bestGame.results})`);
       if (r.bestStreak) lines.push(`🔥 Longest streak: ${plural(r.bestStreak, 'day')}`);
       if (r.bestResult) lines.push(`🏆 Best result: ${r.bestResult.game} ${r.bestResult.score}`);
-      if (r.topGame) lines.push(`⭐ Most played: ${r.topGame.name} (${r.topGame.count})`);
       if (r.timeMs) lines.push(`⏱ Time puzzling: ${HubCore.formatDuration(r.timeMs)}`);
       return lines.join('\n');
     }
+    // Kept for older callers: the month recap's text.
+    function monthlyRecapText() { const p = recapPeriod; recapPeriod = 'month'; try { return recapText(); } finally { recapPeriod = p; } }
 
-    function renderMonthlyRecap() {
+    function renderRecap() {
       const el = document.getElementById('recapCard');
       if (!el) return;
-      const { r, label } = monthlyRecapData();
-      const head = `<div class="flex items-center justify-between gap-2 mb-3"><h3 class="text-base font-bold text-white">${escapeHtml(label)} recap</h3>`
-        + (r.results ? '<button type="button" id="btnShareRecap" class="px-3 py-1.5 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 text-xs font-semibold">Share</button>' : '') + '</div>';
+      const { r, prev, change, label, vs } = recapData();
+      const seg = (v, t) => `<button type="button" class="recap-seg${recapPeriod === v ? ' on' : ''}" data-recap-period="${v}" aria-pressed="${recapPeriod === v}">${t}</button>`;
+      const weekNav = recapPeriod === 'week'
+        ? `<span class="recap-nav"><button type="button" class="icon-btn" data-recap-week="-1" aria-label="Earlier week">‹</button><button type="button" class="icon-btn" data-recap-week="1" aria-label="Later week"${recapWeekOffset >= 0 ? ' disabled' : ''}>›</button></span>` : '';
+      const head = `<div class="recap-head"><h3 class="text-base font-bold text-white min-w-0 truncate">${escapeHtml(label)} recap</h3><div class="recap-segs" role="group" aria-label="Recap period">${seg('week', 'Week')}${seg('month', 'Month')}</div></div>`
+        + `<div class="recap-sub"><span class="text-xs text-slate-400">${r.results ? `${plural(r.games, 'game')} · ${plural(r.days, 'day')} played` : ''}</span>${weekNav}</div>`;
       if (!r.results) {
-        el.innerHTML = head + '<p class="text-xs text-slate-400">No results logged this month yet.</p>';
+        el.innerHTML = head + `<p class="text-xs text-slate-400">No results logged ${recapPeriod === 'week' ? 'this week' : 'this month'} yet.</p>`;
         return;
       }
+      const delta = (n, unit) => n === null || n === undefined ? '' : `<span class="recap-delta ${n > 0 ? 'up' : n < 0 ? 'down' : ''}">${escapeHtml(signed(n, unit))}</span>`;
       const tile = (k, v, sub) => `<div class="stat-tile"><p class="k">${k}</p><p class="v">${v}</p><p class="s">${sub}</p></div>`;
       el.innerHTML = head + `<div class="stat-tiles">`
-        + tile('Solved', String(r.solved), `${r.winRate}% of ${r.results}`)
-        + tile('Best streak', `${r.bestStreak}d`, plural(r.days, 'day') + ' played')
-        + tile('Best result', r.bestResult ? escapeHtml(r.bestResult.score) : '—', r.bestResult ? escapeHtml(r.bestResult.game) : 'No guess scores')
+        + tile('Solved', String(r.solved), change ? `${delta(change.solved)} vs ${prev.solved}` : `of ${r.results}`)
+        + tile('Win rate', `${r.winRate}%`, change && change.winRate !== null ? `${delta(change.winRate, ' pts')}` : `${r.solved}/${r.results}`)
+        + tile('Best streak', `${r.bestStreak}d`, r.bestResult ? `Best ${escapeHtml(r.bestResult.score)}` : plural(r.days, 'day'))
         + '</div>'
-        + `<p class="score-head mt-2.5">${r.topGame ? `<span>Most played <strong>${escapeHtml(r.topGame.name)}</strong></span>` : ''}${r.timeMs ? `<span aria-hidden="true">·</span><span>⏱ <strong>${HubCore.formatDuration(r.timeMs)}</strong> puzzling</span>` : ''}</p>`;
-      const btn = document.getElementById('btnShareRecap');
-      if (btn) btn.addEventListener('click', () => shareText(monthlyRecapText(), `${label} recap`));
+        + `<p class="score-head mt-2.5">${r.bestGame ? `<span>⭐ Best game <strong>${escapeHtml(r.bestGame.name)}</strong> (${r.bestGame.solved}/${r.bestGame.results})</span>` : ''}${r.topGame && (!r.bestGame || r.topGame.name !== r.bestGame.name) ? `<span aria-hidden="true">·</span><span>Most played <strong>${escapeHtml(r.topGame.name)}</strong></span>` : ''}${r.timeMs ? `<span aria-hidden="true">·</span><span>⏱ <strong>${HubCore.formatDuration(r.timeMs)}</strong> puzzling</span>` : ''}</p>`
+        + `<p class="text-[11px] text-slate-500 mt-1.5">${change ? `Compared with ${vs}.` : `Nothing logged ${vs} to compare with.`}</p>`
+        + `<div class="recap-actions"><button type="button" id="btnShareRecapText" class="recap-btn">Share text</button><button type="button" id="btnShareRecap" class="recap-btn primary">Share card</button></div>`;
     }
 
+    /** The recap as a 1080×1350 picture in the app's colours, shared as a PNG (text if that fails). */
+    async function shareRecapCard() {
+      const data = recapData();
+      const text = recapText();
+      try {
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        const png = drawRecapCard(data);
+        const b = window.AndroidBridge;
+        if (png && b && typeof b.shareImage === 'function') {
+          b.shareImage(png.replace(/^data:image\/png;base64,/, ''), `${data.title} in Dailies`, text);
+          return;
+        }
+      } catch (e) {}
+      shareText(text, `${data.title} in Dailies`);
+    }
+    function drawRecapCard(data) {
+      const { r, change, title, range, vs } = data;
+      const W = 1080, H = 1350;
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      const x = c.getContext('2d');
+      if (!x) return '';
+      const css = getComputedStyle(document.documentElement);
+      const tok = (n, d) => (css.getPropertyValue(n) || '').trim() || d;
+      const surface = tok('--md-surface', '#121118');
+      const cont = tok('--md-container', '#211E2B');
+      const low = tok('--md-container-low', '#1A1822');
+      const primary = tok('--md-primary', '#D3BCFF');
+      const pc = tok('--md-primary-container', '#4F378B');
+      const onPc = tok('--md-on-primary-container', '#EADDFF');
+      const light = document.documentElement.getAttribute('data-theme') === 'light';
+      const ink = light ? '#1D1B20' : '#FFFFFF';
+      const muted = light ? '#5F5B66' : '#A9A3B8';
+      const gold = document.documentElement.getAttribute('data-gold') === 'true';
+      const font = (getComputedStyle(document.body).fontFamily || 'sans-serif');
+      const F = (w, px) => `${w} ${px}px ${font}`;
+      const rr = (X, Y, w, h, rad) => { x.beginPath(); x.moveTo(X + rad, Y); x.arcTo(X + w, Y, X + w, Y + h, rad); x.arcTo(X + w, Y + h, X, Y + h, rad); x.arcTo(X, Y + h, X, Y, rad); x.arcTo(X, Y, X + w, Y, rad); x.closePath(); };
+      x.fillStyle = surface; x.fillRect(0, 0, W, H);
+      const glow = x.createRadialGradient(220, 120, 0, 220, 120, 900);
+      glow.addColorStop(0, gold ? 'rgba(209,171,72,0.35)' : primary); glow.addColorStop(1, 'rgba(0,0,0,0)');
+      x.globalAlpha = gold ? 1 : 0.22; x.fillStyle = glow; x.fillRect(0, 0, W, H); x.globalAlpha = 1;
+      const accent = (X, Y, w, h) => {
+        if (!gold) return primary;
+        const g = x.createLinearGradient(X, Y, X + w, Y + h);
+        [[0, '#DBC377'], [0.3, '#C7A042'], [0.6, '#987841'], [1, '#D6B865']].forEach(([o, col]) => g.addColorStop(o, col));
+        return g;
+      };
+      // Header
+      x.textBaseline = 'alphabetic';
+      x.fillStyle = accent(80, 90, 400, 60); x.font = F(700, 40); x.fillText('✦ Dailies', 80, 140);
+      x.fillStyle = ink; x.font = F(800, 92); x.fillText(title, 80, 270);
+      x.fillStyle = muted; x.font = F(500, 40); x.fillText(range, 80, 330);
+      // Tiles
+      const tiles = [
+        ['Solved', String(r.solved), change ? `${signed(change.solved)} vs ${vs}` : `of ${r.results} results`],
+        ['Win rate', `${r.winRate}%`, change && change.winRate !== null ? `${signed(change.winRate, ' pts')}` : `${r.solved}/${r.results}`],
+        ['Best streak', `${r.bestStreak}d`, plural(r.days, 'day') + ' played'],
+        ['Games', String(r.games), r.timeMs ? `⏱ ${HubCore.formatDuration(r.timeMs)}` : 'played']
+      ];
+      tiles.forEach(([k, v, sub], i) => {
+        const X = 80 + (i % 2) * 470, Y = 400 + Math.floor(i / 2) * 300, w = 440, h = 270;
+        rr(X, Y, w, h, 44); x.fillStyle = i === 0 ? pc : cont; x.fill();
+        x.fillStyle = i === 0 ? onPc : muted; x.font = F(600, 36); x.fillText(k, X + 40, Y + 70);
+        x.fillStyle = i === 0 ? onPc : (i === 1 ? accent(X, Y, w, h) : ink); x.font = F(800, 104); x.fillText(v, X + 40, Y + 180);
+        x.fillStyle = i === 0 ? onPc : muted; x.font = F(500, 30);
+        let t = sub; while (x.measureText(t).width > w - 80 && t.length > 4) t = t.slice(0, -2) + '…';
+        x.fillText(t, X + 40, Y + 232);
+      });
+      // Highlights
+      rr(80, 1020, 910, 220, 44); x.fillStyle = low; x.fill();
+      const lines = [];
+      if (r.bestGame) lines.push(`⭐  Best game: ${r.bestGame.name} (${r.bestGame.solved}/${r.bestGame.results})`);
+      if (r.bestResult) lines.push(`🏆  Best result: ${r.bestResult.game} ${r.bestResult.score}`);
+      if (r.topGame && lines.length < 2) lines.push(`🎯  Most played: ${r.topGame.name}`);
+      if (!lines.length) lines.push(`🧩  ${plural(r.results, 'result')} logged`);
+      x.font = F(600, 38); x.fillStyle = ink;
+      lines.slice(0, 2).forEach((l, i) => {
+        let t = l; while (x.measureText(t).width > 830 && t.length > 4) t = t.slice(0, -2) + '…';
+        x.fillText(t, 120, 1105 + i * 80);
+      });
+      x.fillStyle = muted; x.font = F(500, 28); x.fillText('Tracked with Dailies', 80, 1300);
+      return c.toDataURL('image/png');
+    }
+
+    let achievementsShown = [];
     function renderAchievements() {
       const grid = document.getElementById('achievementsGrid');
       if (!grid) return;
       const all = HubCore.computeAchievements(state.games, state.historyLogs);
+      achievementsShown = all;
       const total = all.reduce((n, a) => n + a.tiers, 0);
       const n = all.reduce((x, a) => x + a.tier, 0);
       const count = document.getElementById('achievementsCount');
       if (count) count.textContent = `${n} of ${total} earned`;
       // What the gold unlocks need is an easter egg: the Achievements card doesn't say.
-      const roman = ['', 'I', 'II'];
-      grid.innerHTML = all.map((a) => {
+      // Every tile is the same size: icon, name and progress. Tap one for what it takes.
+      grid.innerHTML = all.map((a, i) => {
         const nx = a.next;
-        const state = a.tier >= 2 ? 'Both tiers earned' : (a.tier === 1 ? 'Tier I earned' : 'Not earned yet');
-        const prog = nx && !nx.below && nx.target > 1
-          ? `<span class="ach-bar" aria-hidden="true"><span style="width:${Math.round((nx.progress / nx.target) * 100)}%"></span></span><span class="ach-num">${nx.progress.toLocaleString('en-US')} / ${nx.target.toLocaleString('en-US')}</span>` : '';
-        const label = `${a.title}, ${state}. ${nx ? `Next: ${nx.desc}${nx.below ? '' : ` (${nx.progress} of ${nx.target})`}` : a.desc}`;
+        const pct = nx && !nx.below && nx.target > 0 ? Math.round((nx.progress / nx.target) * 100) : 0;
+        const state = a.tier >= 2 ? 'both tiers earned' : (a.tier === 1 ? 'tier 1 earned' : 'not earned yet');
         return `
-        <div class="ach ${a.tier >= 1 ? 'on' : ''} ${a.tier >= 2 ? 'max' : ''}" role="img" aria-label="${escapeHtml(label)}">
-          ${a.tier ? `<span class="ach-tier" aria-hidden="true">${roman[a.tier]}</span>` : ''}
+        <button type="button" class="ach ${a.tier >= 1 ? 'on' : ''} ${a.tier >= 2 ? 'max' : ''}" data-ach-index="${i}" aria-label="${escapeHtml(`${a.title}, ${state}. Show details`)}">
+          ${a.tier >= 2 ? '<span class="ach-star" aria-hidden="true">★</span>' : ''}
           <span class="ach-icon" aria-hidden="true">${a.icon}</span>
           <span class="ach-title">${escapeHtml(a.title)}</span>
-          <span class="ach-desc">${escapeHtml(nx ? nx.desc : a.desc)}</span>
-          ${prog}
+          <span class="ach-bar" aria-hidden="true"><span style="width:${a.tier >= 2 ? 100 : pct}%"></span></span>
+        </button>`;
+      }).join('');
+    }
+    /** The details sheet for one achievement: what each tier takes and how far along it is. */
+    function openAchievementDetails(i) {
+      const a = achievementsShown[i];
+      if (!a) return;
+      document.getElementById('achDetailIcon').textContent = a.icon;
+      document.getElementById('achDetailTitle').textContent = a.title;
+      document.getElementById('achDetailSub').textContent = a.tier >= 2 ? '★ Both tiers earned' : (a.tier === 1 ? 'Tier 1 earned' : 'Not earned yet');
+      const fmt = (v) => Number(v).toLocaleString('en-US');
+      document.getElementById('achDetailTiers').innerHTML = a.tierList.map((t, k) => {
+        const prog = t.earned ? 'Earned' : (t.below ? 'Not yet' : `${fmt(t.progress)} / ${fmt(t.target)}${t.unit ? ` ${t.unit}` : ''}`);
+        const pct = t.earned ? 100 : (t.below || !t.target ? 0 : Math.round((t.progress / t.target) * 100));
+        return `<div class="ach-tier-row ${t.earned ? 'done' : ''}">
+          <div class="ach-tier-head"><span class="ach-tier-name">${k === 1 ? '★ Tier 2' : 'Tier 1'}</span><span class="ach-tier-prog">${escapeHtml(prog)}</span></div>
+          <p class="ach-tier-desc">${escapeHtml(t.desc)}</p>
+          <span class="ach-bar wide" aria-hidden="true"><span style="width:${pct}%"></span></span>
         </div>`;
       }).join('');
+      openModal('modalAchievement');
     }
 
     /** Android share sheet (or the clipboard in a plain browser). */
@@ -3710,6 +4351,12 @@
     }
 
     /** Win rate, average guesses and personal bests for the calendar's game. */
+    /** A game's tough days (Map date -> { label, typical }), from its rows (old rows matched by name). */
+    function toughDaysFor(gameId, gameName) {
+      const rows = state.historyLogs.filter((l) => l && (gameId ? l.gameId === gameId : (!l.gameId && l.gameName === gameName)));
+      return HubCore.toughDays(rows);
+    }
+
     function renderScoreStats(game) {
       const el = document.getElementById('gameScoreStats');
       if (!el) return;
@@ -3731,8 +4378,46 @@
       if (pb.bestScore) bests.push(`<span class="pb-chip">🏆 Best ${escapeHtml(pb.bestScore)}</span>`);
       if (pb.fastestMs) bests.push(`<span class="pb-chip">⚡ ${escapeHtml(HubCore.formatDuration(pb.fastestMs))}</span>`);
       if (pb.bestStreak) bests.push(`<span class="pb-chip">🔥 ${escapeHtml(plural(pb.bestStreak, 'day'))}</span>`);
+      const tough = [...toughDaysFor(game.id, game.name).entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+      const toughLine = tough.length
+        ? `<p class="tough-line"><span class="tough-dot" aria-hidden="true"></span>${plural(tough.length, 'tough day')} (usually ${escapeHtml(tough[0][1].typical)}). Latest: ${escapeHtml(formatCycleDateLabel(tough[0][0]))}, ${escapeHtml(tough[0][1].label)}</p>` : '';
       el.innerHTML = `<p class="text-xs font-bold text-white mb-0.5">Score stats</p><p class="score-head">${head.join('<span aria-hidden="true">·</span>')}</p>`
-        + (bests.length ? `<p class="pb-row" aria-label="Personal bests">${bests.join('')}</p>` : '');
+        + (bests.length ? `<p class="pb-row" aria-label="Personal bests">${bests.join('')}</p>` : '') + toughLine;
+    }
+
+    /** Personal bests for every game on the hub (and kept games with results), best-known first. */
+    function renderPersonalBests() {
+      const el = document.getElementById('bestsList');
+      if (!el) return;
+      const games = getCalendarGamesList();
+      const activeIds = new Set(state.games.map((g) => g.id));
+      const items = [];
+      games.forEach((g) => {
+        const rows = state.historyLogs.filter((l) => l && (l.gameId === g.id || (!l.gameId && l.gameName === g.name)));
+        if (!rows.some((r) => r.outcome === 'Completed')) return;
+        const pb = HubCore.personalBests(rows, Math.max(Number(g.bestStreak) || 0, Number(g.streak) || 0));
+        const latest = rows.filter((r) => Array.isArray(r.records) && r.records.length).map((r) => r.date).sort().pop() || '';
+        items.push({ g, pb, latest, active: activeIds.has(g.id) && !g.archived });
+      });
+      items.sort((a, b) => (b.active - a.active) || String(a.g.name).localeCompare(String(b.g.name), undefined, { sensitivity: 'base' }));
+      const count = document.getElementById('bestsCount');
+      if (count) count.textContent = items.length ? plural(items.length, 'game') : '';
+      if (!items.length) {
+        el.innerHTML = '<p class="text-xs text-slate-400 pt-3">Solve a few puzzles and each game\'s best score, fastest time and longest streak show up here.</p>';
+        return;
+      }
+      el.innerHTML = items.map(({ g, pb, latest }) => {
+        const chips = [];
+        if (pb.bestScore) chips.push(`<span class="pb-chip">🏆 ${escapeHtml(pb.bestScore)}</span>`);
+        if (pb.fastestMs) chips.push(`<span class="pb-chip">⚡ ${escapeHtml(HubCore.formatDuration(pb.fastestMs))}</span>`);
+        if (pb.bestStreak) chips.push(`<span class="pb-chip">🔥 ${escapeHtml(plural(pb.bestStreak, 'day'))}</span>`);
+        const sub = latest ? `Last record ${escapeHtml(formatCycleDateLabel(latest))}` : 'No records yet';
+        return `<button type="button" class="best-row" data-best-game="${escapeHtml(g.id)}" aria-label="${escapeHtml(g.name)}: show in the calendar">
+          <span class="best-icon">${renderGameIconHtml(g.icon, g.name, 'w-5 h-5')}</span>
+          <span class="best-main"><span class="best-name" dir="auto">${escapeHtml(g.name)}</span><span class="best-sub">${sub}</span></span>
+          <span class="best-chips">${chips.join('') || '<span class="text-[11px] text-slate-500">—</span>'}</span>
+        </button>`;
+      }).join('');
     }
 
     /** Permanently drops a removed game's kept history and its score-log rows (after confirming). */
@@ -3827,7 +4512,8 @@
     function renderStatsAndCharts() {
       statsRenderedKey = statsRenderKey();
       renderGameCalendar();
-      renderMonthlyRecap();
+      renderRecap();
+      renderPersonalBests();
       renderAchievements();
 
       const tbody = document.getElementById('historyTableBody');
@@ -3867,8 +4553,14 @@
           tbody.innerHTML = `<p class="py-6 text-center text-xs text-slate-500">${historyFilter.query ? 'No results match your search.' : 'No results match this filter.'}</p>`;
         } else {
           const qWords = historyQueryWords();
+          const toughCache = new Map();
           tbody.innerHTML = pageRows.map((item, i) => {
             const ok = item.outcome === 'Completed';
+            const key = item.gameId || `n:${item.gameName}`;
+            if (!toughCache.has(key)) toughCache.set(key, toughDaysFor(item.gameId, item.gameName));
+            const tough = ok ? toughCache.get(key).get(item.date) : null;
+            const flags = (Array.isArray(item.records) && item.records.length && ok ? '<span class="hist-flag pb">🏆 PB</span>' : '')
+              + (tough ? `<span class="hist-flag tough" title="Usually ${escapeHtml(tough.typical)}">Tough day</span>` : '');
             const score = String(item.score || '').trim();
             const time = normalizeLogTimeLabel(item.localTime);
             return `
@@ -3879,7 +4571,7 @@
                   <span class="hist-badge ${ok ? 'ok' : 'bad'}">${ok ? 'Completed' : 'Missed'}</span>
                   <span class="hist-streak"><span class="sr-only">Streak after: ${escapeHtml(plural(item.streak, 'day'))}</span><span aria-hidden="true">🔥 ${escapeHtml(item.streak)}d</span></span>
                 </div>
-                <p class="hist-date">${escapeHtml(formatCycleDateLabel(item.date))}${time ? ` · ${escapeHtml(time)}` : ''}${Number(item.timeMs) > 0 ? ` <span class="hist-time">· ⏱ ${escapeHtml(HubCore.formatDuration(item.timeMs))}</span>` : ''}</p>
+                <p class="hist-date">${escapeHtml(formatCycleDateLabel(item.date))}${time ? ` · ${escapeHtml(time)}` : ''}${Number(item.timeMs) > 0 ? ` <span class="hist-time">· ⏱ ${escapeHtml(HubCore.formatDuration(item.timeMs))}</span>` : ''}${flags}</p>
                 ${score ? `<details class="hist-more"${qWords.length && qWords.some((w) => score.toLowerCase().includes(w)) ? ' open' : ''}>
                   <summary><span>Result</span><span class="chev" aria-hidden="true"></span></summary>
                   <pre class="hist-score">${highlightHistoryText(score, qWords)}</pre>
@@ -4205,6 +4897,36 @@
       try { window.scrollTo({ top: Math.max(0, Math.round(y)), left: 0, behavior: 'instant' }); } catch (e) { window.scrollTo(0, Math.max(0, Math.round(y))); }
     }
 
+    /**
+     * The bottom bar's highlight. It follows a swipe between tabs exactly (same offset, same glide),
+     * so it is already under the new tab when the page arrives.
+     */
+    const NavIndicator = {
+      el() { return document.getElementById('navIndicator'); },
+      rect(tab) {
+        const b = document.querySelector(`.nav-btn[data-nav="${tab}"]`);
+        return b ? { x: b.offsetLeft, y: b.offsetTop, w: b.offsetWidth, h: b.offsetHeight } : null;
+      },
+      /** Between tab `a` (t = 0) and tab `b` (t = 1); `ms`/`ease` animate, otherwise it moves at once. */
+      set(a, b, t, ms, ease) {
+        const el = this.el();
+        const ra = this.rect(a);
+        const rb = this.rect(b || a) || ra;
+        if (!el || !ra) return;
+        const k = Math.max(0, Math.min(1, t || 0));
+        const x = ra.x + (rb.x - ra.x) * k;
+        const w = ra.w + (rb.w - ra.w) * k;
+        el.style.transition = ms ? `transform ${ms}ms ${ease}, width ${ms}ms ${ease}` : 'none';
+        el.style.width = `${w}px`;
+        el.style.height = `${ra.h}px`;
+        el.style.top = `${ra.y}px`;
+        el.style.transform = `translate3d(${x}px,0,0)`;
+        el.style.opacity = '1';
+      },
+      place(tab) { this.set(tab, tab, 0); }
+    };
+    window.addEventListener('resize', () => NavIndicator.place(activeTab));
+
     const Pager = {
       neighbour: null, // { tab, el, dir }
       width() { return (document.documentElement.clientWidth || window.innerWidth || 400) + 24; },
@@ -4244,6 +4966,9 @@
         if (cur) { cur.style.transition = 'none'; cur.style.transform = `translate3d(${dx}px,0,0)`; }
         const n = this.neighbour;
         if (n) n.el.style.transform = `translate3d(${dx + n.dir * this.width()}px,0,0)`;
+        // The bar's highlight slides the same fraction of the way to the neighbouring tab.
+        if (n) NavIndicator.set(activeTab, n.tab, Math.abs(dx) / this.width());
+        else NavIndicator.place(activeTab);
       },
       /** Glides to the neighbour (go) or back (stay), starting at `dx` with release velocity `v` px/ms. */
       settle(dx, v, go, onDone) {
@@ -4260,6 +4985,8 @@
         const tr = `transform ${ms}ms ${ease}`;
         if (cur) { cur.style.transition = tr; cur.style.transform = `translate3d(${target}px,0,0)`; }
         if (n) { n.el.style.transition = tr; n.el.style.transform = `translate3d(${target + n.dir * w}px,0,0)`; }
+        // The highlight glides to the tab the page lands on, with the same timing.
+        if (n) NavIndicator.set(activeTab, n.tab, go ? 1 : 0, ms, ease); else NavIndicator.set(activeTab, activeTab, 0, ms, ease);
         let finished = false;
         const finish = () => {
           if (finished) return;
@@ -4338,13 +5065,14 @@
         const active = btn.getAttribute('data-nav') === normalized;
         if (active) {
           btn.setAttribute('aria-current', 'page');
-          btn.className = 'nav-btn relative flex flex-col items-center justify-center py-1 rounded-full m4-tonal-pill font-bold text-[11px]';
+          btn.className = 'nav-btn nav-on relative flex flex-col items-center justify-center py-1 rounded-full font-bold text-[11px]';
         } else {
           btn.removeAttribute('aria-current');
           btn.className = 'nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]';
         }
       });
 
+      NavIndicator.place(normalized);
       if (!(anim && anim.prepared)) prepareTab(normalized);
       if (previous !== normalized) {
         if (anim && typeof anim.scroll === 'number') jumpScroll(anim.scroll);
@@ -4357,7 +5085,7 @@
       // While a dialog is open the page behind it doesn't scroll (or stretch at its ends).
       document.documentElement.classList.toggle('modal-open', isAnyModalOpen());
       document.documentElement.classList.toggle('qr-open', isModalOpen('modalShareList'));
-      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId) || selectMode;
+      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId) || selectMode || Boolean(themedSelectOpen);
       if (wantsBack === lastBackInterceptState) return;
       lastBackInterceptState = wantsBack;
       try {
@@ -4370,7 +5098,7 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -4490,11 +5218,13 @@
       }
       pruneRetainedMap(state.retainedGameStats);
 
+      const changeId = recordChange({ kind: 'remove', gameId: game.id, name: game.name, game: JSON.parse(JSON.stringify(game)), index: state.games.indexOf(game) });
       state.games = state.games.filter((g) => g.id !== game.id);
       closeDeleteConfirmModal();
       saveState();
       renderVisibleTab();
-      showToast('Game Removed', `${game.name} was removed from Daily Hub. Streaks and log data retained.`, 'indigo');
+      showToast('Game Removed', `${game.name} was removed from Daily Hub. Streaks and log data retained.`, 'indigo', null,
+        { actionLabel: 'Undo', onAction: () => undoChange(changeId) });
     }
 
     let lastAutoScrapedUrl = '';
@@ -4871,32 +5601,39 @@
         row: row ? Object.assign({}, row) : null
       };
     }
+    /**
+     * Puts one game's day back as it was in `snap`. While the same puzzle is live, today's status and
+     * score go back too; after a reset only that day's record changes (the new day is left alone).
+     * Returns whether anything was restored.
+     */
     function restoreUndo(snap) {
       const game = state.games.find((g) => g.id === snap.gameId);
-      if (!game) return;
-      // Only undo while the same puzzle is live (and within 10 minutes): restoring an old status or
-      // cycle anchor after a reset would corrupt the new day.
-      if (Date.now() - snap.takenAt > 10 * 60 * 1000 || getCycleDateKey(game.resetTime, game.resetZone) !== snap.liveKeyAtSnapshot) {
-        showToast('Too late to undo', 'The game has reset since then. Change the result from its ✓ button instead.', 'indigo');
-        return;
+      if (!game) {
+        showToast("Can't undo that", 'That game is no longer in your hub.', 'indigo');
+        return false;
       }
-      game.status = snap.status;
-      game.todayScore = snap.todayScore;
-      game.lastCycleKey = snap.lastCycleKey;
+      if (getCycleDateKey(game.resetTime, game.resetZone) === snap.liveKeyAtSnapshot) {
+        game.status = snap.status;
+        game.todayScore = snap.todayScore;
+        game.lastCycleKey = snap.lastCycleKey;
+      }
+      if (!game.dayHistory || typeof game.dayHistory !== 'object') game.dayHistory = {};
       if (snap.dayValue === undefined) delete game.dayHistory[snap.cycleKey];
       else game.dayHistory[snap.cycleKey] = snap.dayValue;
       const idx = state.historyLogs.findIndex((l) => l.date === snap.cycleKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
       if (snap.row) {
-        if (idx >= 0) state.historyLogs[idx] = snap.row;
-        else state.historyLogs.unshift(snap.row);
+        if (idx >= 0) state.historyLogs[idx] = Object.assign({}, snap.row);
+        else state.historyLogs.unshift(Object.assign({}, snap.row));
       } else if (idx >= 0) {
         state.historyLogs.splice(idx, 1);
       }
+      markDayChangesUndone(game.id, snap.cycleKey, snap.takenAt);
       invalidateLogIndex();
       recomputeGameStatsFromHistory(game);
       saveState();
       renderVisibleTab();
-      showToast(`${game.name}: log undone`, 'Restored to how it was before.', 'indigo');
+      showToast(`${game.name}: change undone`, 'Restored to how it was before.', 'indigo');
+      return true;
     }
 
     let returnPromptShareText = '';
@@ -5014,6 +5751,7 @@
     };
 
     window.handleBackPress = function () {
+      if (themedSelectOpen) { themedSelectOpen.close(); return true; }
       // The visible top layer first: an open modal, then the "Finished?" sheet, then the tab.
       const open = MODAL_IDS.filter(isModalOpen);
       if (open.length) {
@@ -5365,6 +6103,9 @@
       });
 
       initFolds();
+      themeSelect(document.getElementById('calendarGameSelect'));
+      themeSelect(document.getElementById('historyFilterGame'));
+      requestAnimationFrame(() => NavIndicator.place(activeTab));
       if (state.__saveBlocked) showDataProblemBanner();
       document.getElementById('btnDataStartFresh').addEventListener('click', resolveDataProblemStartFresh);
       document.getElementById('btnDataGoImport').addEventListener('click', () => {
@@ -5381,7 +6122,7 @@
         swipe = null;
         if (!e.touches || e.touches.length !== 1 || isAnyModalOpen() || tabAnimating) return;
         const el = e.target;
-        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .m4-floating-dock, .return-sheet')) return;
+        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .m4-floating-dock, .return-sheet, .tsel-menu')) return;
         swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false };
       }, { passive: true });
 
@@ -5636,7 +6377,7 @@
         if (calendarMonth < 0) { calendarMonth = 11; calendarYear -= 1; }
         if (calendarMonth > 11) { calendarMonth = 0; calendarYear += 1; }
         renderGameCalendar();
-        renderMonthlyRecap();
+        renderRecap();
         if (REDUCED_MOTION) return;
         // The grid and the month name slide in together; the tiles and the recap below cross-fade.
         const from = delta > 0 ? 1 : -1;
@@ -5834,9 +6575,59 @@
         closeAddModal();
         if (game) setArchived([game.id], true);
       });
-      document.getElementById('btnCopyToday').addEventListener('click', copyTodaysResults);
+      document.getElementById('btnCopyToday').addEventListener('click', openTodayResults);
+      document.getElementById('todayResultsGrids').addEventListener('change', (e) => {
+        state.settings.shareGrids = e.target.checked;
+        saveState({ sync: false });
+        renderTodayResultsPreview();
+      });
+      document.getElementById('btnTodayResultsCopy').addEventListener('click', () => copyText(todaysCombinedText(), "Today's results copied."));
+      document.getElementById('btnTodayResultsShare').addEventListener('click', () => shareText(todaysCombinedText(), "Today's Dailies"));
+      document.getElementById('btnPlayAll').addEventListener('click', playAll);
+      const hubSortSel = document.getElementById('hubSort');
+      hubSortSel.value = hubSortMode();
+      themeSelect(hubSortSel);
+      hubSortSel.addEventListener('change', () => {
+        state.settings.hubSort = HUB_SORTS.includes(hubSortSel.value) ? hubSortSel.value : 'custom';
+        saveState({ sync: false });
+        renderGamesGrid();
+      });
+      document.getElementById('btnHistoryChanges').addEventListener('click', openChanges);
+      document.getElementById('btnSettingsChanges').addEventListener('click', openChanges);
+      document.getElementById('changesList').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-undo-change]');
+        if (b) undoChange(b.getAttribute('data-undo-change'));
+      });
+      document.getElementById('recapCard').addEventListener('click', (e) => {
+        const seg = e.target.closest('[data-recap-period]');
+        if (seg) { recapPeriod = seg.getAttribute('data-recap-period'); renderRecap(); return; }
+        const wk = e.target.closest('[data-recap-week]');
+        if (wk && !wk.disabled) { recapWeekOffset = Math.min(0, recapWeekOffset + Number(wk.getAttribute('data-recap-week'))); renderRecap(); return; }
+        if (e.target.closest('#btnShareRecap')) { shareRecapCard(); return; }
+        if (e.target.closest('#btnShareRecapText')) { const d = recapData(); shareText(recapText(), `${d.title} in Dailies`); }
+      });
+      document.getElementById('bestsList').addEventListener('click', (e) => {
+        const row = e.target.closest('[data-best-game]');
+        if (!row) return;
+        selectedCalendarGameId = row.getAttribute('data-best-game');
+        renderGameCalendar();
+        const cal = document.getElementById('calendarGameSelect');
+        const card = cal && cal.closest('.glass-card');
+        if (card) card.scrollIntoView({ behavior: REDUCED_MOTION ? 'auto' : 'smooth', block: 'start' });
+      });
+      document.getElementById('themeChoices').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-color-theme]');
+        if (b) chooseColorTheme(b.getAttribute('data-color-theme'));
+      });
+      const accentInput = document.getElementById('customAccentInput');
+      accentInput.addEventListener('input', () => setCustomAccent(accentInput.value));
+      accentInput.addEventListener('change', () => setCustomAccent(accentInput.value));
       document.getElementById('btnResetSuggestApply').addEventListener('click', applyResetSuggestion);
       document.getElementById('btnBrowseGames').addEventListener('click', openBrowseGames);
+      document.getElementById('achievementsGrid').addEventListener('click', (e) => {
+        const b = e.target.closest && e.target.closest('[data-ach-index]');
+        if (b) openAchievementDetails(Number(b.getAttribute('data-ach-index')));
+      });
       document.getElementById('removedGames').addEventListener('click', (e) => {
         const b = e.target.closest && e.target.closest('[data-removed-id]');
         if (b) pickRemovedGame(b.getAttribute('data-removed-id'));

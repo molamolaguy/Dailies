@@ -13,6 +13,7 @@ object ThemePrefs {
     private const val KEY_DYNAMIC = "dynamic_wallpaper"
     private const val KEY_AMOLED = "amoled"
     private const val KEY_MODE = "theme_mode"
+    private const val KEY_PLAYER_COLORS = "player_colors"
     val DEFAULT_SURFACE: Int = "#121118".toColorInt()
     val DEFAULT_LIGHT_SURFACE: Int = "#FEF7FF".toColorInt()
 
@@ -35,6 +36,38 @@ object ThemePrefs {
     fun isLight(ctx: Context): Boolean = isLight(mode(ctx), systemIsDark(ctx))
 
     fun isLight(mode: String, systemDark: Boolean): Boolean = mode == "light" || (mode == "system" && !systemDark)
+
+    /**
+     * The hub's colour theme or gold accents for the game player's bar, as JSON
+     * {light, container, primary, onPrimary, primaryContainer, onPrimaryContainer} ("" = none).
+     */
+    fun savePlayerColors(ctx: Context, json: String) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putString(KEY_PLAYER_COLORS, json.take(2000)) }
+    }
+
+    /** The saved player colours that apply in the current light / dark theme (missing ones are absent). */
+    fun playerColors(ctx: Context): Map<String, Int> {
+        val raw = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_PLAYER_COLORS, "").orEmpty()
+        if (raw.isBlank()) return emptyMap()
+        val o = runCatching { org.json.JSONObject(raw) }.getOrNull() ?: return emptyMap()
+        if (o.optBoolean("light") != isLight(ctx)) return emptyMap()
+        val out = HashMap<String, Int>()
+        for (k in listOf("container", "primary", "onPrimary", "primaryContainer", "onPrimaryContainer")) {
+            parseColor(o.optString(k))?.let { out[k] = it }
+        }
+        return out
+    }
+
+    /** "#RRGGBB" or "rgb(r, g, b)" (what getComputedStyle returns) to a colour, else null. */
+    fun parseColor(v: String?): Int? {
+        val s = v?.trim().orEmpty()
+        Regex("^#([0-9a-fA-F]{6})$").find(s)?.let { return (0xFF000000.toInt() or it.groupValues[1].toInt(16)) }
+        Regex("^rgba?\\(\\s*(\\d{1,3})\\s*,\\s*(\\d{1,3})\\s*,\\s*(\\d{1,3})").find(s)?.let { m ->
+            val (r, g, b) = m.destructured
+            if (listOf(r, g, b).all { it.toInt() <= 255 }) return Color.rgb(r.toInt(), g.toInt(), b.toInt())
+        }
+        return null
+    }
 
     /** AMOLED black only applies to the dark theme. */
     fun isAmoled(ctx: Context): Boolean =

@@ -1,8 +1,8 @@
-# Dailies 1.5.0: How the App Works
+# Dailies 1.5.1: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.5.0` (`versionCode = 8`)
+- **Version**: `1.5.1` (`versionCode = 9`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **Licence**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -450,3 +450,25 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Tab scroll position**: `switchNavigation` and `Pager.attach` keep the scroll fraction (`scrollFraction`): the incoming page is placed at the spot it will have once current, and `jumpScroll` sets it without smooth scrolling.
 - **Gold accents styling**: `--gold-shine` (the icon's metallic gradient) on filled buttons, tonal pills, chips, bars, mask icons and solved calendar days; `--gold-text` as gradient text on the title, card headings and stat values; `--gold-edge` as a gradient border (padding-box / border-box backgrounds) on cards and the dock. Native checkboxes use a solid gold `accent-color`.
 - **Easter egg**: the Achievements card doesn't say what the gold unlocks need.
+
+## 14. New in 1.5.1
+
+- **Folding**: Settings cards carry `data-fold-default="open"`; `foldState` remembers a choice until the app closes. Achievements still start folded.
+- **Bottom bar highlight**: `#navIndicator` (one pill under the three buttons). `NavIndicator.set(a, b, t)` places it between two tabs; `Pager.follow` moves it by the swipe's fraction and `Pager.settle` animates it with the page's duration and easing.
+- **Finding results**: a button whose label reads "Copy/Share result(s)/score/stats/grid" counts as an end screen by itself (`RESULT_BUTTON_RE`), and clickable divs/spans (`[onclick]`, `*[class*=btn]`, `div[tabindex="0"]`) are candidates too (Krillion).
+- **Scroll bars**: hidden in CSS and on both WebViews (`isVerticalScrollBarEnabled = false`).
+- **Achievements**: tiles are buttons of one size (`grid-auto-rows: 1fr`); `openAchievementDetails` shows each tier (`tierList`) in `modalAchievement`. A tier can carry `scale` / `unit` (Marathon: hours, rounded).
+- **Themed drop-downs**: `themeSelect(sel)` puts a button after a `<select>` and opens `.tsel-menu`; picking sets the select and fires `change`. The select's `value` / `selectedIndex` setters and a MutationObserver keep the label current. Used for `#calendarGameSelect` and `#historyFilterGame`; Back closes the menu.
+- **Gold palette**: Robinhood Gold, sampled from the card and app icon (`#E4CC7E`, `#DBC377`, `#D1AB48`, `#C7A042`, `#AF8A39`, `#987841`, `#64512E`; ink `#1C1607`) in `--gold-shine` / `--gold-text` / `--gold-edge`, the theme override, `.ach.max` and the Gold launcher icon (vectors and PNGs regenerated).
+
+## 15. New in 1.6.0
+
+- **Play all**: `playAll()` sends the unplayed games (hub order, starting at the next one) to `AndroidBridge.playAllGames`, which starts the player with `EXTRA_PLAY_ALL`. In that mode the done card counts down `AUTO_NEXT_SECONDS` on its Play button (`startAutoNext`) and switches game; Copy, Keep playing, a touch outside the card or leaving the player stops it (`stopAutoNext`).
+- **Recent changes**: `state.recentChanges` (max `CHANGES_MAX` = 25, never in backups). `recordChange` stores `log` entries (with `snapshotForUndo`'s snapshot), `remove` (the whole game and its index) and `archive` entries. `undoChange(id)` restores them. `restoreUndo` has no time limit: while the same puzzle is live it restores status and score too; after a reset it restores only that day's record. Undoing a day also marks later changes to that day as undone.
+- **Recaps**: `HubCore.periodRecap(logs, from, to)` (the monthly recap now uses it), `weekBounds` (Monday to Sunday) and `recapChange`. `drawRecapCard` draws a 1080×1350 canvas from the current `--md-*` tokens, and `AndroidBridge.shareImage` checks the PNG signature, writes it to `cache/shared/`, and shares it through the `FileProvider` (`${applicationId}.files`).
+- **Personal bests**: `recordGameOutcome` stores `row.records` (from `newRecords`), which shows as 🏆 PB on the card and in history. `renderPersonalBests` lists `personalBests` for every game.
+- **Tough days**: `HubCore.toughDays(rows)` works on the game's dominant score kind and needs 5 results. A day is tough at guesses ≥ median+2, time or count ≥ 1.75× median, or points ≤ half the median. At most the worst 15% of days are kept.
+- **Sorting**: `settings.hubSort` and `HubCore.sortGames`. `hubOrder()` feeds the grid, Play next, the player's lineup and today's results. `adoptSortAsCustom()` runs when a card is dragged or moved while sorted.
+- **Combined share**: `HubCore.combinedShareText(entries, {dateLabel, total, grids})`. `isGridLine` drops emoji grids when grids are off, and the game's name is added with `mentionsGame`.
+- **Colour themes**: `settings.themeSeed` (iris, ocean, forest, sunset, rose or custom) with `settings.customAccent`, chosen when `dynamicWallpaper` is off. `HubCore.themeTokens(seed, light)` makes the `--md-*` roles in OKLCH (chroma lowered until in sRGB). They're cached in `localStorage.dailydeck_theme_tokens_v1` for the first frame and sent to the player with `setPlayerColors` (`ThemePrefs.playerColors`; gold accents send their colours too).
+- **Toasts**: `showToast` builds `.app-toast` (`tone-ok` / `tone-info`) coloured from `--md-primary` / `--md-primary-container`, with AMOLED, light and gold (gold edge and title) variants. `.status-completed` and the Done ★ use the theme's primary too.

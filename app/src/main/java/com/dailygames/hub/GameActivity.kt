@@ -105,6 +105,11 @@ class GameActivity : ComponentActivity() {
     // ---- Today's games (switch between them without going back to the hub) ----
     private class LineupGame(val id: String, val name: String, val url: String, var done: Boolean)
     private val lineup = ArrayList<LineupGame>()
+    /** Play all: after each result the player moves on to the next unplayed game by itself. */
+    private var playAll = false
+    private var autoNext: Runnable? = null
+    private var autoNextPill: TextView? = null
+    private var autoNextName = ""
     /** Results of games played earlier in this player session, handed to the hub on return. */
     private var earlierResults = JSONArray()
     private var titleView: TextView? = null
@@ -181,6 +186,7 @@ class GameActivity : ComponentActivity() {
             gameUrl = savedInstanceState.getString(STATE_GAME_URL).orEmpty()
         }
         readLineup(savedInstanceState?.getString(STATE_LINEUP) ?: intent.getStringExtra(EXTRA_LINEUP))
+        playAll = savedInstanceState?.getBoolean(STATE_PLAY_ALL) ?: intent.getBooleanExtra(EXTRA_PLAY_ALL, false)
         savedInstanceState?.getString(STATE_EARLIER)?.let { earlierResults = runCatching { JSONArray(it) }.getOrDefault(JSONArray()) }
 
         if (!gameUrl.startsWith("https://", true) && !gameUrl.startsWith("http://", true)) {
@@ -225,18 +231,25 @@ class GameActivity : ComponentActivity() {
         val amoled = ThemePrefs.isAmoled(this)
         val isDynamic = ThemePrefs.isDynamic(this)
         surfaceColor = ThemePrefs.surfaceColor(this)
-        val containerColor = when {
+        val containerColor0 = when {
             light && isDynamic -> getColor(android.R.color.system_neutral2_50)
             light -> LIGHT_CONTAINER
             amoled -> Color.BLACK
             isDynamic -> getColor(android.R.color.system_neutral2_800)
             else -> CONTAINER
         }
-        val primaryColor = when { light && isDynamic -> getColor(android.R.color.system_accent1_600); light -> LIGHT_PRIMARY; isDynamic -> getColor(android.R.color.system_accent1_200); else -> PRIMARY }
-        val onPrimaryColor = when { light -> Color.WHITE; isDynamic -> getColor(android.R.color.system_accent1_800); else -> ON_PRIMARY }
-        val primaryContainerColor = when { light && isDynamic -> getColor(android.R.color.system_accent1_100); light -> LIGHT_PRIMARY_CONTAINER; isDynamic -> getColor(android.R.color.system_accent1_700); else -> PRIMARY_CONTAINER }
-        val onPrimaryContainerColor = when { light && isDynamic -> getColor(android.R.color.system_accent1_900); light -> LIGHT_ON_PRIMARY_CONTAINER; isDynamic -> getColor(android.R.color.system_accent1_100); else -> ON_PRIMARY_CONTAINER }
+        val primaryColor0 = when { light && isDynamic -> getColor(android.R.color.system_accent1_600); light -> LIGHT_PRIMARY; isDynamic -> getColor(android.R.color.system_accent1_200); else -> PRIMARY }
+        val onPrimaryColor0 = when { light -> Color.WHITE; isDynamic -> getColor(android.R.color.system_accent1_800); else -> ON_PRIMARY }
+        val primaryContainerColor0 = when { light && isDynamic -> getColor(android.R.color.system_accent1_100); light -> LIGHT_PRIMARY_CONTAINER; isDynamic -> getColor(android.R.color.system_accent1_700); else -> PRIMARY_CONTAINER }
+        val onPrimaryContainerColor0 = when { light && isDynamic -> getColor(android.R.color.system_accent1_900); light -> LIGHT_ON_PRIMARY_CONTAINER; isDynamic -> getColor(android.R.color.system_accent1_100); else -> ON_PRIMARY_CONTAINER }
         titleColor = if (light) LIGHT_ON_SURFACE else Color.WHITE
+        // The hub's colour theme or gold accents, when one is on.
+        val themed = ThemePrefs.playerColors(this)
+        val containerColor = if (amoled) containerColor0 else themed["container"] ?: containerColor0
+        val primaryColor = themed["primary"] ?: primaryColor0
+        val onPrimaryColor = themed["onPrimary"] ?: onPrimaryColor0
+        val primaryContainerColor = themed["primaryContainer"] ?: primaryContainerColor0
+        val onPrimaryContainerColor = themed["onPrimaryContainer"] ?: onPrimaryContainerColor0
         barColors = intArrayOf(containerColor, primaryContainerColor, onPrimaryContainerColor)
         accentColors = intArrayOf(primaryColor, onPrimaryColor)
 
@@ -396,6 +409,9 @@ class GameActivity : ComponentActivity() {
         setBackgroundColor(surfaceColor)
         applyDarkPages(this)
         settings.javaScriptEnabled = true
+        // No Android scroll bar on the right while scrolling (1.5.1).
+        isVerticalScrollBarEnabled = false
+        isHorizontalScrollBarEnabled = false
         settings.domStorageEnabled = true
         // With ad blocking on, scripts can't open pop-ups/pop-unders without a tap.
         settings.javaScriptCanOpenWindowsAutomatically = !adBlockActive
@@ -994,6 +1010,7 @@ class GameActivity : ComponentActivity() {
         head.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         // The game may say "Copied!" for a result found automatically (nothing was copied): copy it here.
         head.addView(pill("", getString(R.string.copy_result), tonalBg, tonalFg, R.drawable.ic_bar_copy) {
+            stopAutoNext()
             runCatching { clipboardManager?.setPrimaryClip(android.content.ClipData.newPlainText(gameName, result)) }
             showBanner(getString(R.string.result_copied))
         })
@@ -1008,12 +1025,14 @@ class GameActivity : ComponentActivity() {
             hideDonePrompt()
             finish()
         })
+        var nextPill: TextView? = null
         if (next != null) {
-            buttons.addView(pill(getString(R.string.play_next_named, next.name), getString(R.string.play_next_named, next.name),
+            nextPill = pill(getString(R.string.play_next_named, next.name), getString(R.string.play_next_named, next.name),
                 accentColors[0], accentColors[1], R.drawable.ic_bar_next) {
                 hideDonePrompt()
                 switchToGame(next)
-            }.apply { maxWidth = dp(220); ellipsize = TextUtils.TruncateAt.END })
+            }.apply { maxWidth = dp(240); ellipsize = TextUtils.TruncateAt.END }
+            buttons.addView(nextPill)
         }
         card.addView(buttons)
         container.addView(card, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -1024,9 +1043,44 @@ class GameActivity : ComponentActivity() {
         card.announceForAccessibility(getString(R.string.result_saved_title, gameName))
         donePrompt = card
         updateBackIntercept()
+        // Play all: count down on the Play button, then move on (Keep playing, Copy or a tap stops it).
+        if (playAll && next != null && nextPill != null) startAutoNext(card, nextPill, next)
+    }
+
+    private fun startAutoNext(card: View, nextPill: TextView, next: LineupGame) {
+        stopAutoNext()
+        var left = AUTO_NEXT_SECONDS
+        autoNextPill = nextPill
+        autoNextName = next.name
+        nextPill.text = getString(R.string.next_game_in, next.name, left)
+        val tick = object : Runnable {
+            override fun run() {
+                if (donePrompt !== card || autoNext !== this) return
+                left -= 1
+                if (left <= 0) {
+                    autoNext = null
+                    hideDonePrompt()
+                    switchToGame(next)
+                    return
+                }
+                nextPill.text = getString(R.string.next_game_in, next.name, left)
+                banner.postDelayed(this, 1000)
+            }
+        }
+        autoNext = tick
+        banner.postDelayed(tick, 1000)
+    }
+
+    /** Stops Play all's countdown; the button goes back to "Play <game>". */
+    private fun stopAutoNext() {
+        autoNext?.let { if (::banner.isInitialized) banner.removeCallbacks(it) }
+        autoNext = null
+        autoNextPill?.text = getString(R.string.play_next_named, autoNextName)
+        autoNextPill = null
     }
 
     private fun hideDonePrompt() {
+        stopAutoNext()
         donePrompt?.let { v -> (v.parent as? ViewGroup)?.removeView(v) }
         donePrompt = null
         updateBackIntercept()
@@ -1047,6 +1101,12 @@ class GameActivity : ComponentActivity() {
         if (a == MotionEvent.ACTION_DOWN || a == MotionEvent.ACTION_UP) lastUserInputAt = SystemClock.elapsedRealtime()
         // A real tap is the player's own: nothing the hook pressed is guarded any more.
         if (a == MotionEvent.ACTION_DOWN) probeGuardUntil = 0L
+        // Play all: touching the game (not the card) means "I'm still playing".
+        if (a == MotionEvent.ACTION_DOWN && autoNext != null) {
+            val card = donePrompt
+            val r = android.graphics.Rect()
+            if (card == null || !card.getGlobalVisibleRect(r) || !r.contains(ev.rawX.toInt(), ev.rawY.toInt())) stopAutoNext()
+        }
         return super.dispatchTouchEvent(ev)
     }
 
@@ -1236,6 +1296,7 @@ class GameActivity : ComponentActivity() {
         outState.putString(STATE_GAME_NAME, gameName)
         outState.putString(STATE_GAME_URL, gameUrl)
         outState.putString(STATE_LINEUP, lineupJson())
+        outState.putBoolean(STATE_PLAY_ALL, playAll)
         outState.putString(STATE_EARLIER, earlierResults.toString())
         outState.putLong(STATE_CLIP_STAMP, lastClipStampChecked)
         outState.putBoolean(STATE_CLEAR_HISTORY, clearHistoryOnLoad || clearHistoryAtFinish)
@@ -1243,6 +1304,7 @@ class GameActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
+        stopAutoNext()
         if (resumedAt > 0) foregroundMs += SystemClock.elapsedRealtime() - resumedAt
         resumedAt = 0L
         // Keep the result current: if the system kills the app in the background, the hub still
@@ -1269,6 +1331,8 @@ class GameActivity : ComponentActivity() {
         if (activeFilter.get() === this) activeFilter = WeakReference(null)
         cosmeticExecutor.shutdownNow()
         if (::banner.isInitialized) { banner.removeCallbacks(hideBanner); banner.removeCallbacks(endSwitch) }
+        autoNext?.let { if (::banner.isInitialized) banner.removeCallbacks(it) }
+        autoNext = null
         openMenus.toList().forEach { runCatching { it.dismiss() } }
         openMenus.clear()
         zoomDialog?.let { runCatching { it.dismiss() } }
@@ -1454,7 +1518,9 @@ class GameActivity : ComponentActivity() {
         webView.stopLoading()
         webView.loadUrl(gameUrl)
         setResultWithLog(false)
-        showBanner(getString(R.string.now_playing, gameName))
+        val more = lineup.count { !it.done && it.id != gameId }
+        showBanner(if (playAll && more > 0) "${getString(R.string.now_playing, gameName)} · ${resources.getQuantityString(R.plurals.play_all_banner, more, more)}"
+            else getString(R.string.now_playing, gameName))
     }
 
     // ---- Zoom per site ----------------------------------------------------------------------
@@ -1743,6 +1809,9 @@ class GameActivity : ComponentActivity() {
         const val EXTRA_SHARE_TEXT = "share_text"
         /** Today's games in the hub's order: [{id, name, url, done}]. */
         const val EXTRA_LINEUP = "lineup"
+        const val EXTRA_PLAY_ALL = "play_all"
+        private const val STATE_PLAY_ALL = "state_play_all"
+        private const val AUTO_NEXT_SECONDS = 4
         /** Games played earlier in this player session: [{id, elapsedMs, openedAt, share}]. */
         const val EXTRA_EARLIER = "earlier_results"
         private const val STATE_GAME_ID = "state_game_id"
