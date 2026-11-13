@@ -305,3 +305,27 @@ test('1.3.0: times, points and counts are scored like with like', () => {
   // Guess scores keep working as before.
   assert.equal(core.personalBests([{ outcome: 'Completed', score: '4/6' }, { outcome: 'Completed', score: '2/6' }], 0).bestScore, '2/6');
 });
+
+test('1.4.0: puzzle numbers and auto-detected reset times', () => {
+  assert.equal(core.puzzleNumber('Krillion #117 🦐\n60'), 117);
+  assert.equal(core.puzzleNumber('Wordle 1,234 3/6\n🟩🟩'), 1234);
+  assert.equal(core.puzzleNumber('Nerdle 123 3/6'), 123);
+  assert.equal(core.puzzleNumber('Connections\nPuzzle #512'), 512);
+  assert.equal(core.puzzleNumber('Score: 2,450'), null);
+  assert.equal(core.puzzleNumber('Mini 1:42'), null);
+  assert.equal(core.puzzleNumber('Dove 4,250m'), null);
+
+  const row = (n, iso) => ({ score: `Krillion #${n}`, loggedAt: Date.parse(iso) });
+  // Really resets at midnight New York time (05:00 UTC in November); set up as midnight UTC.
+  const ny = [row(100, '2026-11-02T02:00:00Z'), row(101, '2026-11-02T06:00:00Z'), row(101, '2026-11-02T23:00:00Z'),
+    row(102, '2026-11-03T05:30:00Z'), row(102, '2026-11-04T04:30:00Z'), row(103, '2026-11-04T06:00:00Z')];
+  assert.deepEqual(core.suggestResetTime(ny, { resetTime: '00:00', resetZone: 'utc' }), { resetTime: '00:00', resetZone: 'America/New_York' });
+  // Already right: nothing to suggest.
+  assert.equal(core.suggestResetTime(ny, { resetTime: '00:00', resetZone: 'America/New_York' }), null);
+  // Too little evidence, or rows from before 1.4.0 without a logged time.
+  assert.equal(core.suggestResetTime(ny.slice(0, 2), { resetTime: '00:00', resetZone: 'utc' }), null);
+  assert.equal(core.suggestResetTime(ny.map((r) => ({ score: r.score })), { resetTime: '00:00', resetZone: 'utc' }), null);
+  // Ambiguous (many midnights fit, none local or UTC): wait for more results.
+  const wide = [row(100, '2026-11-01T10:00:00Z'), row(101, '2026-11-01T21:00:00Z'), row(102, '2026-11-03T08:00:00Z'), row(103, '2026-11-03T22:00:00Z')];
+  assert.equal(core.suggestResetTime(wide, { resetTime: '00:00', resetZone: 'utc' }), null);
+});

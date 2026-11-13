@@ -101,6 +101,15 @@ class GameActivity : ComponentActivity() {
 
     // ---- Share-result capture (layer 1: clipboard listener, layer 2: page share/copy hooks) ----
     private var openedAt = System.currentTimeMillis()
+
+    // ---- Today's games (switch between them without going back to the hub) ----
+    private class LineupGame(val id: String, val name: String, val url: String, var done: Boolean)
+    private val lineup = ArrayList<LineupGame>()
+    /** Results of games played earlier in this player session, handed to the hub on return. */
+    private var earlierResults = JSONArray()
+    private var titleView: TextView? = null
+    private var clearHistoryOnLoad = false
+    private var findResults = true
     private var capturedShare: String? = null
     private var capturedAt = 0L
     private var autoLogEnabled = true
@@ -150,6 +159,14 @@ class GameActivity : ComponentActivity() {
         gameId = intent.getStringExtra(EXTRA_ID).orEmpty()
         gameName = intent.getStringExtra(EXTRA_NAME).orEmpty().ifBlank { "Daily Game" }
         gameUrl = intent.getStringExtra(EXTRA_URL).orEmpty()
+        // After switching games and a recreate, carry on with the game that was on screen.
+        savedInstanceState?.getString(STATE_GAME_ID)?.takeIf { it.isNotEmpty() }?.let { id ->
+            gameId = id
+            gameName = savedInstanceState.getString(STATE_GAME_NAME).orEmpty().ifBlank { "Daily Game" }
+            gameUrl = savedInstanceState.getString(STATE_GAME_URL).orEmpty()
+        }
+        readLineup(savedInstanceState?.getString(STATE_LINEUP) ?: intent.getStringExtra(EXTRA_LINEUP))
+        savedInstanceState?.getString(STATE_EARLIER)?.let { earlierResults = runCatching { JSONArray(it) }.getOrDefault(JSONArray()) }
 
         if (!gameUrl.startsWith("https://", true) && !gameUrl.startsWith("http://", true)) {
             finish()
@@ -163,6 +180,7 @@ class GameActivity : ComponentActivity() {
             openLogOnReturn = savedInstanceState.getBoolean(STATE_OPEN_LOG, false)
         }
         autoLogEnabled = GamePrefs.autoLogShare(this)
+        findResults = GamePrefs.findResults(this)
         blockAdsSetting = GamePrefs.blockAds(this)
         PublicSuffix.ensureLoaded(this) // so per-site choices use the same "site" as the blocker
         gameHost = gameUrl.toUri().host?.lowercase(Locale.US).orEmpty()
@@ -213,9 +231,10 @@ class GameActivity : ComponentActivity() {
             setPadding(dp(BAR_SIDE_PADDING), dp(6), dp(BAR_SIDE_PADDING), dp(6))
         }
         bar.addView(pill("", "Back to hub", primaryContainerColor, onPrimaryContainerColor, R.drawable.ic_bar_arrow_back) { finish() })
-        bar.addView(TextView(this).apply {
+        val switchable = lineup.size > 1
+        titleView = TextView(this).apply {
             text = gameName
-            contentDescription = gameName
+            contentDescription = if (switchable) "$gameName. Switch game" else gameName
             setTextColor(titleColor)
             textSize = 15f
             typeface = googleSansBold
@@ -225,22 +244,36 @@ class GameActivity : ComponentActivity() {
             maxLines = 1
             ellipsize = TextUtils.TruncateAt.END
             minWidth = 0
+            gravity = Gravity.CENTER_VERTICAL
+            minHeight = dp(48)
+            if (switchable) {
+                // Tap the title to switch to another of today's games.
+                androidx.core.content.ContextCompat.getDrawable(this@GameActivity, R.drawable.ic_bar_expand)?.mutate()?.let { icon ->
+                    icon.setBounds(0, 0, dp(18), dp(18))
+                    setCompoundDrawablesRelative(null, null, icon, null)
+                    androidx.core.widget.TextViewCompat.setCompoundDrawableTintList(this, ColorStateList.valueOf(titleColor))
+                    compoundDrawablePadding = dp(2)
+                }
+                isClickable = true
+                setOnClickListener { v -> showGameSwitcher(v) }
+            }
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
                 marginStart = dp(8)
                 marginEnd = dp(2)
             }
-        })
-        bar.addView(pill("", "Reload", primaryContainerColor, onPrimaryContainerColor, R.drawable.ic_bar_refresh) { webView.reload() })
-        bar.addView(pill("", "Open in browser", primaryContainerColor, onPrimaryContainerColor, R.drawable.ic_bar_open_in_new) {
-            val current = webView.url?.takeIf { it.startsWith("http://", true) || it.startsWith("https://", true) } ?: gameUrl
-            viewExternally(current.toUri())
-        })
+        }
+        bar.addView(titleView)
+        if (switchable) {
+            bar.addView(pill("", "Next game", primaryContainerColor, onPrimaryContainerColor, R.drawable.ic_bar_next) { playNextGame() })
+        }
         if (blockAdsSetting) {
             shieldPill = pill("", "Ad blocking", primaryContainerColor, onPrimaryContainerColor,
                 if (adBlockActive) R.drawable.ic_bar_shield else R.drawable.ic_bar_shield_off) { toggleSiteAdBlocking() }
             bar.addView(shieldPill)
             updateShieldPill()
         }
+        // Reload, Open in browser and Zoom live in a menu so the bar has room for Next.
+        bar.addView(pill("", "More options", primaryContainerColor, onPrimaryContainerColor, R.drawable.ic_bar_more) { v -> showMoreMenu(v) })
         bar.addView(pill("Log", "Log today's result", primaryColor, onPrimaryColor, R.drawable.ic_bar_check) {
             setResultWithLog(true)
             finish()
@@ -395,6 +428,17 @@ class GameActivity : ComponentActivity() {
 
             override fun onPageFinished(view: WebView?, url: String?) {
                 this@GameActivity.progress.visibility = View.GONE
+                // After switching games, Back shouldn't return to the previous game.
+                if (clearHistoryOnLoad && view === webView) {
+                    clearHistoryOnLoad = false
+                    view.clearHistory()
+                    updateBackIntercept()
+                }
+                if (view === webView) applySiteZoom()
+            }
+
+            override fun onPageCommitVisible(view: WebView?, url: String?) {
+                if (view === webView) applySiteZoom()
             }
 
             override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
@@ -708,9 +752,13 @@ class GameActivity : ComponentActivity() {
                     if (!isMainFrame && pageHost?.let { AdBlockEngine.sameSite(it, gameHost) } == false) return@addWebMessageListener
                     // ...and only right after the player was really tapped: a script running in the
                     // game's page can't post a "result" on its own.
-                    if (!userActedWithin(SHARE_GESTURE_WINDOW_MS)) return@addWebMessageListener
-                    val text = runCatching { JSONObject(message.data ?: "").optString("text") }.getOrNull()
-                    offerShare(text, "page")
+                    val msg = runCatching { JSONObject(message.data ?: "") }.getOrNull() ?: return@addWebMessageListener
+                    // A result found by pressing the game's own Share button on its end screen
+                    // (finish-probe.js) needs no fresh tap; anything else does.
+                    val probe = msg.optString("via") == "probe"
+                    if (probe && !findResults) return@addWebMessageListener
+                    if (!probe && !userActedWithin(SHARE_GESTURE_WINDOW_MS)) return@addWebMessageListener
+                    offerShare(msg.optString("text"), if (probe) "probe" else "page")
                 }
             }
             if (blockAdsSetting) addCosmeticListener(webView)
@@ -719,6 +767,7 @@ class GameActivity : ComponentActivity() {
             }
             if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
                 if (autoLogEnabled) WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/share-hook.js"), anyOrigin)
+                if (autoLogEnabled && findResults) WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/finish-probe.js"), anyOrigin)
                 if (blockAdsSetting) WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/cosmetic.js"), anyOrigin)
                 WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/download-hook.js"), anyOrigin)
                 documentStartScriptsSupported = true
@@ -764,6 +813,7 @@ class GameActivity : ComponentActivity() {
     private fun injectPageScriptsFallback() {
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return
         if (autoLogEnabled) webView.evaluateJavascript(pageScript("game/share-hook.js"), null)
+        if (autoLogEnabled && findResults) webView.evaluateJavascript(pageScript("game/finish-probe.js"), null)
         if (blockAdsSetting && adBlockActive) webView.evaluateJavascript(pageScript("game/cosmetic.js"), null)
         webView.evaluateJavascript(pageScript("game/download-hook.js"), null)
     }
@@ -785,7 +835,7 @@ class GameActivity : ComponentActivity() {
         offerShare(text, "clipboard")
     }
 
-    private val openedAtElapsed = SystemClock.elapsedRealtime()
+    private var openedAtElapsed = SystemClock.elapsedRealtime()
     private var lastClipStampChecked = 0L
 
     /**
@@ -816,6 +866,7 @@ class GameActivity : ComponentActivity() {
         if (!ShareResultDetector.isStrictShareResult(clean, gameName, gameUrl)) return
         capturedShare = clean
         capturedAt = System.currentTimeMillis()
+        lineup.firstOrNull { it.id == gameId }?.done = true
         setResultWithLog(openLogOnReturn)
         showBanner(getString(R.string.share_captured))
     }
@@ -1017,6 +1068,11 @@ class GameActivity : ComponentActivity() {
         outState.putLong(STATE_SHARE_AT, capturedAt)
         outState.putLong(STATE_FOREGROUND_MS, foregroundMs + if (resumedAt > 0) SystemClock.elapsedRealtime() - resumedAt else 0L)
         outState.putBoolean(STATE_OPEN_LOG, openLogOnReturn)
+        outState.putString(STATE_GAME_ID, gameId)
+        outState.putString(STATE_GAME_NAME, gameName)
+        outState.putString(STATE_GAME_URL, gameUrl)
+        outState.putString(STATE_LINEUP, lineupJson())
+        outState.putString(STATE_EARLIER, earlierResults.toString())
     }
 
     override fun onPause() {
@@ -1063,6 +1119,7 @@ class GameActivity : ComponentActivity() {
         val data = Intent().putExtra(EXTRA_ID, gameId).putExtra(EXTRA_LOG, openLog).putExtra(EXTRA_ELAPSED_MS, played)
             .putExtra(EXTRA_OPENED_AT, openedAt)
         capturedShare?.let { data.putExtra(EXTRA_SHARE_TEXT, it) }
+        if (earlierResults.length() > 0) data.putExtra(EXTRA_EARLIER, earlierResults.toString())
         setResult(RESULT_OK, data)
     }
 
@@ -1074,6 +1131,168 @@ class GameActivity : ComponentActivity() {
     }
 
     @Volatile private var pendingPageHost: String? = null
+
+    // =====================================================================================
+    // Today's games: switcher, Next, and in-place switching
+    // =====================================================================================
+
+    private fun readLineup(json: String?) {
+        lineup.clear()
+        val arr = runCatching { JSONArray(json ?: return) }.getOrNull() ?: return
+        for (i in 0 until minOf(arr.length(), MAX_LINEUP)) {
+            val o = arr.optJSONObject(i) ?: continue
+            val url = o.optString("url")
+            if (!url.startsWith("https://", true) && !url.startsWith("http://", true)) continue
+            val id = o.optString("id").ifEmpty { continue }
+            lineup += LineupGame(id, o.optString("name").ifBlank { "Daily Game" }, url, o.optBoolean("done"))
+        }
+        if (lineup.none { it.id == gameId }) lineup.clear()
+    }
+
+    private fun lineupJson(): String = JSONArray().also { arr ->
+        lineup.forEach { arr.put(JSONObject().put("id", it.id).put("name", it.name).put("url", it.url).put("done", it.done)) }
+    }.toString()
+
+    /** The next game not done yet after the current one (in the hub's order, wrapping), or null. */
+    private fun nextGame(): LineupGame? {
+        val i = lineup.indexOfFirst { it.id == gameId }
+        if (i < 0) return null
+        for (k in 1 until lineup.size) {
+            val g = lineup[(i + k) % lineup.size]
+            if (!g.done) return g
+        }
+        return null
+    }
+
+    private fun playNextGame() {
+        val next = nextGame()
+        if (next == null) showBanner(getString(R.string.all_games_done)) else switchToGame(next)
+    }
+
+    private fun showGameSwitcher(anchor: View) {
+        val menu = android.widget.PopupMenu(this, anchor)
+        lineup.forEachIndexed { i, g ->
+            val mark = when { g.id == gameId -> "▶  "; g.done -> "✓  "; else -> "○  " }
+            menu.menu.add(0, i, i, mark + g.name)
+        }
+        menu.setOnMenuItemClickListener { item -> lineup.getOrNull(item.itemId)?.let { switchToGame(it) }; true }
+        menu.show()
+    }
+
+    private fun showMoreMenu(anchor: View) {
+        val menu = android.widget.PopupMenu(this, anchor)
+        menu.menu.add(0, 1, 1, "Reload")
+        menu.menu.add(0, 2, 2, "Open in browser")
+        menu.menu.add(0, 3, 3, "Zoom (${(siteZoom() * 100).toInt()}%)…")
+        menu.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> webView.reload()
+                2 -> {
+                    val current = webView.url?.takeIf { it.startsWith("http://", true) || it.startsWith("https://", true) } ?: gameUrl
+                    viewExternally(current.toUri())
+                }
+                3 -> showZoomDialog()
+            }
+            true
+        }
+        menu.show()
+    }
+
+    /**
+     * Swaps the player over to [target]: this game's play time and any captured result are kept for
+     * the hub, then the new game loads in the same player with its own timer, ad-block choice and zoom.
+     */
+    private fun switchToGame(target: LineupGame) {
+        if (target.id == gameId) return
+        checkClipboardSinceOpen()
+        val now = SystemClock.elapsedRealtime()
+        val played = foregroundMs + if (resumedAt > 0) now - resumedAt else 0L
+        earlierResults.put(JSONObject().put("id", gameId).put("elapsedMs", played).put("openedAt", openedAt)
+            .put("share", capturedShare ?: ""))
+        closePopup()
+        exitFullscreen()
+        gameId = target.id
+        gameName = target.name
+        gameUrl = target.url
+        gameHost = gameUrl.toUri().host?.lowercase(Locale.US).orEmpty()
+        pageHost = gameHost.ifEmpty { null }
+        pendingPageHost = null
+        openedAt = System.currentTimeMillis()
+        openedAtElapsed = now
+        foregroundMs = 0L
+        if (resumedAt > 0) resumedAt = now
+        capturedShare = null
+        capturedAt = 0L
+        openLogOnReturn = false
+        lastPageUrl = null
+        adBlockActive = blockAdsSetting && !GamePrefs.isSiteAllowed(this, gameHost)
+        webView.settings.javaScriptCanOpenWindowsAutomatically = !adBlockActive
+        blockedCount.set(0)
+        helloAnswered.clear()
+        blobFrames.clear()
+        shieldPill?.let { p ->
+            val icon = androidx.core.content.ContextCompat.getDrawable(
+                this, if (adBlockActive) R.drawable.ic_bar_shield else R.drawable.ic_bar_shield_off
+            )?.mutate()
+            icon?.setBounds(0, 0, dp(20), dp(20))
+            p.setCompoundDrawablesRelative(icon, null, null, null)
+        }
+        updateShieldPill()
+        titleView?.text = gameName
+        titleView?.contentDescription = "$gameName. Switch game"
+        clearHistoryOnLoad = true
+        webView.stopLoading()
+        webView.loadUrl(gameUrl)
+        setResultWithLog(false)
+        showBanner(getString(R.string.now_playing, gameName))
+    }
+
+    // ---- Zoom per site ----------------------------------------------------------------------
+
+    private fun siteZoom(): Float = GamePrefs.siteZoom(this, pageHost ?: gameHost)
+
+    /** Applies the site's saved zoom to the page (CSS zoom, so it works even where pinch-zoom is off). */
+    private fun applySiteZoom() {
+        val z = siteZoom()
+        val js = if (z == 1f) "document.documentElement&&document.documentElement.style.zoom&&(document.documentElement.style.zoom='')"
+        else "document.documentElement&&(document.documentElement.style.zoom='$z')"
+        runCatching { webView.evaluateJavascript(js, null) }
+    }
+
+    private fun showZoomDialog() {
+        val host = pageHost ?: gameHost
+        val label = TextView(this).apply {
+            textSize = 18f
+            typeface = googleSansBold
+            gravity = Gravity.CENTER
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+        }
+        fun refresh() { label.text = getString(R.string.zoom_label, (GamePrefs.siteZoom(this, host) * 100).toInt(), AdBlockEngine.siteOf(host)) }
+        fun step(delta: Float) {
+            val next = ((GamePrefs.siteZoom(this, host) + delta) * 10).let { kotlin.math.round(it) / 10f }
+            GamePrefs.setSiteZoom(this, host, next)
+            applySiteZoom()
+            refresh()
+        }
+        refresh()
+        android.app.AlertDialog.Builder(this)
+            .setTitle(R.string.zoom_title)
+            .setView(label)
+            .setNegativeButton("−", null)
+            .setPositiveButton("+", null)
+            .setNeutralButton(R.string.zoom_reset, null)
+            .create().apply {
+                setOnShowListener {
+                    getButton(android.app.AlertDialog.BUTTON_NEGATIVE).setOnClickListener { step(-0.1f) }
+                    getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener { step(0.1f) }
+                    getButton(android.app.AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+                        GamePrefs.setSiteZoom(this@GameActivity, host, 1f)
+                        applySiteZoom()
+                        refresh()
+                    }
+                }
+            }.show()
+    }
 
     // ---- Other apps ------------------------------------------------------------------------
 
@@ -1270,7 +1489,7 @@ class GameActivity : ComponentActivity() {
      * Tonal pill with an optional Material Symbols PNG icon (tinted to [fg]) before the label.
      * Every pill is at least a 48 dp touch target; icon-only pills are 48 dp squares.
      */
-    private fun pill(label: String, desc: String, bg: Int, fg: Int, iconRes: Int = 0, onClick: () -> Unit): TextView =
+    private fun pill(label: String, desc: String, bg: Int, fg: Int, iconRes: Int = 0, onClick: (View) -> Unit): TextView =
         TextView(this).apply {
             text = label
             if (iconRes != 0) {
@@ -1296,7 +1515,7 @@ class GameActivity : ComponentActivity() {
                 setColor(bg)
             }
             isClickable = true
-            setOnClickListener { onClick() }
+            setOnClickListener { v -> onClick(v) }
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -1311,6 +1530,16 @@ class GameActivity : ComponentActivity() {
         const val EXTRA_ELAPSED_MS = "elapsed_ms"
         const val EXTRA_OPENED_AT = "opened_at"
         const val EXTRA_SHARE_TEXT = "share_text"
+        /** Today's games in the hub's order: [{id, name, url, done}]. */
+        const val EXTRA_LINEUP = "lineup"
+        /** Games played earlier in this player session: [{id, elapsedMs, openedAt, share}]. */
+        const val EXTRA_EARLIER = "earlier_results"
+        private const val STATE_GAME_ID = "state_game_id"
+        private const val STATE_GAME_NAME = "state_game_name"
+        private const val STATE_GAME_URL = "state_game_url"
+        private const val STATE_LINEUP = "state_lineup"
+        private const val STATE_EARLIER = "state_earlier"
+        private const val MAX_LINEUP = 200
         private const val STATE_OPENED_AT = "state_opened_at"
         private const val STATE_SHARE_TEXT = "state_share_text"
         private const val STATE_SHARE_AT = "state_share_at"

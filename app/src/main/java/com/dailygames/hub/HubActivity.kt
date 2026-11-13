@@ -64,6 +64,11 @@ class HubActivity : ComponentActivity() {
         val elapsedMs = data.getLongExtra(GameActivity.EXTRA_ELAPSED_MS, 0L)
         val openedAt = data.getLongExtra(GameActivity.EXTRA_OPENED_AT, 0L)
         val shareText = data.getStringExtra(GameActivity.EXTRA_SHARE_TEXT).orEmpty()
+        // Games switched away from inside the player first, then the one it closed on.
+        data.getStringExtra(GameActivity.EXTRA_EARLIER)?.let { earlier ->
+            val arr = runCatching { org.json.JSONArray(earlier) }.getOrNull()
+            if (arr != null) runJs("window.onReturnFromEarlierGames && window.onReturnFromEarlierGames(${arr})")
+        }
         if (id.isNotBlank()) {
             runJs("window.onReturnFromGame(${JSONObject.quote(id)}, $openLog, $elapsedMs, ${JSONObject.quote(shareText)}, $openedAt)")
         }
@@ -619,11 +624,12 @@ class HubActivity : ComponentActivity() {
         if (pageReady && ::webView.isInitialized) webView.evaluateJavascript(js, null) else pendingJs.add(js)
     }
 
-    private fun launchGame(gameId: String, name: String, url: String) {
+    private fun launchGame(gameId: String, name: String, url: String, lineup: String? = null) {
         val i = Intent(this, GameActivity::class.java)
             .putExtra(GameActivity.EXTRA_ID, gameId)
             .putExtra(GameActivity.EXTRA_NAME, name)
             .putExtra(GameActivity.EXTRA_URL, url)
+        if (!lineup.isNullOrEmpty() && lineup.length < 200_000) i.putExtra(GameActivity.EXTRA_LINEUP, lineup)
         gameLauncher.launch(i)
     }
 
@@ -914,6 +920,12 @@ class HubActivity : ComponentActivity() {
             GamePrefs.save(applicationContext, blockAds, autoLogShare)
         }
 
+        /** Settings → Find Results Automatically. */
+        @JavascriptInterface
+        fun setFindResults(on: Boolean) {
+            GamePrefs.setFindResults(applicationContext, on)
+        }
+
         /** Opens the game in the native full-screen player. */
         @JavascriptInterface
         fun openGame(gameId: String, name: String, url: String) {
@@ -921,6 +933,14 @@ class HubActivity : ComponentActivity() {
             // Start loading the ad-block lists while the player opens.
             if (GamePrefs.blockAds(applicationContext)) AdBlocker.warmUp(applicationContext)
             runOnUiThread { launchGame(gameId, name, url) }
+        }
+
+        /** Same as openGame, with today's games ([{id,name,url,done}]) for the player's switcher and Next. */
+        @JavascriptInterface
+        fun openGameInLineup(gameId: String, name: String, url: String, lineup: String) {
+            if (!url.startsWith("https://", true) && !url.startsWith("http://", true)) return
+            if (GamePrefs.blockAds(applicationContext)) AdBlocker.warmUp(applicationContext)
+            runOnUiThread { launchGame(gameId, name, url, lineup) }
         }
 
         /** {"enabled": bool, "appEnabled": bool, "channelBlocked": bool} for the Settings button. */

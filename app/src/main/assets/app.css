@@ -1249,3 +1249,16 @@ html[data-theme="light"] .hist-chip.on { color: var(--md-on-primary-container); 
 }
 .copy-today.hidden { display: none; }
 @media (max-width: 380px) { .copy-today .copy-label { display: none; } .copy-today { padding: 0 6px; } }
+
+/* Score history search. */
+.hist-search { flex: 1 1 100%; min-width: 0; }
+.hist-score mark { background: rgba(250, 204, 21, 0.35); color: inherit; border-radius: 3px; padding: 0 1px; }
+html[data-theme="light"] .hist-score mark { background: rgba(234, 179, 8, 0.35); }
+
+/* Hub header logo: same look as the launcher icon the user chose. */
+.hub-logo .logo-bg { fill: #FFFFFF; stroke: var(--md-outline); stroke-width: 2; }
+.hub-logo .logo-shape { fill: url(#hubLogoGradient); }
+.hub-logo .logo-mark { fill: #FFFFFF; }
+html[data-app-icon="themed"] .hub-logo .logo-bg { fill: var(--md-primary-container); stroke: none; }
+html[data-app-icon="themed"] .hub-logo .logo-shape { fill: var(--md-primary); }
+html[data-app-icon="themed"] .hub-logo .logo-mark { fill: var(--md-on-primary); }

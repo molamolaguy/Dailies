@@ -742,6 +742,74 @@
     });
   }
 
+  // ---- Reset-time detection (1.4.0) ----
+
+  /** The puzzle number in a share text: "#117", or the number after the name ("Wordle 1,234 3/6"). */
+  function puzzleNumber(text) {
+    const t = String(text || '');
+    let m = /#[  ]?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})(?![0-9])/.exec(t);
+    if (m) return Number(m[1].replace(/,/g, ''));
+    const first = t.split(/\r?\n/)[0] || '';
+    m = /^([^0-9\n]{2,40}?)[  ]([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{2,7})(?![0-9\/:.,%]|[  ]*(?:\/|m\b|pts|points|%))/i.exec(first);
+    // Not a labelled score or time ("Score: 2,450", "Time 42").
+    if (!m || /[:=]\s*$/.test(m[1]) || /(score|points|total|time|level|streak|moves|guesses)\s*$/i.test(m[1])) return null;
+    return Number(m[2].replace(/,/g, ''));
+  }
+
+  /** {n, at} for each logged row of a game that has a puzzle number and the time it was logged. */
+  function resetObservations(rows) {
+    return (Array.isArray(rows) ? rows : [])
+      .filter((r) => r && Number(r.loggedAt) > 0)
+      .map((r) => ({ n: puzzleNumber(r.score), at: Number(r.loggedAt) }))
+      .filter((o) => o.n !== null && Number.isFinite(o.n));
+  }
+
+  /** True when, with this reset time, every puzzle number falls on its own day (number − day is constant). */
+  function resetFitsObservations(obs, resetTime, resetZone) {
+    let offset = null;
+    for (const o of obs) {
+      let key;
+      try { key = getCycleDateKey(resetTime, resetZone, new Date(o.at)); } catch (e) { return false; }
+      const d = o.n - cycleKeyToDay(key);
+      if (offset === null) offset = d;
+      else if (d !== offset) return false;
+    }
+    return offset !== null;
+  }
+
+  // Daily games almost always reset at midnight somewhere: these are tried first.
+  const SUGGEST_ZONES = ['local', 'utc', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+    'Europe/London', 'Europe/Paris', 'Europe/Moscow', 'Asia/Kolkata', 'Asia/Shanghai', 'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland'];
+
+  /**
+   * When a game's logged puzzle numbers don't line up with its reset time (two puzzles logged on one
+   * "day", or one puzzle on two), the most likely real reset: midnight in a common zone first, then a
+   * whole hour in the game's zone, local time or UTC when the evidence narrows it to one or two hours.
+   * Null when the current time fits, when there's too little evidence (at least 3 numbered results,
+   * 2 different puzzles) or when there's no clear answer.
+   */
+  function suggestResetTime(rows, current) {
+    const obs = resetObservations(rows);
+    if (obs.length < 3 || new Set(obs.map((o) => o.n)).size < 2) return null;
+    const curTime = (current && current.resetTime) || '00:00';
+    const curZone = normalizeZone(current && current.resetZone);
+    if (resetFitsObservations(obs, curTime, curZone)) return null;
+    const tryZone = (t, z) => !(t === curTime && z === curZone) && !(isNamedZone(z) && !isValidTimeZone(z))
+      && resetFitsObservations(obs, t, z);
+    // Several midnights fit (too little evidence yet): only local or UTC midnight is a safe pick.
+    const midnights = SUGGEST_ZONES.filter((z) => tryZone('00:00', z));
+    if (midnights.length === 1) return { resetTime: '00:00', resetZone: midnights[0] };
+    const safe = midnights.find((z) => z === 'local' || z === 'utc');
+    if (safe) return { resetTime: '00:00', resetZone: safe };
+    if (midnights.length > 1) return null;
+    for (const z of [curZone, 'local', 'utc']) {
+      const fits = [];
+      for (let hr = 0; hr < 24; hr++) { const t = `${String(hr).padStart(2, '0')}:00`; if (tryZone(t, z)) fits.push(t); }
+      if (fits.length && fits.length <= 2) return { resetTime: fits[0], resetZone: z };
+    }
+    return null;
+  }
+
   /**
    * A month's recap from the result log: results, solves, win rate, longest streak reached, best
    * result (fewest guesses relative to the maximum), most-played game and total play time.
@@ -793,6 +861,9 @@
     scoreStats,
     parseResultValue,
     formatClock,
+    puzzleNumber,
+    resetFitsObservations,
+    suggestResetTime,
     parseScore,
     formatDuration,
     newRecords,

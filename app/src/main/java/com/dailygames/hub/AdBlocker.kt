@@ -98,6 +98,34 @@ object GamePrefs {
     fun blockAds(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_BLOCK_ADS, true)
     fun autoLogShare(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_AUTO_LOG, true)
 
+    private const val KEY_FIND_RESULTS = "find_results"
+    private const val ZOOM_PREFIX = "zoom_"
+
+    /** Press a finished game's own Share button quietly to read its result (finish-probe.js). */
+    fun findResults(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_FIND_RESULTS, true)
+    fun setFindResults(ctx: Context, on: Boolean) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY_FIND_RESULTS, on) }
+    }
+
+    /** Page zoom remembered per site (1.0 = 100%), from 50% to 200%. */
+    fun siteZoom(ctx: Context, host: String): Float {
+        if (host.isEmpty()) return 1f
+        val z = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getFloat(ZOOM_PREFIX + AdBlockEngine.siteOf(host), 1f)
+        return if (z.isFinite()) z.coerceIn(MIN_ZOOM, MAX_ZOOM) else 1f
+    }
+
+    fun setSiteZoom(ctx: Context, host: String, zoom: Float) {
+        if (host.isEmpty()) return
+        val z = zoom.coerceIn(MIN_ZOOM, MAX_ZOOM)
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit {
+            if (kotlin.math.abs(z - 1f) < 0.001f) remove(ZOOM_PREFIX + AdBlockEngine.siteOf(host))
+            else putFloat(ZOOM_PREFIX + AdBlockEngine.siteOf(host), z)
+        }
+    }
+
+    const val MIN_ZOOM = 0.5f
+    const val MAX_ZOOM = 2f
+
     fun isSiteAllowed(ctx: Context, host: String): Boolean =
         AdBlockEngine.siteOf(host) in ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getStringSet(KEY_ALLOWED_SITES, emptySet())!!
 

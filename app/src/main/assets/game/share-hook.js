@@ -13,6 +13,12 @@
   if (!channel || typeof channel.postMessage !== 'function') return;
 
   var last = '';
+  // While Dailies quietly presses the game's own Share / Copy button to read a finished result
+  // (finish-probe.js), the text is captured but nothing is copied or shared.
+  var probing = false;
+  try {
+    Object.defineProperty(window, '__dailesSetProbing', { value: function (on) { probing = Boolean(on); } });
+  } catch (e) {}
   // Wrapped functions report themselves as native code, so pages that check doesn't see a difference.
   var nativeToString = Function.prototype.toString;
   var masked = typeof WeakMap === 'function' ? new WeakMap() : null;
@@ -35,7 +41,9 @@
       var t = text == null ? '' : String(text);
       if (!t.trim() || t === last) return;
       last = t;
-      channel.postMessage(JSON.stringify({ via: via, text: t.slice(0, 8000) }));
+      channel.postMessage(JSON.stringify({ via: probing ? 'probe' : via, text: t.slice(0, 8000) }));
+      // Got it: anything the game does after this is real again.
+      if (probing) setTimeout(function () { probing = false; }, 0);
     } catch (e) {}
   }
 
@@ -61,6 +69,7 @@
       var origWriteText = cp.writeText;
       cp.writeText = mask(function writeText(data) {
         send('clipboard', data);
+        if (probing) return Promise.resolve();
         return origWriteText.apply(this, arguments);
       }, origWriteText);
     }
@@ -74,6 +83,7 @@
             }
           });
         } catch (e) {}
+        if (probing) return Promise.resolve();
         return origWrite.apply(this, arguments);
       }, origWrite);
     }
@@ -83,7 +93,9 @@
   try {
     var origExec = Document.prototype.execCommand;
     Document.prototype.execCommand = mask(function execCommand(cmd) {
-      try { if (String(cmd).toLowerCase() === 'copy') send('execCommand', selectedText()); } catch (e) {}
+      var isCopy = false;
+      try { isCopy = String(cmd).toLowerCase() === 'copy'; if (isCopy) send('execCommand', selectedText()); } catch (e) {}
+      if (probing && isCopy) return true;
       return origExec.apply(this, arguments);
     }, origExec);
   } catch (e) {}
@@ -121,6 +133,7 @@
         try {
           send('share', [data && data.title, data && data.text, data && data.url].filter(Boolean).join('\n'));
         } catch (e) {}
+        if (probing) return Promise.resolve();
         return origShare.apply(this, arguments);
       }, origShare);
     }

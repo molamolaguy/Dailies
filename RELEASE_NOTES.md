@@ -1,10 +1,22 @@
-# Dailies 1.3.1
+# Dailies 1.4.0
 
-A small update. It installs over 1.3.0 and keeps your games, streaks and history.
+A feature update. It installs over 1.3.0 and keeps your games, streaks and history. If you're on 1.3.0, you can install it from **Settings → About → Check now**.
 
-## What's new
-- **Copy today's results**: a **Copy** button at the top of the hub copies every result you've solved today in one go. Each keeps its own formatting, with a small divider between them, ready to paste into a chat.
-- **Smoother Score history paging**: swiping between pages now follows your finger and glides into place, like the calendar.
+## What's new since 1.3.0
+| | 1.3.0 | 1.4.0 |
+|---|---|---|
+| **Logging results** | You had to tap the game's Share / Copy button | When a game shows its end screen, Dailies reads the result from its Share button by itself. Nothing is copied or shared. |
+| **Several games in a row** | Back to the hub between games | Tap the game's name in the player to switch to any of today's games, or **Next** (⏭) for the next one you haven't played |
+| **Page zoom** | Not available | ⋮ → **Zoom** in the player; remembered for each site |
+| **Reset times** | Set by hand | If a game's puzzle numbers show its reset time is wrong, Dailies suggests the right one |
+| **Score history** | Filter by game and outcome | Also search every result you've logged (e.g. "2/6", "#117") |
+| **Copy today's results** | One at a time | **Copy** at the top of the hub copies everything you've solved today, each with its own formatting |
+| **Paging Score history** | Pages jumped | Pages follow your finger, like the calendar |
+| **Hub logo** | Always in the theme's colours | Matches the app icon you chose |
+
+## Also changed
+- The player's **Reload** and **Open in browser** buttons moved into the ⋮ menu to make room for **Next**.
+- **Find Results Automatically** can be turned off in Settings → Game Player.
 
 ## Requirements
 - Android 7.0 or newer.

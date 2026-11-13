@@ -8,7 +8,7 @@
 - **Tracks resets** in each game's own time zone, with a live countdown to the next puzzle.
 - **Alerts you** when a new puzzle is out, and can remind you before a streak is lost.
 - **Plays games ad-free** in a built-in player.
-- **Logs results automatically** when you tap a game's Share button.
+- **Logs results automatically**: it reads the result from a game's end screen, or when you tap its Share button.
 - **Keeps your streaks and stats**: a calendar, win rate, play times, personal bests, achievements and a monthly recap.
 - **Reads results from screenshots** for games without a Share button.
 - **Light or dark**, with your wallpaper's colours.
