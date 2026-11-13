@@ -1593,10 +1593,10 @@
       root.setAttribute('data-gold', gold ? 'true' : 'false');
       if (gold) {
         const g = light
-          ? { '--md-primary': '#8C6B22', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#E9C774', '--md-on-primary-container': '#241A05',
-            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#8C6B22', '--md-tertiary-container': '#F3E2C4', '--md-glow': 'rgba(160, 124, 43, 0.28)' }
-          : { '--md-primary': '#E6BD5C', '--md-on-primary': '#2A2008', '--md-primary-container': '#4F3D12', '--md-on-primary-container': '#EED9A3',
-            '--md-secondary-container': '#3F3313', '--md-tertiary': '#E8C27A', '--md-tertiary-container': '#4C3A16', '--md-glow': 'rgba(230, 189, 92, 0.30)' };
+          ? { '--md-primary': '#7C6230', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#D3B45C', '--md-on-primary-container': '#1C1607',
+            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#7C6230', '--md-tertiary-container': '#F3E2C4', '--md-glow': 'rgba(152, 120, 65, 0.28)' }
+          : { '--md-primary': '#D1AB48', '--md-on-primary': '#1C1607', '--md-primary-container': '#4A3D22', '--md-on-primary-container': '#DCC273',
+            '--md-secondary-container': '#3F3313', '--md-tertiary': '#E8C27A', '--md-tertiary-container': '#4C3A16', '--md-glow': 'rgba(209, 171, 72, 0.30)' };
         Object.keys(g).forEach((k) => root.style.setProperty(k, g[k]));
       }
     }
@@ -3358,7 +3358,7 @@
       { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
       { id: 'ocean', label: 'Ocean', bg: ['#E0F7FA', '#CCF2F7'], star: [[0, '#22D3EE'], [1, '#2563EB']], mark: '#FFFFFF' },
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
-      { id: 'gold', label: 'Gold', bg: ['#221B0D', '#0D0A05'], star: [[0, '#F6E7BF'], [0.22, '#E6BD5C'], [0.48, '#A07C2B'], [0.68, '#EED49A'], [1, '#6E5418']], mark: '#FFF8E8', sparks: '#FFFBF0', locked: true }
+      { id: 'gold', label: 'Gold', bg: ['#141109', '#050403'], star: [[0, '#E4CC7E'], [0.28, '#C7A042'], [0.55, '#987841'], [0.78, '#AF8A39'], [1, '#64512E']], mark: '#2E2614', sparks: '#3E331D', locked: true }
     ];
     const earnedTierKeys = () => new Set(Array.isArray(state.achievements) ? state.achievements : []);
     /**

@@ -1319,9 +1319,9 @@ html[data-theme="light"] .text-amber-300\/90 { color: var(--lt-streak); }
 
 /* Achievements with tiers (1.5.0). */
 .ach { position: relative; }
-.ach.max { border-color: rgba(230, 189, 92, 0.55); background: linear-gradient(160deg, rgba(230, 189, 92, 0.16), color-mix(in srgb, var(--md-primary) 10%, var(--md-container-low))); }
+.ach.max { border-color: rgba(209, 171, 72, 0.55); background: linear-gradient(160deg, rgba(209, 171, 72, 0.16), color-mix(in srgb, var(--md-primary) 10%, var(--md-container-low))); }
 .ach.max .ach-num { font-size: 9.5px; color: #a9b1c1; font-variant-numeric: tabular-nums; }
-html[data-theme="light"] .ach.max { border-color: rgba(160, 124, 43, 0.5); background: linear-gradient(160deg, rgba(233, 199, 116, 0.45), var(--md-container-low)); }
+html[data-theme="light"] .ach.max { border-color: rgba(152, 120, 65, 0.5); background: linear-gradient(160deg, rgba(211, 180, 92, 0.45), var(--md-container-low)); }
 html[data-theme="light"] .ach-num { color: var(--lt-muted, #5b6170); }
 #goldAccentsRow.locked { cursor: default; opacity: 0.75; }
 
@@ -1348,19 +1348,19 @@ html[data-theme="light"] .live-clock { color: var(--lt-strong); }
    same metallic gradient as the Gold app icon, not a flat yellow: buttons, the selected tab, chips,
    progress bars, icons, headings, card edges, streaks and solved calendar days. */
 html[data-gold="true"] {
-  /* Champagne gold, as on the Robinhood Gold card: soft highlights over a warm metallic body. */
-  --gold-shine: linear-gradient(135deg, #F6E7BF 0%, #E6BD5C 20%, #C9A14C 42%, #A07C2B 58%, #D9B566 78%, #F3E2B4 100%);
-  --gold-text: linear-gradient(100deg, #F3E2B4 0%, #E6BD5C 30%, #C9A14C 55%, #EED49A 80%, #D6AE56 100%);
-  --gold-edge: linear-gradient(135deg, rgba(246, 231, 191, 0.95), rgba(201, 161, 76, 0.40) 30%, rgba(160, 124, 43, 0.25) 60%, rgba(238, 212, 154, 0.80));
-  --gold-ink: #241A05;
-  --gold-glow: 0 4px 16px -4px rgba(230, 189, 92, 0.50);
+  /* Robinhood Gold: a satin, brushed gold (sampled from the Gold card and app icon). */
+  --gold-shine: linear-gradient(120deg, #DBC377 0%, #D1AB48 18%, #C7A042 34%, #AF8A39 55%, #987841 72%, #B8923D 86%, #D6B865 100%);
+  --gold-text: linear-gradient(100deg, #E4CC7E 0%, #D1AB48 35%, #AF8A39 65%, #DBC377 100%);
+  --gold-edge: linear-gradient(135deg, rgba(228, 204, 126, 0.9), rgba(175, 138, 57, 0.35) 30%, rgba(100, 81, 46, 0.25) 60%, rgba(219, 195, 119, 0.75));
+  --gold-ink: #1C1607;
+  --gold-glow: 0 4px 18px -4px rgba(209, 171, 72, 0.45);
   --gold-card: var(--md-container);
 }
 html[data-gold="true"][data-amoled="true"] { --gold-card: #000; }
 html[data-gold="true"][data-theme="light"] {
-  --gold-text: linear-gradient(100deg, #8A6A24 0%, #A07C2B 35%, #6E5418 65%, #A07C2B 100%);
-  --gold-edge: linear-gradient(135deg, rgba(201, 161, 76, 0.95), rgba(214, 174, 86, 0.45) 35%, rgba(201, 161, 76, 0.30) 65%, rgba(160, 124, 43, 0.85));
-  --gold-glow: 0 4px 14px -4px rgba(160, 124, 43, 0.45);
+  --gold-text: linear-gradient(100deg, #7C6230 0%, #987841 35%, #64512E 65%, #987841 100%);
+  --gold-edge: linear-gradient(135deg, rgba(175, 138, 57, 0.95), rgba(199, 160, 66, 0.45) 35%, rgba(175, 138, 57, 0.30) 65%, rgba(152, 120, 65, 0.85));
+  --gold-glow: 0 4px 14px -4px rgba(152, 120, 65, 0.45);
 }
 /* Filled buttons: Play, Add Game, Play next, Save, Log … */
 html[data-gold="true"] .m4-primary-fab,
@@ -1368,20 +1368,20 @@ html[data-gold="true"] .bg-indigo-600,
 html[data-gold="true"] .return-btn.primary,
 html[data-gold="true"] .next-game-play,
 html[data-gold="true"] .toast-action {
-  background-color: #D6AE56 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
-  border-color: rgba(246, 231, 191, 0.6) !important; box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 252, 240, 0.55) !important;
-  text-shadow: 0 1px 0 rgba(246, 231, 191, 0.5);
+  background-color: #C7A042 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
+  border-color: rgba(228, 204, 126, 0.6) !important; box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 248, 225, 0.55) !important;
+  text-shadow: 0 1px 0 rgba(228, 204, 126, 0.5);
 }
 /* The selected tab and other tonal pills. */
-html[data-gold="true"] .m4-tonal-pill { background-color: #D6AE56 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; box-shadow: var(--gold-glow); }
+html[data-gold="true"] .m4-tonal-pill { background-color: #C7A042 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; box-shadow: var(--gold-glow); }
 /* Card edges: a gold gradient border (the card's own colour inside). */
 html[data-gold="true"] .glass-card {
   border-color: transparent !important;
   background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box !important;
 }
-html[data-gold="true"] .m4-floating-dock { border: 1px solid transparent !important; background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 18px -6px rgba(230, 189, 92, 0.45); }
-html[data-gold="true"] .play-next { background: linear-gradient(135deg, #4F3D12, #2A2008 60%, #43340F) !important; color: #EED9A3 !important; border: 1px solid rgba(238, 212, 154, 0.55); }
-html[data-gold="true"][data-theme="light"] .play-next { background: linear-gradient(135deg, #F5E6BE, #E9C774 60%, #E3BE68) !important; color: #2A2008 !important; border-color: rgba(160, 124, 43, 0.55); }
+html[data-gold="true"] .m4-floating-dock { border: 1px solid transparent !important; background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 18px -6px rgba(209, 171, 72, 0.45); }
+html[data-gold="true"] .play-next { background: linear-gradient(135deg, #4A3D22, #1C1607 60%, #3E331D) !important; color: #DCC273 !important; border: 1px solid rgba(219, 195, 119, 0.55); }
+html[data-gold="true"][data-theme="light"] .play-next { background: linear-gradient(135deg, #E4CC7E, #D3B45C 60%, #CBA650) !important; color: #1C1607 !important; border-color: rgba(152, 120, 65, 0.55); }
 /* Gold text: the title, card headings, the top streak, links. */
 html[data-gold="true"] .hub-title-text,
 html[data-gold="true"] .glass-card h3,
@@ -1391,32 +1391,32 @@ html[data-gold="true"] .stat-tile .v {
   background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent !important; -webkit-text-fill-color: transparent;
 }
 html[data-gold="true"] .glass-card h3 .ico, html[data-gold="true"] .stat-tile .v .v-emoji { -webkit-text-fill-color: initial; }
-html[data-gold="true"] .text-indigo-300, html[data-gold="true"] .removed-add, html[data-gold="true"] .done-toggle, html[data-gold="true"] .bulk-actions button.bulk-done { color: #E6BD5C !important; }
+html[data-gold="true"] .text-indigo-300, html[data-gold="true"] .removed-add, html[data-gold="true"] .done-toggle, html[data-gold="true"] .bulk-actions button.bulk-done { color: #D1AB48 !important; }
 html[data-gold="true"][data-theme="light"] .text-indigo-300, html[data-gold="true"][data-theme="light"] .removed-add,
-html[data-gold="true"][data-theme="light"] .done-toggle, html[data-gold="true"][data-theme="light"] .bulk-actions button.bulk-done { color: #8C6B22 !important; }
-html[data-gold="true"] .gc-streak, html[data-gold="true"] .text-amber-300 { color: #EED49A !important; text-shadow: 0 0 10px rgba(230, 189, 92, 0.35); }
-html[data-gold="true"][data-theme="light"] .gc-streak, html[data-gold="true"][data-theme="light"] .text-amber-300 { color: #7A5E20 !important; text-shadow: none; }
+html[data-gold="true"][data-theme="light"] .done-toggle, html[data-gold="true"][data-theme="light"] .bulk-actions button.bulk-done { color: #7C6230 !important; }
+html[data-gold="true"] .gc-streak, html[data-gold="true"] .text-amber-300 { color: #DBC377 !important; text-shadow: 0 0 10px rgba(209, 171, 72, 0.35); }
+html[data-gold="true"][data-theme="light"] .gc-streak, html[data-gold="true"][data-theme="light"] .text-amber-300 { color: #6E5A33 !important; text-shadow: none; }
 /* Icons drawn as masks take the gradient directly. */
-html[data-gold="true"] .section-icon, html[data-gold="true"] .done-section-head .ico { background-color: #D6AE56; background-image: var(--gold-shine); }
+html[data-gold="true"] .section-icon, html[data-gold="true"] .done-section-head .ico { background-color: #C7A042; background-image: var(--gold-shine); }
 /* Progress bars and dots. */
 html[data-gold="true"] .ach-bar > span, html[data-gold="true"] .hist-dots span.on, html[data-gold="true"] .update-progress > span { background: var(--gold-shine) !important; }
 /* Chips and badges. */
-html[data-gold="true"] .status-pill.status-completed { color: var(--gold-ink); background-image: var(--gold-shine); border-color: rgba(246, 231, 191, 0.6); }
-html[data-gold="true"] .status-pill.status-completed .dot, html[data-gold="true"] .status-dot.status-completed { background: #5E4714; }
+html[data-gold="true"] .status-pill.status-completed { color: var(--gold-ink); background-image: var(--gold-shine); border-color: rgba(228, 204, 126, 0.6); }
+html[data-gold="true"] .status-pill.status-completed .dot, html[data-gold="true"] .status-dot.status-completed { background: #574824; }
 html[data-gold="true"] .status-dot.status-completed { background-image: var(--gold-shine); }
-html[data-gold="true"] html[data-gold="true"] .ach.on { border-color: rgba(230, 189, 92, 0.45); }
-html[data-gold="true"] .copy-today, html[data-gold="true"] .icon-choice.on { border-color: #D6AE56; }
+html[data-gold="true"] html[data-gold="true"] .ach.on { border-color: rgba(209, 171, 72, 0.45); }
+html[data-gold="true"] .copy-today, html[data-gold="true"] .icon-choice.on { border-color: #C7A042; }
 /* Solved days in the calendar. */
-html[data-gold="true"] .cal-cell.done { background: linear-gradient(135deg, rgba(246, 231, 191, 0.38), rgba(201, 161, 76, 0.26) 50%, rgba(238, 212, 154, 0.32)) !important; border-color: rgba(230, 189, 92, 0.75); color: #F1DFAE; }
-html[data-gold="true"][data-theme="light"] .cal-cell.done { background: linear-gradient(135deg, #F4E3B5, #E6BD5C 55%, #E9C774) !important; border-color: rgba(160, 124, 43, 0.6); color: #2A2008; }
+html[data-gold="true"] .cal-cell.done { background: linear-gradient(135deg, rgba(228, 204, 126, 0.38), rgba(175, 138, 57, 0.26) 50%, rgba(219, 195, 119, 0.32)) !important; border-color: rgba(209, 171, 72, 0.75); color: #DFC676; }
+html[data-gold="true"][data-theme="light"] .cal-cell.done { background: linear-gradient(135deg, #E2C97A, #D1AB48 55%, #D3B45C) !important; border-color: rgba(152, 120, 65, 0.6); color: #1C1607; }
 html[data-gold="true"] .legend-done { background: var(--gold-shine) !important; }
 html[data-gold="true"] .cal-today-btn, html[data-gold="true"] #btnShareRecap {
-  background-color: #D6AE56 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
-  border-color: rgba(246, 231, 191, 0.6) !important; box-shadow: var(--gold-glow);
+  background-color: #C7A042 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
+  border-color: rgba(228, 204, 126, 0.6) !important; box-shadow: var(--gold-glow);
 }
-html[data-gold="true"] .cal-cell.today { box-shadow: inset 0 0 0 2px #D6AE56; }
+html[data-gold="true"] .cal-cell.today { box-shadow: inset 0 0 0 2px #C7A042; }
 /* Switches and checkboxes. */
-html[data-gold="true"] .accent-indigo-500, html[data-gold="true"] input[type="checkbox"] { accent-color: #D6AE56; }
+html[data-gold="true"] .accent-indigo-500, html[data-gold="true"] input[type="checkbox"] { accent-color: #C7A042; }
 
 /* Bottom bar highlight (1.5.1): one pill that slides between tabs with the swipe. */
 .m4-floating-dock { position: relative; }
@@ -1431,8 +1431,8 @@ html[data-gold="true"] .nav-btn.nav-on { color: var(--gold-ink) !important; }
 .ach { appearance: none; font: inherit; color: inherit; cursor: pointer; height: 100%; min-height: 104px; justify-content: center; text-align: center; }
 .ach-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.5em; }
 .ach .ach-bar { margin-top: 6px; }
-.ach-star { position: absolute; top: 5px; right: 7px; font-size: 14px; line-height: 1; color: #E6BD5C; text-shadow: 0 0 8px rgba(230, 189, 92, 0.55); }
-html[data-theme="light"] .ach-star { color: #A07C2B; text-shadow: none; }
+.ach-star { position: absolute; top: 5px; right: 7px; font-size: 14px; line-height: 1; color: #D1AB48; text-shadow: 0 0 8px rgba(209, 171, 72, 0.55); }
+html[data-theme="light"] .ach-star { color: #987841; text-shadow: none; }
 html[data-gold="true"] .ach-star { background-image: var(--gold-shine); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
 .ach:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; }
 .ach-detail-panel { border-radius: 28px; padding: 20px; height: auto; align-self: center; }
@@ -1453,7 +1453,7 @@ html[data-theme="light"] .ach-tier-prog { color: var(--lt-muted); }
 /* Done tag (1.5.1): a star instead of the dot. */
 .status-pill .dot-star { font-size: 12px; line-height: 1; color: #818cf8; }
 html[data-theme="light"] .status-pill .dot-star { color: var(--md-primary); }
-html[data-gold="true"] .status-pill .dot-star { color: #4F3D12; }
+html[data-gold="true"] .status-pill .dot-star { color: #4A3D22; }
 
 /* Themed drop-downs (1.5.1): the calendar's and Score history's game pickers. */
 .tsel-native { display: none !important; }
@@ -1475,5 +1475,5 @@ html[data-theme="light"] .tsel-menu { background: #fff; box-shadow: 0 14px 34px 
 html[data-theme="light"] .tsel-item { color: var(--lt-on-surface); }
 html[data-theme="light"] .tsel-group { color: var(--lt-muted); }
 html[data-gold="true"] .tsel-menu { border: 1px solid transparent; background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box; }
-html[data-gold="true"] .tsel-item.on { background: rgba(230, 189, 92, 0.18); color: #E6BD5C; }
-html[data-gold="true"][data-theme="light"] .tsel-item.on { color: #8C6B22; }
+html[data-gold="true"] .tsel-item.on { background: rgba(209, 171, 72, 0.18); color: #D1AB48; }
+html[data-gold="true"][data-theme="light"] .tsel-item.on { color: #7C6230; }

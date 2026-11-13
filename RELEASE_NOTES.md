@@ -10,7 +10,7 @@ Polish and fixes. It installs over 1.5.0 and keeps everything.
 - **Achievements**: every tile is the same size, with just the icon, name and progress. Tap one to see what each tier takes and how far along you are. Tier 2 shows a ★ in the corner instead of a tier badge. Marathon counts whole hours.
 - **Done** tags show a ★ instead of a dot.
 - **Game pickers** in the calendar and Score history open the app's own drop-down list instead of Android's picker.
-- **Gold** now uses a softer champagne gold throughout, including the Gold app icon.
+- **Gold** now uses a satin, brushed gold (like the Robinhood Gold card) throughout, including the Gold app icon, whose star is now engraved in dark gold.
 
 ## Requirements
 - Android 7.0 or newer.
