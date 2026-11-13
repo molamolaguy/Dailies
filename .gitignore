@@ -23,3 +23,6 @@ Dailies_signing_KEEP_PRIVATE/
 captures/
 node_modules/
 __pycache__/
+
+# Web app build output (web/build.mjs)
+dist-web/

@@ -472,3 +472,7 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Combined share**: `HubCore.combinedShareText(entries, {dateLabel, total, grids})`. `isGridLine` drops emoji grids when grids are off, and the game's name is added with `mentionsGame`.
 - **Colour themes**: `settings.themeSeed` (iris, ocean, forest, sunset, rose or custom) with `settings.customAccent`, chosen when `dynamicWallpaper` is off. `HubCore.themeTokens(seed, light)` makes the `--md-*` roles in OKLCH (chroma lowered until in sRGB). They're cached in `localStorage.dailydeck_theme_tokens_v1` for the first frame and sent to the player with `setPlayerColors` (`ThemePrefs.playerColors`; gold accents send their colours too).
 - **Toasts**: `showToast` builds `.app-toast` (`tone-ok` / `tone-info`) coloured from `--md-primary` / `--md-primary-container`, with AMOLED, light and gold (gold edge and title) variants. `.status-completed` and the Done ★ use the theme's primary too.
+
+## 16. Web app (PWA)
+
+The hub also runs as an installable web app on GitHub Pages; see `web/README.md`. The page is the same `index.html`: with no `window.AndroidBridge`, `IS_WEB` is true, `<html>` gets the `web` class, `.android-only` elements are hidden and `.web-only` ones shown (the **Paste** button in the "Finished?" sheet). Games open through `window.DailiesWeb.openGame` (from `web/web.js`), which reports the return with `window.onReturnFromGame`. `web/build.mjs` builds `dist-web/`; CI checks the build, and `pages.yml` deploys it.

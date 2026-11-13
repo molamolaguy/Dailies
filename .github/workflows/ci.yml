@@ -36,6 +36,8 @@ jobs:
           "$SDKM" --install "platforms;android-37.0" "build-tools;37.0.0" || true
       - name: Unit tests, JS tests, lint and debug build
         run: $GRADLE --no-daemon testDebugUnitTest testHubJs lintDebug assembleDebug
+      - name: Web app build
+        run: node web/build.mjs dist-web && node web/check-build.mjs dist-web
       - name: Ad-block list builder tests
         run: python3 tools/test_build_adblock.py
       - uses: actions/upload-artifact@v4
