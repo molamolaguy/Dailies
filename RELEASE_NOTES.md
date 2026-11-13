@@ -10,12 +10,16 @@ An update with more achievements and a tidier layout. It installs over 1.4.0 and
 | **Gold accents** | — | New: earn every tier to unlock gold accents across the app (Settings → Display → Gold Accents), in the dark, light and AMOLED themes |
 | **Achievements section** | Always open | Folded by default; tap to open |
 | **Settings** | Every section open | Each heading folds; all start folded |
+| **Reset alerts** | One notification per game, bundled when several came at once | One notification that lists every game that's ready (a single game still gets its own, as before) |
+| **Switching tabs** | The new tab opened at the top | It opens at the same relative spot (e.g. scrolled to the bottom → the bottom) |
 | **Removed games** | Re-add by pasting the link again | **Add Game → Add back a removed game** lists the 5 most recently removed games, with their streaks and history |
 
 ## Also changed
 - Achievements you've already earned carry over as the matching tiers, and earned tiers are never taken away.
 - Once the Gold icon or gold accents are unlocked they stay unlocked, including after a restore and when a later update adds new achievements.
 - Backups now also keep the gold accents unlock.
+- Gold accents use the same shiny metallic gold as the Gold icon on buttons, the selected tab, chips, progress bars, headings, card edges, streaks and solved calendar days.
+- The clock in Settings → Gameplay & Time uses the same font and colour as the games' countdowns.
 - Only the 5 most recently removed games are kept for adding back. Results you logged for older removed games stay in Score history, but those games no longer appear in the calendar.
 
 ## Requirements

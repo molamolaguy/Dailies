@@ -227,7 +227,7 @@
           </div>
           <div id="calendarDaysGrid" class="cal-grid"></div>
           <div class="cal-legend pt-3">
-            <span><span class="status-dot status-ready"></span>Completed</span>
+            <span><span class="status-dot status-ready legend-done"></span>Completed</span>
             <span><span class="status-dot status-missed"></span>Missed</span>
             <span><span class="status-dot" style="box-shadow: inset 0 0 0 2px var(--md-primary);"></span>Today</span>
           </div>
@@ -265,7 +265,6 @@
           <h3 class="text-base font-bold text-white">Achievements</h3>
           <span id="achievementsCount" class="text-xs text-slate-400 ml-auto"></span>
         </div>
-        <p id="achievementsGoldHint" class="ach-gold-hint"></p>
         <div id="achievementsGrid" class="ach-grid"></div>
       </div>
 
@@ -380,7 +379,7 @@
               <span class="icon-label" style="justify-content:flex-start"><span class="ico ico-schedule section-icon" aria-hidden="true"></span>Gameplay &amp; Time</span>
             </h3>
           </div>
-          <span id="liveClockDisplay" class="shrink-0 tabular px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800 font-mono text-[11px] text-emerald-300">--:--:--</span>
+          <span id="liveClockDisplay" class="live-clock shrink-0 tabular px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800">--:--:--</span>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
@@ -3636,13 +3635,7 @@
       const n = all.reduce((x, a) => x + a.tier, 0);
       const count = document.getElementById('achievementsCount');
       if (count) count.textContent = `${n} of ${total} earned`;
-      const hint = document.getElementById('achievementsGoldHint');
-      if (hint) {
-        const t1 = all.filter((a) => a.tier >= 1).length;
-        hint.textContent = goldAccentsUnlocked() ? '👑 Gold icon and gold accents unlocked'
-          : goldIconUnlocked() ? `✨ Gold icon unlocked · every tier II unlocks gold accents (${n} of ${total})`
-            : `Every tier I unlocks the gold app icon (${t1} of ${all.length}); every tier II unlocks gold accents.`;
-      }
+      // What the gold unlocks need is an easter egg: the Achievements card doesn't say.
       const roman = ['', 'I', 'II'];
       grid.innerHTML = all.map((a) => {
         const nx = a.next;
@@ -4211,6 +4204,16 @@
      * Pager for the three tabs: the real neighbouring page sits beside the current one and both move
      * together (no snapshot copies, no cross-fade), like Android's ViewPager.
      */
+    /** How far down the page is scrolled, 0 (top) to 1 (bottom). */
+    function scrollFraction() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    }
+    /** Scrolls straight to `y` (no smooth scrolling). */
+    function jumpScroll(y) {
+      try { window.scrollTo({ top: Math.max(0, Math.round(y)), left: 0, behavior: 'instant' }); } catch (e) { window.scrollTo(0, Math.max(0, Math.round(y))); }
+    }
+
     const Pager = {
       neighbour: null, // { tab, el, dir }
       width() { return (document.documentElement.clientWidth || window.innerWidth || 400) + 24; },
@@ -4225,12 +4228,18 @@
         const scaffold = document.getElementById('m3Scaffold');
         // Pages slid off to the side mustn't widen the page (WebView would zoom out to fit them).
         if (scaffold) { scaffold.style.position = 'relative'; scaffold.style.overflowX = 'clip'; }
-        // Same spot on screen as the current page's top once we scroll back to the top.
-        const top = cur.offsetTop + Math.max(0, window.scrollY);
+        // The new page keeps the same relative scroll position (e.g. 80% of the way down), so it
+        // comes in already at the spot it will stay at once it's the current page.
+        const frac = scrollFraction();
+        const docH = document.documentElement.scrollHeight;
         el.classList.remove('hidden');
+        el.style.cssText = `position:absolute;left:${cur.offsetLeft}px;top:0;width:${cur.offsetWidth}px;margin:0;visibility:hidden;transition:none`;
+        const newMax = Math.max(0, docH - cur.offsetHeight + el.offsetHeight - window.innerHeight);
+        const scroll = Math.round(frac * newMax);
+        const top = cur.offsetTop + Math.max(0, window.scrollY) - scroll;
         el.style.cssText = `position:absolute;left:${cur.offsetLeft}px;top:${top}px;width:${cur.offsetWidth}px;margin:0;will-change:transform;pointer-events:none;transition:none;transform:translate3d(${dir * this.width()}px,0,0)`;
         cur.style.willChange = 'transform';
-        this.neighbour = { tab, el, dir };
+        this.neighbour = { tab, el, dir, scroll };
         return this.neighbour;
       },
       detach() {
@@ -4268,7 +4277,7 @@
           if (go && n) {
             this.neighbour = null;
             n.el.style.cssText = '';
-            onDone && onDone(n.tab);
+            onDone && onDone(n.tab, n.scroll);
           } else {
             this.detach();
           }
@@ -4312,10 +4321,12 @@
       if (previous !== normalized && !(anim && anim.settled) && !REDUCED_MOTION && !tabAnimating) {
         const dir = TAB_ORDER.indexOf(normalized) > TAB_ORDER.indexOf(previous) ? 1 : -1;
         if (Pager.attach(normalized, dir)) {
-          requestAnimationFrame(() => Pager.settle(0, 0, true, (tab) => switchNavigation(tab, { settled: true, prepared: true })));
+          requestAnimationFrame(() => Pager.settle(0, 0, true, (tab, scroll) => switchNavigation(tab, { settled: true, prepared: true, scroll })));
           return;
         }
       }
+      // A tap without the slide keeps the same relative scroll position too.
+      const frac = scrollFraction();
       activeTab = normalized;
       if (normalized !== 'dashboard') hideReturnPrompt();
       if (normalized !== 'dashboard' && selectMode) setSelectMode(false);
@@ -4344,7 +4355,10 @@
       });
 
       if (!(anim && anim.prepared)) prepareTab(normalized);
-      if (previous !== normalized) window.scrollTo(0, 0);
+      if (previous !== normalized) {
+        if (anim && typeof anim.scroll === 'number') jumpScroll(anim.scroll);
+        else jumpScroll(frac * Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
+      }
     }
 
     let lastBackInterceptState = null;
@@ -5425,7 +5439,7 @@
           if (go) switchNavigation(TAB_ORDER[next], { settled: true });
           return;
         }
-        Pager.settle(sw.dx, velocity, go, (tab) => switchNavigation(tab, { settled: true, prepared: true }));
+        Pager.settle(sw.dx, velocity, go, (tab, scroll) => switchNavigation(tab, { settled: true, prepared: true, scroll }));
       };
       document.addEventListener('touchend', (e) => endSwipe(e, false), { passive: true });
       document.addEventListener('touchcancel', (e) => endSwipe(e, true), { passive: true });
