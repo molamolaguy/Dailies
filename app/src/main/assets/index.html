@@ -1970,15 +1970,15 @@
         (plain || container.firstElementChild).remove();
       }
       const toast = document.createElement('div');
-      const borderClass = tone === 'emerald' ? 'border-emerald-500/50 bg-slate-900/95' : 'border-indigo-500/50 bg-slate-900/95';
-      toast.className = `pointer-events-auto rounded-2xl p-3.5 border ${borderClass} shadow-2xl flex items-start justify-between gap-2.5`;
+      // Coloured by the app's theme (wallpaper, preset, custom or gold); a success gets the accent stripe.
+      toast.className = `app-toast ${tone === 'emerald' ? 'tone-ok' : 'tone-info'} pointer-events-auto rounded-2xl p-3.5 shadow-2xl flex items-start justify-between gap-2.5`;
       toast.innerHTML = `
         <div class="min-w-0 flex-1 cursor-pointer">
-          <p class="text-xs font-bold text-white truncate">${escapeHtml(title)}</p>
-          <p class="text-[11px] text-slate-300 mt-0.5 line-clamp-2">${escapeHtml(message)}</p>
+          <p class="toast-title text-xs font-bold truncate">${escapeHtml(title)}</p>
+          <p class="toast-msg text-[11px] mt-0.5 line-clamp-2">${escapeHtml(message)}</p>
         </div>
         ${opts && opts.actionLabel ? `<button type="button" data-toast-action class="toast-action">${escapeHtml(opts.actionLabel)}</button>` : ''}
-        <button type="button" data-toast-close class="text-slate-400 hover:text-white px-1.5 py-1 rounded-lg bg-slate-800 inline-flex" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-toast-close class="toast-close px-1.5 py-1 rounded-lg inline-flex" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
       `;
       const closeBtn = toast.querySelector('[data-toast-close]');
       const actionBtn = toast.querySelector('[data-toast-action]');

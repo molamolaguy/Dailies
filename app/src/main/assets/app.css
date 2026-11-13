@@ -578,8 +578,8 @@ html, body, * { scrollbar-width: none; }
 .status-pill .dot, .status-dot { width: 7px; height: 7px; border-radius: 9999px; flex-shrink: 0; }
 .status-ready { color: #86efc0; border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.10); }
 .status-ready .dot, .status-dot.status-ready { background: #34d399; }
-.status-completed { color: #c7d2fe; border-color: rgba(99, 102, 241, 0.35); background: rgba(99, 102, 241, 0.14); }
-.status-completed .dot, .status-dot.status-completed { background: #818cf8; }
+.status-completed { color: var(--md-on-primary-container); border-color: color-mix(in srgb, var(--md-primary) 38%, transparent); background: color-mix(in srgb, var(--md-primary) 15%, transparent); }
+.status-completed .dot, .status-dot.status-completed { background: var(--md-primary); }
 .status-missed { color: #fecdd3; border-color: rgba(244, 63, 94, 0.35); background: rgba(244, 63, 94, 0.14); }
 .status-missed .dot, .status-dot.status-missed { background: #fb7185; }
 .status-dot { width: 9px; height: 9px; border: 0; }
@@ -1093,7 +1093,7 @@ html[data-theme="light"] .icon-btn.danger:active { color: var(--lt-bad); }
 html[data-theme="light"] .icon-btn img { filter: brightness(0) opacity(0.72); }
 html[data-theme="light"] .status-ready { color: var(--lt-good); border-color: rgba(16, 150, 100, 0.35); background: rgba(16, 185, 129, 0.12); }
 html[data-theme="light"] .status-ready .dot, html[data-theme="light"] .status-dot.status-ready { background: var(--lt-good-dot); }
-html[data-theme="light"] .status-completed { color: #4F378B; border-color: color-mix(in srgb, var(--md-primary) 35%, transparent); background: color-mix(in srgb, var(--md-primary) 10%, transparent); }
+html[data-theme="light"] .status-completed { color: var(--md-on-primary-container); border-color: color-mix(in srgb, var(--md-primary) 35%, transparent); background: color-mix(in srgb, var(--md-primary) 10%, transparent); }
 html[data-theme="light"] .status-completed .dot, html[data-theme="light"] .status-dot.status-completed { background: var(--md-primary); }
 html[data-theme="light"] .status-missed { color: var(--lt-bad); border-color: rgba(179, 38, 30, 0.32); background: rgba(179, 38, 30, 0.08); }
 html[data-theme="light"] .status-missed .dot, html[data-theme="light"] .status-dot.status-missed { background: var(--lt-bad-dot); }
@@ -1451,7 +1451,7 @@ html[data-theme="light"] .ach-tier-desc { color: var(--lt-strong); }
 html[data-theme="light"] .ach-tier-prog { color: var(--lt-muted); }
 
 /* Done tag (1.5.1): a star instead of the dot. */
-.status-pill .dot-star { font-size: 12px; line-height: 1; color: #818cf8; }
+.status-pill .dot-star { font-size: 12px; line-height: 1; color: var(--md-primary); }
 html[data-theme="light"] .status-pill .dot-star { color: var(--md-primary); }
 html[data-gold="true"] .status-pill .dot-star { color: #4A3D22; }
 
@@ -1572,3 +1572,34 @@ html[data-theme="light"] .chg-sub, html[data-theme="light"] .chg-done { color: v
 html[data-gold="true"] .recap-btn.primary, html[data-gold="true"] .recap-seg.on, html[data-gold="true"] .chg-undo {
   background-color: #C7A042 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; border-color: rgba(228, 204, 126, 0.6) !important;
 }
+
+/* In-app notifications (toasts) follow the app's colours: theme, AMOLED, light and gold. */
+.app-toast {
+  position: relative; overflow: hidden;
+  background: color-mix(in srgb, var(--md-primary-container) 28%, var(--md-container-high));
+  border: 1px solid color-mix(in srgb, var(--md-primary) 45%, transparent);
+  box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.55), 0 0 22px -10px var(--md-primary);
+}
+.app-toast.tone-ok::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--md-primary); }
+.app-toast .toast-title { color: var(--md-on-primary-container); }
+.app-toast .toast-msg { color: color-mix(in srgb, var(--md-on-primary-container) 72%, transparent); }
+.app-toast .toast-close { color: var(--md-on-primary-container); background: color-mix(in srgb, var(--md-primary) 16%, transparent); }
+[data-amoled="true"] .app-toast { background: color-mix(in srgb, var(--md-primary-container) 30%, #000); }
+html[data-theme="light"] .app-toast {
+  background: color-mix(in srgb, var(--md-primary-container) 55%, var(--md-container));
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.28);
+}
+html[data-theme="light"] .app-toast .toast-title { color: var(--md-on-primary-container); }
+/* Gold: a gold edge and gold title, like the cards. */
+html[data-gold="true"] .app-toast {
+  border-color: transparent;
+  background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box;
+  box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.55), var(--gold-glow);
+}
+html[data-gold="true"] .app-toast.tone-ok::before { background: var(--gold-shine); }
+html[data-gold="true"] .app-toast .toast-title {
+  background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+}
+html[data-gold="true"] .app-toast .toast-msg { color: color-mix(in srgb, #DCC273 75%, transparent); }
+html[data-gold="true"][data-theme="light"] .app-toast .toast-msg { color: #4A3D22; }
+html[data-gold="true"] .app-toast .toast-close { color: #D1AB48; background: rgba(209, 171, 72, 0.14); }

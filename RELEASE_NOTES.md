@@ -10,7 +10,8 @@ New features. It installs over 1.5.0 (or 1.5.1) and keeps everything. It also in
 - **Tough days**: days you scored much worse than usual for that game (for example 6/6 when you usually get 4/6) have an amber dot in the calendar and a *Tough day* tag in Score History. The game's score stats show how many there were. It needs five scored results first.
 - **Sort the hub**: the ⇅ button sorts games by **Next reset**, **A–Z** or **Least played**, or keeps your **Custom order**. Dragging a card while sorted keeps that order as your custom order.
 - **Today's results in one message**: the **Results** button at the top of the hub opens a preview of all of today's results with a heading ("Dailies · Fri, Nov 13 — 5/7 solved"), each game's name where its result doesn't include it, and missed games at the end. Turn emoji grids on or off, then **Copy** or **Share**.
-- **Colour themes**: **Settings → Display → Color Theme** offers Wallpaper, Iris, Ocean, Forest, Sunset, Rose, or **Custom** (pick any colour). Light, dark and AMOLED all follow it, and so does the game player's top bar. Gold accents still take precedence when they're on.
+- **Colour themes**: **Settings → Display → Color Theme** offers Wallpaper, Iris, Ocean, Forest, Sunset, Rose, or **Custom** (pick any colour). Light, dark and AMOLED all follow it, and so does the game player's top bar.
+- **In-app notifications** (the pop-ups at the top, like "Wordle Completed!" with Undo) now take the theme's colours too, and gold gets a gold edge and title. The Done tag follows the theme as well. Gold accents still take precedence when they're on.
 
 ## From 1.5.1
 - **Settings** sections start open again; you can still fold any of them.
