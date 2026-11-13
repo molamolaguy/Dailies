@@ -829,27 +829,94 @@
     return { bestScore: best ? best.label : null, bestKind: best ? best.kind : null, fastestMs: times.length ? Math.min(...times) : null, bestStreak: Number(bestStreak) || 0 };
   }
 
+  // ---- Achievements (1.5.0: two tiers each) ----
+  // Each tier is earned when its metric reaches the target (or, with `below`, drops under it).
+  const HOUR = 3600000;
   const ACHIEVEMENTS = [
-    { id: 'first', icon: '⭐', title: 'First solve', desc: 'Solve your first puzzle', metric: 'solves', target: 1 },
-    { id: 'solves10', icon: '🧩', title: 'Getting started', desc: 'Solve 10 puzzles', metric: 'solves', target: 10 },
-    { id: 'solves100', icon: '💯', title: 'Puzzler', desc: 'Solve 100 puzzles', metric: 'solves', target: 100 },
-    { id: 'solves500', icon: '🏅', title: 'Puzzle master', desc: 'Solve 500 puzzles', metric: 'solves', target: 500 },
-    { id: 'solves1000', icon: '👑', title: 'Legend', desc: 'Solve 1,000 puzzles', metric: 'solves', target: 1000 },
-    { id: 'streak7', icon: '🔥', title: 'On a roll', desc: 'Reach a 7-day streak', metric: 'streak', target: 7 },
-    { id: 'streak30', icon: '📅', title: 'Monthly habit', desc: 'Reach a 30-day streak', metric: 'streak', target: 30 },
-    { id: 'streak100', icon: '🚀', title: 'Centurion', desc: 'Reach a 100-day streak', metric: 'streak', target: 100 },
-    { id: 'streak365', icon: '🏆', title: 'Year of puzzles', desc: 'Reach a 365-day streak', metric: 'streak', target: 365 },
-    { id: 'perfectWeek', icon: '✨', title: 'Perfect week', desc: 'Solve every game you track, 7 days in a row', metric: 'perfectDays', target: 7 },
-    { id: 'variety', icon: '🎨', title: 'Variety pack', desc: 'Solve 5 different games in one day', metric: 'variety', target: 5 },
-    { id: 'lucky', icon: '🍀', title: 'Two-guess wonder', desc: 'Solve a guessing game in 2 or fewer', metric: 'lucky', target: 1 },
-    { id: 'speed', icon: '⚡', title: 'Speed run', desc: 'Solve a puzzle in under a minute', metric: 'speed', target: 1 },
-    { id: 'collector', icon: '📚', title: 'Collector', desc: 'Track 10 games', metric: 'games', target: 10 }
+    { id: 'first', icon: '⭐', title: 'First solve', tiers: [
+      { desc: 'Solve your first puzzle', metric: 'solves', target: 1 },
+      { desc: 'Solve a puzzle in 5 different games', metric: 'gamesSolved', target: 5 }] },
+    { id: 'started', icon: '🧩', title: 'Getting started', tiers: [
+      { desc: 'Solve 10 puzzles', metric: 'solves', target: 10 },
+      { desc: 'Solve 100 puzzles', metric: 'solves', target: 100 }] },
+    { id: 'master', icon: '🏅', title: 'Puzzle master', tiers: [
+      { desc: 'Solve 500 puzzles', metric: 'solves', target: 500 },
+      { desc: 'Solve 1,000 puzzles', metric: 'solves', target: 1000 }] },
+    { id: 'roll', icon: '🔥', title: 'On a roll', tiers: [
+      { desc: 'Reach a 7-day streak', metric: 'streak', target: 7 },
+      { desc: 'Reach a 30-day streak', metric: 'streak', target: 30 }] },
+    { id: 'centurion', icon: '🚀', title: 'Centurion', tiers: [
+      { desc: 'Reach a 100-day streak', metric: 'streak', target: 100 },
+      { desc: 'Reach a 365-day streak', metric: 'streak', target: 365 }] },
+    { id: 'perfectWeek', icon: '✨', title: 'Perfect week', tiers: [
+      { desc: 'Solve every game you track, 7 days in a row', metric: 'perfectDays', target: 7 },
+      { desc: 'Solve every game you track, 30 days in a row', metric: 'perfectDays', target: 30 }] },
+    { id: 'variety', icon: '🎨', title: 'Variety pack', tiers: [
+      { desc: 'Solve 5 different games in one day', metric: 'variety', target: 5 },
+      { desc: 'Solve 10 different games in one day', metric: 'variety', target: 10 }] },
+    { id: 'lucky', icon: '🍀', title: 'Two-guess wonder', tiers: [
+      { desc: 'Solve a guessing game in 2 or fewer guesses', metric: 'lucky', target: 1 },
+      { desc: 'Solve a guessing game in 2 or fewer guesses 10 times', metric: 'lucky', target: 10 }] },
+    { id: 'speed', icon: '⚡', title: 'Speed run', tiers: [
+      { desc: 'Solve a puzzle in under a minute', metric: 'fastest', target: 60000, below: true },
+      { desc: 'Solve a puzzle in under 20 seconds', metric: 'fastest', target: 20000, below: true }] },
+    { id: 'collector', icon: '📚', title: 'Collector', tiers: [
+      { desc: 'Track 10 games', metric: 'games', target: 10 },
+      { desc: 'Track 25 games', metric: 'games', target: 25 }] },
+    { id: 'earlyBird', icon: '🌅', title: 'Early bird', tiers: [
+      { desc: 'Solve a game within an hour of its reset', metric: 'early', target: 1 },
+      { desc: 'Solve a game within an hour of its reset 25 times', metric: 'early', target: 25 }] },
+    { id: 'nightOwl', icon: '🦉', title: 'Night owl', tiers: [
+      { desc: 'Solve a game in the last hour before its reset', metric: 'late', target: 1 },
+      { desc: 'Solve a game in the last hour before its reset 25 times', metric: 'late', target: 25 }] },
+    { id: 'holeInOne', icon: '🎯', title: 'Hole in one', tiers: [
+      { desc: 'Solve a guessing game on the first guess', metric: 'holeInOne', target: 1 },
+      { desc: 'Solve a guessing game on the first guess 3 times', metric: 'holeInOne', target: 3 }] },
+    { id: 'records', icon: '🏆', title: 'Record breaker', tiers: [
+      { desc: 'Set a personal best', metric: 'records', target: 1 },
+      { desc: 'Set 25 personal bests', metric: 'records', target: 25 }] },
+    { id: 'cleanSweep', icon: '🧹', title: 'Clean sweep', tiers: [
+      { desc: 'Solve every game you track on one day (at least 3 games)', metric: 'sweeps', target: 1 },
+      { desc: 'Have 50 clean-sweep days', metric: 'sweeps', target: 50 }] },
+    { id: 'bounceBack', icon: '💪', title: 'Bounce back', tiers: [
+      { desc: 'Solve a game the day after missing it', metric: 'bounces', target: 1 },
+      { desc: 'Bounce back 10 times', metric: 'bounces', target: 10 }] },
+    { id: 'regular', icon: '📆', title: 'Regular', tiers: [
+      { desc: 'Solve something on 30 different days', metric: 'days', target: 30 },
+      { desc: 'Solve something on 365 different days', metric: 'days', target: 365 }] },
+    { id: 'marathon', icon: '⏳', title: 'Marathon', tiers: [
+      { desc: 'Play for 10 hours in the game player', metric: 'playMs', target: 10 * HOUR },
+      { desc: 'Play for 50 hours in the game player', metric: 'playMs', target: 50 * HOUR }] },
+    { id: 'weekend', icon: '🗓️', title: 'Weekend warrior', tiers: [
+      { desc: 'Solve on both days of 4 weekends', metric: 'weekends', target: 4 },
+      { desc: 'Solve on both days of 26 weekends', metric: 'weekends', target: 26 }] }
   ];
+  /** "roll#2": tier 2 of On a roll. Earned keys are kept in the hub's state (state.achievements). */
+  const tierKey = (id, tier) => `${id}#${tier}`;
+  const TIER1_KEYS = ACHIEVEMENTS.map((a) => tierKey(a.id, 1));
+  const ALL_TIER_KEYS = ACHIEVEMENTS.flatMap((a) => a.tiers.map((t, i) => tierKey(a.id, i + 1)));
 
-  /** Longest run of consecutive dates on which every eligible game was solved. */
-  function perfectRun(games) {
+  // Before 1.5.0 each achievement was one badge; each maps to the tiers it now stands for.
+  const LEGACY_ACHIEVEMENTS = {
+    first: ['first#1'], solves10: ['started#1'], solves100: ['started#1', 'started#2'],
+    solves500: ['master#1'], solves1000: ['master#1', 'master#2'],
+    streak7: ['roll#1'], streak30: ['roll#1', 'roll#2'], streak100: ['centurion#1'], streak365: ['centurion#1', 'centurion#2'],
+    perfectWeek: ['perfectWeek#1'], variety: ['variety#1'], lucky: ['lucky#1'], speed: ['speed#1'], collector: ['collector#1']
+  };
+  /** Earned keys in the 1.5.0 form; old ids become their tiers, keys from newer versions are kept. */
+  function migrateAchievementKeys(list) {
+    const out = new Set();
+    (Array.isArray(list) ? list : []).forEach((k) => {
+      if (typeof k !== 'string') return;
+      if (k.includes('#')) out.add(k);
+      else (LEGACY_ACHIEVEMENTS[k] || []).forEach((x) => out.add(x));
+    });
+    return [...out];
+  }
+
+  /** Each tracked day (sorted) with whether every game eligible that day was solved, and how many were eligible. */
+  function trackedDays(games) {
     const list = (Array.isArray(games) ? games : []).filter((g) => g && g.dayHistory && typeof g.dayHistory === 'object');
-    if (!list.length) return 0;
     const first = new Map();
     const done = new Map();
     list.forEach((g) => {
@@ -860,44 +927,129 @@
     });
     const allDays = new Set();
     done.forEach((set) => set.forEach((d) => allDays.add(d)));
-    const days = [...allDays].sort((a, b) => a - b);
+    return [...allDays].sort((a, b) => a - b).map((d) => {
+      const eligible = [...first.keys()].filter((g) => first.get(g) <= d);
+      return { day: d, eligible: eligible.length, ok: eligible.length > 0 && eligible.every((g) => done.get(g).has(d)) };
+    });
+  }
+
+  /** Longest run of consecutive dates on which every eligible game was solved. */
+  function perfectRun(games) {
     let best = 0;
     let run = 0;
     let prev = null;
-    for (const d of days) {
-      const eligible = [...first.keys()].filter((g) => first.get(g) <= d);
-      const ok = eligible.length > 0 && eligible.every((g) => done.get(g).has(d));
-      run = ok ? (prev !== null && d === prev + 1 && run > 0 ? run + 1 : 1) : 0;
-      prev = d;
+    trackedDays(games).forEach(({ day, ok }) => {
+      run = ok ? (prev !== null && day === prev + 1 && run > 0 ? run + 1 : 1) : 0;
+      prev = day;
       if (run > best) best = run;
-    }
+    });
     return best;
   }
 
-  /** Every achievement with { earned, progress, target } from the games list and the result log. */
-  function computeAchievements(games, logs) {
+  /** The numbers the achievements are measured by, from the games list and the result log. */
+  function achievementMetrics(games, logs) {
     const gs = Array.isArray(games) ? games.filter((g) => g && typeof g === 'object') : [];
     const rows = Array.isArray(logs) ? logs.filter((l) => l && typeof l === 'object') : [];
     const solvedRows = rows.filter((r) => r.outcome === 'Completed');
+    const gameKey = (r) => r.gameId || r.gameName || '';
+    const byId = new Map(gs.map((g) => [g.id, g]));
     const byDay = new Map();
     solvedRows.forEach((r) => {
-      const key = r.date;
-      if (!byDay.has(key)) byDay.set(key, new Set());
-      byDay.get(key).add(r.gameId || r.gameName);
+      if (!byDay.has(r.date)) byDay.set(r.date, new Set());
+      byDay.get(r.date).add(gameKey(r));
     });
-    const metrics = {
+    const guess = solvedRows.map((r) => parseScore(r.score)).filter((p) => p && !p.fail);
+    const times = solvedRows.map((r) => Number(r.timeMs)).filter((x) => x > 0 && Number.isFinite(x));
+    // Early bird / night owl: results logged within an hour after / before the game's reset.
+    let early = 0;
+    let late = 0;
+    solvedRows.forEach((r) => {
+      const at = Number(r.loggedAt);
+      const g = byId.get(r.gameId);
+      if (!g || !(at > 0) || !Number.isFinite(at)) return;
+      try {
+        const next = getNextResetDate(g.resetTime, g.resetZone, new Date(at)).getTime();
+        if (next - at <= HOUR) late += 1;
+        const start = getNextResetDate(g.resetTime, g.resetZone, new Date(at - 20 * HOUR)).getTime();
+        if (start <= at && at - start < HOUR) early += 1;
+      } catch (e) {}
+    });
+    // Personal bests: a solve that beat every earlier comparable result of the same game.
+    let records = 0;
+    const perGame = new Map();
+    solvedRows.forEach((r) => { const k = gameKey(r); if (!perGame.has(k)) perGame.set(k, []); perGame.get(k).push(r); });
+    perGame.forEach((list) => {
+      const best = new Map();
+      list.slice().sort((a, b) => String(a.date).localeCompare(String(b.date)) || (Number(a.loggedAt) || 0) - (Number(b.loggedAt) || 0))
+        .forEach((r) => {
+          const v = parseResultValue(r.score);
+          if (!v) return;
+          if (best.has(v.group) && v.rank < best.get(v.group)) records += 1;
+          if (!best.has(v.group) || v.rank < best.get(v.group)) best.set(v.group, v.rank);
+        });
+    });
+    // Days with a solve (from the log and the games' histories), weekends with both days solved.
+    const solvedDays = new Set(solvedRows.map((r) => r.date).filter((d) => DATE_KEY_RE.test(String(d))));
+    let bounces = 0;
+    gs.forEach((g) => {
+      const h = g.dayHistory && typeof g.dayHistory === 'object' ? g.dayHistory : {};
+      Object.keys(h).forEach((k) => {
+        if (!DATE_KEY_RE.test(k)) return;
+        if (h[k] === 'completed') solvedDays.add(k);
+        if (h[k] === 'missed' && h[addDaysToCycleKey(k, 1)] === 'completed') bounces += 1;
+      });
+    });
+    let weekends = 0;
+    solvedDays.forEach((k) => {
+      const [y, m, d] = k.split('-').map(Number);
+      if (new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 6 && solvedDays.has(addDaysToCycleKey(k, 1))) weekends += 1;
+    });
+    const active = gs.filter((g) => !g.archived);
+    return {
       solves: solvedRows.length,
+      gamesSolved: new Set(solvedRows.map(gameKey)).size,
       streak: Math.max(0, ...gs.map((g) => Math.max(Number(g.bestStreak) || 0, Number(g.streak) || 0)), ...rows.map((r) => Number(r.streak) || 0)),
-      perfectDays: perfectRun(gs.filter((g) => !g.archived)),
+      perfectDays: perfectRun(active),
       variety: Math.max(0, ...[...byDay.values()].map((set) => set.size)),
-      lucky: solvedRows.some((r) => { const p = parseScore(r.score); return p && !p.fail && p.max >= 5 && p.n <= 2; }) ? 1 : 0,
-      speed: solvedRows.some((r) => Number(r.timeMs) > 0 && Number(r.timeMs) < 60000) ? 1 : 0,
-      games: gs.length
+      lucky: guess.filter((p) => p.max >= 5 && p.n <= 2).length,
+      holeInOne: guess.filter((p) => p.max >= 3 && p.n === 1).length,
+      fastest: times.length ? Math.min(...times) : Infinity,
+      games: gs.length,
+      early,
+      late,
+      records,
+      sweeps: trackedDays(active).filter((d) => d.ok && d.eligible >= 3).length,
+      bounces,
+      days: solvedDays.size,
+      playMs: times.reduce((a, b) => a + b, 0),
+      weekends
     };
+  }
+
+  /**
+   * Every achievement with the tier the data earns (0, 1 or 2), the earned tier keys, and the next
+   * tier to go for ({ desc, progress, target }, or null when both are earned).
+   */
+  function computeAchievements(games, logs) {
+    const m = achievementMetrics(games, logs);
     return ACHIEVEMENTS.map((a) => {
-      const progress = Math.min(a.target, metrics[a.metric] || 0);
-      return { id: a.id, icon: a.icon, title: a.title, desc: a.desc, target: a.target, progress, earned: progress >= a.target };
+      const met = a.tiers.map((t) => (t.below ? m[t.metric] < t.target : (m[t.metric] || 0) >= t.target));
+      const tier = met[1] && met[0] ? 2 : (met[0] ? 1 : 0);
+      const next = a.tiers[tier] || null;
+      const progressOf = (t) => (t.below ? (m[t.metric] < t.target ? 1 : 0) : Math.min(t.target, m[t.metric] || 0));
+      return {
+        id: a.id, icon: a.icon, title: a.title, tier, tiers: a.tiers.length,
+        keys: a.tiers.slice(0, tier).map((t, i) => tierKey(a.id, i + 1)),
+        desc: (next || a.tiers[a.tiers.length - 1]).desc,
+        next: next ? { desc: next.desc, progress: progressOf(next), target: next.below ? 1 : next.target, below: Boolean(next.below) } : null,
+        earned: tier >= 1
+      };
     });
+  }
+
+  /** Earned tier keys from computeAchievements(). */
+  function earnedAchievementKeys(list) {
+    return (Array.isArray(list) ? list : []).flatMap((a) => a.keys || []);
   }
 
   // ---- Reset-time detection (1.4.0) ----
@@ -1082,6 +1234,11 @@
     perfectRun,
     monthlyRecap,
     ACHIEVEMENTS,
+    TIER1_KEYS,
+    ALL_TIER_KEYS,
+    migrateAchievementKeys,
+    achievementMetrics,
+    earnedAchievementKeys,
     isFailedShareResult,
     looksLikeShareResult,
     isStrictShareResult,

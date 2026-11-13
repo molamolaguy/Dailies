@@ -1,8 +1,8 @@
-# Dailies 1.4.0: How the App Works
+# Dailies 1.5.0: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.4.0` (`versionCode = 7`)
+- **Version**: `1.5.0` (`versionCode = 8`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **Licence**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -116,7 +116,8 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - AMOLED Pitch-Black Surface (dark theme only)
   - Compact Game Cards
   - Group Finished Games: today's done games move under a **Done today** header, folded away until you open it (with the All filter)
-  - App Icon: Default (white, yellow-to-green star), Theme (follows the theme and wallpaper colours), Midnight, Sunset, Ocean, Mono, and Gold, which unlocks once every achievement is earned. The hub's logo matches it
+  - App Icon: Default (white, yellow-to-green star), Theme (follows the theme and wallpaper colours), Midnight, Sunset, Ocean, Mono, and Gold, which unlocks once the first tier of every achievement is earned. The hub's logo matches it
+  - Gold Accents (1.5.0): unlocked by earning every tier of every achievement; gold replaces the theme's main colour, with gold card trim, in the dark, light and AMOLED themes
 - **Gameplay & Time**:
   - 12h / 24h clock
   - Seconds in countdowns
@@ -436,3 +437,16 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Backups** carry `achievements` and `goldUnlocked` (sticky once earned); import unions them.
 - **Catalogue**: entries can list `also` addresses (Tradle, Octordle, Quordle). Whole-site entries no longer match subdomains, and only path entries (or ones with `also`) make two links the same game, so sibling games on one site can be added. `cleanGameUrl` stores `URL.href`.
 - **Launcher icon**: `HubActivity` skips `AppIcon.apply` in `onStop` while one of its own screens covers it (`startActivityForResult` sets `coveredByOwnScreen`).
+
+## 13. New in 1.5.0
+
+The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for developers:
+- **Achievements** (`hub-core.js`): 19 achievements, two tiers each (`ACHIEVEMENTS[].tiers`, each `{ desc, metric, target, below? }`). `achievementMetrics` computes the numbers (solves, distinct games solved, streak, perfect run, variety, two-guess and first-guess solves, fastest time, games tracked, early-bird / night-owl solves from `loggedAt` and each game's reset, personal bests, clean-sweep days with 3+ games, bounce-backs, solved days, play time, weekends with both days solved). `computeAchievements` returns each one's earned `tier`, its earned `keys` and the `next` tier with progress.
+- **Earned tiers** are kept in `state.achievements` as keys such as `roll#2` and are never taken away. `migrateAchievementKeys` turns 1.4.0's one-badge ids into tiers (`solves100` → `started#1`, `started#2`, `streak365` → `centurion#1`, `centurion#2`, …) on load and on import. `checkNewAchievements` toasts each new tier.
+- **Gold unlocks** are sticky flags, kept in saves and backups (manual and weekly), so later versions that add achievements never take them away: `goldUnlocked` (Gold app icon: every `TIER1_KEYS`) and `goldAccentsUnlocked` (Gold Accents: every `ALL_TIER_KEYS`). `settings.goldAccents` turns the accents on; `applyThemeAndSettings` then sets `html[data-gold="true"]` and swaps the `--md-primary` family for gold (separate light and dark values; AMOLED keeps its black surfaces), and `app.css` adds gold trim.
+- **Folding cards**: any card with `data-fold` shows only its heading until opened (`initFolds`; descriptions, buttons and the clock in a heading are `.fold-extra` and hidden while folded). All start folded; opened ones stay open until the app closes (`openFolds`). `revealFold(el)` opens the card around an element before scrolling to it. Used by the Achievements card and every Settings card.
+- **Removed games**: `retainedGameStats` entries carry `removedAt`; `pruneRetainedMap` keeps the 5 most recently removed games (older saves are dated by their last played day). Add Game lists them (`renderRemovedGames`); picking one fills the form, and saving restores its history through the existing link match.
+- **Reset alerts**: `DailyRefreshWorker.runRefresh` collects a pass's ready games and calls `Notifier.postResetNotifications`. One game, with nothing unread in the shade: its own notification, as before. Otherwise one notification (`COMBINED_ID`, `InboxStyle`, `combinedText`) lists every ready game, merging names from alerts still in the shade (`mergeReadyNames`; single alerts carry their name in an extra) and cancelling those. It opens the hub.
+- **Tab scroll position**: `switchNavigation` and `Pager.attach` keep the scroll fraction (`scrollFraction`): the incoming page is placed at the spot it will have once current, and `jumpScroll` sets it without smooth scrolling.
+- **Gold accents styling**: `--gold-shine` (the icon's metallic gradient) on filled buttons, tonal pills, chips, bars, mask icons and solved calendar days; `--gold-text` as gradient text on the title, card headings and stat values; `--gold-edge` as a gradient border (padding-box / border-box backgrounds) on cards and the dock. Native checkboxes use a solid gold `accent-color`.
+- **Easter egg**: the Achievements card doesn't say what the gold unlocks need.

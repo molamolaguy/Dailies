@@ -1,0 +1,7 @@
+1.5.0
+• 19 achievements, each with two tiers, including 9 new ones.
+• A secret gold reward or two to discover.
+• Achievements and Settings sections fold to save space.
+• Add back any of your 5 most recently removed games from Add Game.
+• Several reset alerts at once arrive as one notification.
+• Tabs keep your scroll position when you switch.

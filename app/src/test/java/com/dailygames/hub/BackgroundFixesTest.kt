@@ -167,6 +167,21 @@ class BackgroundFixesTest {
     }
 
     @Test
+    fun severalReadyGames_shareOneNotification() {
+        // Unread alerts in the shade come first; a game already listed isn't listed twice.
+        assertEquals(listOf("Wordle", "Nerdle", "Globle"), Notifier.mergeReadyNames(listOf("Wordle", "Nerdle"), listOf("Nerdle", "Globle", " ")))
+        assertEquals(
+            "3 daily games are ready" to "Wordle, Nerdle and Globle have refreshed. Tap to open your hub.",
+            Notifier.combinedText(listOf("Wordle", "Nerdle", "Globle"))
+        )
+        assertEquals("Wordle and Nerdle have refreshed. Tap to open your hub.", Notifier.combinedText(listOf("Wordle", "Nerdle")).second)
+        assertEquals(
+            "A, B, C, D and 2 more have refreshed. Tap to open your hub.",
+            Notifier.combinedText(listOf("A", "B", "C", "D", "E", "F")).second
+        )
+    }
+
+    @Test
     fun ipv6TransitionAndDocumentationRanges_areNotPublic() {
         listOf(
             "::127.0.0.1", "::192.168.1.1", "64:ff9b::c0a8:101", "64:ff9b::7f00:1", "2002:c0a8:101::1", "2002:7f00:1::1",

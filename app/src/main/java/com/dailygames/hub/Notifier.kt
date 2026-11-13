@@ -54,6 +54,29 @@ object Notifier {
         return t
     }
     private const val SUMMARY_ID = 0x0DA1E5
+    /** The single notification used when several games are ready (1.5.0). */
+    private const val COMBINED_ID = 0x0DA1E6
+    private const val EXTRA_READY_NAME = "dailes_ready_name"
+    private const val EXTRA_READY_NAMES = "dailes_ready_names"
+
+    /** A game whose new puzzle is out, for [postResetNotifications]. */
+    data class ReadyGame(val id: String, val name: String, val title: String, val body: String)
+
+    /** Names from the shade (still unread) followed by this pass's, each once, in that order. */
+    fun mergeReadyNames(inShade: List<String>, fresh: List<String>): List<String> =
+        LinkedHashSet<String>().apply { (inShade + fresh).forEach { n -> n.trim().takeIf { it.isNotEmpty() }?.let { add(it) } } }.toList()
+
+    /** Title and text of the one notification for several ready games. */
+    fun combinedText(names: List<String>): Pair<String, String> {
+        val title = "${names.size} daily games are ready"
+        val shown = names.take(4)
+        val list = when {
+            names.size <= 1 -> shown.joinToString()
+            names.size <= 4 -> shown.dropLast(1).joinToString(", ") + " and " + shown.last()
+            else -> shown.joinToString(", ") + " and ${names.size - 4} more"
+        }
+        return title to "$list ${if (names.size == 1) "has" else "have"} refreshed. Tap to open your hub."
+    }
 
     /**
      * Pure helper that formats the notification title and body for a refreshed game. No emoji: the
@@ -116,7 +139,10 @@ object Notifier {
      * false the caller posts the group summary itself once the whole batch is out
      * ([postGroupSummary]), so the count never depends on the system having registered each post yet.
      */
-    fun postGameNotification(ctx: Context, gameId: String, title: String, body: String, updateSummary: Boolean = true): Int? {
+    fun postGameNotification(
+        ctx: Context, gameId: String, title: String, body: String, updateSummary: Boolean = true,
+        readyName: String? = null, grouped: Boolean = true
+    ): Int? {
         val nm = NotificationManagerCompat.from(ctx)
         if (!nm.areNotificationsEnabled()) return null
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -147,7 +173,8 @@ object Notifier {
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
             .setAutoCancel(true)
             .setContentIntent(pending)
-            .setGroup(GROUP_KEY)
+            .addExtras(android.os.Bundle().apply { putString(EXTRA_READY_NAME, readyName ?: title) })
+            .apply { if (grouped) setGroup(GROUP_KEY) }
             .build()
 
         return try {
@@ -212,6 +239,73 @@ object Notifier {
             nm.notify(SUMMARY_ID, summary)
         } catch (e: SecurityException) {
             // Permission revoked between the check in postGameNotification and now.
+        }
+    }
+
+    /**
+     * Reset alerts for one refresh pass. One game (and nothing else waiting in the shade): its own
+     * notification, as before. Several, counting games whose alert is still unread: a single
+     * notification that lists them, replacing the separate ones. Tapping it opens the hub.
+     */
+    fun postResetNotifications(ctx: Context, ready: List<ReadyGame>) {
+        if (ready.isEmpty()) return
+        val nm = NotificationManagerCompat.from(ctx)
+        if (!nm.areNotificationsEnabled()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) return
+        val systemNm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        val active = runCatching { systemNm?.activeNotifications?.toList().orEmpty() }.getOrDefault(emptyList())
+        // Alerts still in the shade: an earlier combined one, single-game ones, and 1.4.0's grouped ones.
+        val inShade = ArrayList<String>()
+        val toCancel = ArrayList<Int>()
+        active.forEach { sbn ->
+            val extras = sbn.notification.extras
+            when {
+                sbn.id == COMBINED_ID -> extras?.getStringArray(EXTRA_READY_NAMES)?.let { inShade.addAll(it) }
+                sbn.id == SUMMARY_ID -> toCancel += sbn.id
+                extras?.getString(EXTRA_READY_NAME) != null -> { inShade += extras.getString(EXTRA_READY_NAME)!!; toCancel += sbn.id }
+                sbn.notification.group == GROUP_KEY -> {
+                    extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
+                        ?.removeSuffix(" has refreshed")?.let { inShade += it }
+                    toCancel += sbn.id
+                }
+            }
+        }
+        val freshNames = ready.map { it.name }
+        val names = mergeReadyNames(inShade, freshNames)
+        if (names.size <= 1) {
+            val g = ready.first()
+            postGameNotification(ctx, g.id, g.title, g.body, updateSummary = false, readyName = g.name, grouped = false)
+            return
+        }
+        val (title, text) = combinedText(names)
+        val style = NotificationCompat.InboxStyle().setBigContentTitle(title)
+        names.take(6).forEach { style.addLine("$it has refreshed") }
+        if (names.size > 6) style.setSummaryText("and ${names.size - 6} more")
+        val launch = Intent(ctx, HubActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val pending = PendingIntent.getActivity(
+            ctx, COMBINED_ID, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val combined = NotificationCompat.Builder(ctx, channelId(ctx))
+            .setSmallIcon(R.drawable.ic_stat_dailes)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(style)
+            .setNumber(names.size)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+            .addExtras(android.os.Bundle().apply { putStringArray(EXTRA_READY_NAMES, names.toTypedArray()) })
+            .build()
+        try {
+            toCancel.forEach { nm.cancel(it) }
+            nm.notify(COMBINED_ID, combined)
+        } catch (e: SecurityException) {
+            // Permission revoked between the check and the call.
         }
     }
 }

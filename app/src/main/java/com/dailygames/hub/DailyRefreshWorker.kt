@@ -95,16 +95,19 @@ class DailyRefreshWorker(
 
         /** Posts notifications for every game whose cycle has rolled over, then arms the next reset. */
         fun runRefresh(ctx: Context) {
-            val posted = LinkedHashMap<Int, String>()
+            // Collected for the whole pass: one game gets its own alert, several share one (1.5.0).
+            val names = GameStore.load(ctx).let { arr ->
+                (0 until arr.length()).mapNotNull { arr.optJSONObject(it) }.associate { it.optString("id") to it.optString("name") }
+            }
+            val ready = ArrayList<Notifier.ReadyGame>()
             val dispatcher = object : NotificationDispatcher {
                 override fun notifyGameRefresh(gameId: String, title: String, body: String) {
-                    Notifier.postGameNotification(ctx, gameId, title, body, updateSummary = false)
-                        ?.let { posted[it] = title }
+                    val name = names[gameId]?.trim()?.takeIf { it.isNotEmpty() } ?: title.removeSuffix(" has refreshed")
+                    ready += Notifier.ReadyGame(gameId, name, title, body)
                 }
 
-                // One summary for the whole pass, counting this pass's posts directly.
                 override fun onBatchComplete() {
-                    if (posted.isNotEmpty()) Notifier.postGroupSummary(ctx, posted)
+                    Notifier.postResetNotifications(ctx, ready)
                 }
             }
             val processor = DailyRefreshProcessor(
