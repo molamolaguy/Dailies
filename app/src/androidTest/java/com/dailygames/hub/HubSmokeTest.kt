@@ -77,6 +77,22 @@ class HubSmokeTest {
     }
 
     @Test
+    fun everyDialogUnlocksThePageWhenItCloses() {
+        ActivityScenario.launch(HubActivity::class.java).use { s ->
+            s.waitForJs("String(typeof HubCore === 'object' && !!document.getElementById('gamesGrid'))", "\"true\"")
+            // Each dialog locks scrolling while it's open (html.modal-open) and must unlock it when it
+            // closes, by its own button or by Back. The achievement details once stayed locked (1.6.0).
+            val ids = s.js("JSON.stringify(MODAL_IDS)")
+            for (id in Regex("modal[A-Za-z]+").findAll(ids).map { it.value }.toList()) {
+                s.js("openModal('$id'); 'ok'")
+                s.waitForJs("String(document.documentElement.classList.contains('modal-open'))", "\"true\"")
+                s.js("window.handleBackPress(); 'ok'")
+                s.waitForJs("String(document.documentElement.classList.contains('modal-open'))", "\"false\"", 5_000)
+            }
+        }
+    }
+
+    @Test
     fun lightThemeAppliesFromSettings() {
         ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof applyThemeAndSettings)", "\"function\"")

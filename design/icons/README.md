@@ -3,7 +3,7 @@
 Transparent 96 px PNGs rendered from **Material Symbols Rounded** (Apache-2.0, see `LICENSE-MaterialSymbols.txt`).
 
 - The hub embeds them (downscaled to 72 px) as data URIs in `app/src/main/assets/app.css` (`.ico-*` classes),
-  used as CSS masks so they take the current text colour.
+  used as CSS masks so they take the current text color.
 - `app/src/main/res/drawable-nodpi/ic_bar_*.png` are copies used by the native game-player bar.
 
 | File | Material Symbol |

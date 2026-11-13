@@ -4,4 +4,4 @@
 • Streak reminder before a reset, and alert sounds that follow your settings.
 • Weekly automatic backup to a folder you choose; optional update check.
 • Ad blocking in sign-in popups; proxy support; downloads on Android 7–9.
-• Text and icons centred properly.
+• Text and icons centered properly.

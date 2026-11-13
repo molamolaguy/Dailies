@@ -1607,3 +1607,18 @@ html[data-gold="true"] .app-toast .toast-close { color: #D1AB48; background: rgb
 /* The web version (html.web, no Android app): Android-only settings hidden; web-only controls shown. */
 html.web .android-only { display: none !important; }
 html:not(.web) .web-only { display: none !important; }
+
+/* Color themes grayed out while "Match Device Wallpaper Colors" is on. */
+.theme-choices.locked .theme-choice { opacity: 0.38; filter: grayscale(0.85); cursor: not-allowed; }
+.theme-choices.locked .theme-choice.on { border-color: var(--md-outline); background: var(--md-container-low); }
+
+/* Bottom navigation (1.6.1): slightly see-through, with a light blur so its labels stay readable. */
+.m4-floating-dock {
+  background: color-mix(in srgb, var(--md-container-low) 78%, transparent) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(1.2); backdrop-filter: blur(6px) saturate(1.2);
+}
+[data-amoled="true"] .m4-floating-dock { background: rgba(0, 0, 0, 0.78) !important; }
+html[data-theme="light"] .m4-floating-dock { background: color-mix(in srgb, var(--md-container) 80%, transparent) !important; }
+html[data-gold="true"] .m4-floating-dock {
+  background: linear-gradient(color-mix(in srgb, var(--gold-card) 78%, transparent), color-mix(in srgb, var(--gold-card) 78%, transparent)) padding-box, var(--gold-edge) border-box !important;
+}
