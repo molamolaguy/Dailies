@@ -7,6 +7,7 @@ A feature update. It installs over 1.3.0 and keeps your games, streaks and histo
 |---|---|---|
 | **Logging results** | You had to tap the game's Share / Copy button | When a game shows its end screen, Dailies reads the result from its Share button by itself. Nothing is copied or shared. |
 | **Several games in a row** | Back to the hub between games | Tap the game's name in the player to switch to any of today's games, or **Next** (⏭) for the next one you haven't played |
+| **After a game** | Back to the hub, then pick the next game | When a result is saved in the player, **Play \<next game\>** opens it straight away, or **Back to hub**. Logging by hand after the player asks the same. |
 | **Page zoom** | Not available | ⋮ → **Zoom** in the player; remembered for each site |
 | **Reset times** | Set by hand | If a game's puzzle numbers show its reset time is wrong, Dailies suggests the right one |
 | **Score history** | Filter by game and outcome | Also search every result you've logged (e.g. "2/6", "#117") |

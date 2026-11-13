@@ -79,6 +79,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 - **Top bar**:
   - **Hub**: go back to the hub.
   - **Game name**: tap it to switch to any of today's games (▶ playing, ✓ done, ○ not yet) without going back to the hub.
+  - **After a result is saved** (copied, shared or found on the end screen), a card offers **Play \<next game\>** (opens it in the player straight away), **Back to hub**, or ✕ to keep playing. Logging by hand after leaving the player (the **Log** button, or **Solved** / **Missed** on the return prompt) shows the same choice in the hub.
   - **Next** (⏭): the next game you haven't played, in your hub order. Each game keeps its own play time and result, all logged when you return.
   - **Shield**: shows how many requests were blocked. Tap it to allow ads on this game's site, or to block them again; the choice is remembered per game.
   - **⋮**: **Reload**, **Open in browser** and **Zoom**. Zoom (50–200%) is remembered for each site.
@@ -425,3 +426,4 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Catalogue**: `known-games.js` has 59 games; zones can be IANA names. Reset times that aren't verified are corrected over time by the reset-time check. The picker opens `entry.url` or `https://host/path`.
 - **More share formats**: the strict check also accepts a solve time ("0:42", not "9:14 AM") and counts in words / clues / hints / strokes when the text names the game; emoji plus a number needs a puzzle number. `finish-probe.js` also treats a countdown ("05:12:44") and phrases like "Puzzle solved", "crowned", "flawless" as an end screen. `share_cases.json` has samples for the new games (80 cases).
 - **App icon styles**: `AppIcon.style` ("default", "themed", "midnight", "sunset", "ocean", "mono", "gold"), set by `setAppIconStyle`; launcher entries `.IconMidnight` … `.IconGold` with adaptive icons and pre-26 PNGs. The 1.2–1.3 "matches theme" switch maps to "themed". The hub draws the same icons (`appIconSvg`) for the picker and its logo, and only offers Gold when `state.achievements` holds every id. Previews: `design/icons/app-icon-styles.png`, `app-icon-gold.png`.
+- **Play-next prompt**: `GameActivity.showDonePrompt` after a captured result (`offerShare`); in the hub, `offerNextGame` after a log that came from the player (`logOpenedFromPlayer`, or the return prompt's Solved / Missed). Both pick the next `ready` game after the current one in hub order. Device test: `aCapturedResultOffersPlayNextOrBackToHub`.

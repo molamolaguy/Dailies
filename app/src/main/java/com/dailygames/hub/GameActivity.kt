@@ -221,6 +221,7 @@ class GameActivity : ComponentActivity() {
         val onPrimaryContainerColor = when { light && isDynamic -> getColor(android.R.color.system_accent1_900); light -> LIGHT_ON_PRIMARY_CONTAINER; isDynamic -> getColor(android.R.color.system_accent1_100); else -> ON_PRIMARY_CONTAINER }
         titleColor = if (light) LIGHT_ON_SURFACE else Color.WHITE
         barColors = intArrayOf(containerColor, primaryContainerColor, onPrimaryContainerColor)
+        accentColors = intArrayOf(primaryColor, onPrimaryColor)
 
         // ---- Top app bar (Material 3 Expressive tonal pills + Google Sans) ----
         // At 360 dp: 4 icon pills of 48 dp + "Log" + gaps leave about 55 dp for the title, which ellipsizes.
@@ -350,6 +351,8 @@ class GameActivity : ComponentActivity() {
     }
 
     private var barColors = intArrayOf(0, 0, 0)
+    private var accentColors = intArrayOf(0, 0)
+    private var donePrompt: View? = null
 
     /** Builds the game WebView (also used to replace one whose renderer process went away). */
     @SuppressLint("SetJavaScriptEnabled")
@@ -868,7 +871,79 @@ class GameActivity : ComponentActivity() {
         capturedAt = System.currentTimeMillis()
         lineup.firstOrNull { it.id == gameId }?.done = true
         setResultWithLog(openLogOnReturn)
-        showBanner(getString(R.string.share_captured))
+        showDonePrompt(clean)
+    }
+
+    /**
+     * After a result is captured: "Play next" (opens the next unplayed game right here) or "Back to
+     * hub". ✕ keeps playing. With no game left, only "Back to hub".
+     */
+    private fun showDonePrompt(result: String) {
+        if (!::container.isInitialized || isFinishing) return
+        hideDonePrompt()
+        banner.removeCallbacks(hideBanner)
+        banner.visibility = View.GONE
+        val (containerColor, tonalBg, tonalFg) = Triple(barColors[0], barColors[1], barColors[2])
+        val next = nextGame()
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(14), dp(12), dp(16))
+            background = GradientDrawable().apply { cornerRadius = dp(28).toFloat(); setColor(containerColor) }
+            elevation = dp(10).toFloat()
+            isClickable = true // taps on the card don't reach the game
+        }
+        val head = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val texts = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        texts.addView(TextView(this).apply {
+            text = getString(R.string.result_saved_title, gameName)
+            setTextColor(titleColor)
+            textSize = 16f
+            typeface = googleSansBold
+            includeFontPadding = false
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+        })
+        texts.addView(TextView(this).apply {
+            text = if (next == null) getString(R.string.all_games_done) else result.lineSequence().firstOrNull().orEmpty().take(60)
+            setTextColor(titleColor)
+            alpha = 0.75f
+            textSize = 13f
+            maxLines = 1
+            ellipsize = TextUtils.TruncateAt.END
+            setPadding(0, dp(4), 0, 0)
+        })
+        head.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        head.addView(pill("", getString(R.string.keep_playing), tonalBg, tonalFg, R.drawable.ic_bar_close) { hideDonePrompt() })
+        card.addView(head)
+        val buttons = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            setPadding(0, dp(12), 0, 0)
+        }
+        buttons.addView(pill(getString(R.string.back_to_hub), getString(R.string.exit_to_home), tonalBg, tonalFg, R.drawable.ic_bar_arrow_back) {
+            hideDonePrompt()
+            finish()
+        })
+        if (next != null) {
+            buttons.addView(pill(getString(R.string.play_next_named, next.name), getString(R.string.play_next_named, next.name),
+                accentColors[0], accentColors[1], R.drawable.ic_bar_next) {
+                hideDonePrompt()
+                switchToGame(next)
+            }.apply { maxWidth = dp(220); ellipsize = TextUtils.TruncateAt.END })
+        }
+        card.addView(buttons)
+        container.addView(card, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+            Gravity.BOTTOM).apply { marginStart = dp(12); marginEnd = dp(12); bottomMargin = dp(20) + root.paddingBottom })
+        card.translationY = dp(40).toFloat()
+        card.alpha = 0f
+        card.animate().translationY(0f).alpha(1f).setDuration(220).start()
+        card.announceForAccessibility(getString(R.string.result_saved_title, gameName))
+        donePrompt = card
+    }
+
+    private fun hideDonePrompt() {
+        donePrompt?.let { v -> (v.parent as? ViewGroup)?.removeView(v) }
+        donePrompt = null
     }
 
     private fun showBanner(text: String) {
@@ -1204,6 +1279,7 @@ class GameActivity : ComponentActivity() {
      */
     private fun switchToGame(target: LineupGame) {
         if (target.id == gameId) return
+        hideDonePrompt()
         checkClipboardSinceOpen()
         val now = SystemClock.elapsedRealtime()
         val played = foregroundMs + if (resumedAt > 0) now - resumedAt else 0L

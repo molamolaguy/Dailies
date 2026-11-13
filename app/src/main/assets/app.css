@@ -1286,3 +1286,9 @@ html[data-theme="light"] .browse-cat, html[data-theme="light"] .browse-desc { co
 .icon-choice .icon-name { font-size: 11px; font-weight: 600; color: #cbd2de; white-space: nowrap; }
 .icon-choice .icon-lock { position: absolute; top: 30px; right: 12px; font-size: 13px; }
 html[data-theme="light"] .icon-choice .icon-name { color: var(--lt-strong); }
+
+/* "Play next game" prompt after logging a game from the player. */
+.next-game-panel { border-radius: 28px; padding: 20px; height: auto; align-self: center; }
+.next-game-icon { width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--md-container-high); }
+.next-game-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.next-game-play { max-width: 60%; }

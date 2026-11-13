@@ -720,6 +720,23 @@
     </div>
   </div>
 
+  <!-- After logging a game played in the player: open the next one, or stay home -->
+  <div id="modalNextGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="nextGameTitle">
+    <div tabindex="-1" class="modal-panel glass-card next-game-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <div id="nextGameIcon" class="next-game-icon" aria-hidden="true"></div>
+        <div class="min-w-0">
+          <h3 id="nextGameTitle" class="text-base font-bold text-white truncate">Logged</h3>
+          <p id="nextGameSub" class="text-xs text-slate-400"></p>
+        </div>
+      </div>
+      <div class="next-game-actions">
+        <button id="btnNextGameHome" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Back to home</button>
+        <button id="btnNextGamePlay" type="button" class="next-game-play px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg truncate">Play next</button>
+      </div>
+    </div>
+  </div>
+
   <!-- DELETE GAME CONFIRMATION POPUP MODAL -->
   <div id="modalDeleteGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalDeleteTitle">
     <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-rose-500/30 shadow-2xl overflow-hidden">
@@ -2872,6 +2889,24 @@
       copyText(texts.join(TODAY_RESULTS_DIVIDER), texts.length === 1 ? "Today's result copied, formatting kept." : `${texts.length} results copied, formatting kept.`);
     }
 
+    // ---- "Play next game" after logging a game played in the player ----
+    let logOpenedFromPlayer = false;
+    /** Offers the next unplayed game (or says everything's done) after logging one from the player. */
+    function offerNextGame(gameId) {
+      const game = state.games.find((g) => g.id === gameId);
+      if (!game || isAnyModalOpen()) return;
+      lastOpenedGameId = gameId;
+      const next = nextGameToPlay();
+      if (!next) { showToast("🎉 That's every game for today", 'Come back after the next reset.', 'emerald'); return; }
+      const m = document.getElementById('modalNextGame');
+      m.dataset.next = next.id;
+      document.getElementById('nextGameTitle').textContent = `✓ ${game.name} logged`;
+      document.getElementById('nextGameSub').textContent = `${plural(visibleGames().filter((g) => g.status === 'ready').length, 'game')} left today.`;
+      document.getElementById('btnNextGamePlay').textContent = `Play ${next.name}`;
+      document.getElementById('nextGameIcon').innerHTML = renderGameIconHtml(next.icon, next.name, 'w-6 h-6');
+      openModal('modalNextGame');
+    }
+
     // ---- Play next ----
     let lastOpenedGameId = '';
     /** The next unplayed game after the one played last (in the hub's order, wrapping), or null. */
@@ -4107,7 +4142,7 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalAddGame', 'modalBrowseGames', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -4141,6 +4176,7 @@
         document.getElementById('btnConfirmDeleteModal').className = CONFIRM_BTN_DANGER;
       } else if (id === 'modalLogScore') {
         logModalCycleKey = '';
+        logOpenedFromPlayer = false;
       }
       el.classList.add('hidden');
       if (!MODAL_IDS.some(isModalOpen) && modalReturnFocus && modalReturnFocus.isConnected) {
@@ -4570,10 +4606,11 @@
       const captured = returnPromptShareText;
       returnPromptShareText = '';
       const opts = cycleKey ? { cycleKey } : undefined;
-      if (action === 'solved') recordGameOutcome(game.id, 'completed', captured, opts);
-      else if (action === 'missed') recordGameOutcome(game.id, 'missed', '', opts);
+      if (action === 'solved') { recordGameOutcome(game.id, 'completed', captured, opts); setTimeout(() => offerNextGame(game.id), 250); }
+      else if (action === 'missed') { recordGameOutcome(game.id, 'missed', '', opts); setTimeout(() => offerNextGame(game.id), 250); }
       else if (action === 'details') {
         openLogModal(game.id, opts);
+        logOpenedFromPlayer = true;
         // Prefer the result the game player captured; otherwise check the clipboard.
         const clip = captured || await readClipboardText();
         const box = document.getElementById('inputLogScoreText');
@@ -4693,6 +4730,7 @@
       }
       if (openLog) {
         openLogModal(game.id, resetWhilePlaying ? { cycleKey: openedKey } : undefined);
+        logOpenedFromPlayer = true;
         const box = document.getElementById('inputLogScoreText');
         if (captured && box && !box.value.trim()) {
           box.value = captured;
@@ -4939,7 +4977,7 @@
       } catch (e) {}
 
       // Keep Android's predictive-back state in sync with modal visibility.
-      ['modalAddGame', 'modalBrowseGames', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList', 'returnPrompt'].forEach((id) => {
+      ['modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList', 'returnPrompt'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) new MutationObserver(syncBackInterceptState).observe(el, { attributes: true, attributeFilter: ['class'] });
       });
@@ -5865,8 +5903,16 @@
         const gId = document.getElementById('logGameId').value;
         const scoreVal = document.getElementById('inputLogScoreText').value;
         recordGameOutcome(gId, selectedLogStatus, scoreVal, logModalCycleKey ? { cycleKey: logModalCycleKey } : undefined);
+        const fromPlayer = logOpenedFromPlayer;
         closeModal('modalLogScore');
+        if (fromPlayer) setTimeout(() => offerNextGame(gId), 250);
       });
+      document.getElementById('btnNextGamePlay').addEventListener('click', () => {
+        const id = document.getElementById('modalNextGame').dataset.next;
+        closeModal('modalNextGame');
+        if (id) openGameInPlayer(id);
+      });
+      document.getElementById('btnNextGameHome').addEventListener('click', () => closeModal('modalNextGame'));
 
       // Notifications & Permission button in Settings tab
       window.onNotificationPermissionResult = function (granted) {
