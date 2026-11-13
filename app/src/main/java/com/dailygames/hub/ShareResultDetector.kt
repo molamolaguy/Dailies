@@ -17,7 +17,9 @@ object ShareResultDetector {
     private val SINGLE_URL = Regex("^https?://[^ \\t\\n\\r\\f\\x{0B}\\x{A0}]+$", RegexOption.IGNORE_CASE)
     private val FRACTION = Regex("(?<![0-9/])(?:[0-9]{1,2}|x)[ \\t\\x{A0}]*/[ \\t\\x{A0}]*[0-9]{1,2}(?![0-9/])", RegexOption.IGNORE_CASE)
     private val CONTEXT = Regex("\\n|#[ \\x{A0}]?[0-9]|(?<![A-Za-z0-9_])(?:day|puzzle|guess|guesses|tries|try|attempts?|mistakes?|score|points?|streak)(?![A-Za-z0-9_])", RegexOption.IGNORE_CASE)
-    private val COUNTED = Regex("#[ \\x{A0}]?[0-9]+|(?<![A-Za-z0-9_])[0-9]+[ \\t\\x{A0}]*(?:guess|guesses|tries|attempts?|mistakes?|points?|pts|moves?|swaps?|seconds?|secs?|minutes?|mins?)(?![A-Za-z0-9_])", RegexOption.IGNORE_CASE)
+    private val COUNTED = Regex("#[ \\x{A0}]?[0-9]+|(?<![A-Za-z0-9_])[0-9]+[ \\t\\x{A0}]*(?:guess|guesses|tries|attempts?|mistakes?|points?|pts|moves?|swaps?|seconds?|secs?|minutes?|mins?|words?|clues?|hints?|strokes?)(?![A-Za-z0-9_])", RegexOption.IGNORE_CASE)
+    // A solve time like "0:42" or "1:05:12" (not a clock time such as "9:14 AM").
+    private val TIME = Regex("(?<![0-9:/])[0-9]{1,2}:[0-5][0-9](?::[0-5][0-9])?(?![0-9:])(?![ \\t\\x{A0}]*[ap]\\.?m(?![a-z]))", RegexOption.IGNORE_CASE)
 
     // Rules / help text ("Guess the Wordle in 6 tries") names the game and a count but isn't a result;
     // it is rejected unless it carries a puzzle number ("#512"), which help text doesn't.
@@ -42,7 +44,7 @@ object ShareResultDetector {
         if (HELP.containsMatchIn(t) && !PUZZLE_NO.containsMatchIn(t)) return false
         if (FRACTION.containsMatchIn(t) && (CONTEXT.containsMatchIn(t) || mentionsGame)) return true
         if (!mentionsGame) return false
-        return COUNTED.containsMatchIn(t) || MEASURED.containsMatchIn(t) ||
+        return COUNTED.containsMatchIn(t) || MEASURED.containsMatchIn(t) || TIME.containsMatchIn(t) ||
             (EMOJI.containsMatchIn(t) && PUZZLE_NO.containsMatchIn(t))
     }
 

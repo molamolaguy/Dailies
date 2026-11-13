@@ -1,8 +1,7 @@
 1.4.0
 • Results are found automatically when a game shows its end screen.
 • Switch between today's games inside the player, or tap Next.
-• Page zoom, remembered for each site.
-• Suggests the right reset time when a game's puzzle numbers don't fit.
-• Search every result in Score history.
-• Copy all of today's results at once; smoother Score history paging.
-• The hub logo matches your chosen app icon.
+• 59 popular daily games to add in one tap.
+• New app icons, including a gold one for earning every achievement.
+• Page zoom remembered per site; reset-time suggestions.
+• Search Score history; copy all of today's results at once.

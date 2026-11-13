@@ -21,7 +21,9 @@
   var timers = [];
 
   // Words a game's end screen shows (results, stats, a countdown to the next puzzle).
-  var FINISHED_RE = /(next (puzzle|game|word|challenge|dive|round)|come back tomorrow|new puzzle in|see you tomorrow|you (won|solved|got it|found|did it|win)|well done|great job|congrat|splendid|magnificent|impressive|genius|phew|nice work|game over|out of (guesses|lives|tries)|better luck|the answer was|today'?s answer|statistics|your score|final score|you scored|streak)/i;
+  var FINISHED_RE = /(next (puzzle|game|word|challenge|dive|round|grid|board|level)|next [a-z]+ (in|at|tomorrow)|new [a-z]+ (in|at)|come back tomorrow|see you tomorrow|you('ve| have)? (won|solved|got it|found|did it|win|completed|finished|crushed)|puzzle (complete|solved|done)|(solved|completed|complete)!|well done|great job|congrat|splendid|magnificent|impressive|genius|phew|nice work|crowned|champion|flawless|game over|out of (guesses|lives|tries)|better luck|the answer was|today'?s (answer|word|country)|statistics|your (score|time|rank|results)|final score|total score|you scored|streak)/i;
+  // A countdown to the next puzzle ("05:12:44"), which end screens show and games rarely show mid-play.
+  var COUNTDOWN_RE = /(^|[^0-9:])[0-2]?[0-9]:[0-5][0-9]:[0-5][0-9]([^0-9:]|$)/;
   var BUTTON_RE = /(^|[^a-z])(share|copy)([^a-z]|$)/i;
   var AVOID_RE = /(link|invite|friend|twitter|facebook|whatsapp|reddit|discord|instagram|tiktok|threads|bluesky|mastodon|email|e-mail|embed|code|url)/i;
 
@@ -59,7 +61,8 @@
   function looksFinished() {
     try {
       var text = (document.body && document.body.innerText) || '';
-      return FINISHED_RE.test(text.slice(0, 20000));
+      var head = text.slice(0, 20000);
+      return FINISHED_RE.test(head) || COUNTDOWN_RE.test(head);
     } catch (e) { return false; }
   }
   function press(el) {

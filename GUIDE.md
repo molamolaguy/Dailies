@@ -53,6 +53,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 
 ### Tab 1: Daily Hub
 - **Adding a game**: tap **+ Add Game** and paste a link, or use **Share → Dailies** from Chrome.
+  - **Or pick from popular daily games** lists the 59 built-in games by category (searchable); tap one to fill in its link, name and reset time.
   - The name, icon, category and reset time fill in by themselves.
   - Anything you've already typed is never overwritten.
   - **✓ Reset time from built-in list** means the time came from the catalogue of popular games.
@@ -114,7 +115,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - AMOLED Pitch-Black Surface (dark theme only)
   - Compact Game Cards
   - Group Finished Games: today's done games move under a **Done today** header, folded away until you open it (with the All filter)
-  - App Icon Matches Theme: off gives the white icon with the yellow-to-green star; on, the icon follows the theme
+  - App Icon: Default (white, yellow-to-green star), Theme (follows the theme and wallpaper colours), Midnight, Sunset, Ocean, Mono, and Gold, which unlocks once every achievement is earned. The hub's logo matches it
 - **Gameplay & Time**:
   - 12h / 24h clock
   - Seconds in countdowns
@@ -421,3 +422,6 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Search**: `historyFilter.query`; every word must appear in the row's score, game name, date or outcome.
 - **Hub logo**: `html[data-app-icon]` (`default` / `themed`) switches the header SVG's colours in `app.css`.
 - New tests: `GamePlayerTest` (Next, earlier results, zoom prefs) on device; puzzle numbers and reset suggestions in the Node tests.
+- **Catalogue**: `known-games.js` has 59 games; zones can be IANA names. Reset times that aren't verified are corrected over time by the reset-time check. The picker opens `entry.url` or `https://host/path`.
+- **More share formats**: the strict check also accepts a solve time ("0:42", not "9:14 AM") and counts in words / clues / hints / strokes when the text names the game; emoji plus a number needs a puzzle number. `finish-probe.js` also treats a countdown ("05:12:44") and phrases like "Puzzle solved", "crowned", "flawless" as an end screen. `share_cases.json` has samples for the new games (80 cases).
+- **App icon styles**: `AppIcon.style` ("default", "themed", "midnight", "sunset", "ocean", "mono", "gold"), set by `setAppIconStyle`; launcher entries `.IconMidnight` … `.IconGold` with adaptive icons and pre-26 PNGs. The 1.2–1.3 "matches theme" switch maps to "themed". The hub draws the same icons (`appIconSvg`) for the picker and its logo, and only offers Gold when `state.achievements` holds every id. Previews: `design/icons/app-icon-styles.png`, `app-icon-gold.png`.

@@ -398,7 +398,9 @@
   const SINGLE_URL_RE = /^https?:\/\/[^ \t\n\r\f\v\u00A0]+$/i;
   const STRICT_FRACTION_RE = /(?<![0-9/])(?:[0-9]{1,2}|x)[ \t\u00A0]*\/[ \t\u00A0]*[0-9]{1,2}(?![0-9/])/i;
   const STRICT_CONTEXT_RE = /\n|#[ \u00A0]?[0-9]|(?<![A-Za-z0-9_])(?:day|puzzle|guess|guesses|tries|try|attempts?|mistakes?|score|points?|streak)(?![A-Za-z0-9_])/i;
-  const STRICT_COUNTED_RE = /#[ \u00A0]?[0-9]+|(?<![A-Za-z0-9_])[0-9]+[ \t\u00A0]*(?:guess|guesses|tries|attempts?|mistakes?|points?|pts|moves?|swaps?|seconds?|secs?|minutes?|mins?)(?![A-Za-z0-9_])/i;
+  const STRICT_COUNTED_RE = /#[ \u00A0]?[0-9]+|(?<![A-Za-z0-9_])[0-9]+[ \t\u00A0]*(?:guess|guesses|tries|attempts?|mistakes?|points?|pts|moves?|swaps?|seconds?|secs?|minutes?|mins?|words?|clues?|hints?|strokes?)(?![A-Za-z0-9_])/i;
+  // A solve time like "0:42" or "1:05:12" (not a clock time such as "9:14 AM").
+  const STRICT_TIME_RE = /(?<![0-9:\/])[0-9]{1,2}:[0-5][0-9](?::[0-5][0-9])?(?![0-9:])(?![ \t\u00A0]*[ap]\.?m(?![a-z]))/i;
   const STRICT_HELP_RE = /(?<![A-Za-z0-9_])(?:how to play|you have[ \t ]+[0-9]+|you get[ \t ]+[0-9]+|in[ \t ]+[0-9]+[ \t ]+(?:tries|guesses|attempts|chances)|guess the|find the|can you|each guess|tap to|rules)(?![A-Za-z0-9_])/i;
   const STRICT_PUZZLE_NO_RE = /#[  ]?[0-9]/;
   // Results scored in other units (Krillion's "4,250m" depth, "87%", "1,200 XP"), or emoji plus numbers;
@@ -432,7 +434,7 @@
     if (!mentionsGame) return false;
     // Emoji and a number only count with a puzzle number ("Krillion #117 🦐"), so a copied
     // "Krillion 🦐 7 questions" isn't taken for a result.
-    return STRICT_COUNTED_RE.test(t) || STRICT_MEASURED_RE.test(t) || (STRICT_EMOJI_RE.test(t) && STRICT_PUZZLE_NO_RE.test(t));
+    return STRICT_COUNTED_RE.test(t) || STRICT_MEASURED_RE.test(t) || STRICT_TIME_RE.test(t) || (STRICT_EMOJI_RE.test(t) && STRICT_PUZZLE_NO_RE.test(t));
   }
 
   // A share result that says the puzzle was NOT solved ("X/6", "Next time", Connections with four

@@ -110,6 +110,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="hub-header-row flex items-center gap-2.5 text-xs text-slate-400">
           <span class="inline-flex items-center gap-1.5 text-sm font-bold text-white tracking-tight mr-1">
+            <span id="hubLogo" class="hub-logo-wrap" aria-hidden="true">
             <svg width="22" height="22" viewBox="0 0 108 108" class="hub-logo shrink-0" aria-hidden="true">
               <!-- Matches the launcher icon: the white one with the yellow-to-green star by default, or the
                    theme's colours (primary-container ground, primary flower, on-primary sparkle) when
@@ -126,6 +127,7 @@
                 <path class="logo-mark" d="M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z"/>
               </g>
             </svg>
+            </span>
             Dailies
           </span>
           <span><strong id="kpiReadyCount" class="text-emerald-400 font-semibold">0</strong> ready</span>
@@ -344,13 +346,12 @@
             <input id="settingCompactCards" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">App Icon Matches Theme</p>
-              <p class="text-[11px] text-slate-400">Off: white icon with a yellow-to-green star. On: the icon follows the theme above, set when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
-            </div>
-            <input id="settingIconTheme" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
+          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 sm:col-span-3">
+            <p class="font-bold text-white">App Icon</p>
+            <p class="text-[11px] text-slate-400">Changes when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
+            <div id="iconChoices" class="icon-choices" role="radiogroup" aria-label="App icon"></div>
+            <p id="iconGoldHint" class="text-[11px] text-amber-300/90 mt-1"></p>
+          </div>
 
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
@@ -570,6 +571,7 @@
             <input id="inputGameUrl" type="text" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" required placeholder="Paste a daily game link, e.g. nytimes.com/games/wordle" class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
             <button id="btnAutoDetectMeta" type="button" class="px-3 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold shrink-0">Scrape Site</button>
           </div>
+          <button id="btnBrowseGames" type="button" class="mt-2 text-xs font-semibold text-indigo-300 underline-offset-2 hover:underline">Or pick from popular daily games</button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -700,6 +702,20 @@
           <button id="btnDayEntryCopy" type="button" class="hidden px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Copy</button>
           <button id="btnDayEntryEdit" type="button" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg">Edit</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPULAR GAMES PICKER (built-in catalogue) -->
+  <div id="modalBrowseGames" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="browseGamesTitle">
+    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-lg border border-slate-700 shadow-2xl overflow-hidden">
+      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2">
+        <h3 id="browseGamesTitle" class="text-sm sm:text-base font-bold text-white">Popular daily games</h3>
+        <button type="button" data-close-modal="modalBrowseGames" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="p-4 space-y-3">
+        <input id="browseGamesSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search games" aria-label="Search games" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm placeholder-slate-500" />
+        <div id="browseGamesList" class="browse-list"></div>
       </div>
     </div>
   </div>
@@ -979,6 +995,7 @@
         groupDone: true,
         darkGamePages: true,
         iconFollowsTheme: false,
+        appIcon: '',
         streakReminderMinutes: 0,
         updateCheck: false
       };
@@ -1271,8 +1288,10 @@
         if (window.AndroidBridge && typeof window.AndroidBridge.setStreakReminder === 'function') {
           window.AndroidBridge.setStreakReminder(Number((state.settings || {}).streakReminderMinutes) || 0);
         }
-        if (window.AndroidBridge && typeof window.AndroidBridge.setIconFollowsTheme === 'function') {
-          window.AndroidBridge.setIconFollowsTheme(Boolean((state.settings || {}).iconFollowsTheme));
+        if (window.AndroidBridge && typeof window.AndroidBridge.setAppIconStyle === 'function') {
+          window.AndroidBridge.setAppIconStyle(currentAppIcon());
+        } else if (window.AndroidBridge && typeof window.AndroidBridge.setIconFollowsTheme === 'function') {
+          window.AndroidBridge.setIconFollowsTheme(currentAppIcon() === 'themed');
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setDarkGamePages === 'function') {
           window.AndroidBridge.setDarkGamePages((state.settings || {}).darkGamePages !== false);
@@ -1435,7 +1454,10 @@
       root.classList.toggle('dark', !light);
       root.setAttribute('data-amoled', s.amoledDark && !light ? 'true' : 'false');
       // The header logo follows the launcher icon choice.
-      root.setAttribute('data-app-icon', s.iconFollowsTheme ? 'themed' : 'default');
+      const iconStyle = currentAppIcon();
+      root.setAttribute('data-app-icon', iconStyle);
+      const logo = document.getElementById('hubLogo');
+      if (logo && logo.dataset.style !== iconStyle) { logo.innerHTML = appIconSvg(iconStyle, 22, 'hub'); logo.dataset.style = iconStyle; }
       const seed = s.dynamicWallpaper ? 'wallpaper' : (s.themeSeed || 'iris');
       root.setAttribute('data-m4-seed', seed);
       const palette = !deviceWallpaperPalette ? null
@@ -2745,6 +2767,43 @@
       }
     }
 
+    // ---- Popular games picker (known-games.js) ----
+    const catalogUrl = (e) => e.url || `https://${e.host}${e.path || '/'}`;
+    function renderBrowseGames() {
+      const list = document.getElementById('browseGamesList');
+      if (!list) return;
+      const q = String((document.getElementById('browseGamesSearch') || {}).value || '').trim().toLowerCase();
+      const entries = KnownGames.CATALOG.filter((e) => !q || `${e.name} ${e.host} ${e.category} ${e.desc}`.toLowerCase().includes(q));
+      const groups = new Map();
+      entries.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach((e) => {
+        if (!groups.has(e.category)) groups.set(e.category, []);
+        groups.get(e.category).push(e);
+      });
+      if (!entries.length) { list.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No games match.</p>'; return; }
+      list.innerHTML = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([cat, items]) => `
+        <p class="browse-cat">${escapeHtml(cat)}</p>
+        ${items.map((e) => {
+          const url = catalogUrl(e);
+          const added = Boolean(findGameByUrl(url));
+          return `<button type="button" class="browse-row" data-browse-url="${escapeHtml(url)}"${added ? ' disabled' : ''}>
+            <span class="browse-icon">${renderGameIconHtml(getDefaultFaviconUrl(url), e.name, 'w-5 h-5')}</span>
+            <span class="browse-text"><span class="browse-name">${escapeHtml(e.name)}</span><span class="browse-desc">${escapeHtml(e.desc)}</span></span>
+            <span class="browse-add">${added ? 'Added' : 'Add'}</span>
+          </button>`;
+        }).join('')}`).join('');
+    }
+    function openBrowseGames() {
+      const search = document.getElementById('browseGamesSearch');
+      if (search) search.value = '';
+      renderBrowseGames();
+      openModal('modalBrowseGames');
+    }
+    function pickBrowseGame(url) {
+      closeModal('modalBrowseGames');
+      const meta = inferGameMetaFromUrl(url);
+      openAddOrEditModal(meta || { url }, null);
+    }
+
     // ---- Auto-detected reset times ----
     let resetSuggestion = null; // { gameId, resetTime, resetZone }
     const gameLogRows = (g) => state.historyLogs.filter((l) => l && (l.gameId ? l.gameId === g.id : l.gameName === g.name));
@@ -3006,6 +3065,86 @@
       haptic('drop');
     }
 
+    // ---- App icon styles (launcher entries in AppIcon.kt; drawn here for the picker and the hub logo) ----
+    const ICON_FLOWER = 'M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z';
+    const ICON_MARK = 'M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z';
+    const ICON_SPARKS = 'M65.5,38.3 C66.17,41.83 66.17,41.83 69.7,42.5 C66.17,43.17 66.17,43.17 65.5,46.7 C64.83,43.17 64.83,43.17 61.3,42.5 C64.83,41.83 64.83,41.83 65.5,38.3Z M43,62.5 C43.48,65.02 43.48,65.02 46,65.5 C43.48,65.98 43.48,65.98 43,68.5 C42.52,65.98 42.52,65.98 40,65.5 C42.52,65.02 42.52,65.02 43,62.5Z';
+    const ICON_STYLES = [
+      { id: 'default', label: 'Default', bg: ['#FFFFFF', '#FFFFFF'], star: [[0, '#FFD43B'], [1, '#2FB86A']], mark: '#FFFFFF', outline: true },
+      { id: 'themed', label: 'Theme', themed: true },
+      { id: 'midnight', label: 'Midnight', bg: ['#0F172A', '#1E1B4B'], star: [[0, '#7DD3FC'], [1, '#A78BFA']], mark: '#FFFFFF' },
+      { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
+      { id: 'ocean', label: 'Ocean', bg: ['#E0F7FA', '#CCF2F7'], star: [[0, '#22D3EE'], [1, '#2563EB']], mark: '#FFFFFF' },
+      { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
+      { id: 'gold', label: 'Gold', bg: ['#2A1E06', '#120C02'], star: [[0, '#FFF7CC'], [0.22, '#F7D774'], [0.48, '#C9922B'], [0.68, '#FFE68A'], [1, '#8A5A10']], mark: '#FFFBEA', sparks: '#FFFDF2', locked: true }
+    ];
+    /** True once every achievement has been earned (kept, so the icon stays unlocked). */
+    function goldIconUnlocked() {
+      const have = new Set(Array.isArray(state.achievements) ? state.achievements : []);
+      return HubCore.ACHIEVEMENTS.every((a) => have.has(a.id));
+    }
+    /** The chosen style ("" means the 1.2–1.3 switch decides), never a locked one. */
+    function currentAppIcon() {
+      const s = state.settings || {};
+      let style = s.appIcon || (s.iconFollowsTheme ? 'themed' : 'default');
+      if (!ICON_STYLES.some((x) => x.id === style)) style = 'default';
+      if (style === 'gold' && !goldIconUnlocked()) style = 'default';
+      return style;
+    }
+    /** The icon as an SVG (same shapes and colours as the launcher icon). */
+    function appIconSvg(styleId, size, uid) {
+      const st = ICON_STYLES.find((x) => x.id === styleId) || ICON_STYLES[0];
+      const id = `ig-${uid}-${st.id}`;
+      const shape = '<g transform="translate(54 54) scale(1.3) translate(-54 -54)">'
+        + `<path d="${ICON_FLOWER}" fill="${st.themed ? 'var(--md-primary)' : `url(#${id}-s)`}"/>`
+        + `<path d="${ICON_MARK}" fill="${st.themed ? 'var(--md-on-primary)' : st.mark}"/>`
+        + (st.sparks ? `<path d="${ICON_SPARKS}" fill="${st.sparks}"/>` : '') + '</g>';
+      if (st.themed) {
+        return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true">`
+          + `<rect width="108" height="108" rx="30" fill="var(--md-primary-container)"/>${shape}</svg>`;
+      }
+      const stops = st.star.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
+      return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true"><defs>`
+        + `<linearGradient id="${id}-b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${st.bg[0]}"/><stop offset="1" stop-color="${st.bg[1]}"/></linearGradient>`
+        + `<linearGradient id="${id}-s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">${stops}</linearGradient></defs>`
+        + `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="url(#${id}-b)"${st.outline ? ' stroke="var(--md-outline)" stroke-width="2"' : ''}/>${shape}</svg>`;
+    }
+    function renderIconChoices() {
+      const box = document.getElementById('iconChoices');
+      if (!box) return;
+      const current = currentAppIcon();
+      const unlocked = goldIconUnlocked();
+      box.innerHTML = ICON_STYLES.map((st) => {
+        const locked = st.locked && !unlocked;
+        const on = st.id === current;
+        return `<button type="button" class="icon-choice${on ? ' on' : ''}${locked ? ' locked' : ''}" data-icon-style="${st.id}" role="radio" aria-checked="${on}"`
+          + ` aria-label="${escapeHtml(st.label)}${locked ? ', locked' : ''}">${appIconSvg(st.id, 44, 'pick')}`
+          + `${locked ? '<span class="icon-lock" aria-hidden="true">🔒</span>' : ''}<span class="icon-name">${escapeHtml(st.label)}</span></button>`;
+      }).join('');
+      const hint = document.getElementById('iconGoldHint');
+      if (hint) {
+        const have = new Set(Array.isArray(state.achievements) ? state.achievements : []);
+        const n = HubCore.ACHIEVEMENTS.filter((a) => have.has(a.id)).length;
+        hint.textContent = unlocked ? '' : `Gold unlocks when you earn every achievement (${n} of ${HubCore.ACHIEVEMENTS.length} so far).`;
+      }
+    }
+    function chooseAppIcon(style) {
+      const st = ICON_STYLES.find((x) => x.id === style);
+      if (!st) return;
+      if (st.locked && !goldIconUnlocked()) {
+        showToast('Gold is locked', 'Earn every achievement (Streaks & Log) to unlock the gold icon.', 'indigo');
+        return;
+      }
+      if (!state.settings) state.settings = getDefaultSettings();
+      state.settings.appIcon = style;
+      state.settings.iconFollowsTheme = style === 'themed';
+      haptic('tick');
+      saveState({ sync: false });
+      applyThemeAndSettings();
+      renderIconChoices();
+      showToast(`${st.label} icon chosen`, 'It changes on your home screen when you leave the app.', 'emerald');
+    }
+
     /** Toasts achievements earned since the last check. The first check after updating is silent. */
     function checkNewAchievements(silent) {
       const all = HubCore.computeAchievements(state.games, state.historyLogs);
@@ -3017,6 +3156,10 @@
       saveState({ sync: false });
       if (first || silent) return;
       fresh.forEach((a, i) => setTimeout(() => showToast(`${a.icon} Achievement unlocked`, `${a.title}: ${a.desc.charAt(0).toLowerCase()}${a.desc.slice(1)}.`, 'indigo'), 900 + i * 400));
+      if (goldIconUnlocked()) {
+        setTimeout(() => showToast('✨ Gold icon unlocked', 'You earned every achievement. Choose the gold app icon in Settings → Display.', 'emerald'), 900 + fresh.length * 400 + 600);
+        renderIconChoices();
+      }
     }
 
     // =========================================================================
@@ -3589,7 +3732,7 @@
       setVal('settingThemeMode', s.themeMode || 'dark');
       setChk('settingGroupDone', s.groupDone !== false);
       setChk('settingDarkPages', s.darkGamePages !== false);
-      setChk('settingIconTheme', Boolean(s.iconFollowsTheme));
+      renderIconChoices();
       renderArchivedList();
       setVal('settingStreakReminder', String(Number(s.streakReminderMinutes) || 0));
       setChk('settingUpdateCheck', Boolean(s.updateCheck));
@@ -3964,7 +4107,7 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalAddGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalAddGame', 'modalBrowseGames', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -4796,7 +4939,7 @@
       } catch (e) {}
 
       // Keep Android's predictive-back state in sync with modal visibility.
-      ['modalAddGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList', 'returnPrompt'].forEach((id) => {
+      ['modalAddGame', 'modalBrowseGames', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList', 'returnPrompt'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) new MutationObserver(syncBackInterceptState).observe(el, { attributes: true, attributeFilter: ['class'] });
       });
@@ -4998,7 +5141,7 @@
             state.settings.streakReminderMinutes = Number(el.value) || 0;
             try { window.AndroidBridge && window.AndroidBridge.setStreakReminder && window.AndroidBridge.setStreakReminder(state.settings.streakReminderMinutes); } catch (e) {}
           }
-          if (key === 'themeMode' || key === 'darkGamePages' || key === 'iconFollowsTheme' || key === 'dynamicWallpaper') saveLaunchPrefs();
+          if (key === 'themeMode' || key === 'darkGamePages' || key === 'dynamicWallpaper') saveLaunchPrefs();
           if (key === 'updateCheck' && el.checked) runUpdateCheck(true);
           if (key === 'compactCards' || key === 'groupDone') {
             renderGamesGrid();
@@ -5020,7 +5163,10 @@
       bindSetting('settingThemeMode', 'themeMode', false);
       bindSetting('settingGroupDone', 'groupDone', true);
       bindSetting('settingDarkPages', 'darkGamePages', true);
-      bindSetting('settingIconTheme', 'iconFollowsTheme', true);
+      document.getElementById('iconChoices').addEventListener('click', (e) => {
+        const b = e.target && e.target.closest ? e.target.closest('[data-icon-style]') : null;
+        if (b) chooseAppIcon(b.getAttribute('data-icon-style'));
+      });
       bindSetting('settingStreakReminder', 'streakReminderMinutes', false);
       bindSetting('settingUpdateCheck', 'updateCheck', true);
 
@@ -5374,6 +5520,12 @@
       });
       document.getElementById('btnCopyToday').addEventListener('click', copyTodaysResults);
       document.getElementById('btnResetSuggestApply').addEventListener('click', applyResetSuggestion);
+      document.getElementById('btnBrowseGames').addEventListener('click', openBrowseGames);
+      document.getElementById('browseGamesSearch').addEventListener('input', renderBrowseGames);
+      document.getElementById('browseGamesList').addEventListener('click', (e) => {
+        const row = e.target && e.target.closest ? e.target.closest('[data-browse-url]') : null;
+        if (row && !row.disabled) pickBrowseGame(row.getAttribute('data-browse-url'));
+      });
       document.getElementById('btnResetSuggestDismiss').addEventListener('click', dismissResetSuggestion);
       // Check every game once at start-up (results logged by an older version have no times, so this
       // only starts suggesting after a few new results).

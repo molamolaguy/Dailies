@@ -1262,3 +1262,27 @@ html[data-theme="light"] .hist-score mark { background: rgba(234, 179, 8, 0.35);
 html[data-app-icon="themed"] .hub-logo .logo-bg { fill: var(--md-primary-container); stroke: none; }
 html[data-app-icon="themed"] .hub-logo .logo-shape { fill: var(--md-primary); }
 html[data-app-icon="themed"] .hub-logo .logo-mark { fill: var(--md-on-primary); }
+
+/* Popular games picker. */
+.browse-list { max-height: min(62vh, 560px); overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 4px; }
+.browse-cat { font-size: 11.5px; font-weight: 700; color: #a9b1c1; padding: 10px 2px 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+.browse-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 10px; border-radius: 14px; background: var(--md-container-low); border: 1px solid var(--md-outline); }
+.browse-row:disabled { opacity: 0.55; }
+.browse-icon { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--md-container-high); }
+.browse-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.browse-name { font-size: 13.5px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browse-desc { font-size: 11.5px; color: #a9b1c1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browse-add { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--md-on-primary-container); background: var(--md-primary-container); border-radius: 9999px; padding: 6px 12px; }
+.browse-row:disabled .browse-add { background: transparent; color: #a9b1c1; }
+html[data-theme="light"] .browse-name { color: var(--lt-strong); }
+html[data-theme="light"] .browse-cat, html[data-theme="light"] .browse-desc { color: var(--lt-muted); }
+
+/* App icon picker (Settings → Display). */
+.hub-logo-wrap { display: inline-flex; width: 22px; height: 22px; flex-shrink: 0; }
+.icon-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; margin-top: 10px; }
+.icon-choice { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px 6px; border-radius: 16px; border: 2px solid transparent; background: var(--md-container-low); }
+.icon-choice.on { border-color: var(--md-primary); background: var(--md-container-high); }
+.icon-choice.locked svg { filter: grayscale(0.55) brightness(0.7); }
+.icon-choice .icon-name { font-size: 11px; font-weight: 600; color: #cbd2de; white-space: nowrap; }
+.icon-choice .icon-lock { position: absolute; top: 30px; right: 12px; font-size: 13px; }
+html[data-theme="light"] .icon-choice .icon-name { color: var(--lt-strong); }

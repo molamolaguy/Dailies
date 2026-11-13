@@ -12,11 +12,14 @@ A feature update. It installs over 1.3.0 and keeps your games, streaks and histo
 | **Score history** | Filter by game and outcome | Also search every result you've logged (e.g. "2/6", "#117") |
 | **Copy today's results** | One at a time | **Copy** at the top of the hub copies everything you've solved today, each with its own formatting |
 | **Paging Score history** | Pages jumped | Pages follow your finger, like the calendar |
+| **App icon** | White, or matching the theme | Also Midnight, Sunset, Ocean and Mono, plus a shiny **Gold** icon unlocked by earning every achievement (Settings → Display → App Icon) |
 | **Hub logo** | Always in the theme's colours | Matches the app icon you chose |
+| **Popular games** | 12 built-in games | 59, with their links and reset times: **Add Game → Or pick from popular daily games**. Includes NYT, LinkedIn, Quordle, Worldle, Bandle, Immaculate Grid, FE Guess, Globle, Krillion and Nintendoku |
 
 ## Also changed
 - The player's **Reload** and **Open in browser** buttons moved into the ⋮ menu to make room for **Next**.
 - **Find Results Automatically** can be turned off in Settings → Game Player.
+- More share formats are recognised for automatic logging, such as LinkedIn's "Queens #540 | 1:42 👑", the NYT Mini's "solved … in 0:42", and results counted in words, clues or strokes.
 
 ## Requirements
 - Android 7.0 or newer.

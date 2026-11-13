@@ -884,10 +884,10 @@ class HubActivity : ComponentActivity() {
             }
         }
 
-        /** Settings → Display → App Icon Matches Theme (applied when leaving the app). */
+        /** Settings → Display → App Icon: "default", "themed", "midnight", … (applied when leaving the app). */
         @JavascriptInterface
-        fun setIconFollowsTheme(on: Boolean) {
-            AppIcon.setFollowsTheme(applicationContext, on)
+        fun setAppIconStyle(style: String) {
+            AppIcon.setStyle(applicationContext, style)
         }
 
         /** Settings → Game Player → Dark Game Pages. */
