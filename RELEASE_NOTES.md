@@ -1,3 +1,33 @@
+# Dailies 1.6.0
+
+New features. It installs over 1.5.0 (or 1.5.1) and keeps everything. It also includes all of 1.5.1's changes (listed below).
+
+## New
+- **Play all**: a **Play all** button next to *Play next* opens every game you haven't played yet, one after another. After each result the player counts down ("Play Strands in 3…") and moves to the next game. Tap the game, **Copy result** or **Keep playing** to stay where you are.
+- **Recent changes (undo history)**: **Score History → ↶ Changes** (or **Settings → Data & Backup**) lists your last 25 logs, edits, removals and archived games. Undo any of them, even after the game has reset (then only that day's record changes). Undo on the toasts uses the same list. It stays on your phone and isn't in backups.
+- **Recaps**: the recap card on *Streaks & Log* switches between **Week** (this week, or earlier weeks with ‹ ›) and **Month** (follows the calendar). It shows solved, win rate and best streak, the change from the week or month before, your best game and time spent. **Share card** sends it as a picture in your colours; **Share text** sends it as text.
+- **Personal bests**: a new *Personal Bests* section lists every game's best score, fastest time and longest streak (tap one to open it in the calendar). A result that sets a record gets a **🏆 PB** badge on its game card for the day and in Score History.
+- **Tough days**: days you scored much worse than usual for that game (for example 6/6 when you usually get 4/6) have an amber dot in the calendar and a *Tough day* tag in Score History. The game's score stats show how many there were. It needs five scored results first.
+- **Sort the hub**: the ⇅ button sorts games by **Next reset**, **A–Z** or **Least played**, or keeps your **Custom order**. Dragging a card while sorted keeps that order as your custom order.
+- **Today's results in one message**: the **Results** button at the top of the hub opens a preview of all of today's results with a heading ("Dailies · Fri, Nov 13 — 5/7 solved"), each game's name where its result doesn't include it, and missed games at the end. Turn emoji grids on or off, then **Copy** or **Share**.
+- **Colour themes**: **Settings → Display → Color Theme** offers Wallpaper, Iris, Ocean, Forest, Sunset, Rose, or **Custom** (pick any colour). Light, dark and AMOLED all follow it, and so does the game player's top bar. Gold accents still take precedence when they're on.
+
+## From 1.5.1
+- **Settings** sections start open again; you can still fold any of them.
+- **Swiping between tabs**: the highlight in the bottom bar now slides along with your finger, so it's already under the new tab when the page arrives.
+- **Krillion** results are found automatically: a "Copy result" button on a game's end screen is now recognised on its own, including buttons built from plain page elements.
+- **No scroll bar** on the right while scrolling.
+- **Achievements**: every tile is the same size, with just the icon, name and progress. Tap one to see what each tier takes and how far along you are. Tier 2 shows a ★ in the corner instead of a tier badge. Marathon counts whole hours.
+- **Done** tags show a ★ instead of a dot.
+- **Game pickers** in the calendar and Score history open the app's own drop-down list instead of Android's picker.
+- **Gold** now uses a satin, brushed gold (like the Robinhood Gold card) throughout, including the Gold app icon, whose star is now engraved in dark gold.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.5.1
 
 Polish and fixes. It installs over 1.5.0 and keeps everything.

@@ -1183,31 +1183,9 @@
    */
   function monthlyRecap(logs, year, month) {
     const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
-    const rows = (Array.isArray(logs) ? logs : []).filter((r) => r && typeof r.date === 'string' && r.date.startsWith(prefix));
-    const solved = rows.filter((r) => r.outcome === 'Completed');
-    const counts = new Map();
-    rows.forEach((r) => counts.set(r.gameName || '', (counts.get(r.gameName || '') || 0) + 1));
-    let topGame = null;
-    counts.forEach((c, name) => { if (name && (!topGame || c > topGame.count)) topGame = { name, count: c }; });
-    let best = null;
-    solved.forEach((r) => {
-      const p = parseScore(r.score);
-      if (!p || p.fail) return;
-      const ratio = p.n / p.max;
-      if (!best || ratio < best.ratio || (ratio === best.ratio && p.n < best.n)) best = { ratio, n: p.n, game: r.gameName || '', score: `${p.n}/${p.max}` };
-    });
-    const timeMs = solved.reduce((a, r) => a + (Number(r.timeMs) > 0 ? Number(r.timeMs) : 0), 0);
-    return {
-      results: rows.length,
-      solved: solved.length,
-      winRate: rows.length ? Math.round((solved.length / rows.length) * 100) : null,
-      bestStreak: Math.max(0, ...rows.map((r) => Number(r.streak) || 0)),
-      bestResult: best ? { game: best.game, score: best.score } : null,
-      topGame,
-      days: new Set(rows.map((r) => r.date)).size,
-      timeMs
-    };
+    return periodRecap(logs, `${prefix}01`, `${prefix}31`);
   }
+
 
   /**
    * The lines of recognised screenshot text that look like a result ("Wordle 1,234 3/6", "Solved in
@@ -1223,8 +1201,279 @@
     return out.slice(0, 600);
   }
 
+  // ---- 1.6.0: recaps for any period, tough days, hub sorting, today's combined share, colour themes ----
+
+  /** Monday of the week holding `key` (YYYY-MM-DD), and the Sunday after it. */
+  function weekBounds(key) {
+    const [y, m, d] = String(key).split('-').map(Number);
+    const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = Sunday
+    const from = addDaysToCycleKey(key, -((dow + 6) % 7));
+    return { from, to: addDaysToCycleKey(from, 6) };
+  }
+
+  /**
+   * A recap of the result log between two day keys (inclusive): results, solves, win rate, longest
+   * streak reached, best guess result, most-played game, best game (most solves, then win rate),
+   * distinct games, days played and total play time.
+   */
+  function periodRecap(logs, fromKey, toKey) {
+    const rows = (Array.isArray(logs) ? logs : []).filter((r) => r && typeof r.date === 'string' && r.date >= fromKey && r.date <= toKey);
+    const solved = rows.filter((r) => r.outcome === 'Completed');
+    const per = new Map();
+    rows.forEach((r) => {
+      const name = r.gameName || '';
+      if (!name) return;
+      const e = per.get(name) || { name, results: 0, solved: 0 };
+      e.results += 1;
+      if (r.outcome === 'Completed') e.solved += 1;
+      per.set(name, e);
+    });
+    let topGame = null;
+    let bestGame = null;
+    per.forEach((e) => {
+      if (!topGame || e.results > topGame.count) topGame = { name: e.name, count: e.results };
+      const rate = e.solved / e.results;
+      if (e.solved && (!bestGame || e.solved > bestGame.solved || (e.solved === bestGame.solved && rate > bestGame.rate))) {
+        bestGame = { name: e.name, solved: e.solved, results: e.results, rate };
+      }
+    });
+    let best = null;
+    solved.forEach((r) => {
+      const p = parseScore(r.score);
+      if (!p || p.fail) return;
+      const ratio = p.n / p.max;
+      if (!best || ratio < best.ratio || (ratio === best.ratio && p.n < best.n)) best = { ratio, n: p.n, game: r.gameName || '', score: `${p.n}/${p.max}` };
+    });
+    const timeMs = solved.reduce((a, r) => a + (Number(r.timeMs) > 0 ? Number(r.timeMs) : 0), 0);
+    return {
+      from: fromKey,
+      to: toKey,
+      results: rows.length,
+      solved: solved.length,
+      winRate: rows.length ? Math.round((solved.length / rows.length) * 100) : null,
+      bestStreak: Math.max(0, ...rows.map((r) => Number(r.streak) || 0)),
+      bestResult: best ? { game: best.game, score: best.score } : null,
+      topGame,
+      bestGame: bestGame ? { name: bestGame.name, solved: bestGame.solved, results: bestGame.results } : null,
+      games: per.size,
+      days: new Set(rows.map((r) => r.date)).size,
+      timeMs
+    };
+  }
+
+  /** How a recap compares with the one before it: change in solves and in win rate (points). */
+  function recapChange(cur, prev) {
+    if (!cur || !prev || !prev.results) return null;
+    return {
+      solved: cur.solved - prev.solved,
+      winRate: cur.winRate !== null && prev.winRate !== null ? cur.winRate - prev.winRate : null
+    };
+  }
+
+  function median(sorted) {
+    const n = sorted.length;
+    return n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+  }
+
+  /**
+   * Days a game went much worse than usual: Map date -> { label, typical }. Uses the kind of score the
+   * game mostly logs and needs five of them. Guesses: two or more above the median; times and counts:
+   * at least 1.75x the median; points: half the median or less. At most the worst 15% of days.
+   */
+  function toughDays(rows) {
+    const out = new Map();
+    const vals = (Array.isArray(rows) ? rows : [])
+      .filter((r) => r && r.outcome === 'Completed' && typeof r.date === 'string')
+      .map((r) => ({ date: r.date, v: parseResultValue(r.score) }))
+      .filter((x) => x.v);
+    if (vals.length < 5) return out;
+    const counts = new Map();
+    vals.forEach((x) => counts.set(x.v.group, (counts.get(x.v.group) || 0) + 1));
+    let group = null;
+    counts.forEach((c, g) => { if (group === null || c > counts.get(group)) group = g; });
+    const same = vals.filter((x) => x.v.group === group);
+    if (same.length < 5) return out;
+    const kind = same[0].v.kind;
+    const med = median(same.map((x) => x.v.rank).sort((a, b) => a - b));
+    const round1 = (x) => Math.round(x * 10) / 10;
+    const typical = kind === 'guesses' ? `${round1(med)}/${same[0].v.max}`
+      : kind === 'time' ? formatClock(med)
+      : kind === 'count' ? `${round1(med)} ${same[0].v.unit}`
+      : pointsLabel(round1(-med), same[0].v.unit);
+    const tough = [];
+    same.forEach((x) => {
+      const r = x.v.rank;
+      let severity = 0;
+      if (kind === 'guesses') severity = r - med >= 2 ? (r - med) / x.v.max : 0;
+      else if (kind === 'time') severity = med > 0 && r >= med * 1.75 && r - med >= 30000 ? r / med : 0;
+      else if (kind === 'count') severity = med > 0 && r >= med * 1.75 && r - med >= 2 ? r / med : 0;
+      else if (kind === 'points') severity = -med > 0 && x.v.value <= -med * 0.5 ? (-med) / Math.max(1, x.v.value) : 0;
+      if (severity > 0) tough.push({ date: x.date, label: x.v.label, severity });
+    });
+    tough.sort((a, b) => b.severity - a.severity);
+    tough.slice(0, Math.max(1, Math.floor(same.length * 0.15))).forEach((t) => out.set(t.date, { label: t.label, typical }));
+    return out;
+  }
+
+  /**
+   * The hub's games in the chosen order: 'custom' (as arranged), 'reset' (next reset first),
+   * 'alpha' (A–Z) or 'least' (fewest days played first). Ties keep the custom order.
+   */
+  function sortGames(games, mode, opts) {
+    const list = (Array.isArray(games) ? games : []).map((g, i) => ({ g, i }));
+    const o = opts || {};
+    const byName = (a, b) => String(a.g.name || '').localeCompare(String(b.g.name || ''), undefined, { sensitivity: 'base' });
+    let cmp = null;
+    if (mode === 'alpha') cmp = byName;
+    else if (mode === 'reset' && typeof o.msUntilReset === 'function') cmp = (a, b) => o.msUntilReset(a.g) - o.msUntilReset(b.g);
+    else if (mode === 'least' && typeof o.playCount === 'function') cmp = (a, b) => o.playCount(a.g) - o.playCount(b.g);
+    if (!cmp) return list.map((x) => x.g);
+    return list.sort((a, b) => cmp(a, b) || a.i - b.i).map((x) => x.g);
+  }
+
+  // Lines that are only emoji squares, circles, keycaps, hearts and stars (a game's grid).
+  const GRID_ONLY_STRIP_RE = /[0-9#*]️?⃣|[⬛⬜⚫⚪✅❌⭐❤\u{1F7E0}-\u{1F7EB}\u{1F534}\u{1F535}\u{1F499}-\u{1F49C}\u{1F5A4}\u{1F90D}\u{1F90E}\u{1F31F}\u{1F7E5}]|[\s️‍]/gu;
+  const GRID_ONLY_CELL_RE = /[0-9#*]️?⃣|[⬛⬜⚫⚪✅❌⭐❤\u{1F7E0}-\u{1F7EB}\u{1F534}\u{1F535}\u{1F499}-\u{1F49C}\u{1F5A4}\u{1F90D}\u{1F90E}\u{1F31F}]/gu;
+  function isGridLine(line) {
+    const l = String(line || '');
+    if (!l.trim()) return false;
+    const cells = l.match(GRID_ONLY_CELL_RE);
+    return Boolean(cells && cells.length >= 2 && !l.replace(GRID_ONLY_STRIP_RE, ''));
+  }
+
+  /**
+   * Today's results as one message: a heading ("Dailies · Fri 13 Nov — 5/7 solved"), then each game's
+   * result (its name added when the text doesn't say it), then missed games. entries:
+   * [{ name, url, outcome: 'completed'|'missed', text }]. opts: { dateLabel, total, grids (default true) }.
+   */
+  function combinedShareText(entries, opts) {
+    const o = opts || {};
+    const list = (Array.isArray(entries) ? entries : []).filter((e) => e && (e.outcome === 'completed' || e.outcome === 'missed'));
+    const solved = list.filter((e) => e.outcome === 'completed').length;
+    const total = Number(o.total) > 0 ? Number(o.total) : list.length;
+    const head = `🧩 Dailies${o.dateLabel ? ` · ${o.dateLabel}` : ''} — ${solved}/${total} solved`;
+    const blocks = [];
+    const missedNames = [];
+    list.forEach((e) => {
+      let text = String(e.text || '').replace(/\r\n/g, '\n').trim();
+      if (!text) {
+        if (e.outcome === 'missed') missedNames.push(e.name);
+        else blocks.push(`✅ ${e.name}`);
+        return;
+      }
+      let lines = text.split('\n');
+      if (o.grids === false) {
+        const kept = lines.filter((l) => !isGridLine(l));
+        lines = (kept.some((l) => l.trim()) ? kept : lines.slice(0, 1));
+        // Collapse the blank lines a removed grid leaves behind.
+        lines = lines.filter((l, i) => l.trim() || (i > 0 && lines[i - 1].trim() && i < lines.length - 1));
+      }
+      text = lines.join('\n').trim();
+      if (!mentionsGame(text, { name: e.name, url: e.url || '' })) text = `${e.outcome === 'missed' ? '❌' : '✅'} ${e.name}\n${text}`;
+      blocks.push(text);
+    });
+    if (missedNames.length) blocks.push(`❌ ${missedNames.join(', ')}`);
+    return [head].concat(blocks).join('\n\n');
+  }
+
+  // ---- Colour themes: Material-style tones from one seed colour (OKLCH, kept inside sRGB) ----
+  const THEME_PRESETS = { ocean: '#1E88C8', forest: '#2E8B57', sunset: '#F06A3C', rose: '#D9467A' };
+
+  function hexToRgb(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return null;
+    const v = parseInt(m[1], 16);
+    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  }
+  const toLinear = (c) => { const x = c / 255; return x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); };
+  const fromLinear = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055);
+
+  function hexToOklch(hex) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return null;
+    const [r, g, b] = rgb.map(toLinear);
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    const L = 0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s;
+    const A = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+    const B = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+    return { L, C: Math.hypot(A, B), H: ((Math.atan2(B, A) * 180) / Math.PI + 360) % 360 };
+  }
+
+  function oklchToLinear(L, C, H) {
+    const a = C * Math.cos((H * Math.PI) / 180);
+    const b = C * Math.sin((H * Math.PI) / 180);
+    const l = Math.pow(L + 0.3963377774 * a + 0.2158037573 * b, 3);
+    const m = Math.pow(L - 0.1055613458 * a - 0.0638541728 * b, 3);
+    const s = Math.pow(L - 0.0894841775 * a - 1.2914855480 * b, 3);
+    return [
+      4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+      -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+      -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+    ];
+  }
+
+  /** "#RRGGBB" for an OKLCH colour, lowering its chroma until it fits in sRGB. */
+  function oklchToHex(L, C, H) {
+    for (let c = C; c >= 0; c -= 0.004) {
+      const lin = oklchToLinear(L, c, H);
+      if (lin.every((v) => v >= -0.0005 && v <= 1.0005)) {
+        return '#' + lin.map((v) => Math.round(Math.min(1, Math.max(0, fromLinear(Math.min(1, Math.max(0, v))))) * 255)
+          .toString(16).padStart(2, '0')).join('').toUpperCase();
+      }
+    }
+    const g = Math.round(Math.min(1, Math.max(0, fromLinear(Math.pow(L, 3)))) * 255).toString(16).padStart(2, '0').toUpperCase();
+    return `#${g}${g}${g}`;
+  }
+
+  /**
+   * The hub's colour roles (--md-*) for a seed colour, in the dark or light theme. Null for a colour
+   * that isn't "#RRGGBB". Grey seeds give a neutral theme.
+   */
+  function themeTokens(seedHex, light) {
+    const seed = hexToOklch(seedHex);
+    if (!seed) return null;
+    const h = seed.H;
+    const c = Math.min(seed.C, 0.2);
+    const t = (L, C, H) => oklchToHex(L, Math.min(C, c), H === undefined ? h : H);
+    const tert = (h + 60) % 360;
+    const rgba = (hex, a) => { const v = hexToRgb(hex); return `rgba(${v[0]}, ${v[1]}, ${v[2]}, ${a})`; };
+    if (light) {
+      const primary = t(0.5, 0.16);
+      return {
+        '--md-surface': t(0.985, 0.008), '--md-container-low': t(0.966, 0.011), '--md-container': t(0.95, 0.015),
+        '--md-container-high': t(0.926, 0.017), '--md-container-highest': t(0.902, 0.019),
+        '--md-primary': primary, '--md-on-primary': '#FFFFFF',
+        '--md-primary-container': t(0.91, 0.06), '--md-on-primary-container': t(0.27, 0.1),
+        '--md-secondary-container': t(0.92, 0.035), '--md-tertiary': t(0.5, 0.1, tert), '--md-tertiary-container': t(0.91, 0.05, tert),
+        '--md-outline': rgba(t(0.4, 0.02), 0.16), '--md-glow': rgba(primary, 0.1)
+      };
+    }
+    const primary = t(0.83, 0.11);
+    return {
+      '--md-surface': t(0.165, 0.012), '--md-container-low': t(0.195, 0.014), '--md-container': t(0.225, 0.017),
+      '--md-container-high': t(0.265, 0.02), '--md-container-highest': t(0.305, 0.022),
+      '--md-primary': primary, '--md-on-primary': t(0.32, 0.12),
+      '--md-primary-container': t(0.4, 0.11), '--md-on-primary-container': t(0.93, 0.05),
+      '--md-secondary-container': t(0.37, 0.035), '--md-tertiary': t(0.82, 0.09, tert), '--md-tertiary-container': t(0.38, 0.07, tert),
+      '--md-outline': rgba(primary, 0.16), '--md-glow': rgba(primary, 0.14)
+    };
+  }
+
   return {
     extractResultText,
+    weekBounds,
+    periodRecap,
+    recapChange,
+    toughDays,
+    sortGames,
+    isGridLine,
+    combinedShareText,
+    THEME_PRESETS,
+    themeTokens,
+    hexToOklch,
+    oklchToHex,
     scoreStats,
     parseResultValue,
     formatClock,

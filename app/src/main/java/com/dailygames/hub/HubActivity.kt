@@ -645,11 +645,12 @@ class HubActivity : ComponentActivity() {
         if (pageReady && ::webView.isInitialized) webView.evaluateJavascript(js, null) else pendingJs.add(js)
     }
 
-    private fun launchGame(gameId: String, name: String, url: String, lineup: String? = null) {
+    private fun launchGame(gameId: String, name: String, url: String, lineup: String? = null, playAll: Boolean = false) {
         val i = Intent(this, GameActivity::class.java)
             .putExtra(GameActivity.EXTRA_ID, gameId)
             .putExtra(GameActivity.EXTRA_NAME, name)
             .putExtra(GameActivity.EXTRA_URL, url)
+            .putExtra(GameActivity.EXTRA_PLAY_ALL, playAll)
         if (!lineup.isNullOrEmpty() && lineup.length < 200_000) i.putExtra(GameActivity.EXTRA_LINEUP, lineup)
         gameLauncher.launch(i)
     }
@@ -962,6 +963,46 @@ class HubActivity : ComponentActivity() {
             if (!url.startsWith("https://", true) && !url.startsWith("http://", true)) return
             if (GamePrefs.blockAds(applicationContext)) AdBlocker.warmUp(applicationContext)
             runOnUiThread { launchGame(gameId, name, url, lineup) }
+        }
+
+        /** Play all: today's unplayed games in a row; the player moves to the next after each result. */
+        @JavascriptInterface
+        fun playAllGames(gameId: String, name: String, url: String, lineup: String) {
+            if (!url.startsWith("https://", true) && !url.startsWith("http://", true)) return
+            if (GamePrefs.blockAds(applicationContext)) AdBlocker.warmUp(applicationContext)
+            runOnUiThread { launchGame(gameId, name, url, lineup, playAll = true) }
+        }
+
+        /** The hub's colour theme / gold accents for the game player's bar ("" = the default colours). */
+        @JavascriptInterface
+        fun setPlayerColors(json: String) {
+            ThemePrefs.savePlayerColors(applicationContext, json)
+        }
+
+        /** Android share sheet for a PNG the hub drew (the recap card), with a text for apps that take one. */
+        @JavascriptInterface
+        fun shareImage(base64Png: String, subject: String, text: String) {
+            if (base64Png.length > 12_000_000) return
+            val bytes = runCatching { android.util.Base64.decode(base64Png, android.util.Base64.DEFAULT) }.getOrNull() ?: return
+            // A PNG starts with these 8 bytes; anything else isn't shared.
+            val sig = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+            if (bytes.size < 8 || !bytes.copyOfRange(0, 8).contentEquals(sig)) return
+            runOnUiThread {
+                runCatching {
+                    val dir = java.io.File(cacheDir, "shared").apply { mkdirs() }
+                    dir.listFiles()?.forEach { it.delete() }
+                    val file = java.io.File(dir, "dailies-recap.png")
+                    file.writeBytes(bytes)
+                    val uri = androidx.core.content.FileProvider.getUriForFile(this@HubActivity, "$packageName.files", file)
+                    val send = Intent(Intent.ACTION_SEND).setType("image/png")
+                        .putExtra(Intent.EXTRA_STREAM, uri)
+                        .putExtra(Intent.EXTRA_TEXT, text.take(4000))
+                        .putExtra(Intent.EXTRA_SUBJECT, subject.take(120))
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    send.clipData = android.content.ClipData.newRawUri("", uri)
+                    startActivity(Intent.createChooser(send, subject.take(120)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                }
+            }
         }
 
         /** {"enabled": bool, "appEnabled": bool, "channelBlocked": bool} for the Settings button. */

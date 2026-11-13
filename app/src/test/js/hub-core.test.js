@@ -419,3 +419,101 @@ test('1.5.0: two-tier achievements, old badges carried over', () => {
   const three = ['a', 'b', 'c'].map((id) => ({ id, dayHistory: { [day(1)]: 'completed', [day(2)]: id === 'c' ? 'missed' : 'completed' } }));
   assert.equal(core.achievementMetrics(three, []).sweeps, 1);
 });
+
+// ---- 1.6.0 ----
+const H = core;
+test('weekBounds: Monday to Sunday', () => {
+  assert.deepStrictEqual(H.weekBounds('2026-11-13'), { from: '2026-11-09', to: '2026-11-15' });
+  assert.deepStrictEqual(H.weekBounds('2026-11-15'), { from: '2026-11-09', to: '2026-11-15' });
+  assert.deepStrictEqual(H.weekBounds('2026-11-16'), { from: '2026-11-16', to: '2026-11-22' });
+  assert.deepStrictEqual(H.weekBounds('2027-01-01'), { from: '2026-12-28', to: '2027-01-03' });
+});
+
+test('periodRecap and recapChange: a week compared with the one before', () => {
+  const logs = [
+    { date: '2026-11-10', gameName: 'Wordle', outcome: 'Completed', score: 'Wordle 1 3/6', streak: 4 },
+    { date: '2026-11-11', gameName: 'Wordle', outcome: 'Completed', score: 'Wordle 2 2/6', streak: 5 },
+    { date: '2026-11-11', gameName: 'Strands', outcome: 'Missed', score: '', streak: 0 },
+    { date: '2026-11-12', gameName: 'Strands', outcome: 'Completed', score: '', streak: 1 },
+    { date: '2026-11-03', gameName: 'Wordle', outcome: 'Completed', score: 'Wordle 0 4/6', streak: 2 },
+    { date: '2026-11-08', gameName: 'Wordle', outcome: 'Missed', score: 'X/6', streak: 0 }
+  ];
+  const r = H.periodRecap(logs, '2026-11-09', '2026-11-15');
+  assert.strictEqual(r.results, 4);
+  assert.strictEqual(r.solved, 3);
+  assert.strictEqual(r.winRate, 75);
+  assert.strictEqual(r.games, 2);
+  assert.strictEqual(r.days, 3);
+  assert.deepStrictEqual(r.bestGame, { name: 'Wordle', solved: 2, results: 2 });
+  assert.deepStrictEqual(r.bestResult, { game: 'Wordle', score: '2/6' });
+  const prev = H.periodRecap(logs, '2026-11-02', '2026-11-08');
+  assert.deepStrictEqual(H.recapChange(r, prev), { solved: 2, winRate: 25 });
+  assert.strictEqual(H.recapChange(r, H.periodRecap([], '2026-01-01', '2026-01-07')), null);
+  // The monthly recap is the same thing for a month.
+  assert.strictEqual(H.monthlyRecap(logs, 2026, 10).results, 6);
+});
+
+test('toughDays: much worse than usual, at most the worst 15%', () => {
+  const rows = [3, 4, 4, 5, 4, 3, 6, 4, 4, 4].map((n, i) => ({ date: `2026-11-${String(i + 1).padStart(2, '0')}`, outcome: 'Completed', score: `Wordle 1 ${n}/6` }));
+  const t = H.toughDays(rows);
+  assert.deepStrictEqual([...t.keys()], ['2026-11-07']);
+  assert.deepStrictEqual(t.get('2026-11-07'), { label: '6/6', typical: '4/6' });
+  // Too few results: nothing is tough yet.
+  assert.strictEqual(H.toughDays(rows.slice(0, 4)).size, 0);
+  // Times: 1.75x the usual and at least 30 s slower.
+  const timed = ['1:00', '1:05', '0:58', '1:02', '3:40', '1:01'].map((t2, i) => ({ date: `2026-10-0${i + 1}`, outcome: 'Completed', score: `Mini ${t2}` }));
+  assert.deepStrictEqual([...H.toughDays(timed).keys()], ['2026-10-05']);
+  // Points: half the usual or less.
+  const pts = [800, 820, 790, 300, 810, 805].map((p, i) => ({ date: `2026-09-0${i + 1}`, outcome: 'Completed', score: `Score: ${p}` }));
+  assert.deepStrictEqual([...H.toughDays(pts).keys()], ['2026-09-04']);
+});
+
+test('sortGames: custom, A-Z, next reset and least played (ties keep the custom order)', () => {
+  const games = [{ name: 'wordle', t: 3, p: 10 }, { name: 'Connections', t: 1, p: 2 }, { name: 'bandle', t: 3, p: 2 }];
+  const names = (l) => l.map((g) => g.name);
+  const opts = { msUntilReset: (g) => g.t, playCount: (g) => g.p };
+  assert.deepStrictEqual(names(H.sortGames(games, 'custom', opts)), ['wordle', 'Connections', 'bandle']);
+  assert.deepStrictEqual(names(H.sortGames(games, 'alpha', opts)), ['bandle', 'Connections', 'wordle']);
+  assert.deepStrictEqual(names(H.sortGames(games, 'reset', opts)), ['Connections', 'wordle', 'bandle']);
+  assert.deepStrictEqual(names(H.sortGames(games, 'least', opts)), ['Connections', 'bandle', 'wordle']);
+  assert.deepStrictEqual(names(H.sortGames(games, 'nonsense', opts)), ['wordle', 'Connections', 'bandle']);
+});
+
+test('combinedShareText: heading, results, names added where missing, grids optional', () => {
+  const entries = [
+    { name: 'Wordle', outcome: 'completed', text: 'Wordle 1,234 3/6\n\n⬛🟨⬛⬛⬛\n🟩🟩🟩🟩🟩' },
+    { name: 'Krillion', url: 'https://krillion.io/daily', outcome: 'completed', text: '60' },
+    { name: 'Strands', outcome: 'missed', text: '' }
+  ];
+  const withGrids = H.combinedShareText(entries, { dateLabel: 'Fri 13 Nov', total: 4 });
+  assert.ok(withGrids.startsWith('🧩 Dailies · Fri 13 Nov — 2/4 solved\n\n'));
+  assert.ok(withGrids.includes('🟩🟩🟩🟩🟩'));
+  assert.ok(withGrids.includes('✅ Krillion\n60'));
+  assert.ok(withGrids.endsWith('❌ Strands'));
+  const noGrids = H.combinedShareText(entries, { dateLabel: 'Fri 13 Nov', total: 4, grids: false });
+  assert.ok(!noGrids.includes('🟩'));
+  assert.ok(noGrids.includes('Wordle 1,234 3/6\n\n✅ Krillion'));
+  assert.ok(H.isGridLine('🟩🟩⬛⬛⬛'));
+  assert.ok(H.isGridLine('1️⃣ 2️⃣'));
+  assert.ok(!H.isGridLine('60'));
+  assert.ok(!H.isGridLine('Wordle 3/6 🟩'));
+});
+
+test('themeTokens: readable tones from a seed, in and out of gamut', () => {
+  const hex = /^#[0-9A-F]{6}$/;
+  for (const seed of ['#1E88C8', '#2E8B57', '#F06A3C', '#D9467A', '#FF0000', '#00FF00', '#808080', '#000000', '#FFFFFF']) {
+    for (const light of [false, true]) {
+      const t = H.themeTokens(seed, light);
+      ['--md-surface', '--md-primary', '--md-on-primary', '--md-primary-container', '--md-on-primary-container', '--md-tertiary'].forEach((k) => assert.match(t[k], hex, `${seed} ${k}`));
+      const lum = (h) => H.hexToOklch(h).L;
+      // Text on the primary colour and on the container stays far apart in lightness.
+      assert.ok(Math.abs(lum(t['--md-primary']) - lum(t['--md-on-primary'])) > 0.4, `${seed} ${light} primary contrast`);
+      assert.ok(Math.abs(lum(t['--md-primary-container']) - lum(t['--md-on-primary-container'])) > 0.45, `${seed} ${light} container contrast`);
+      assert.ok(light ? lum(t['--md-surface']) > 0.95 : lum(t['--md-surface']) < 0.2);
+    }
+  }
+  assert.strictEqual(H.themeTokens('blue', false), null);
+  // Round trip.
+  const o = H.hexToOklch('#1E88C8');
+  assert.strictEqual(H.oklchToHex(o.L, o.C, o.H), '#1E88C8');
+});
