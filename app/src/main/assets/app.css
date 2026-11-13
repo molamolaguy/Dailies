@@ -1292,3 +1292,14 @@ html[data-theme="light"] .icon-choice .icon-name { color: var(--lt-strong); }
 .next-game-icon { width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--md-container-high); }
 .next-game-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 .next-game-play { max-width: 60%; }
+
+/* Utilities used by 1.4.0 markup (app.css only holds the classes the app uses). */
+.ml-auto { margin-left: auto; }
+.mt-2 { margin-top: 0.5rem; }
+.underline-offset-2 { text-underline-offset: 2px; }
+.hover\:underline:hover { text-decoration: underline; }
+.border-amber-500\/40 { border-color: rgba(245, 158, 11, 0.4); }
+.text-amber-300\/90 { color: rgba(252, 211, 77, 0.9); }
+@media (min-width: 640px) { .sm\:col-span-3 { grid-column: span 3 / span 3; } }
+html[data-theme="light"] .text-amber-300\/90 { color: var(--lt-streak); }
+#btnNextGameHome { white-space: nowrap; flex-shrink: 0; }

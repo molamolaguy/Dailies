@@ -20,7 +20,13 @@ A feature update. It installs over 1.3.0 and keeps your games, streaks and histo
 ## Also changed
 - The player's **Reload** and **Open in browser** buttons moved into the ⋮ menu to make room for **Next**.
 - **Find Results Automatically** can be turned off in Settings → Game Player.
-- More share formats are recognised for automatic logging, such as LinkedIn's "Queens #540 | 1:42 👑", the NYT Mini's "solved … in 0:42", and results counted in words, clues or strokes.
+- More share formats are recognised for automatic logging, such as LinkedIn's "Queens #540 | 1:42 👑", the NYT Mini's "solved … in 0:42", Quordle's numbered boards, and results counted in words, clues or strokes.
+- Ordinary text you copy while a game is open (a shopping list with ✅, a date, an address, a link) is no longer mistaken for a result.
+- The result card in the player has a **Copy** button, Back closes it, and it follows the keyboard.
+- Results of games played earlier in one player session are logged with one **Undo**, including a game that reset while you were playing.
+- Backups now keep your achievements, so the Gold icon stays unlocked after a restore.
+- Games that share a site (e.g. Mini Nerdle next to Nerdle) can be added side by side.
+- Search in Score history no longer garbles results with apostrophes or "&" in them.
 
 ## Requirements
 - Android 7.0 or newer.

@@ -105,10 +105,10 @@
     { host: 'linkedin.com', path: '/games/mini-sudoku', name: 'Mini Sudoku', category: 'Math & Logic',
       resetTime: '00:00', resetZone: 'America/Los_Angeles', maxTries: 'Fastest time', verified: false,
       desc: 'A 6x6 daily sudoku.' },
-    { host: 'merriam-webster.com', path: '/games/quordle', name: 'Quordle', category: 'Word & Association',
+    { host: 'merriam-webster.com', path: '/games/quordle', also: [{ host: 'm-w.com', path: '/games/quordle' }], name: 'Quordle', category: 'Word & Association',
       resetTime: '00:00', resetZone: 'local', maxTries: '9 guesses', verified: false,
       desc: 'Solve four Wordles at once.' },
-    { host: 'octordle.com', name: 'Octordle', category: 'Word & Association',
+    { host: 'octordle.com', also: [{ host: 'britannica.com', path: '/games/octordle' }], name: 'Octordle', category: 'Word & Association',
       resetTime: '00:00', resetZone: 'local', maxTries: '13 guesses', verified: false,
       desc: 'Solve eight Wordles at once.' },
     { host: 'semantle.com', name: 'Semantle', category: 'Word & Association',
@@ -122,7 +122,7 @@
       desc: 'Make the longest word that contains the given letters.' },
     { host: 'solitaired.com', path: '/phrazle', name: 'Phrazle', category: 'Word & Association',
       resetTime: '00:00', resetZone: 'local', maxTries: '6 guesses', verified: false,
-      desc: 'Guess the daily phrase, Wordle-style.' },
+      desc: 'Guess the phrase, Wordle-style. There are two a day (midnight and noon); Dailies tracks the midnight one.' },
     { host: 'wordwormdormdork.com', name: 'Weaver', category: 'Word & Association',
       resetTime: '00:00', resetZone: 'local', maxTries: 'Fewest steps', verified: false,
       desc: 'Change one letter at a time to go from word to word.' },
@@ -138,8 +138,8 @@
     { host: 'worldle.teuteuf.fr', name: 'Worldle', category: 'Geography & Maps',
       resetTime: '00:00', resetZone: 'local', maxTries: '6 guesses', verified: false,
       desc: 'Guess the country from its outline.' },
-    { host: 'oec.world', path: '/en/games/tradle', name: 'Tradle', category: 'Geography & Maps',
-      resetTime: '00:00', resetZone: 'local', maxTries: '6 guesses', verified: false,
+    { host: 'oec.world', path: '/en/games/tradle', also: [{ host: 'oec.world', path: '/en/tradle' }, { host: 'games.oec.world', path: '/en/tradle' }],
+      name: 'Tradle', category: 'Geography & Maps', resetTime: '00:00', resetZone: 'utc', maxTries: '6 guesses', verified: false,
       desc: 'Guess the country from its exports.' },
     { host: 'flagle.io', name: 'Flagle', category: 'Geography & Maps',
       resetTime: '00:00', resetZone: 'local', maxTries: '6 guesses', verified: false,
@@ -222,11 +222,17 @@
     const p = parse(url);
     if (!p) return null;
     let best = null;
+    let bestLen = -1;
     CATALOG.forEach((entry) => {
-      const hostOk = p.host === entry.host || p.host.endsWith('.' + entry.host);
-      if (!hostOk) return;
-      if (entry.path && !(p.path === entry.path || p.path.startsWith(entry.path + '/'))) return;
-      if (!best || (entry.path || '').length > (best.path || '').length) best = entry;
+      // Other addresses the same game is played at (a site that moved, a short link).
+      [entry].concat(entry.also || []).forEach((at) => {
+        // Subdomains only for addresses with a path: a whole-site entry (Nerdle) isn't its siblings (mini.nerdlegame.com).
+        const hostOk = p.host === at.host || (at.path && p.host.endsWith('.' + at.host));
+        if (!hostOk) return;
+        if (at.path && !(p.path === at.path || p.path.startsWith(at.path + '/'))) return;
+        const len = (at.path || '').length;
+        if (len > bestLen) { best = entry; bestLen = len; }
+      });
     });
     return best ? Object.assign({}, best) : null;
   }

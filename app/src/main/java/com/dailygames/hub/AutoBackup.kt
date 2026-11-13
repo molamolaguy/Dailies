@@ -107,6 +107,9 @@ object AutoBackup {
             .put("games", state.opt("games"))
             .put("retainedGameStats", state.opt("retainedGameStats") ?: JSONObject())
             .put("historyLogs", state.opt("historyLogs") ?: org.json.JSONArray())
+            // Earned achievements and the gold icon unlock, which can't all be re-earned from the data.
+            .put("achievements", state.opt("achievements") ?: org.json.JSONArray())
+            .put("goldUnlocked", state.optBoolean("goldUnlocked", false))
             .toString(2)
     }
 

@@ -88,9 +88,11 @@ class GamePlayerTest {
             }
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
             s.onActivity { a ->
-                assertNotNull("back-to-hub choice", findByDescription(a.window.decorView, "Exit to home"))
                 val play = findByDescription(a.window.decorView, "Play Game B")
                 assertNotNull("play-next choice names the next game", play)
+                // "Back to hub" sits next to it on the card (the toolbar has one too).
+                assertNotNull("back-to-hub choice", findByDescription(play!!.parent as View, "Back to hub"))
+                assertNotNull("copy choice", findByDescription(a.window.decorView, "Copy result"))
                 play!!.performClick()
             }
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
@@ -102,6 +104,31 @@ class GamePlayerTest {
             assertEquals("b", data.getStringExtra(GameActivity.EXTRA_ID))
             val earlier = JSONArray(data.getStringExtra(GameActivity.EXTRA_EARLIER) ?: "[]")
             assertEquals("Game A #12 3/6\n🟩🟩🟩", earlier.getJSONObject(0).getString("share"))
+        }
+    }
+
+    @Test
+    fun theOldPageCantReportAResultForTheNewGame() {
+        val lineup = JSONArray()
+            .put(JSONObject().put("id", "a").put("name", "Game A").put("url", "https://example.com/a").put("done", false))
+            .put(JSONObject().put("id", "b").put("name", "Game B").put("url", "https://example.com/b").put("done", false))
+        val intent = Intent(ctx, GameActivity::class.java)
+            .putExtra(GameActivity.EXTRA_ID, "a")
+            .putExtra(GameActivity.EXTRA_NAME, "Game A")
+            .putExtra(GameActivity.EXTRA_URL, "https://example.com/a")
+            .putExtra(GameActivity.EXTRA_LINEUP, lineup.toString())
+        ActivityScenario.launchActivityForResult<GameActivity>(intent).use { s ->
+            s.onActivity { a ->
+                findByDescription(a.window.decorView, "Next game")!!.performClick()
+                // Game A's page is still live until B's is on screen: a late result from it is ignored.
+                val offer = GameActivity::class.java.getDeclaredMethod("offerShare", String::class.java, String::class.java)
+                offer.isAccessible = true
+                offer.invoke(a, "Game B #12 3/6\n🟩🟩🟩", "page")
+                a.finish()
+            }
+            val data = s.result.resultData
+            assertEquals("b", data.getStringExtra(GameActivity.EXTRA_ID))
+            assertEquals(null, data.getStringExtra(GameActivity.EXTRA_SHARE_TEXT))
         }
     }
 

@@ -249,6 +249,36 @@
     return b - a;
   }
 
+  /**
+   * Moves a game's days to a new reset schedule. Results that carry the time they were logged go to
+   * the day that time falls on under the new schedule; the rest move by the overall shift. Nothing
+   * lands after today's key, and when two days merge a solve wins. Returns { shift, dayHistory,
+   * dates } where dates[i] is the new key for rows[i].
+   */
+  function rescheduleDays(dayHistory, rows, from, to, now) {
+    const at = now || new Date();
+    const shift = scheduleKeyShift(from, to, at);
+    const todayKey = getCycleDateKey(to.resetTime, to.resetZone, at);
+    const clamp = (k) => (k > todayKey ? todayKey : k);
+    const moved = new Map();
+    const dates = (Array.isArray(rows) ? rows : []).map((r) => {
+      const old = r && DATE_KEY_RE.test(String(r.date || '')) ? r.date : null;
+      if (!old) return r ? r.date : r;
+      const key = clamp(Number(r.loggedAt) > 0 && Number.isFinite(Number(r.loggedAt))
+        ? getCycleDateKey(to.resetTime, to.resetZone, new Date(Number(r.loggedAt)))
+        : addDaysToCycleKey(old, shift));
+      if (!moved.has(old)) moved.set(old, key);
+      return key;
+    });
+    const next = {};
+    const put = (k, v) => { if (next[k] !== 'completed') next[k] = v; };
+    Object.keys(dayHistory || {}).forEach((k) => {
+      if (!DATE_KEY_RE.test(k)) return;
+      put(moved.has(k) ? moved.get(k) : clamp(addDaysToCycleKey(k, shift)), dayHistory[k]);
+    });
+    return { shift, dayHistory: next, dates };
+  }
+
   /** Returns a copy of `dayHistory` with every date key moved by `delta` days. */
   function shiftDayHistory(dayHistory, delta) {
     if (!delta || !dayHistory || typeof dayHistory !== 'object') return Object.assign({}, dayHistory || {});
@@ -392,55 +422,140 @@
 
   // Strict variant for automatic logging (copy/share captured inside a game). Mirrors
   // ShareResultDetector.kt; both run app/src/test/resources/share_cases.json.
-  const STRICT_GLYPH_RE = /[\u2B1B\u2B1C\u26AB\u26AA\u2705\u274C\u{1F7E0}-\u{1F7EB}\u{1F534}\u{1F535}]/u;
-  // Explicit ASCII classes instead of \s / \b / \d so JS, the JVM tests and Android's ICU regex
-  // engine (where \s and \b are Unicode-aware) all behave identically. NBSP counts as a space.
-  const SINGLE_URL_RE = /^https?:\/\/[^ \t\n\r\f\v\u00A0]+$/i;
-  const STRICT_FRACTION_RE = /(?<![0-9/])(?:[0-9]{1,2}|x)[ \t\u00A0]*\/[ \t\u00A0]*[0-9]{1,2}(?![0-9/])/i;
-  const STRICT_CONTEXT_RE = /\n|#[ \u00A0]?[0-9]|(?<![A-Za-z0-9_])(?:day|puzzle|guess|guesses|tries|try|attempts?|mistakes?|score|points?|streak)(?![A-Za-z0-9_])/i;
-  const STRICT_COUNTED_RE = /#[ \u00A0]?[0-9]+|(?<![A-Za-z0-9_])[0-9]+[ \t\u00A0]*(?:guess|guesses|tries|attempts?|mistakes?|points?|pts|moves?|swaps?|seconds?|secs?|minutes?|mins?|words?|clues?|hints?|strokes?)(?![A-Za-z0-9_])/i;
-  // A solve time like "0:42" or "1:05:12" (not a clock time such as "9:14 AM").
-  const STRICT_TIME_RE = /(?<![0-9:\/])[0-9]{1,2}:[0-5][0-9](?::[0-5][0-9])?(?![0-9:])(?![ \t\u00A0]*[ap]\.?m(?![a-z]))/i;
-  const STRICT_HELP_RE = /(?<![A-Za-z0-9_])(?:how to play|you have[ \t ]+[0-9]+|you get[ \t ]+[0-9]+|in[ \t ]+[0-9]+[ \t ]+(?:tries|guesses|attempts|chances)|guess the|find the|can you|each guess|tap to|rules)(?![A-Za-z0-9_])/i;
-  const STRICT_PUZZLE_NO_RE = /#[  ]?[0-9]/;
-  // Results scored in other units (Krillion's "4,250m" depth, "87%", "1,200 XP"), or emoji plus numbers;
-  // only when the text also names the game or its site.
-  const STRICT_MEASURED_RE = /(?<![A-Za-z0-9_])[0-9][0-9,.]*[ \t\u00A0]*(?:m|meters?|metres?|km|ft|feet|%|xp|pts|points?|depth|rank)(?![A-Za-z0-9_])/i;
-  const STRICT_EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u2B50]/u;
+  //
+  // Everything is matched against an ASCII-lower-cased copy with case-sensitive patterns and explicit
+  // ASCII classes (no \s, \b, \d or /i), so JS, the JVM tests and Android's ICU engine agree exactly.
+  const STRICT_TRIM_RE = /^[ \t\n\r\f\v\u00A0\uFEFF]+|[ \t\n\r\f\v\u00A0\uFEFF]+$/g;
+  const strictTrim = (s) => String(s == null ? '' : s).replace(STRICT_TRIM_RE, '');
+  const asciiLower = (s) => String(s == null ? '' : s).replace(/[A-Z]/g, (c) => c.toLowerCase());
+  const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\\/-]/g, '\\$&');
+  const GRID_CELL = '(?:[\\u2B1B\\u2B1C\\u26AB\\u26AA\\u2705\\u274C\\u{1F7E0}-\\u{1F7EB}\\u{1F534}\\u{1F535}]|[0-9]\\uFE0F?\\u20E3)';
+  // Two result squares / circles / keycaps side by side: a share grid ("🟩🟩⬛", "5️⃣7️⃣", "🟥 🟩").
+  const STRICT_GRID_RE = new RegExp(`${GRID_CELL}\\uFE0F?[ ]?${GRID_CELL}`, 'u');
+  // A single one only counts with the game's name or a puzzle number ("✅ milk" is a shopping list).
+  const STRICT_GLYPH_RE = new RegExp(GRID_CELL, 'u');
+  const SINGLE_URL_RE = /^https?:\/\/[^ \t\n\r\f\v\u00A0]+$/;
+  const STRICT_FRACTION_RE = /(?<![0-9/.])([0-9]{1,2}|x)[ \t\u00A0]*\/[ \t\u00A0]*([0-9]{1,2})(?![0-9/])/g;
+  const STRICT_CONTEXT_RE = /#[ \u00A0]?[0-9]|(?<![a-z0-9_])(?:puzzle|guess|guesses|guessed|tries|attempts?|mistakes?|streak)(?![a-z0-9_])/;
+  const STRICT_COUNTED_RE = /(?<![a-z0-9_])[0-9]+[ \t\u00A0]*(?:guess|guesses|tries|attempts?|mistakes?|points?|pts|moves?|swaps?|seconds?|secs?|minutes?|mins?|words?|clues?|hints?|strokes?|shots?|steps?)(?![a-z0-9_])|(?<![a-z0-9_])(?:guessed|solved|got it)[ \t\u00A0]+in[ \t\u00A0]+[0-9]|(?<![a-z0-9_])(?:score|combo)[ \t\u00A0]*:[ \t\u00A0]*-?[0-9]|(?<![a-z0-9_])[0-9]+[ \t\u00A0]+(?:under|over)[ \t\u00A0]+par(?![a-z0-9_])|(?<![0-9.,])[0-9][0-9,]{2,}[ \t\u00A0]*\/[ \t\u00A0]*[0-9][0-9,]{2,}(?![0-9])|(?<![0-9.])[0-9]{1,2}\.[0-9][ \t\u00A0]*\/[ \t\u00A0]*[0-9]{1,2}(?![0-9])|\n[ \t\u00A0]*[0-9][0-9,]*[ \t\u00A0]*(?:\n|$)/;
+  // A solve time like "0:42" or "1:05:12" (not a clock time such as "9:14 am").
+  const STRICT_TIME_RE = /(?<![0-9:\/])[0-9]{1,2}:[0-5][0-9](?::[0-5][0-9])?(?![0-9:])(?![ \t\u00A0]*[ap]\.?m(?![a-z]))/;
+  const STRICT_HELP_RE = /(?<![a-z0-9_])(?:how to play|you have[ \t\u00A0]+[0-9]+|you get[ \t\u00A0]+[0-9]+|in[ \t\u00A0]+[0-9]+[ \t\u00A0]+(?:tries|guesses|attempts|chances)|guess the|find the|can you|each guess|tap to|rules|allowed)(?![a-z0-9_])/;
+  const STRICT_PUZZLE_NO_RE = /#[ \u00A0]?[0-9]{2}/;
+  // Results scored in other units (Krillion's "4,250m" depth, "87%", "1,200 xp").
+  const STRICT_MEASURED_RE = /(?<![a-z0-9_])[0-9][0-9,.]*[ \t\u00A0]*(?:m|meters?|metres?|km|ft|feet|%|xp|pts|points?|depth)(?![a-z0-9_])/;
+  // A rank instead of a number ("I got to Genius in today's Spelling Bee!", "Rank: Mayor").
+  const STRICT_RANK_RE = /(?<![a-z0-9_])(?:i got to|i reached|rank[ \t\u00A0]*:)[ \t\u00A0]*[a-z]|\(perfect\)/;
+  const STRICT_SOLVED_RE = /(?<![a-z0-9_])(?:solved|completed|finished|beat|scored)(?![a-z0-9_])/;
+  const STRICT_EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}⭐]/u;
+  const NAME_PREFIX_RE = /^(?:the|nyt|daily)[ ]+/;
+  const LINE_START_RE = /^(?:$|[0-9]+(?![0-9]*[:.\/])|[ \t\u00A0]*#|[ \t\u00A0]+[0-9][0-9,]{2,}(?![0-9,]*[:.\/]|[0-9,]*[ \t\u00A0]*m(?![a-z]))|[ \t\u00A0]+[-\u2013\u2014][ \t\u00A0]+)/;
+  const GENERIC_WORDS = new Set(['the', 'daily', 'game', 'games', 'puzzle', 'puzzles', 'play', 'today', 'www', 'html', 'index']);
+
   /** The site's own name from its host: "krillion" for krillion.io, "bbc" for www.bbc.co.uk. */
   function siteLabel(host) {
-    const parts = String(host || '').toLowerCase().split('.').filter(Boolean);
+    const parts = asciiLower(host).split('.').filter(Boolean);
     if (parts.length < 2) return '';
     let label = parts[parts.length - 2];
     if (parts.length >= 3 && /^(co|com|org|net|ac|gov|edu)$/.test(label)) label = parts[parts.length - 3];
     return /^[a-z0-9-]+$/.test(label) ? label : '';
   }
 
+  /** Host (no "www.") and path (no trailing "/") of a game's link, both ASCII-lower-cased. */
+  function gameHostPath(url) {
+    try {
+      const u = new URL(String(url || ''));
+      if (!/^https?:$/.test(u.protocol) || u.hostname.startsWith('[')) return { host: '', path: '' };
+      return { host: asciiLower(u.hostname).replace(/^www\./, ''), path: asciiLower(u.pathname).replace(/\/+$/, '') };
+    } catch (e) { return { host: '', path: '' }; }
+  }
+
+  /**
+   * How clearly a (lower-cased) text names the game: 2 = clearly (a line that starts with the name
+   * and a number, "Zip #245"; a name of several words; the game's own site), 1 = in passing (a
+   * one-word name such as "Queens" or "Zip" as a word, the site's name, or a link on a site shared by
+   * several games), 0 = not at all.
+   */
+  function gameMention(lower, name, url) {
+    const raw = asciiLower(strictTrim(name)).replace(/[ \t\u00A0]+/g, ' ');
+    const keys = [];
+    const add = (k) => { k = strictTrim(k); if (k.length >= 3 && !keys.includes(k)) keys.push(k); };
+    add(raw);
+    add(raw.replace(NAME_PREFIX_RE, ''));
+    add(raw.split(/[·:|–—]| - /)[0]);
+    add(raw.split(/[·:|–—]| - /)[0].replace(NAME_PREFIX_RE, ''));
+    // "Krillion Daily Dive" is shared as "Krillion …".
+    const first = raw.replace(NAME_PREFIX_RE, '').split(' ')[0];
+    if (first.length >= 5 && /^[a-z0-9]+$/.test(first)) add(first);
+    let level = 0;
+    for (const k of keys) {
+      if (!new RegExp(`(?<![a-z0-9])${escapeRe(k)}(?![a-z])`).test(lower)) continue;
+      level = Math.max(level, k === raw && raw.includes(' ') && raw.length >= 6 ? 2 : 1);
+    }
+    if (level === 1) {
+      const lineStart = lower.split('\n').some((line) => {
+        const l = strictTrim(line).replace(/^#/, '').replace(NAME_PREFIX_RE, '');
+        // "Zip #245", "Wordle 1,612 3/6", "Krillion" on its own line, "Foodguessr - 13 Nov" (not "Wordle 12:30").
+        return keys.some((k) => l.startsWith(k) && LINE_START_RE.test(l.slice(k.length)));
+      });
+      if (lineStart) level = 2;
+    }
+    const { host, path } = gameHostPath(url);
+    // A path that names the game means the site has several games (nytimes.com/games/wordle,
+    // linkedin.com/games/zip): the site's name, or a link to the site in general, doesn't say which.
+    const words = raw.split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !GENERIC_WORDS.has(w));
+    const shared = path.split('/').some((seg) => words.some((w) => seg.includes(w)));
+    if (host) {
+      if (!shared && lower.includes(host)) level = 2;
+      else if (shared && lower.includes(host + path)) level = Math.max(level, 1);
+      const label = shared ? '' : siteLabel(host);
+      if (label.length >= 4 && new RegExp(`(?<![a-z0-9])${escapeRe(label)}(?![a-z0-9])`).test(lower)) level = Math.max(level, 1);
+    }
+    return level;
+  }
+
+  /** A guess fraction that could be a result: "3/6", "x/6" (not "24/7", "1/2 cup" or a date like "11/13/2026"). */
+  function hasStrictFraction(lower) {
+    STRICT_FRACTION_RE.lastIndex = 0;
+    let m;
+    while ((m = STRICT_FRACTION_RE.exec(lower))) {
+      const max = Number(m[2]);
+      if (max >= 3 && (m[1] === 'x' || Number(m[1]) <= max)) return true;
+    }
+    return false;
+  }
+
   function isStrictShareResult(text, game) {
-    const t = String(text || '').trim();
+    const t = strictTrim(text);
     if (t.length < 3 || t.length > 4000) return false;
-    if (SINGLE_URL_RE.test(t)) return false;
-    if (STRICT_GLYPH_RE.test(t)) return true;
-    const lower = t.toLowerCase();
-    const name = String((game && game.name) || '').trim().toLowerCase();
-    let host = '';
-    try { host = new URL(String((game && game.url) || '')).hostname.replace(/^www\./, '').toLowerCase(); } catch (e) {}
-    const label = siteLabel(host);
-    const mentionsGame = (name.length >= 3 && lower.includes(name)) || (host && lower.includes(host)) ||
-      (label.length >= 4 && new RegExp(`(?<![a-z0-9])${label}(?![a-z0-9])`).test(lower));
+    const lower = asciiLower(t);
+    if (SINGLE_URL_RE.test(lower)) return false;
+    if (STRICT_GRID_RE.test(t)) return true;
+    const mention = gameMention(lower, game && game.name, game && game.url);
+    const puzzleNo = STRICT_PUZZLE_NO_RE.test(lower);
+    if (STRICT_GLYPH_RE.test(t) && (mention > 0 || puzzleNo)) return true;
     // Rules / help text ("Guess the Wordle in 6 tries") names the game and a count but isn't a result.
-    if (STRICT_HELP_RE.test(t) && !STRICT_PUZZLE_NO_RE.test(t)) return false;
-    if (STRICT_FRACTION_RE.test(t) && (STRICT_CONTEXT_RE.test(t) || mentionsGame)) return true;
-    if (!mentionsGame) return false;
-    // Emoji and a number only count with a puzzle number ("Krillion #117 🦐"), so a copied
-    // "Krillion 🦐 7 questions" isn't taken for a result.
-    return STRICT_COUNTED_RE.test(t) || STRICT_MEASURED_RE.test(t) || STRICT_TIME_RE.test(t) || (STRICT_EMOJI_RE.test(t) && STRICT_PUZZLE_NO_RE.test(t));
+    if (STRICT_HELP_RE.test(lower) && !puzzleNo) return false;
+    if (hasStrictFraction(lower) && (mention > 0 || STRICT_CONTEXT_RE.test(lower))) return true;
+    if (mention === 0) return false;
+    const scored = STRICT_COUNTED_RE.test(lower) || STRICT_MEASURED_RE.test(lower) || STRICT_TIME_RE.test(lower)
+      || STRICT_RANK_RE.test(lower) || (STRICT_EMOJI_RE.test(t) && puzzleNo);
+    if (!scored) return false;
+    // Named only in passing ("My zip code is 90210, 5 minutes away"): also needs a puzzle number
+    // or a "solved".
+    return mention === 2 || puzzleNo || STRICT_SOLVED_RE.test(lower);
+  }
+
+  /** Whether a text names the game at all (used for clipboard text found after the fact). */
+  function mentionsGame(text, game) {
+    const lower = asciiLower(strictTrim(text));
+    return gameMention(lower, game && game.name, game && game.url) > 0 || STRICT_PUZZLE_NO_RE.test(lower);
   }
 
   // A share result that says the puzzle was NOT solved ("X/6", "Next time", Connections with four
   // mistakes). Auto-logging records these as Missed (with the score) instead of Solved.
-  const FAILED_FRACTION_RE = /(?<![0-9A-Za-z_/])x[ \t ]*\/[ \t ]*[0-9]{1,2}(?![0-9/])/i;
-  const FAILED_PHRASE_RE = /(?<![A-Za-z0-9_])(?:next time|better luck|not solved|unsolved|did not solve|didn[’']t solve|failed|out of (?:guesses|tries|lives))(?![A-Za-z0-9_])/i;
+  const FAILED_FRACTION_RE = /(?<![0-9A-Za-z_/])x[ \t\u00A0]*\/[ \t\u00A0]*[0-9]{1,2}(?![0-9/])/i;
+  const FAILED_PHRASE_RE = /(?<![A-Za-z0-9_])(?:next time|better luck|not solved|unsolved|did not solve|didn[’']t solve|failed(?![ \t\u00A0]+to(?![A-Za-z]))|out of (?:guesses|tries|lives))(?![A-Za-z0-9_])/i;
   const GROUP_SQUARES = new Set(['\u{1F7E8}', '\u{1F7E9}', '\u{1F7E6}', '\u{1F7EA}']); // yellow green blue purple
   function isFailedShareResult(text) {
     const t = String(text || '').trim();
@@ -450,23 +565,25 @@
     const cellsAll = Array.from(t);
     const reds = cellsAll.filter((c) => c === '\u{1F7E5}' || c === '❌').length;
     if (reds >= 3 && !cellsAll.some((c) => c === '\u{1F7E9}' || c === '✅')) return true;
+    // Quordle / Octordle: each board is a keycap number, or 🟥 when it wasn't solved.
+    if (reds >= 1 && /[0-9]\uFE0F?\u20E3/.test(t)) return true;
     // Connections-style grid: rows of four group colours; a mixed row is a mistake, four ends the game.
     let mixedRows = 0;
     t.split('\n').forEach((line) => {
-      const cells = Array.from(line.replace(/[ \t ️]/g, ''));
+      const cells = Array.from(line.replace(/[ \t\u00A0️]/g, ''));
       if (cells.length === 4 && cells.every((c) => GROUP_SQUARES.has(c)) && new Set(cells).size > 1) mixedRows += 1;
     });
     return mixedRows >= 4;
   }
 
-  const SCORE_RE = /(^|[^\d/])(\d{1,2}|[xX])\s*\/\s*(\d{1,2})(?![\d/])/;
+  const SCORE_RE = /(^|[^\d/.\-])(\d{1,2}|[xX])\s*\/\s*(\d{1,2})(?![\d/:])/;
 
   /** "3/6" -> { n: 3, max: 6 }; "X/6" -> { n: null, max: 6, fail: true }; null when there's no N/M score. */
   function parseScore(text) {
     const m = SCORE_RE.exec(String(text || ''));
     if (!m) return null;
     const max = Number(m[3]);
-    if (!(max >= 2 && max <= 20)) return null;
+    if (!(max >= 3 && max <= 20)) return null;
     if (/x/i.test(m[2])) return { n: null, max, fail: true };
     const n = Number(m[2]);
     if (n < 1 || n > max) return null;
@@ -475,16 +592,27 @@
 
   // ---- Scores beyond "N/M" guesses: times, points and counts (1.3.0) ----
   // "1:42" / "01:02:03" (not a clock time like "9:14 AM").
-  const TIME_COLON_RE = /(?<![0-9:.\/])([0-9]{1,2}):([0-5][0-9])(?::([0-5][0-9]))?(?![0-9:])(?![ \t ]*[ap]\.?m\b)/i;
+  const TIME_COLON_RE = /(?<![0-9:.\/])([0-9]{1,2}):([0-5][0-9])(?::([0-5][0-9]))?(?![0-9:])(?![ \t\u00A0]*[ap]\.?m\b)/i;
   // "1m 42s", "42s", "42.5 seconds", "1h 3m 5s".
-  const TIME_UNITS_RE = /(?<![A-Za-z0-9_.])(?:([0-9]{1,2})[ \t ]*h(?:ours?|rs?)?[ \t ,]*)?(?:([0-9]{1,3})[ \t ]*m(?:in(?:ute)?s?)?[ \t ,]*)?([0-9]{1,4}(?:\.[0-9]+)?)[ \t ]*s(?:ec(?:ond)?s?)?(?![A-Za-z0-9_])/i;
-  const TIME_MINUTES_RE = /(?<![A-Za-z0-9_.])([0-9]{1,3})[ \t ]*min(?:ute)?s?(?![A-Za-z0-9_])/i;
-  const POINTS_RE = /(?<![A-Za-z0-9_#.,])([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})(?:\.[0-9]+)?[ \t ]*(pts|points?|xp|m|meters?|metres?|km|%)(?![A-Za-z0-9_])/i;
-  const SCORE_LABEL_RE = /(?<![A-Za-z0-9_])(?:score|points|total)[ \t ]*[:=]?[ \t ]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})(?![0-9])/i;
-  const COUNT_RE = /(?<![A-Za-z0-9_#.,])([0-9]{1,4})[ \t ]*(guess(?:es)?|tries|try|attempts?|moves?|mistakes?|swaps?|clicks?|steps?)(?![A-Za-z0-9_])/i;
-  const BARE_NUMBER_LINE_RE = /^[ \t ]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})[ \t ]*$/;
+  const TIME_UNITS_RE = /(?<![A-Za-z0-9_.])(?:([0-9]{1,2})[ \t\u00A0]*h(?:ours?|rs?)?[ \t\u00A0,]*)?(?:([0-9]{1,3})[ \t\u00A0]*m(?:in(?:ute)?s?)?[ \t\u00A0,]*)?([0-9]{1,4}(?:\.[0-9]+)?)[ \t\u00A0]*s(?:ec(?:ond)?s?)?(?![A-Za-z0-9_])/i;
+  // "1h 3m" (no seconds).
+  const TIME_HM_RE = /(?<![A-Za-z0-9_.])([0-9]{1,2})[ \t\u00A0]*h(?:ours?|rs?)?[ \t\u00A0,]*([0-9]{1,2})[ \t\u00A0]*m(?:in(?:ute)?s?)?(?![A-Za-z0-9_])/i;
+  const TIME_MINUTES_RE = /(?<![A-Za-z0-9_.])([0-9]{1,3})[ \t\u00A0]*min(?:ute)?s?(?![A-Za-z0-9_])/i;
+  const POINTS_RE = /(?<![A-Za-z0-9_#.,\-\u2212])([-\u2212]?)([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]{1,7}(?:\.[0-9]+)?)[ \t\u00A0]*(pts|points?|xp|m|meters?|metres?|km|%)(?![A-Za-z0-9_])/i;
+  // "38,412/50,000" (TimeGuessr, FoodGuessr): a points total out of a maximum.
+  const POINTS_OF_RE = /(?<![0-9.,\/])([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,7})[ \t\u00A0]*\/[ \t\u00A0]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,7})(?![0-9\/])/;
+  // A unit-less "m" is minutes ("58m"), unless it reads as a distance (Krillion's "4,250m" depth).
+  const DISTANCE_CONTEXT_RE = /depth|deep|dive|metre|meter|distance|krillion/i;
+  const GOLF_CONTEXT_RE = /\u26F3|golf|strokes?|(?<![A-Za-z])par(?![A-Za-z])/i;
+  const SCORE_LABEL_RE = /(?<![A-Za-z0-9_])(?:score|points|total)[ \t\u00A0]*[:=]?[ \t\u00A0]*([-\u2212]?)([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]{1,7}(?:\.[0-9]+)?)(?![0-9])/gi;
+  const NOT_THIS_SCORE_RE = /(?:high|best|top|record|max|average|avg)[ \t\u00A0]*$/i;
+  const COUNT_RE = /(?<![A-Za-z0-9_#.,])([0-9]{1,4})[ \t\u00A0]*(guess(?:es)?|tries|try|attempts?|moves?|mistakes?|swaps?|clicks?|steps?|strokes?|shots?|hints?)(?![A-Za-z0-9_])/i;
+  // "FE Guess 512 - guessed in 4" (not "solved in 4 min").
+  const GUESSED_IN_RE = /(?<![A-Za-z0-9_])(?:guessed|solved|got it)[ \t\u00A0]+in[ \t\u00A0]+([0-9]{1,3})(?![0-9:.,\/]|[ \t\u00A0]*(?:s|secs?|seconds?|m|mins?|minutes?|h|hrs?|hours?)(?![A-Za-z]))/i;
+  const BARE_NUMBER_LINE_RE = /^[ \t\u00A0]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})[ \t\u00A0]*$/;
 
   const num = (s) => Number(String(s).replace(/,/g, ''));
+  const signed = (sign, s) => (sign ? -1 : 1) * num(s);
 
   /**
    * What a result's score is, so like can be compared with like:
@@ -510,29 +638,56 @@
       const ms = Math.round(((Number(m[1]) || 0) * 3600 + (Number(m[2]) || 0) * 60 + Number(m[3])) * 1000);
       if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
     }
+    m = TIME_HM_RE.exec(t);
+    if (m) {
+      const ms = (Number(m[1]) * 3600 + Number(m[2]) * 60) * 1000;
+      if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
+    }
+    m = POINTS_OF_RE.exec(t);
+    if (m && num(m[1]) <= num(m[2])) {
+      const value = num(m[1]);
+      return { kind: 'points', value, unit: 'pts', group: 'p:pts', rank: -value, label: pointsLabel(value, 'pts') };
+    }
     m = COUNT_RE.exec(t);
     if (m) {
       const unit = m[2].toLowerCase().replace(/^(guess)(es)?$/, 'guesses').replace(/^(tries|try)$/, 'tries')
-        .replace(/^attempts?$/, 'attempts').replace(/^moves?$/, 'moves').replace(/^mistakes?$/, 'mistakes');
+        .replace(/^attempts?$/, 'attempts').replace(/^moves?$/, 'moves').replace(/^mistakes?$/, 'mistakes')
+        .replace(/^strokes?$/, 'strokes').replace(/^shots?$/, 'shots').replace(/^hints?$/, 'hints');
       const n = Number(m[1]);
       return { kind: 'count', n, unit, group: `c:${unit}`, rank: n, label: `${n} ${unit}` };
     }
+    m = GUESSED_IN_RE.exec(t);
+    if (m) { const n = Number(m[1]); if (n > 0) return { kind: 'count', n, unit: 'guesses', group: 'c:guesses', rank: n, label: `${n} guesses` }; }
     m = POINTS_RE.exec(t);
     if (m) {
-      const unitRaw = m[2].toLowerCase();
+      const unitRaw = m[3].toLowerCase();
       const unit = /^(pts|points?)$/.test(unitRaw) ? 'pts' : (/^(m|meters?|metres?)$/.test(unitRaw) ? 'm' : unitRaw);
-      const value = num(m[1]);
+      const value = signed(m[1], m[2]);
+      // "58m" is a time; "4,250m" or "60m depth" is a distance.
+      if (unitRaw === 'm' && !m[1] && /^[0-9]{1,3}$/.test(m[2]) && !DISTANCE_CONTEXT_RE.test(t)) {
+        const ms = value * 60000;
+        if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
+      }
       return { kind: 'points', value, unit, group: `p:${unit}`, rank: -value, label: pointsLabel(value, unit) };
     }
-    m = SCORE_LABEL_RE.exec(t);
-    if (m) { const value = num(m[1]); return { kind: 'points', value, unit: 'pts', group: 'p:pts', rank: -value, label: pointsLabel(value, 'pts') }; }
+    SCORE_LABEL_RE.lastIndex = 0;
+    while ((m = SCORE_LABEL_RE.exec(t))) {
+      // "High score: 900 Score: 100" is a 100.
+      if (NOT_THIS_SCORE_RE.test(t.slice(0, m.index))) continue;
+      const value = signed(m[1], m[2]);
+      return { kind: 'points', value, unit: 'pts', group: 'p:pts', rank: -value, label: pointsLabel(value, 'pts') };
+    }
     m = TIME_MINUTES_RE.exec(t);
     if (m) { const ms = Number(m[1]) * 60000; if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) }; }
     // A line that is only a number, after the first line (Krillion: "Krillion #117 🦐\n60").
     const lines = t.split(/\r?\n/);
     for (let i = 1; i < lines.length; i++) {
       const b = BARE_NUMBER_LINE_RE.exec(lines[i]);
-      if (b) { const value = num(b[1]); return { kind: 'points', value, unit: '', group: 'p:', rank: -value, label: pointsLabel(value, '') }; }
+      if (!b) continue;
+      const value = num(b[1]);
+      // putt.day and other golf games: a bare number is strokes, and fewer is better.
+      if (GOLF_CONTEXT_RE.test(t)) return { kind: 'count', n: value, unit: 'strokes', group: 'c:strokes', rank: value, label: `${value} strokes` };
+      return { kind: 'points', value, unit: '', group: 'p:', rank: -value, label: pointsLabel(value, '') };
     }
     return null;
   }
@@ -548,7 +703,7 @@
 
   /** "1:42" / "1:02:03" for a game's own time score. */
   function formatClock(ms) {
-    const t = Math.max(0, Math.round(Number(ms) / 1000) || 0);
+    const t = Number.isFinite(Number(ms)) ? Math.max(0, Math.round(Number(ms) / 1000) || 0) : 0;
     const h = Math.floor(t / 3600);
     const m = Math.floor((t % 3600) / 60);
     const s = t % 60;
@@ -567,9 +722,10 @@
     if (!vals.length) return { group: null, values: [] };
     const counts = new Map();
     vals.forEach((v) => counts.set(v.group, (counts.get(v.group) || 0) + 1));
+    // A tie goes to the kind of the most recent result.
+    const top = Math.max(...counts.values());
     let group = null;
-    let best = -1;
-    counts.forEach((c, k) => { if (c > best) { best = c; group = k; } });
+    for (let i = vals.length - 1; i >= 0; i--) if (counts.get(vals[i].group) === top) { group = vals[i].group; break; }
     return { group, values: vals.filter((v) => v.group === group) };
   }
 
@@ -585,7 +741,7 @@
 
   /** "1m 05s" / "42s" / "1h 03m" for a play time in ms. */
   function formatDuration(ms) {
-    const t = Math.max(0, Math.round(Number(ms) / 1000) || 0);
+    const t = Number.isFinite(Number(ms)) ? Math.max(0, Math.round(Number(ms) / 1000) || 0) : 0;
     const h = Math.floor(t / 3600);
     const m = Math.floor((t % 3600) / 60);
     const sec = t % 60;
@@ -608,7 +764,7 @@
     for (const r of list) {
       const ok = r.outcome === 'Completed';
       if (ok) won += 1; else if (r.outcome === 'Missed') missed += 1; else continue;
-      if (ok && Number(r.timeMs) > 0) times.push(Number(r.timeMs));
+      if (ok && Number(r.timeMs) > 0 && Number.isFinite(Number(r.timeMs))) times.push(Number(r.timeMs));
       const sc = parseScore(r.score);
       if (!sc) continue;
       parsed.push({ max: sc.max, n: sc.fail || !ok ? null : sc.n });
@@ -669,7 +825,7 @@
     const dom = dominantScores(solved);
     let best = null;
     dom.values.forEach((v) => { if (!best || v.rank < best.rank) best = v; });
-    const times = solved.map((r) => Number(r.timeMs)).filter((x) => x > 0);
+    const times = solved.map((r) => Number(r.timeMs)).filter((x) => x > 0 && Number.isFinite(x));
     return { bestScore: best ? best.label : null, bestKind: best ? best.kind : null, fastestMs: times.length ? Math.min(...times) : null, bestStreak: Number(bestStreak) || 0 };
   }
 
@@ -746,15 +902,25 @@
 
   // ---- Reset-time detection (1.4.0) ----
 
+  const MONTH_WORD = '(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\\.?';
+  // A number that is part of a date ("Nov 13th 2026", "13 Nov", "#2026-11-13") isn't a puzzle number.
+  const DATE_AFTER_RE = new RegExp(`^(?:st|nd|rd|th)(?![a-z])|^[-./][0-9]|^[ \\t\\u00A0,]+${MONTH_WORD}(?![a-z])`, 'i');
+  const DATE_BEFORE_RE = new RegExp(`(?:^|[^a-z])${MONTH_WORD}[ \\t\\u00A0,]*$`, 'i');
+
   /** The puzzle number in a share text: "#117", or the number after the name ("Wordle 1,234 3/6"). */
   function puzzleNumber(text) {
     const t = String(text || '');
-    let m = /#[  ]?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})(?![0-9])/.exec(t);
-    if (m) return Number(m[1].replace(/,/g, ''));
+    const notDate = (before, after) => !DATE_AFTER_RE.test(after) && !DATE_BEFORE_RE.test(before);
+    const hash = /#[ \u00A0]?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})(?![0-9])/g;
+    let m;
+    while ((m = hash.exec(t))) {
+      if (notDate(t.slice(0, m.index), t.slice(m.index + m[0].length))) return Number(m[1].replace(/,/g, ''));
+    }
     const first = t.split(/\r?\n/)[0] || '';
-    m = /^([^0-9\n]{2,40}?)[  ]([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{2,7})(?![0-9\/:.,%]|[  ]*(?:\/|m\b|pts|points|%))/i.exec(first);
-    // Not a labelled score or time ("Score: 2,450", "Time 42").
-    if (!m || /[:=]\s*$/.test(m[1]) || /(score|points|total|time|level|streak|moves|guesses)\s*$/i.test(m[1])) return null;
+    m = /^([^0-9\n]{2,40}?)[ \u00A0]([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{2,7})(?![0-9\/:.,%]|[ \u00A0]*(?:\/|m\b|pts|points|%))/i.exec(first);
+    // Not a labelled score or time ("Score: 2,450", "Time 42"), a list ("Top 10") or a date.
+    if (!m || /[:=]\s*$/.test(m[1]) || /(score|points|total|time|level|streak|moves|guesses|top|best)\s*$/i.test(m[1])) return null;
+    if (!notDate(m[1], first.slice(m[0].length))) return null;
     return Number(m[2].replace(/,/g, ''));
   }
 
@@ -783,33 +949,75 @@
   const SUGGEST_ZONES = ['local', 'utc', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
     'Europe/London', 'Europe/Paris', 'Europe/Moscow', 'Asia/Kolkata', 'Asia/Shanghai', 'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland'];
 
+  const DAY_MS = 86400000;
+
+  /** On how many different days the rows disagree with the most common (number − day) under this schedule. */
+  function misfitDays(obs, resetTime, resetZone) {
+    const rows = obs.map((o) => {
+      const day = cycleKeyToDay(getCycleDateKey(resetTime, resetZone, new Date(o.at)));
+      return { day, off: o.n - day };
+    });
+    const counts = new Map();
+    rows.forEach((r) => counts.set(r.off, (counts.get(r.off) || 0) + 1));
+    let mode = null;
+    let best = -1;
+    counts.forEach((c, k) => { if (c > best) { best = c; mode = k; } });
+    return new Set(rows.filter((r) => r.off !== mode).map((r) => r.day)).size;
+  }
+
+  /** When this schedule resets over the coming year, so schedules that always agree ("local" in New York and America/New_York) count as one. */
+  function scheduleSignature(resetTime, resetZone, from) {
+    const out = [];
+    for (let k = 0; k <= 26; k++) out.push(getNextResetDate(resetTime, resetZone, new Date(from + k * 14 * DAY_MS)).getTime());
+    return out.join(',');
+  }
+
   /**
-   * When a game's logged puzzle numbers don't line up with its reset time (two puzzles logged on one
-   * "day", or one puzzle on two), the most likely real reset: midnight in a common zone first, then a
-   * whole hour in the game's zone, local time or UTC when the evidence narrows it to one or two hours.
-   * Null when the current time fits, when there's too little evidence (at least 3 numbered results,
-   * 2 different puzzles) or when there's no clear answer.
+   * When a game's logged puzzle numbers keep disagreeing with its reset time, the real reset, but only
+   * when the evidence leaves exactly one answer. A wrong suggestion moves results to the wrong days,
+   * so this errs towards null:
+   *   - at least 4 numbered results of 3 different puzzles over 2+ days, and the current schedule
+   *     contradicted on 2 or more different days (one late or replayed result isn't enough);
+   *   - the results must pin the reset to within 90 minutes, and every candidate that fits (midnight
+   *     in a common zone, or a whole hour in the game's zone, local time or UTC) must be the same
+   *     schedule for the coming year (so not "UTC" for a game that follows London's clocks).
    */
   function suggestResetTime(rows, current) {
-    const obs = resetObservations(rows);
-    if (obs.length < 3 || new Set(obs.map((o) => o.n)).size < 2) return null;
+    const obs = resetObservations(rows).sort((x, y) => x.at - y.at);
+    if (obs.length < 4 || new Set(obs.map((o) => o.n)).size < 3) return null;
+    if (obs[obs.length - 1].at - obs[0].at < 2 * DAY_MS) return null;
     const curTime = (current && current.resetTime) || '00:00';
     const curZone = normalizeZone(current && current.resetZone);
-    if (resetFitsObservations(obs, curTime, curZone)) return null;
-    const tryZone = (t, z) => !(t === curTime && z === curZone) && !(isNamedZone(z) && !isValidTimeZone(z))
-      && resetFitsObservations(obs, t, z);
-    // Several midnights fit (too little evidence yet): only local or UTC midnight is a safe pick.
-    const midnights = SUGGEST_ZONES.filter((z) => tryZone('00:00', z));
-    if (midnights.length === 1) return { resetTime: '00:00', resetZone: midnights[0] };
-    const safe = midnights.find((z) => z === 'local' || z === 'utc');
-    if (safe) return { resetTime: '00:00', resetZone: safe };
-    if (midnights.length > 1) return null;
-    for (const z of [curZone, 'local', 'utc']) {
-      const fits = [];
-      for (let hr = 0; hr < 24; hr++) { const t = `${String(hr).padStart(2, '0')}:00`; if (tryZone(t, z)) fits.push(t); }
-      if (fits.length && fits.length <= 2) return { resetTime: fits[0], resetZone: z };
-    }
-    return null;
+    let curMisfits;
+    try { curMisfits = misfitDays(obs, curTime, curZone); } catch (e) { return null; }
+    if (curMisfits < 2) return null;
+    // Puzzle n is live from B + n days: every result narrows B. Too wide (or inconsistent) means no answer.
+    let lo = -Infinity;
+    let hi = Infinity;
+    obs.forEach((o) => { lo = Math.max(lo, o.at - (o.n + 1) * DAY_MS); hi = Math.min(hi, o.at - o.n * DAY_MS); });
+    if (!(hi > lo) || hi - lo > 90 * 60000) return null;
+    const fits = [];
+    const seen = new Set();
+    const consider = (t, z) => {
+      const k = `${t} ${z}`;
+      if (seen.has(k) || (t === curTime && z === curZone) || (isNamedZone(z) && !isValidTimeZone(z))) return;
+      seen.add(k);
+      if (resetFitsObservations(obs, t, z)) fits.push({ resetTime: t, resetZone: z });
+    };
+    SUGGEST_ZONES.forEach((z) => consider('00:00', z));
+    [curZone, 'local', 'utc'].forEach((z) => { for (let hr = 0; hr < 24; hr++) consider(`${String(hr).padStart(2, '0')}:00`, z); });
+    // Daily games nearly always reset at midnight somewhere, so a single midnight wins over other
+    // hours that happen to fit too (midnight New York over 05:00 UTC in November).
+    const pick = (list) => {
+      if (!list.length) return null;
+      const sigs = new Set(list.map((f) => scheduleSignature(f.resetTime, f.resetZone, obs[0].at)));
+      if (sigs.size !== 1) return null;
+      // All the same schedule: keep the game's own zone if it's one of them, then local time, then UTC.
+      return list.find((f) => f.resetZone === curZone) || list.find((f) => f.resetZone === 'local')
+        || list.find((f) => f.resetZone === 'utc') || list[0];
+    };
+    const midnights = fits.filter((f) => f.resetTime === '00:00');
+    return midnights.length ? pick(midnights) : pick(fits);
   }
 
   /**
@@ -877,6 +1085,8 @@
     isFailedShareResult,
     looksLikeShareResult,
     isStrictShareResult,
+    mentionsGame,
+    gameMention,
     isValidTimeZone,
     isNamedZone,
     ensureStatsBaseline,
@@ -896,6 +1106,7 @@
     addDaysToCycleKey,
     scheduleKeyShift,
     shiftDayHistory,
+    rescheduleDays,
     cleanDayHistory,
     recomputeGameStatsFromHistory,
     indexHistoryLogs

@@ -420,10 +420,28 @@ class HubActivity : ComponentActivity() {
         return obj
     }
 
+    /**
+     * Set when the hub itself opens something on top (the game player, a file picker, the share
+     * sheet, the installer): changing the launcher entry then would close that screen (Android
+     * removes a task whose launcher entry was just disabled), so the icon waits for a real exit.
+     */
+    private var coveredByOwnScreen = false
+
+    // Every startActivity / ActivityResultLauncher.launch from the hub comes through here.
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        coveredByOwnScreen = true
+        super.startActivityForResult(intent, requestCode, options)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        coveredByOwnScreen = false
+    }
+
     override fun onStop() {
         super.onStop()
-        // Swap the launcher icon only once the hub is off screen, so the switch can't disturb it.
-        if (!isChangingConfigurations) AppIcon.apply(applicationContext)
+        // Swap the launcher icon only once the user has left the app (home, recents, another app).
+        if (!isChangingConfigurations && !coveredByOwnScreen) AppIcon.apply(applicationContext)
     }
 
     override fun onPause() {

@@ -101,7 +101,7 @@ object GamePrefs {
     private const val KEY_FIND_RESULTS = "find_results"
     private const val ZOOM_PREFIX = "zoom_"
 
-    /** Press a finished game's own Share button quietly to read its result (finish-probe.js). */
+    /** Press a finished game's own Share button quietly to read its result (share-hook.js). */
     fun findResults(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_FIND_RESULTS, true)
     fun setFindResults(ctx: Context, on: Boolean) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY_FIND_RESULTS, on) }

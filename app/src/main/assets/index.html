@@ -1183,21 +1183,22 @@
       const shift = HubCore.scheduleKeyShift(from, to);
       g.resetTime = to.resetTime;
       g.resetZone = to.resetZone;
-      if (shift) {
-        g.dayHistory = HubCore.shiftDayHistory(g.dayHistory, shift);
+      // Rows from older versions only carry the game's name.
+      const mineRows = (logs || []).filter((l) => l && (l.gameId ? l.gameId === g.id : l.gameName === g.name));
+      const moved = HubCore.rescheduleDays(g.dayHistory, mineRows, from, to);
+      const changed = moved.dates.some((d, i) => d !== mineRows[i].date)
+        || JSON.stringify(moved.dayHistory) !== JSON.stringify(g.dayHistory || {});
+      if (shift || changed) {
+        g.dayHistory = moved.dayHistory;
+        const todayKey = HubCore.getCycleDateKey(to.resetTime, to.resetZone, new Date());
+        const clamp = (k) => (k > todayKey ? todayKey : k);
         if (HubCore.DATE_KEY_RE.test(String(g.lastCycleKey || ''))) {
-          g.lastCycleKey = HubCore.addDaysToCycleKey(g.lastCycleKey, shift);
+          g.lastCycleKey = clamp(HubCore.addDaysToCycleKey(g.lastCycleKey, shift));
         }
         if (HubCore.DATE_KEY_RE.test(String(g.addedCycleKey || ''))) {
-          g.addedCycleKey = HubCore.addDaysToCycleKey(g.addedCycleKey, shift);
+          g.addedCycleKey = clamp(HubCore.addDaysToCycleKey(g.addedCycleKey, shift));
         }
-        (logs || []).forEach((l) => {
-          // Rows from older versions only carry the game's name.
-          const mine = l && (l.gameId ? l.gameId === g.id : l.gameName === g.name);
-          if (mine && HubCore.DATE_KEY_RE.test(String(l.date || ''))) {
-            l.date = HubCore.addDaysToCycleKey(l.date, shift);
-          }
-        });
+        mineRows.forEach((l, i) => { l.date = moved.dates[i]; });
         invalidateLogIndex();
       }
       return shift;
@@ -1243,6 +1244,7 @@
         historyLogs: logs,
         notifications: Array.isArray(parsed.notifications) ? parsed.notifications.slice(0, 50) : [],
         achievements: Array.isArray(parsed.achievements) ? parsed.achievements.filter((a) => typeof a === 'string').slice(0, 100) : undefined,
+        goldUnlocked: parsed.goldUnlocked === true,
         __loadedFrom: source
       };
     }
@@ -1307,8 +1309,6 @@
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setAppIconStyle === 'function') {
           window.AndroidBridge.setAppIconStyle(currentAppIcon());
-        } else if (window.AndroidBridge && typeof window.AndroidBridge.setIconFollowsTheme === 'function') {
-          window.AndroidBridge.setIconFollowsTheme(currentAppIcon() === 'themed');
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setDarkGamePages === 'function') {
           window.AndroidBridge.setDarkGamePages((state.settings || {}).darkGamePages !== false);
@@ -1340,6 +1340,8 @@
     function flushSaveNow() {
       saveQueued = false;
       if (state.__saveBlocked) {
+        // The saved data isn't overwritten, but device settings (icon, theme, reminders) still apply.
+        saveLaunchPrefs();
         showDataProblemBanner();
         return;
       }
@@ -1874,12 +1876,14 @@
       if (!key) return null;
       const exact = state.games.find((g) => normalizeUrlKey(g.url) === key);
       if (exact) return exact;
-      // Two links that match the same built-in catalogue entry are the same game.
+      // Two links to the same game's page in the built-in catalogue (nytimes.com/games/wordle and
+      // …/wordle/index.html) are the same game. Not for entries that cover a whole site, where other
+      // pages can be other games (mini.nerdlegame.com, puzzmo.com/play/…).
       const known = KnownGames.find(rawUrl);
-      if (!known) return null;
+      if (!known || !(known.path || known.also)) return null;
       return state.games.find((g) => {
         const k = KnownGames.find(g.url);
-        return Boolean(k && k.host === known.host && (k.path || '') === (known.path || ''));
+        return Boolean(k && k.host === known.host && k.path === known.path && k.name === known.name);
       }) || null;
     }
 
@@ -1894,8 +1898,9 @@
       } catch (e) {
         return '';
       }
-      // https unless the link explicitly says http:// (some small games are http-only).
-      return c;
+      // https unless the link explicitly says http:// (some small games are http-only). Stored in the
+      // browser's normal form (lower-case host, %-escapes decoded), so every check reads it the same way.
+      try { return new URL(c).href; } catch (e) { return c; }
     }
 
     function mapNativeCategoryToUiCategory(cat) {
@@ -2165,6 +2170,7 @@
     }
 
     function renderGamesGrid() {
+      renderResetSuggestion();
       const grid = document.getElementById('gamesGrid');
       if (!grid) return;
       if (grid.classList.contains('drag-active')) return; // never rebuild cards mid-drag
@@ -2809,13 +2815,18 @@
           </button>`;
         }).join('')}`).join('');
     }
+    // Opened from the Add form: closing the picker without a pick goes back to it, as typed.
+    let browseReturnToAdd = false;
     function openBrowseGames() {
+      const fromAdd = isModalOpen('modalAddGame');
       const search = document.getElementById('browseGamesSearch');
       if (search) search.value = '';
       renderBrowseGames();
       openModal('modalBrowseGames');
+      browseReturnToAdd = fromAdd; // after openModal, which closes the Add form (and resets this)
     }
     function pickBrowseGame(url) {
+      browseReturnToAdd = false;
       closeModal('modalBrowseGames');
       const meta = inferGameMetaFromUrl(url);
       openAddOrEditModal(meta || { url }, null);
@@ -2833,13 +2844,20 @@
         return;
       }
       if (game.dismissedResetSuggestion === `${sug.resetTime}|${sug.resetZone}`) return;
-      resetSuggestion = { gameId: game.id, resetTime: sug.resetTime, resetZone: sug.resetZone };
+      resetSuggestion = { gameId: game.id, resetTime: sug.resetTime, resetZone: sug.resetZone,
+        fromTime: game.resetTime, fromZone: HubCore.normalizeZone(game.resetZone) };
       renderResetSuggestion();
     }
     function renderResetSuggestion() {
       const el = document.getElementById('resetSuggestBanner');
       if (!el) return;
-      const game = resetSuggestion && state.games.find((g) => g.id === resetSuggestion.gameId);
+      let game = resetSuggestion && state.games.find((g) => g.id === resetSuggestion.gameId);
+      // Gone, archived, or its reset time edited since: the suggestion no longer applies.
+      if (resetSuggestion && (!game || game.archived || game.resetTime !== resetSuggestion.fromTime
+        || HubCore.normalizeZone(game.resetZone) !== resetSuggestion.fromZone)) {
+        resetSuggestion = null;
+        game = null;
+      }
       el.classList.toggle('hidden', !game);
       if (!game) return;
       const zone = resetSuggestion.resetZone;
@@ -2851,6 +2869,7 @@
         `Its puzzle numbers fit a reset at ${local}${exact}, not ${formatLocalResetTime(game.resetTime, game.resetZone)}.`;
     }
     function applyResetSuggestion() {
+      renderResetSuggestion();
       const sug = resetSuggestion;
       const game = sug && state.games.find((g) => g.id === sug.gameId);
       resetSuggestion = null;
@@ -2958,7 +2977,13 @@
         const bridge = window.AndroidBridge;
         if (bridge && typeof bridge.openGameInLineup === 'function') {
           // Today's games, so the player can switch between them and offer Next.
-          const lineup = visibleGames().map((g) => ({ id: g.id, name: g.name, url: g.url, done: g.status !== 'ready' }));
+          // At most 100 games around the opened one (the player takes 200), names and links trimmed.
+          const all = visibleGames();
+          const at = Math.max(0, all.findIndex((g) => g.id === game.id));
+          const from = Math.max(0, Math.min(at - 50, all.length - 100));
+          const lineup = all.slice(from, from + 100)
+            .map((g) => ({ id: g.id, name: String(g.name || '').slice(0, 80), url: String(g.url || '').slice(0, 2000), done: g.status !== 'ready' }));
+          if (!lineup.some((g) => g.id === game.id)) lineup.unshift({ id: game.id, name: game.name, url: game.url, done: game.status !== 'ready' });
           bridge.openGameInLineup(game.id, game.name, game.url, JSON.stringify(lineup));
           return;
         }
@@ -3113,10 +3138,16 @@
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
       { id: 'gold', label: 'Gold', bg: ['#2A1E06', '#120C02'], star: [[0, '#FFF7CC'], [0.22, '#F7D774'], [0.48, '#C9922B'], [0.68, '#FFE68A'], [1, '#8A5A10']], mark: '#FFFBEA', sparks: '#FFFDF2', locked: true }
     ];
-    /** True once every achievement has been earned (kept, so the icon stays unlocked). */
+    /**
+     * True once every achievement has been earned. Remembered (state.goldUnlocked, kept in backups),
+     * so the icon stays unlocked after a restore or when a later version adds achievements.
+     */
     function goldIconUnlocked() {
+      if (state.goldUnlocked === true) return true;
       const have = new Set(Array.isArray(state.achievements) ? state.achievements : []);
-      return HubCore.ACHIEVEMENTS.every((a) => have.has(a.id));
+      const all = HubCore.ACHIEVEMENTS.every((a) => have.has(a.id));
+      if (all) state.goldUnlocked = true;
+      return all;
     }
     /** The chosen style ("" means the 1.2–1.3 switch decides), never a locked one. */
     function currentAppIcon() {
@@ -3187,11 +3218,14 @@
       const fresh = all.filter((a) => a.earned && !known.has(a.id));
       if (!fresh.length) return;
       const first = !Array.isArray(state.achievements);
+      const wasGold = goldIconUnlocked();
       state.achievements = [...known, ...fresh.map((a) => a.id)];
+      const gold = goldIconUnlocked();
       saveState({ sync: false });
+      renderIconChoices();
       if (first || silent) return;
       fresh.forEach((a, i) => setTimeout(() => showToast(`${a.icon} Achievement unlocked`, `${a.title}: ${a.desc.charAt(0).toLowerCase()}${a.desc.slice(1)}.`, 'indigo'), 900 + i * 400));
-      if (goldIconUnlocked()) {
+      if (gold && !wasGold) {
         setTimeout(() => showToast('✨ Gold icon unlocked', 'You earned every achievement. Choose the gold app icon in Settings → Display.', 'emerald'), 900 + fresh.length * 400 + 600);
         renderIconChoices();
       }
@@ -3461,8 +3495,9 @@
         }
       } catch (e) {}
       try {
-        if (navigator.share) { navigator.share({ text: String(text) }); return; }
-        navigator.clipboard.writeText(String(text)).then(() => showToast('Copied', 'Paste it wherever you like.', 'indigo'));
+        if (navigator.share) { navigator.share({ text: String(text) }).catch(() => {}); return; }
+        navigator.clipboard.writeText(String(text)).then(() => showToast('Copied', 'Paste it wherever you like.', 'indigo'),
+          () => showToast("Couldn't copy", 'Copying isn\'t allowed here.', 'indigo'));
       } catch (e) {}
     }
 
@@ -3477,10 +3512,11 @@
           done = true;
         }
       } catch (e) {}
-      if (!done) {
-        try { navigator.clipboard.writeText(t); done = true; } catch (e) {}
-      }
-      if (done) { haptic('tick'); showToast('Copied', note || 'Result copied with its formatting.', 'emerald'); }
+      const copied = () => { haptic('tick'); showToast('Copied', note || 'Result copied with its formatting.', 'emerald'); };
+      if (done) { copied(); return; }
+      try {
+        navigator.clipboard.writeText(t).then(copied, () => showToast("Couldn't copy", 'Copying isn\'t allowed here.', 'indigo'));
+      } catch (e) {}
     }
 
     let dayEntryRef = null; // { gameId, date }
@@ -3566,15 +3602,26 @@
     const historyQueryWords = () => historyFilter.query.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 8);
     function historyRowMatches(l, words) {
       if (!words.length) return true;
-      const hay = `${l.score || ''}\n${l.gameName || ''}\n${formatCycleDateLabel(l.date)}\n${l.date || ''}\n${l.outcome || ''}`.toLowerCase();
+      // The game's current name too, so a renamed game's older rows are found by either name.
+      const current = l.gameId ? (state.games.find((g) => g.id === l.gameId) || {}).name : '';
+      const hay = `${l.score || ''}\n${l.gameName || ''}\n${current || ''}\n${formatCycleDateLabel(l.date)}\n${l.date || ''}\n${l.outcome || ''}`.toLowerCase();
       return words.every((w) => hay.includes(w));
     }
     /** The result text, escaped, with search words highlighted. */
     function highlightHistoryText(text, words) {
-      let html = escapeHtml(text);
-      if (!words.length) return html;
-      const re = new RegExp(`(${words.map((w) => escapeHtml(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
-      return html.replace(re, '<mark>$1</mark>');
+      const raw = String(text == null ? '' : text);
+      if (!words.length) return escapeHtml(raw);
+      // Match on the plain text and escape each piece, so a search for "3" or "a" can't land inside "&#39;" or "&amp;".
+      const re = new RegExp(words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gi');
+      let out = '';
+      let last = 0;
+      let m;
+      while ((m = re.exec(raw))) {
+        if (!m[0]) { re.lastIndex += 1; continue; }
+        out += escapeHtml(raw.slice(last, m.index)) + '<mark>' + escapeHtml(m[0]) + '</mark>';
+        last = m.index + m[0].length;
+      }
+      return out + escapeHtml(raw.slice(last));
     }
     const historyRowGameKey = (l) => (l.gameId ? `id:${l.gameId}` : `name:${l.gameName || ''}`);
     function filteredHistoryLogs() {
@@ -4178,13 +4225,17 @@
         logModalCycleKey = '';
         logOpenedFromPlayer = false;
       }
+      const reopenAdd = id === 'modalBrowseGames' && browseReturnToAdd;
+      if (id === 'modalBrowseGames') browseReturnToAdd = false;
       el.classList.add('hidden');
+      if (reopenAdd) { openModal('modalAddGame'); return; }
       if (!MODAL_IDS.some(isModalOpen) && modalReturnFocus && modalReturnFocus.isConnected) {
         try { modalReturnFocus.focus({ preventScroll: true }); } catch (e) {}
         modalReturnFocus = null;
       }
     }
     function closeAllModals(except) {
+      browseReturnToAdd = false;
       MODAL_IDS.forEach((id) => { if (id !== except) closeModal(id); });
     }
     function closeAddModal() {
@@ -4271,6 +4322,8 @@
       const modal = document.getElementById('modalAddGame');
       document.getElementById('modalAddTitle').textContent = existingGame ? `Edit ${existingGame.name}` : 'Add Daily Game by Link';
       document.getElementById('editGameId').value = existingGame ? existingGame.id : '';
+      // Picking a popular game starts a new one, so it isn't offered while editing.
+      document.getElementById('btnBrowseGames').classList.toggle('hidden', Boolean(existingGame));
 
       lastAutoScrapedUrl = '';
       userEditedModalFields.clear();
@@ -4669,13 +4722,16 @@
      * wasn't solved ("X/6", "Next time", four Connections mistakes) is logged as Missed, with its text.
      * Returns false if exactly this result is already logged.
      */
-    function autoLogShareResult(game, text, cycleKey) {
+    function autoLogShareResult(game, text, cycleKey, opts) {
       const outcome = HubCore.isFailedShareResult(text) ? 'missed' : 'completed';
+      const row = findLogRow(game, cycleKey);
       const alreadySame = game.dayHistory && game.dayHistory[cycleKey] === outcome
-        && cycleKey === getCycleDateKey(game.resetTime, game.resetZone) && game.todayScore === text;
+        && (cycleKey === getCycleDateKey(game.resetTime, game.resetZone) ? game.todayScore === text : Boolean(row && row.score === text));
       if (alreadySame) return false;
       const snap = snapshotForUndo(game, cycleKey);
       recordGameOutcome(game.id, outcome, text, { cycleKey, quiet: true });
+      // Earlier games of one player session are reported together (see onReturnFromEarlierGames).
+      if (opts && opts.batch) { opts.batch.push({ game, snap, outcome }); return true; }
       const firstLine = text.split('\n')[0].slice(0, 60);
       showToast(outcome === 'missed' ? `${game.name} logged as missed` : `🔥 ${game.name} logged automatically`,
         firstLine, outcome === 'missed' ? 'indigo' : 'emerald', null,
@@ -4703,10 +4759,19 @@
      * play time and log any result they captured, without asking about each one.
      */
     window.onReturnFromEarlierGames = function (list) {
+      const batch = [];
       (Array.isArray(list) ? list : []).forEach((r) => {
         if (!r || typeof r !== 'object') return;
-        window.onReturnFromGame(String(r.id || ''), false, Number(r.elapsedMs) || 0, typeof r.share === 'string' ? r.share : '', Number(r.openedAt) || 0, { background: true });
+        window.onReturnFromGame(String(r.id || ''), false, Number(r.elapsedMs) || 0, typeof r.share === 'string' ? r.share : '', Number(r.openedAt) || 0, { background: true, batch });
       });
+      if (!batch.length) return;
+      // One toast with one Undo for all of them (the toast area only holds three).
+      const names = batch.map((b) => b.game.name);
+      const title = batch.length === 1
+        ? (batch[0].outcome === 'missed' ? `${names[0]} logged as missed` : `🔥 ${names[0]} logged automatically`)
+        : `🔥 ${batch.length} earlier games logged`;
+      showToast(title, batch.length === 1 ? '' : names.join(', '), 'emerald', null,
+        { actionLabel: 'Undo', onAction: () => batch.slice().reverse().forEach((b) => restoreUndo(b.snap)) });
     };
 
     window.onReturnFromGame = function (gameId, openLog, elapsedMs, shareText, openedAt, opts) {
@@ -4724,8 +4789,15 @@
       const resetWhilePlaying = Boolean(openedKey && openedKey !== currentKey && cycleKeyToDay(openedKey) < cycleKeyToDay(currentKey));
       addPlayTime(game, resetWhilePlaying ? openedKey : currentKey, Number(elapsedMs) || 0);
       if (background) {
-        if (captured && autoLog && !resetWhilePlaying) autoLogShareResult(game, captured, currentKey);
-        else saveState({ sync: false });
+        // A game that reset while the session went on: its result is for the puzzle it was opened on.
+        const key = resetWhilePlaying ? openedKey : currentKey;
+        if (captured && autoLog) autoLogShareResult(game, captured, key, { batch: opts.batch });
+        else if (captured) {
+          // Auto-log is off: offer it instead of dropping it.
+          showToast(`${game.name} result found`, captured.split('\n')[0].slice(0, 60), 'indigo', null,
+            { actionLabel: 'Log', onAction: () => autoLogShareResult(game, captured, key) });
+          saveState({ sync: false });
+        } else saveState({ sync: false });
         return;
       }
       if (openLog) {
@@ -4793,6 +4865,8 @@
         let rawLogs = null;
         let rawSettings = null;
         let rawRetained = null;
+        let rawAchievements = null;
+        let rawGold = false;
 
         if (Array.isArray(parsed)) {
           rawGames = parsed;
@@ -4801,6 +4875,8 @@
           if (Array.isArray(parsed.historyLogs)) rawLogs = parsed.historyLogs;
           if (parsed.settings && typeof parsed.settings === 'object') rawSettings = parsed.settings;
           if (parsed.retainedGameStats && typeof parsed.retainedGameStats === 'object') rawRetained = parsed.retainedGameStats;
+          if (Array.isArray(parsed.achievements)) rawAchievements = parsed.achievements.filter((a) => typeof a === 'string').slice(0, 100);
+          if (parsed.goldUnlocked === true) rawGold = true;
         } else {
           throw new Error('Invalid backup root');
         }
@@ -4856,6 +4932,9 @@
             state.retainedGameStats = normalizeRetainedMap(rawRetained);
           }
           if (!state.retainedGameStats || typeof state.retainedGameStats !== 'object') state.retainedGameStats = {};
+          // Earned achievements are kept (some can't be re-earned from the data alone, e.g. Collector).
+          if (rawAchievements) state.achievements = [...new Set([...(Array.isArray(state.achievements) ? state.achievements : []), ...rawAchievements])];
+          if (rawGold) state.goldUnlocked = true;
           dropped.forEach((g) => {
             const snap = normalizeRetained(Object.assign({}, g, { dayHistory: Object.assign({}, g.dayHistory || {}) }));
             if (!snap) return;
@@ -4873,6 +4952,7 @@
             if (banner) banner.classList.add('hidden');
           }
           checkDailyRollovers({ silent: true });
+          checkNewAchievements(true);
 
           selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
           saveState({ syncNow: true });
@@ -5020,9 +5100,11 @@
           if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { hs = null; return; }
           if (Math.abs(dx) < 10) return;
           hs.locked = true;
+          // Counted once per swipe, not on every move.
+          hs.pages = Math.max(1, Math.ceil(filteredHistoryLogs().length / HISTORY_PAGE_SIZE));
         }
         // Rubber band when there's no page that way.
-        const pageCount = Math.max(1, Math.ceil(filteredHistoryLogs().length / HISTORY_PAGE_SIZE));
+        const pageCount = hs.pages;
         const blocked = (dx < 0 && historyPage >= pageCount - 1) || (dx > 0 && historyPage <= 0);
         hs.dx = blocked ? dx * 0.2 : dx;
         const l = histList();
@@ -5032,14 +5114,16 @@
           l.style.opacity = String(1 - Math.min(0.6, Math.abs(hs.dx) / (historyBlock.offsetWidth || 320)));
         }
       }, { passive: true });
-      const histEnd = () => {
+      const histEnd = (e) => {
         const c = hs;
         hs = null;
         if (!c || !c.locked) return;
         const l = histList();
         const w = historyBlock.offsetWidth || 320;
         const fast = Math.abs(c.dx) / Math.max(1, performance.now() - c.t) > 0.5;
-        if (Math.abs(c.dx) > w * 0.2 || (fast && Math.abs(c.dx) > 30)) {
+        // A cancelled touch (the system took it) only snaps back.
+        const cancelled = Boolean(e && e.type === 'touchcancel');
+        if (!cancelled && (Math.abs(c.dx) > w * 0.2 || (fast && Math.abs(c.dx) > 30))) {
           if (l) { l.style.transition = ''; l.style.transform = ''; l.style.opacity = ''; }
           if (goHistoryPage(c.dx < 0 ? 1 : -1, true)) { haptic('tick'); return; }
         }
@@ -5295,7 +5379,9 @@
           settings: state.settings,
           games: state.games,
           retainedGameStats: state.retainedGameStats || {},
-          historyLogs: state.historyLogs
+          historyLogs: state.historyLogs,
+          achievements: Array.isArray(state.achievements) ? state.achievements : [],
+          goldUnlocked: goldIconUnlocked()
         };
         const jsonStr = JSON.stringify(backupPayload, null, 2);
 

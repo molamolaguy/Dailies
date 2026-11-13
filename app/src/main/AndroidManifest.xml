@@ -58,8 +58,8 @@
 
         <!--
           Launcher entries, one per icon look. ".MainActivity" (the name 1.x launched) is the default:
-          its icon follows the phone's dark theme and, on Android 12+, the wallpaper colours. With
-          Settings → "App Icon Matches Theme" on, AppIcon enables the one matching the app's own theme.
+          the white icon with the yellow-to-green star. Settings → App Icon picks another look, and
+          AppIcon enables its entry (for "Theme", the one matching the app's theme and wallpaper colours).
         -->
         <activity-alias
             android:name=".MainActivity"

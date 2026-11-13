@@ -42,3 +42,15 @@ test('1.4.0: popular games, including the ones asked for', () => {
   assert.equal(known.find('https://www.linkedin.com/games/queens/').resetZone, 'America/Los_Angeles');
   assert.equal(known.find('https://www.nytimes.com/puzzles/spelling-bee').resetTime, '03:00');
 });
+
+test('1.4.0 review: moved sites and sibling games', () => {
+  assert.equal(known.find('https://games.oec.world/en/tradle/').name, 'Tradle');
+  assert.equal(known.find('https://oec.world/en/tradle').name, 'Tradle');
+  assert.equal(known.find('https://www.britannica.com/games/octordle').name, 'Octordle');
+  assert.equal(known.find('https://www.britannica.com/games/other'), null);
+  // A whole-site entry doesn't cover the site's subdomains (other games).
+  assert.equal(known.find('https://mini.nerdlegame.com/'), null);
+  assert.equal(known.find('https://nerdlegame.com/').name, 'Nerdle');
+  const names = new Set();
+  for (const e of known.CATALOG) { assert.ok(!names.has(e.name), `duplicate name ${e.name}`); names.add(e.name); }
+});

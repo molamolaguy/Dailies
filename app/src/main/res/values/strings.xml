@@ -15,5 +15,9 @@
     <string name="play_next_named">Play %1$s</string>
     <string name="back_to_hub">Back to hub</string>
     <string name="keep_playing">Keep playing</string>
-    <string name="exit_to_home">Exit to home</string>
+    <string name="copy_result">Copy result</string>
+    <string name="result_copied">Result copied</string>
+    <string name="switcher_playing">playing now</string>
+    <string name="switcher_done">done</string>
+    <string name="switcher_not_done">not played yet</string>
 </resources>

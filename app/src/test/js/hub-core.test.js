@@ -329,3 +329,52 @@ test('1.4.0: puzzle numbers and auto-detected reset times', () => {
   const wide = [row(100, '2026-11-01T10:00:00Z'), row(101, '2026-11-01T21:00:00Z'), row(102, '2026-11-03T08:00:00Z'), row(103, '2026-11-03T22:00:00Z')];
   assert.equal(core.suggestResetTime(wide, { resetTime: '00:00', resetZone: 'utc' }), null);
 });
+
+test('1.4.0 review: reset suggestions only when unambiguous', () => {
+  const at = (iso) => Date.parse(iso);
+  const row = (n, iso) => ({ score: `Game #${n} 3/6`, loggedAt: at(iso) });
+  // Configured right (midnight New York), one result logged just after the reset with yesterday's number.
+  const late = [row(1000, '2026-06-15T02:00:00Z'), row(1001, '2026-06-16T02:05:00Z'), row(1001, '2026-06-16T04:02:00Z'),
+    row(1002, '2026-06-17T01:00:00Z'), row(1003, '2026-06-18T02:00:00Z')];
+  assert.equal(core.suggestResetTime(late, { resetTime: '00:00', resetZone: 'America/New_York' }), null);
+  // An old (archive) puzzle among the rows.
+  const archive = [row(1000, '2026-06-15T12:00:00Z'), row(1001, '2026-06-16T12:00:00Z'), row(700, '2026-06-16T13:00:00Z'),
+    row(1002, '2026-06-17T12:00:00Z'), row(1003, '2026-06-18T12:00:00Z')];
+  assert.equal(core.suggestResetTime(archive, { resetTime: '00:00', resetZone: 'utc' }), null);
+  // Wrong, but the results only narrow it to "some time in the evening": wait.
+  const vague = [row(1000, '2026-06-15T15:00:00Z'), row(1001, '2026-06-16T22:00:00Z'), row(1001, '2026-06-17T14:00:00Z'),
+    row(1002, '2026-06-17T23:30:00Z'), row(1003, '2026-06-18T23:00:00Z')];
+  assert.equal(core.suggestResetTime(vague, { resetTime: '00:00', resetZone: 'America/New_York' }), null);
+});
+
+test('1.4.0 review: changing the schedule keeps a just-logged result on its day', () => {
+  const now = new Date('2026-10-30T05:00:00Z'); // 14:00 in Tokyo
+  const from = { resetTime: '00:00', resetZone: 'America/New_York' };
+  const to = { resetTime: '00:00', resetZone: 'Asia/Tokyo' };
+  const hist = { '2026-10-27': 'completed', '2026-10-28': 'completed', '2026-10-29': 'completed', '2026-10-30': 'completed' };
+  const rows = [{ date: '2026-10-30', outcome: 'Completed', loggedAt: now.getTime() - 60000 }, { date: '2026-10-29', outcome: 'Completed' }];
+  const out = core.rescheduleDays(hist, rows, from, to, now);
+  const today = core.getCycleDateKey(to.resetTime, to.resetZone, now);
+  assert.equal(out.dates[0], today);
+  assert.ok(Object.keys(out.dayHistory).every((k) => k <= today), JSON.stringify(out.dayHistory));
+  assert.equal(out.dayHistory[today], 'completed');
+});
+
+test('1.4.0 review: score parsing', () => {
+  const p = (t) => { const v = core.parseResultValue(t); return v ? `${v.kind} ${v.label}` : null; };
+  assert.equal(p('1h 3m'), 'time 1:03:00');
+  assert.equal(p('58m'), 'time 58:00');
+  assert.equal(p('Krillion dive 4,250m'), 'points 4,250m');
+  assert.equal(p('Squaredle 11/13:\n📖 42/42 words'), null);
+  assert.equal(p('TimeGuessr #890 38,412/50,000'), 'points 38,412 pts');
+  assert.equal(p('12.5 pts'), 'points 12.5 pts');
+  assert.equal(p('-50 pts'), 'points -50 pts');
+  assert.equal(p('High score: 900 Score: 100'), 'points 100 pts');
+  assert.equal(p('putt.day #210 ⛳\n3 strokes'), 'count 3 strokes');
+  assert.equal(p('FE Guess 512 - guessed in 4'), 'count 4 guesses');
+  assert.equal(core.formatClock(Infinity), '0:00');
+  assert.equal(core.puzzleNumber('I solved Clues by Sam, Nov 13th 2026 (Hard) in 05:12'), null);
+  assert.equal(core.puzzleNumber('Moviedle #2026-11-13'), null);
+  assert.equal(core.isFailedShareResult('Daily Quordle 1389\n🟥🟥\n6️⃣4️⃣'), true);
+  assert.equal(core.isFailedShareResult('I failed to resist: Wordle 1,234 3/6'), false);
+});

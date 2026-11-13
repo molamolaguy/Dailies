@@ -1,5 +1,5 @@
-# Keep JavaScriptInterface methods on MainActivity.AndroidBridge for WebView communication
--keepclassmembers class com.dailygames.hub.MainActivity$AndroidBridge {
+# Keep JavaScriptInterface methods on HubActivity.AndroidBridge for WebView communication
+-keepclassmembers class com.dailygames.hub.HubActivity$AndroidBridge {
     @android.webkit.JavascriptInterface <methods>;
 }
 
