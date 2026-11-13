@@ -5,7 +5,7 @@
 - **Version**: `1.5.1` (`versionCode = 9`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
-- **Licence**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
+- **License**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
 
 Dailies is a home for the daily web puzzles you play: Wordle, Connections, Nerdle, geography and
 trivia games, or any site with a once-a-day puzzle. It tracks when each one resets, alerts you when a
@@ -28,7 +28,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 | **Ad blocking** | About 302,000 ad, tracker and malware domains, 23,400 URL rules and 43,000 element-hiding rules, built from EasyList, EasyPrivacy, AdGuard Base, HaGeZi Pro and StevenBlack. You can switch it off per site or everywhere. |
 | **Streaks & Log** | A completion calendar per game (best streak, current streak, plays) and the full score history, 5 results per page. Swipe or tap to change pages. |
 | **Reset alerts** | A notification when a game's new puzzle is out, per-game on/off, grouped when several reset at once, and exact timing where Android allows it. |
-| **Look** | Material 3 Expressive with Google Sans, Material Symbols icons, Material You wallpaper colours, an optional true-black AMOLED mode and compact cards. |
+| **Look** | Material 3 Expressive with Google Sans, Material Symbols icons, Material You wallpaper colors, an optional true-black AMOLED mode and compact cards. |
 | **Your data** | Stored only on your phone, with no size limit. Every save is atomic and keeps a backup copy. You can export and import `.json` backups. |
 
 ---
@@ -56,7 +56,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - **Or pick from popular daily games** lists the 59 built-in games by category (searchable); tap one to fill in its link, name and reset time.
   - The name, icon, category and reset time fill in by themselves.
   - Anything you've already typed is never overwritten.
-  - **✓ Reset time from built-in list** means the time came from the catalogue of popular games.
+  - **✓ Reset time from built-in list** means the time came from the catalog of popular games.
   - Pick the reset's time zone if the site doesn't say. The hint shows what that is in your time ("= 2:00 PM your time").
 - **Game cards** show:
   - the icon, title and streak (🔥 7d);
@@ -116,8 +116,8 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - AMOLED Pitch-Black Surface (dark theme only)
   - Compact Game Cards
   - Group Finished Games: today's done games move under a **Done today** header, folded away until you open it (with the All filter)
-  - App Icon: Default (white, yellow-to-green star), Theme (follows the theme and wallpaper colours), Midnight, Sunset, Ocean, Mono, and Gold, which unlocks once the first tier of every achievement is earned. The hub's logo matches it
-  - Gold Accents (1.5.0): unlocked by earning every tier of every achievement; gold replaces the theme's main colour, with gold card trim, in the dark, light and AMOLED themes
+  - App Icon: Default (white, yellow-to-green star), Theme (follows the theme and wallpaper colors), Midnight, Sunset, Ocean, Mono, and Gold, which unlocks once the first tier of every achievement is earned. The hub's logo matches it
+  - Gold Accents (1.5.0): unlocked by earning every tier of every achievement; gold replaces the theme's main color, with gold card trim, in the dark, light and AMOLED themes
 - **Gameplay & Time**:
   - 12h / 24h clock
   - Seconds in countdowns
@@ -165,7 +165,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - Resets are kept in their own zone and converted for display.
   - **Clock goes back** (a time happens twice): the later moment is used, the same as Java's calendar.
   - **Clock goes forward** (a time is skipped): the reset moves forward to the next real time.
-  - **Travelling west** (going back a day) doesn't wipe a logged result.
+  - **Traveling west** (going back a day) doesn't wipe a logged result.
 - **Saving**:
   - Several saves made close together are combined into one write.
   - On startup, the newest copy (native file or browser storage) wins.
@@ -190,7 +190,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - `Notifier.kt` posts grouped notifications. Each carries a private token, so other apps can't use it to open the player.
   - Alarms are re-armed after a reboot, app update, time-zone change or clock change.
 - **`GameActivity.kt`** is the player:
-  - edge-to-edge, with predictive back and dynamic colours;
+  - edge-to-edge, with predictive back and dynamic colors;
   - fullscreen, uploads, downloads and safe `intent://` handling;
   - its state survives Android closing it in the background (play time, captured result, page).
 - **Ad blocking** (`AdBlockEngine.kt`, `CosmeticFilters.kt`, `AdBlocker.kt`, `Surrogates.kt`):
@@ -206,7 +206,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - **Element hiding**:
     - The page reports the class and id names it actually uses, and only matching rules come back.
     - Site rules support `~domain` exclusions.
-    - Sites marked `$generichide` / `$elemhide` / `$document` in the lists are honoured.
+    - Sites marked `$generichide` / `$elemhide` / `$document` in the lists are honored.
   - **Popups and redirects**: pop-ups, pop-unders and redirects to ad domains that you didn't tap are stopped.
   - **Service workers**: requests made by a site's service worker are filtered too.
 
@@ -303,10 +303,10 @@ The debug APK is `app/build/outputs/apk/debug/Dailies-debug.apk`.
 
 ### Dates and streaks
 - **Daylight saving**: an ambiguous fall-back time (e.g. 01:30 in New York) now resolves to the later instant, and a skipped spring-forward time moves forward. The Kotlin and JS code agree, with shared fixtures for New York, local time and Santiago.
-- **Travel**: travelling west no longer marks today as unplayed.
+- **Travel**: traveling west no longer marks today as unplayed.
 - **Long breaks**: gaps up to 10 years fill in correctly.
-- **Stats** are recalculated from your history, so undoing or re-labelling a result can lower them.
-- **Time zones**: zone names are normalised to the form Java accepts.
+- **Stats** are recalculated from your history, so undoing or re-labeling a result can lower them.
+- **Time zones**: zone names are normalized to the form Java accepts.
 
 ### Logging
 - **"Which puzzle?"**: if a game reset while you played, the return sheet asks which puzzle you finished.
@@ -322,21 +322,21 @@ The debug APK is `app/build/outputs/apk/debug/Dailies-debug.apk`.
 - Pages that use `about:blank` or `data:` frames keep working.
 - Play time and the captured result survive Android closing the player in the background.
 - The ad-block choice is remembered per game, not per page the game navigated to.
-- The bar follows the **Match wallpaper colours** setting.
+- The bar follows the **Match wallpaper colors** setting.
 
 ### Ad blocker
 - **Rule priority**: `$important` blocks and `@@…$important` exceptions now follow the correct order.
 - **List cleanup**:
   - `$badfilter` rules cancel what they name.
   - Trailing-dot rules (e.g. `||ads.`) and conditional exceptions are no longer mistreated.
-  - `$document`, `$generichide` and `$elemhide` page exceptions are honoured.
+  - `$document`, `$generichide` and `$elemhide` page exceptions are honored.
 - **Hosts and sites**:
   - URLs with `user:pass@` and IPv6 hosts are parsed correctly.
   - "Same site" uses the full Public Suffix List.
 - **Request types**:
   - `$ping` and `$websocket` rules no longer hit ordinary fetches.
   - `$~xmlhttprequest` rules no longer hit requests of unknown type.
-  - JSON requests are recognised as XHR.
+  - JSON requests are recognized as XHR.
 - **Stand-ins**: stand-in scripts for common ad and analytics libraries stop games stalling.
 - **Element hiding**:
   - Hiding rules can exclude subdomains, and exclusion-only rules work.
@@ -393,10 +393,10 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Archive**: `game.archived`. Archived games are left out of the hub, KPIs and alert list, synced with alerts off, and skip roll-overs (no auto-missed days). Restoring treats today like a newly added game.
 - **Bulk edit** reuses `applyScheduleChange`, so history moves with a new reset time exactly as in the edit dialog.
 - **Game lists**: `GameListCodec` makes `dailies://add?v=1&d=<deflate+base64url>` links and QR codes (ZXing). MainActivity opens them from a VIEW intent, a shared message or a paste into the Add Game box.
-- **Screenshots**: `ScreenshotReader` (ML Kit text recognition through Google Play services) runs on an image shared to Dailies or picked from the log dialog. This is the one non-free dependency; an F-Droid build would need a flavour without it.
+- **Screenshots**: `ScreenshotReader` (ML Kit text recognition through Google Play services) runs on an image shared to Dailies or picked from the log dialog. This is the one non-free dependency; an F-Droid build would need a flavor without it.
 - **Dark game pages**: `WebSettingsCompat.setAlgorithmicDarkeningAllowed`. The game player uses `Theme.Dailies.Light` in the light theme so pages get `prefers-color-scheme: light`.
 - **Tab swipes**: the page follows the finger, and `animateTabChange` slides between views with the Web Animations API (with a timeout fallback). Reduced-motion settings are respected.
-- **App icon**: adaptive icons in six launcher entries (`activity-alias`). `.MainActivity`, the 1.x launcher name kept so home-screen shortcuts survive the update, is the default: it uses `-night` and `-v31` colours, so it follows the phone's dark theme and wallpaper. With **App Icon Matches Theme** on, `AppIcon` enables the entry for the app's theme when you leave the app. The activity itself is now `HubActivity`.
+- **App icon**: adaptive icons in six launcher entries (`activity-alias`). `.MainActivity`, the 1.x launcher name kept so home-screen shortcuts survive the update, is the default: it uses `-night` and `-v31` colors, so it follows the phone's dark theme and wallpaper. With **App Icon Matches Theme** on, `AppIcon` enables the entry for the app's theme when you leave the app. The activity itself is now `HubActivity`.
 - New tests: `AppIconTest`, `GameListCodecTest`, Node tests for the stats helpers, and device tests that tap the Done-today row with real touch events and open a shared list link.
 
 ## 11. New in 1.3.0
@@ -404,7 +404,7 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for developers:
 - **In-app updates**: `UpdateInstaller` fetches the latest release again (the page can't pass a URL), downloads its `.apk` asset from this repository's releases (redirects only to GitHub hosts), checks the package name, a higher version code and the same signing certificate as the installed app, then commits a `PackageInstaller` session. `UpdateInstallReceiver` shows Android's confirmation; progress reaches the page through `window.onUpdateStatus`. Needs `REQUEST_INSTALL_PACKAGES`.
 - **Auto-logging**: `isStrictShareResult` (JS and Kotlin, same fixtures) also accepts results that name the game (or the site's own name, e.g. "krillion" for krillion.io) with a measured score ("4,250m", "87%", "1,200 XP") or emoji plus numbers. The share channel accepts same-site frames, the gesture window is 30 s, and a clip copied while the game was open is checked again when the player regains focus or closes (using the clip's timestamp, Android 8+).
-- **Tab pager**: `Pager` places the real neighbouring view beside the current one (absolutely positioned, `overflow-x: clip` on the scaffold) and both follow the finger; the release velocity sets the glide duration. No cloned snapshots.
+- **Tab pager**: `Pager` places the real neighboring view beside the current one (absolutely positioned, `overflow-x: clip` on the scaffold) and both follow the finger; the release velocity sets the glide duration. No cloned snapshots.
 - **Calendar**: a day opens `modalDayEntry` (read-only); its Edit opens the log editor. Month swipes are handled on `#calendarSwipeArea`, which the tab swipe ignores.
 - **Removed**: the guess distribution (`scoreStats().dist`) and one-handed mode.
 - **Icon**: the default launcher entry `.MainActivity` uses `ic_icon_default_*` (white, gradient star). The previous wallpaper-following icon is the `.IconAuto` entry, used when **App Icon Matches Theme** is on with the Match phone theme.
@@ -417,14 +417,14 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 ## 12. New in 1.4.0
 
 The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for developers:
-- **Finding results**: the probe lives inside `share-hook.js`'s closure (`__DAILIES_FIND__`), so a page can't switch probe mode on. Every message carries a per-player key (`__DAILIES_NONCE__`, filled in by `GameActivity.shareHookScript`) that the page can't read; the native listener drops messages without it. Before pressing, the hook posts `{kind: "press"}`: for 2.5 s the player refuses new windows, other apps, downloads and main-frame navigations (`probeGuarded`), and a probe result is accepted only within 3 s of the press and once per page. In probe mode the hooks report the text with `via: "probe"` and don't call the real clipboard / share / `window.open`. Buttons must be in the viewport, not under `aria-hidden` / `inert`, and the element `elementFromPoint` hits at their centre. The probe doesn't run in other sites' frames.
+- **Finding results**: the probe lives inside `share-hook.js`'s closure (`__DAILIES_FIND__`), so a page can't switch probe mode on. Every message carries a per-player key (`__DAILIES_NONCE__`, filled in by `GameActivity.shareHookScript`) that the page can't read; the native listener drops messages without it. Before pressing, the hook posts `{kind: "press"}`: for 2.5 s the player refuses new windows, other apps, downloads and main-frame navigations (`probeGuarded`), and a probe result is accepted only within 3 s of the press and once per page. In probe mode the hooks report the text with `via: "probe"` and don't call the real clipboard / share / `window.open`. Buttons must be in the viewport, not under `aria-hidden` / `inert`, and the element `elementFromPoint` hits at their center. The probe doesn't run in other sites' frames.
 - **Game switching**: the hub passes today's games as `EXTRA_LINEUP` (`openGameInLineup`). `GameActivity.switchToGame` keeps one WebView: it stores the current game's play time and result in `earlierResults`, resets the per-game state (timer, captured result, ad-block choice, blocked count) and loads the next game; history is cleared after it loads. On return the hub gets `EXTRA_EARLIER` and runs `onReturnFromEarlierGames` (play time + auto-log, no prompts) before the usual `onReturnFromGame`. The current game, lineup and earlier results survive a recreate.
 - **Zoom**: `GamePrefs.siteZoom` per registrable site, applied as CSS `zoom` on the root element at commit and finish, so it works on pages that disable pinch-zoom.
 - **Reset times**: new log rows of the current puzzle carry `loggedAt`. `HubCore.puzzleNumber`, `resetFitsObservations` (puzzle number − day must be constant) and `suggestResetTime` (common midnights first, then a whole hour when only one or two fit) drive the banner; a dismissed suggestion is kept as `game.dismissedResetSuggestion`.
 - **Search**: `historyFilter.query`; every word must appear in the row's score, game name, date or outcome.
-- **Hub logo**: `html[data-app-icon]` (`default` / `themed`) switches the header SVG's colours in `app.css`.
+- **Hub logo**: `html[data-app-icon]` (`default` / `themed`) switches the header SVG's colors in `app.css`.
 - New tests: `GamePlayerTest` (Next, earlier results, zoom prefs) on device; puzzle numbers and reset suggestions in the Node tests.
-- **Catalogue**: `known-games.js` has 59 games; zones can be IANA names. Reset times that aren't verified are corrected over time by the reset-time check. The picker opens `entry.url` or `https://host/path`.
+- **Catalog**: `known-games.js` has 59 games; zones can be IANA names. Reset times that aren't verified are corrected over time by the reset-time check. The picker opens `entry.url` or `https://host/path`.
 - **More share formats**: the strict check also accepts a solve time ("0:42", not "9:14 AM") and counts in words / clues / hints / strokes when the text names the game; emoji plus a number needs a puzzle number. The probe also treats a countdown to the next puzzle ("Next puzzle in 05:12:44") and phrases like "Puzzle solved", "flawless" as an end screen.
 - **App icon styles**: `AppIcon.style` ("default", "themed", "midnight", "sunset", "ocean", "mono", "gold"), set by `setAppIconStyle`; launcher entries `.IconMidnight` … `.IconGold` with adaptive icons and pre-26 PNGs. The 1.2–1.3 "matches theme" switch maps to "themed". The hub draws the same icons (`appIconSvg`) for the picker and its logo, and only offers Gold when `state.achievements` holds every id. Previews: `design/icons/app-icon-styles.png`, `app-icon-gold.png`.
 - **Play-next prompt**: `GameActivity.showDonePrompt` after a captured result (`offerShare`); in the hub, `offerNextGame` after a log that came from the player (`logOpenedFromPlayer`, or the return prompt's Solved / Missed). Both pick the next `ready` game after the current one in hub order. Device test: `aCapturedResultOffersPlayNextOrBackToHub`.
@@ -435,7 +435,7 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Switching**: `switching` from `switchToGame` until the new page's `onPageCommitVisible` (15 s fallback); offers from the old page are dropped, and the last tap is forgotten. History is cleared at commit and again at the new page's finish. `earlierResults` holds one entry per game.
 - **Reset suggestions**: `suggestResetTime` needs 4+ rows of 3+ puzzles over 2+ days, the current schedule contradicted on 2+ days, the results pinning the reset to ≤ 90 min, and every fitting candidate being the same schedule for a year (`scheduleSignature`); a single midnight wins over other hours. `rescheduleDays` moves rows with `loggedAt` to their day under the new schedule and clamps keys to today; `applyScheduleChange` uses it.
 - **Backups** carry `achievements` and `goldUnlocked` (sticky once earned); import unions them.
-- **Catalogue**: entries can list `also` addresses (Tradle, Octordle, Quordle). Whole-site entries no longer match subdomains, and only path entries (or ones with `also`) make two links the same game, so sibling games on one site can be added. `cleanGameUrl` stores `URL.href`.
+- **Catalog**: entries can list `also` addresses (Tradle, Octordle, Quordle). Whole-site entries no longer match subdomains, and only path entries (or ones with `also`) make two links the same game, so sibling games on one site can be added. `cleanGameUrl` stores `URL.href`.
 - **Launcher icon**: `HubActivity` skips `AppIcon.apply` in `onStop` while one of its own screens covers it (`startActivityForResult` sets `coveredByOwnScreen`).
 
 ## 13. New in 1.5.0
@@ -446,7 +446,7 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Gold unlocks** are sticky flags, kept in saves and backups (manual and weekly), so later versions that add achievements never take them away: `goldUnlocked` (Gold app icon: every `TIER1_KEYS`) and `goldAccentsUnlocked` (Gold Accents: every `ALL_TIER_KEYS`). `settings.goldAccents` turns the accents on; `applyThemeAndSettings` then sets `html[data-gold="true"]` and swaps the `--md-primary` family for gold (separate light and dark values; AMOLED keeps its black surfaces), and `app.css` adds gold trim.
 - **Folding cards**: any card with `data-fold` shows only its heading until opened (`initFolds`; descriptions, buttons and the clock in a heading are `.fold-extra` and hidden while folded). All start folded; opened ones stay open until the app closes (`openFolds`). `revealFold(el)` opens the card around an element before scrolling to it. Used by the Achievements card and every Settings card.
 - **Removed games**: `retainedGameStats` entries carry `removedAt`; `pruneRetainedMap` keeps the 5 most recently removed games (older saves are dated by their last played day). Add Game lists them (`renderRemovedGames`); picking one fills the form, and saving restores its history through the existing link match.
-- **Reset alerts**: `DailyRefreshWorker.runRefresh` collects a pass's ready games and calls `Notifier.postResetNotifications`. One game, with nothing unread in the shade: its own notification, as before. Otherwise one notification (`COMBINED_ID`, `InboxStyle`, `combinedText`) lists every ready game, merging names from alerts still in the shade (`mergeReadyNames`; single alerts carry their name in an extra) and cancelling those. It opens the hub.
+- **Reset alerts**: `DailyRefreshWorker.runRefresh` collects a pass's ready games and calls `Notifier.postResetNotifications`. One game, with nothing unread in the shade: its own notification, as before. Otherwise one notification (`COMBINED_ID`, `InboxStyle`, `combinedText`) lists every ready game, merging names from alerts still in the shade (`mergeReadyNames`; single alerts carry their name in an extra) and canceling those. It opens the hub.
 - **Tab scroll position**: `switchNavigation` and `Pager.attach` keep the scroll fraction (`scrollFraction`): the incoming page is placed at the spot it will have once current, and `jumpScroll` sets it without smooth scrolling.
 - **Gold accents styling**: `--gold-shine` (the icon's metallic gradient) on filled buttons, tonal pills, chips, bars, mask icons and solved calendar days; `--gold-text` as gradient text on the title, card headings and stat values; `--gold-edge` as a gradient border (padding-box / border-box backgrounds) on cards and the dock. Native checkboxes use a solid gold `accent-color`.
 - **Easter egg**: the Achievements card doesn't say what the gold unlocks need.
@@ -459,7 +459,7 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Scroll bars**: hidden in CSS and on both WebViews (`isVerticalScrollBarEnabled = false`).
 - **Achievements**: tiles are buttons of one size (`grid-auto-rows: 1fr`); `openAchievementDetails` shows each tier (`tierList`) in `modalAchievement`. A tier can carry `scale` / `unit` (Marathon: hours, rounded).
 - **Themed drop-downs**: `themeSelect(sel)` puts a button after a `<select>` and opens `.tsel-menu`; picking sets the select and fires `change`. The select's `value` / `selectedIndex` setters and a MutationObserver keep the label current. Used for `#calendarGameSelect` and `#historyFilterGame`; Back closes the menu.
-- **Gold palette**: Robinhood Gold, sampled from the card and app icon (`#E4CC7E`, `#DBC377`, `#D1AB48`, `#C7A042`, `#AF8A39`, `#987841`, `#64512E`; ink `#1C1607`) in `--gold-shine` / `--gold-text` / `--gold-edge`, the theme override, `.ach.max` and the Gold launcher icon (vectors and PNGs regenerated).
+- **Gold palette**: a satin gold (`#E4CC7E`, `#DBC377`, `#D1AB48`, `#C7A042`, `#AF8A39`, `#987841`, `#64512E`; ink `#1C1607`) in `--gold-shine` / `--gold-text` / `--gold-edge`, the theme override, `.ach.max` and the Gold launcher icon (vectors and PNGs regenerated).
 
 ## 15. New in 1.6.0
 
@@ -470,9 +470,16 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Tough days**: `HubCore.toughDays(rows)` works on the game's dominant score kind and needs 5 results. A day is tough at guesses ≥ median+2, time or count ≥ 1.75× median, or points ≤ half the median. At most the worst 15% of days are kept.
 - **Sorting**: `settings.hubSort` and `HubCore.sortGames`. `hubOrder()` feeds the grid, Play next, the player's lineup and today's results. `adoptSortAsCustom()` runs when a card is dragged or moved while sorted.
 - **Combined share**: `HubCore.combinedShareText(entries, {dateLabel, total, grids})`. `isGridLine` drops emoji grids when grids are off, and the game's name is added with `mentionsGame`.
-- **Colour themes**: `settings.themeSeed` (iris, ocean, forest, sunset, rose or custom) with `settings.customAccent`, chosen when `dynamicWallpaper` is off. `HubCore.themeTokens(seed, light)` makes the `--md-*` roles in OKLCH (chroma lowered until in sRGB). They're cached in `localStorage.dailydeck_theme_tokens_v1` for the first frame and sent to the player with `setPlayerColors` (`ThemePrefs.playerColors`; gold accents send their colours too).
-- **Toasts**: `showToast` builds `.app-toast` (`tone-ok` / `tone-info`) coloured from `--md-primary` / `--md-primary-container`, with AMOLED, light and gold (gold edge and title) variants. `.status-completed` and the Done ★ use the theme's primary too.
+- **Color themes**: `settings.themeSeed` (iris, ocean, forest, sunset, rose or custom) with `settings.customAccent`, chosen when `dynamicWallpaper` is off. `HubCore.themeTokens(seed, light)` makes the `--md-*` roles in OKLCH (chroma lowered until in sRGB). They're cached in `localStorage.dailydeck_theme_tokens_v1` for the first frame and sent to the player with `setPlayerColors` (`ThemePrefs.playerColors`; gold accents send their colors too).
+- **Toasts**: `showToast` builds `.app-toast` (`tone-ok` / `tone-info`) colored from `--md-primary` / `--md-primary-container`, with AMOLED, light and gold (gold edge and title) variants. `.status-completed` and the Done ★ use the theme's primary too.
 
 ## 16. Web app (PWA)
 
 The hub also runs as an installable web app on GitHub Pages; see `web/README.md`. The page is the same `index.html`: with no `window.AndroidBridge`, `IS_WEB` is true, `<html>` gets the `web` class, `.android-only` elements are hidden and `.web-only` ones shown (the **Paste** button in the "Finished?" sheet). Games open through `window.DailiesWeb.openGame` (from `web/web.js`), which reports the return with `window.onReturnFromGame`. `web/build.mjs` builds `dist-web/`; CI checks the build, and `pages.yml` deploys it.
+
+## 17. New in 1.6.1
+
+- **Dialog lock**: `syncBackInterceptState` (which sets `html.modal-open` and Android's Back interception) now runs from `openModal` / `closeModal` and watches every id in `MODAL_IDS`; before, the achievement details, Today's results and Recent changes weren't watched, so the page stayed locked after they closed. `HubSmokeTest.everyDialogUnlocksThePageWhenItCloses` opens and backs out of each one.
+- **Color themes**: `COLOR_THEMES` no longer has Wallpaper. `themesLocked()` (Android, wallpaper colors on) grays out `#themeChoices` and shows `#themeLockedHint`; `savedThemeId()` is the theme that applies once wallpaper colors are off.
+- **Bottom bar**: `.m4-floating-dock` is 78% opaque with a 6 px backdrop blur (AMOLED, light and gold too).
+- **Title**: `<title>Dailies</title>` (the web app's tab).

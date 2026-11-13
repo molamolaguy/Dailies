@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Dailies — Material 3 Expressive Daily Games Hub</title>
+  <title>Dailies</title>
   <link rel="stylesheet" href="app.css" />
   <script>
     // Synchronously apply safe-area padding & Material 3 dynamic wallpaper theme BEFORE body parses/paints
@@ -363,8 +363,9 @@
 
           <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 sm:col-span-3">
             <p class="font-bold text-white">Color Theme</p>
-            <p class="text-[11px] text-slate-400"><span class="android-only">Your wallpaper's colors, a preset, or pick your own accent</span><span class="web-only">A preset, or pick your own accent</span></p>
+            <p class="text-[11px] text-slate-400">A preset, or pick your own accent</p>
             <div id="themeChoices" class="theme-choices" role="radiogroup" aria-label="Color theme"></div>
+            <p id="themeLockedHint" class="hidden text-[11px] text-slate-400 mt-2">Using your wallpaper's colors. Turn off <strong class="text-slate-200">Match Device Wallpaper Colors</strong> to choose a theme.</p>
             <input id="customAccentInput" type="color" value="#1E88C8" class="sr-only" tabindex="-1" aria-hidden="true" />
           </div>
 
@@ -1062,7 +1063,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.6.0';
+    const APP_VERSION = '1.6.1';
     const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
 
     const TIME_FMT_12 = (() => {
@@ -1626,7 +1627,6 @@
 
     // ---- Colour themes (1.6.0): wallpaper colours, presets, or a custom accent ----
     const COLOR_THEMES = [
-      { id: 'wallpaper', label: 'Wallpaper' },
       { id: 'iris', label: 'Iris', seed: '#6750A4' },
       { id: 'ocean', label: 'Ocean', seed: HubCore.THEME_PRESETS.ocean },
       { id: 'forest', label: 'Forest', seed: HubCore.THEME_PRESETS.forest },
@@ -1639,7 +1639,16 @@
       const s = state.settings || {};
       if (s.dynamicWallpaper !== false && !IS_WEB) return 'wallpaper';
       if (s.dynamicWallpaper !== false) return 'iris';
-      return COLOR_THEMES.some((t) => t.id === s.themeSeed && t.id !== 'wallpaper') ? s.themeSeed : 'iris';
+      return savedThemeId();
+    }
+    /** The color theme picked in the list (shown grayed out while wallpaper colors are on). */
+    function savedThemeId() {
+      const s = state.settings || {};
+      return COLOR_THEMES.some((t) => t.id === s.themeSeed) ? s.themeSeed : 'iris';
+    }
+    /** With "Match Device Wallpaper Colors" on (Android), the wallpaper decides and the themes are grayed out. */
+    function themesLocked() {
+      return !IS_WEB && (state.settings || {}).dynamicWallpaper !== false;
     }
     /** The seed colour of the chosen theme, or null for Wallpaper and Iris (the built-in colours). */
     function themeSeedHex() {
@@ -1652,28 +1661,26 @@
     function renderThemeChoices() {
       const box = document.getElementById('themeChoices');
       if (!box) return;
-      const cur = colorThemeId();
+      const locked = themesLocked();
+      const cur = savedThemeId();
       const light = isLightTheme();
-      const wp = deviceWallpaperPalette && (light ? (deviceWallpaperPalette.light || {}) : deviceWallpaperPalette);
-      box.innerHTML = COLOR_THEMES.filter((t) => !(IS_WEB && t.id === 'wallpaper')).map((t) => {
+      box.classList.toggle('locked', locked);
+      box.setAttribute('aria-disabled', String(locked));
+      const hint = document.getElementById('themeLockedHint');
+      if (hint) hint.classList.toggle('hidden', !locked);
+      box.innerHTML = COLOR_THEMES.map((t) => {
         const on = t.id === cur;
-        let swatch;
-        if (t.id === 'wallpaper') {
-          swatch = wp && wp.primary
-            ? `background: conic-gradient(${wp.primary} 0 50%, ${wp.tertiary || wp.primaryContainer || wp.primary} 0 75%, ${wp.primaryContainer || wp.primary} 0)`
-            : 'background: conic-gradient(#F28B82, #FDD663, #81C995, #8AB4F8, #C58AF9, #F28B82)';
-        } else {
-          const seed = t.id === 'custom' ? (validHex(state.settings.customAccent) ? state.settings.customAccent : '#888888') : t.seed;
-          const tk = HubCore.themeTokens(seed, light);
-          swatch = `background: conic-gradient(${tk['--md-primary']} 0 50%, ${tk['--md-tertiary']} 0 75%, ${tk['--md-primary-container']} 0)`;
-        }
-        return `<button type="button" class="theme-choice${on ? ' on' : ''}" data-color-theme="${t.id}" role="radio" aria-checked="${on}" aria-label="${escapeHtml(t.label)} theme">`
+        const seed = t.id === 'custom' ? (validHex(state.settings.customAccent) ? state.settings.customAccent : '#888888') : t.seed;
+        const tk = HubCore.themeTokens(seed, light);
+        const swatch = `background: conic-gradient(${tk['--md-primary']} 0 50%, ${tk['--md-tertiary']} 0 75%, ${tk['--md-primary-container']} 0)`;
+        return `<button type="button" class="theme-choice${on ? ' on' : ''}" data-color-theme="${t.id}" role="radio" aria-checked="${on && !locked}"${locked ? ' disabled' : ''} aria-label="${escapeHtml(t.label)} theme">`
           + `<span class="theme-swatch" style="${swatch}">${t.id === 'custom' ? '<span class="theme-edit" aria-hidden="true">✎</span>' : ''}</span>`
           + `<span class="theme-name">${escapeHtml(t.label)}</span></button>`;
       }).join('');
     }
     function chooseColorTheme(id) {
       if (!state.settings) state.settings = getDefaultSettings();
+      if (themesLocked() || !COLOR_THEMES.some((t) => t.id === id)) return;
       if (id === 'custom') {
         const input = document.getElementById('customAccentInput');
         if (input) {
@@ -1682,17 +1689,14 @@
         }
         if (colorThemeId() === 'custom' || !validHex(state.settings.customAccent)) return;
       }
-      state.settings.dynamicWallpaper = id === 'wallpaper';
-      if (id !== 'wallpaper') state.settings.themeSeed = id;
-      const cb = document.getElementById('settingDynamicWallpaper');
-      if (cb) cb.checked = state.settings.dynamicWallpaper;
+      state.settings.themeSeed = id;
       saveState({ sync: false });
       applyThemeAndSettings();
       saveLaunchPrefs();
       haptic('tick');
     }
     function setCustomAccent(hex) {
-      if (!validHex(hex)) return;
+      if (!validHex(hex) || themesLocked()) return;
       state.settings.customAccent = hex.toUpperCase();
       state.settings.dynamicWallpaper = false;
       state.settings.themeSeed = 'custom';
@@ -5131,6 +5135,7 @@
       if (!el) return;
       if (!isModalOpen(id)) modalReturnFocus = document.activeElement;
       el.classList.remove('hidden');
+      syncBackInterceptState();
       requestAnimationFrame(() => {
         const panel = el.querySelector('.modal-panel');
         if (panel) panel.focus({ preventScroll: true });
@@ -5157,6 +5162,7 @@
       const reopenAdd = id === 'modalBrowseGames' && browseReturnToAdd;
       if (id === 'modalBrowseGames') browseReturnToAdd = false;
       el.classList.add('hidden');
+      syncBackInterceptState();
       if (reopenAdd) { openModal('modalAddGame'); return; }
       if (!MODAL_IDS.some(isModalOpen) && modalReturnFocus && modalReturnFocus.isConnected) {
         try { modalReturnFocus.focus({ preventScroll: true }); } catch (e) {}
@@ -6021,7 +6027,9 @@
       } catch (e) {}
 
       // Keep Android's predictive-back state in sync with modal visibility.
-      ['modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList', 'returnPrompt'].forEach((id) => {
+      // Every dialog (MODAL_IDS) and the "Finished?" sheet: a dialog missing here would leave the page
+      // locked (html.modal-open) after it closes, and Back wouldn't reach it.
+      MODAL_IDS.concat(['returnPrompt']).forEach((id) => {
         const el = document.getElementById(id);
         if (el) new MutationObserver(syncBackInterceptState).observe(el, { attributes: true, attributeFilter: ['class'] });
       });

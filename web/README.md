@@ -23,7 +23,7 @@ After that, every merge to `main` that touches the hub or `web/` publishes it (w
 | Playing a game | Opens in a new tab. Coming back to Dailies asks **Finished?** with Solved, Missed or **Paste** (reads the result you copied in the game; iPhone asks to allow Paste) |
 | Automatic result capture, Play all, ad blocking, dark game pages | Android only (they need the app's game player) |
 | Reset notifications and streak reminders | Not yet (web push needs a small server) |
-| Wallpaper colours, app icon choice, weekly automatic backup, update check, screenshot reading | Android only |
+| Wallpaper colors, app icon choice, weekly automatic backup, update check, screenshot reading | Android only |
 | Data | Stays in the browser on that device (`localStorage`); the page asks the browser to keep it. Use **Save Backup** / **Import Backup** to move data between devices or to the Android app |
 | Offline | Works offline after the first visit (service worker) |
 

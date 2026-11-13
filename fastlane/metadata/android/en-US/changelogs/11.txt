@@ -1,0 +1,4 @@
+1.6.1
+• Closing an achievement's details no longer freezes Streaks & Log.
+• Color themes are grayed out while wallpaper colors are on.
+• Slightly see-through bottom navigation bar.

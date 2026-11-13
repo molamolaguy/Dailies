@@ -1,27 +1,45 @@
+# Dailies 1.6.1
+
+Fixes and polish. It installs over 1.6.0 and keeps everything.
+
+## Changes
+- **Achievement details**: closing an achievement's details (with ✕ or Back) no longer leaves Streaks & Log stuck so it can't be scrolled or tapped. The same fix covers Today's results and Recent changes.
+- **Color themes**: Wallpaper is no longer one of the themes. While **Match Device Wallpaper Colors** is on, the color themes are grayed out; turn it off to choose one.
+- **Bottom navigation bar**: slightly see-through, so you can see what's behind it.
+- **Web app**: the browser tab is titled just "Dailies". The web app is at https://molamolaguy.github.io/Dailies/.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.6.0
 
-New features. It installs over 1.5.0 (or 1.5.1) and keeps everything. It also includes all of 1.5.1's changes (listed below).
+A feature update: play your games in a row, undo any change, and see weekly recaps and personal bests. It installs over 1.5.0 and keeps everything. If you're on 1.5.0, you can install it from **Settings → About → Check now**.
 
-## New
-- **Play all**: a **Play all** button next to *Play next* opens every game you haven't played yet, one after another. After each result the player counts down ("Play Strands in 3…") and moves to the next game. Tap the game, **Copy result** or **Keep playing** to stay where you are.
-- **Recent changes (undo history)**: **Score History → ↶ Changes** (or **Settings → Data & Backup**) lists your last 25 logs, edits, removals and archived games. Undo any of them, even after the game has reset (then only that day's record changes). Undo on the toasts uses the same list. It stays on your phone and isn't in backups.
-- **Recaps**: the recap card on *Streaks & Log* switches between **Week** (this week, or earlier weeks with ‹ ›) and **Month** (follows the calendar). It shows solved, win rate and best streak, the change from the week or month before, your best game and time spent. **Share card** sends it as a picture in your colours; **Share text** sends it as text.
-- **Personal bests**: a new *Personal Bests* section lists every game's best score, fastest time and longest streak (tap one to open it in the calendar). A result that sets a record gets a **🏆 PB** badge on its game card for the day and in Score History.
-- **Tough days**: days you scored much worse than usual for that game (for example 6/6 when you usually get 4/6) have an amber dot in the calendar and a *Tough day* tag in Score History. The game's score stats show how many there were. It needs five scored results first.
-- **Sort the hub**: the ⇅ button sorts games by **Next reset**, **A–Z** or **Least played**, or keeps your **Custom order**. Dragging a card while sorted keeps that order as your custom order.
-- **Today's results in one message**: the **Results** button at the top of the hub opens a preview of all of today's results with a heading ("Dailies · Fri, Nov 13 — 5/7 solved"), each game's name where its result doesn't include it, and missed games at the end. Turn emoji grids on or off, then **Copy** or **Share**.
-- **Colour themes**: **Settings → Display → Color Theme** offers Wallpaper, Iris, Ocean, Forest, Sunset, Rose, or **Custom** (pick any colour). Light, dark and AMOLED all follow it, and so does the game player's top bar. Gold accents still take precedence when they're on.
-- **In-app notifications** (the pop-ups at the top, like "Wordle Completed!" with Undo) follow whichever colour theme you choose (Wallpaper, a preset or Custom), and gold gets a gold edge and title. The Done tag follows the theme as well.
+## What's new since 1.5.0
+| | 1.5.0 | 1.6.0 |
+|---|---|---|
+| **Playing several games** | **Play next** after each game | **Play all** opens every game you haven't played, one after another; after each result the player counts down ("Play Strands in 3…") and moves on |
+| **Undo** | Only from the toast, for 10 minutes | **Score History → ↶ Changes** (or Settings → Data & Backup) lists your last 25 logs, edits, removals and archived games; undo any of them |
+| **Recap** | The calendar's month | **Week** or **Month**, compared with the week or month before, with your best game. **Share card** sends it as a picture |
+| **Personal bests** | In each game's score stats | Also a **Personal Bests** section for every game, and a **🏆 PB** badge on the game card and in Score History when a result sets a record |
+| **Tough days** | — | Days you scored much worse than usual (for example 6/6 when you usually get 4/6) are marked in the calendar and Score History |
+| **Hub order** | Your own order | The ⇅ button sorts by **Next reset**, **A–Z** or **Least played**, or keeps your **Custom order** |
+| **Today's results** | **Copy** copied each result | **Results** shows them as one message with a heading ("Dailies · Fri, Nov 13 — 5/7 solved"), with or without emoji grids, to **Copy** or **Share** |
+| **Color themes** | Wallpaper colors or the default purple | Also **Ocean**, **Forest**, **Sunset**, **Rose** or a **Custom** color. Light, dark, AMOLED, the game player's bar and in-app notifications all follow it |
+| **Settings** | Each heading folded | Sections start open; you can still fold any of them |
+| **Achievements** | Tiles of different sizes with descriptions and tier badges | Same-size tiles; tap one for what each tier takes and your progress. Tier 2 shows a ★ in the corner |
 
-## From 1.5.1
-- **Settings** sections start open again; you can still fold any of them.
-- **Swiping between tabs**: the highlight in the bottom bar now slides along with your finger, so it's already under the new tab when the page arrives.
-- **Krillion** results are found automatically: a "Copy result" button on a game's end screen is now recognised on its own, including buttons built from plain page elements.
-- **No scroll bar** on the right while scrolling.
-- **Achievements**: every tile is the same size, with just the icon, name and progress. Tap one to see what each tier takes and how far along you are. Tier 2 shows a ★ in the corner instead of a tier badge. Marathon counts whole hours.
+## Also changed
+- When you swipe between tabs, the highlight in the bottom bar follows your finger.
+- Krillion results are found automatically: a "Copy result" button on a game's end screen is now recognized on its own.
+- No scroll bar on the right while scrolling.
+- Marathon counts whole hours.
 - **Done** tags show a ★ instead of a dot.
-- **Game pickers** in the calendar and Score history open the app's own drop-down list instead of Android's picker.
-- **Gold** now uses a satin, brushed gold (like the Robinhood Gold card) throughout, including the Gold app icon, whose star is now engraved in dark gold.
+- The game pickers in the calendar and Score History open the app's own drop-down list instead of Android's picker.
+- Gold accents and the Gold app icon use a satin, brushed gold; the icon's star is engraved in dark gold.
 
 ## Requirements
 - Android 7.0 or newer.
@@ -36,12 +54,12 @@ Polish and fixes. It installs over 1.5.0 and keeps everything.
 ## Changes
 - **Settings** sections start open again; you can still fold any of them.
 - **Swiping between tabs**: the highlight in the bottom bar now slides along with your finger, so it's already under the new tab when the page arrives.
-- **Krillion** results are found automatically: a "Copy result" button on a game's end screen is now recognised on its own, including buttons built from plain page elements.
+- **Krillion** results are found automatically: a "Copy result" button on a game's end screen is now recognized on its own, including buttons built from plain page elements.
 - **No scroll bar** on the right while scrolling.
 - **Achievements**: every tile is the same size, with just the icon, name and progress. Tap one to see what each tier takes and how far along you are. Tier 2 shows a ★ in the corner instead of a tier badge. Marathon counts whole hours.
 - **Done** tags show a ★ instead of a dot.
 - **Game pickers** in the calendar and Score history open the app's own drop-down list instead of Android's picker.
-- **Gold** now uses a satin, brushed gold (like the Robinhood Gold card) throughout, including the Gold app icon, whose star is now engraved in dark gold.
+- **Gold** now uses a satin, brushed gold throughout, including the Gold app icon, whose star is now engraved in dark gold.
 
 ## Requirements
 - Android 7.0 or newer.
@@ -70,7 +88,7 @@ An update with more achievements and a tidier layout. It installs over 1.4.0 and
 - Once the Gold icon or gold accents are unlocked they stay unlocked, including after a restore and when a later update adds new achievements.
 - Backups now also keep the gold accents unlock.
 - Gold accents use the same shiny metallic gold as the Gold icon on buttons, the selected tab, chips, progress bars, headings, card edges, streaks and solved calendar days.
-- The clock in Settings → Gameplay & Time uses the same font and colour as the games' countdowns.
+- The clock in Settings → Gameplay & Time uses the same font and color as the games' countdowns.
 - Only the 5 most recently removed games are kept for adding back. Results you logged for older removed games stay in Score history, but those games no longer appear in the calendar.
 
 ## Requirements
@@ -95,13 +113,13 @@ A feature update. It installs over 1.3.0 and keeps your games, streaks and histo
 | **Copy today's results** | One at a time | **Copy** at the top of the hub copies everything you've solved today, each with its own formatting |
 | **Paging Score history** | Pages jumped | Pages follow your finger, like the calendar |
 | **App icon** | White, or matching the theme | Also Midnight, Sunset, Ocean and Mono, plus a shiny **Gold** icon unlocked by earning every achievement (Settings → Display → App Icon) |
-| **Hub logo** | Always in the theme's colours | Matches the app icon you chose |
+| **Hub logo** | Always in the theme's colors | Matches the app icon you chose |
 | **Popular games** | 12 built-in games | 59, with their links and reset times: **Add Game → Or pick from popular daily games**. Includes NYT, LinkedIn, Quordle, Worldle, Bandle, Immaculate Grid, FE Guess, Globle, Krillion and Nintendoku |
 
 ## Also changed
 - The player's **Reload** and **Open in browser** buttons moved into the ⋮ menu to make room for **Next**.
 - **Find Results Automatically** can be turned off in Settings → Game Player.
-- More share formats are recognised for automatic logging, such as LinkedIn's "Queens #540 | 1:42 👑", the NYT Mini's "solved … in 0:42", Quordle's numbered boards, and results counted in words, clues or strokes.
+- More share formats are recognized for automatic logging, such as LinkedIn's "Queens #540 | 1:42 👑", the NYT Mini's "solved … in 0:42", Quordle's numbered boards, and results counted in words, clues or strokes.
 - Ordinary text you copy while a game is open (a shopping list with ✅, a date, an address, a link) is no longer mistaken for a result.
 - The result card in the player has a **Copy** button, Back closes it, and it follows the keyboard.
 - Results of games played earlier in one player session are logged with one **Undo**, including a game that reset while you were playing.
@@ -123,7 +141,7 @@ An update with fixes and polish. It installs over 1.2.0 and keeps your games, st
 | | 1.2.0 | 1.3.0 |
 |---|---|---|
 | **Updates** | "Get it" opened GitHub in the browser | **Check now** offers to download and install the update inside the app |
-| **Auto-logging** | Could miss a result the game copied (e.g. Krillion) | Also checks for a copied result when you return to the game or close it, and accepts results scored in metres, % or points |
+| **Auto-logging** | Could miss a result the game copied (e.g. Krillion) | Also checks for a copied result when you return to the game or close it, and accepts results scored in meters, % or points |
 | **Play next** | None | Once you've finished a game, "Up next" opens the next unplayed one |
 | **Score history** | Every game together | Filter by game and by Completed / Missed |
 | **Streak reminders** | One time for every game | Each game can have its own time, or none |
@@ -168,7 +186,7 @@ A feature update. It installs over 1.1.0 and keeps your games, streaks and histo
 | **Achievements** | None | 14 badges, such as a 30-day streak, 100 solves and a perfect week |
 | **Monthly recap** | None | Games played, win rate, best streak and best result, ready to share |
 | **Screenshots** | Log by hand | Share a result screenshot to Dailies and it reads the result |
-| **Dark game pages** | Game sites' own colours | Sites without a dark mode are darkened in the dark theme |
+| **Dark game pages** | Game sites' own colors | Sites without a dark mode are darkened in the dark theme |
 | **Games you've stopped playing** | Remove only | Archive: hidden, no alerts, history kept |
 | **Editing many games** | One at a time | Select several: alerts on/off, reset time, archive |
 | **Sharing your games** | Not possible | A link or QR code that adds the same games for a friend |
@@ -176,7 +194,7 @@ A feature update. It installs over 1.1.0 and keeps your games, streaks and histo
 | **One-handed mode** | None | The page starts lower and dialogs open at the bottom |
 
 ## Also changed
-- A new app icon: a Material 3 flower shape with a sparkle. It follows your phone's light or dark theme and, on Android 12+, your wallpaper colours. Turn on **App Icon Matches Theme** to have it follow the app's own theme instead.
+- A new app icon: a Material 3 flower shape with a sparkle. It follows your phone's light or dark theme and, on Android 12+, your wallpaper colors. Turn on **App Icon Matches Theme** to have it follow the app's own theme instead.
 - Swiping between tabs follows your finger and glides into place.
 - The "Done today" section is a clear Show/Hide row that animates and brings the cards into view.
 
@@ -204,10 +222,10 @@ A feature update. It installs over 1.0.x and keeps your games, streaks and histo
 | **Sign-in popups** | No ad blocking | Same ad blocking as the game |
 
 ## Also fixed
-- Text and icons that sat slightly off-centre (alert chips, bottom bar, game player toolbar).
+- Text and icons that sat slightly off-center (alert chips, bottom bar, game player toolbar).
 - Game details and icons load through a phone proxy or VPN proxy.
 - Downloads from games save inside the app on Android 7–9.
-- Sharper, centred app icon on Android 7.
+- Sharper, centered app icon on Android 7.
 
 ## Requirements
 - Android 7.0 or newer.
