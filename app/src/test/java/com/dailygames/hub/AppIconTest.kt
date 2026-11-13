@@ -6,17 +6,23 @@ import org.junit.Test
 
 class AppIconTest {
     @Test
-    fun picksTheLauncherEntryForTheThemeAndColours() {
-        assertEquals(AppIcon.DEFAULT, AppIcon.wanted(false, "light", true))
-        assertEquals(".IconLight", AppIcon.wanted(true, "light", true))
-        assertEquals(".IconDark", AppIcon.wanted(true, "dark", true))
-        assertEquals(".IconLightClassic", AppIcon.wanted(true, "light", false))
-        assertEquals(".IconDarkClassic", AppIcon.wanted(true, "dark", false))
-        assertEquals(".IconAuto", AppIcon.wanted(true, "system", true))
-        assertEquals(".IconAutoClassic", AppIcon.wanted(true, "system", false))
-        // Every answer is a declared launcher entry, and ".MainActivity" (1.x's launcher name) stays the default.
-        listOf(true, false).forEach { f -> listOf("dark", "light", "system").forEach { m -> listOf(true, false).forEach { w ->
-            assertTrue(AppIcon.wanted(f, m, w) in AppIcon.ALL)
+    fun picksTheLauncherEntryForTheStyleThemeAndColours() {
+        assertEquals(AppIcon.DEFAULT, AppIcon.wanted("default", "light", true))
+        assertEquals(".IconLight", AppIcon.wanted("themed", "light", true))
+        assertEquals(".IconDark", AppIcon.wanted("themed", "dark", true))
+        assertEquals(".IconLightClassic", AppIcon.wanted("themed", "light", false))
+        assertEquals(".IconDarkClassic", AppIcon.wanted("themed", "dark", false))
+        assertEquals(".IconAuto", AppIcon.wanted("themed", "system", true))
+        assertEquals(".IconAutoClassic", AppIcon.wanted("themed", "system", false))
+        assertEquals(".IconGold", AppIcon.wanted("gold", "dark", true))
+        assertEquals(".IconMidnight", AppIcon.wanted("midnight", "light", false))
+        // Unknown styles fall back to the default; ".MainActivity" (1.x's launcher name) stays the default.
+        assertEquals(AppIcon.DEFAULT, AppIcon.wanted("sparkly", "dark", true))
+        assertEquals("default", AppIcon.normalize("sparkly"))
+        assertEquals("themed", AppIcon.normalize("themed"))
+        val styles = AppIcon.STYLES.keys + "themed"
+        styles.forEach { s -> listOf("dark", "light", "system").forEach { m -> listOf(true, false).forEach { w ->
+            assertTrue(AppIcon.wanted(s, m, w) in AppIcon.ALL)
         } } }
     }
 }

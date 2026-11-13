@@ -816,10 +816,8 @@ html[data-theme="light"] .day-chip.streak { color: #8a5a00; }
 .hist-pager { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--md-outline); }
 .hist-pager .page-label { flex: 1 1 auto; text-align: center; font-size: 12.5px; font-weight: 600; color: #cbd2de; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .hist-pager .page-sub { display: block; font-size: 11px; font-weight: 500; color: #8f97a8; }
-.hist-list.slide-left { animation: hist-left 0.2s var(--m3-spring-effects); }
-.hist-list.slide-right { animation: hist-right 0.2s var(--m3-spring-effects); }
-@keyframes hist-left { from { transform: translateX(24px); opacity: 0.2; } to { transform: none; opacity: 1; } }
-@keyframes hist-right { from { transform: translateX(-24px); opacity: 0.2; } to { transform: none; opacity: 1; } }
+/* Swiping between pages: the list follows the finger; the block clips it, like the calendar. */
+#historyBlock { overflow-x: clip; touch-action: pan-y; }
 .hist-dots { display: flex; justify-content: center; gap: 5px; padding-top: 8px; }
 .hist-dots span { width: 6px; height: 6px; border-radius: 9999px; background: var(--md-container-highest); }
 .hist-dots span.on { width: 16px; background: var(--md-primary); }
@@ -1243,3 +1241,65 @@ html[data-theme="light"] .hist-chip.on { color: var(--md-on-primary-container); 
 .play-next .pn-k { font-size: 11px; font-weight: 600; opacity: 0.8; line-height: 1.2; }
 .play-next .pn-name { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
 .play-next .pn-left { font-size: 11.5px; font-weight: 600; opacity: 0.8; white-space: nowrap; flex-shrink: 0; }
+
+/* Copy today's results (top row of the hub). */
+.copy-today {
+  min-height: 26px; padding: 0 9px; border-radius: 9999px; font-size: 12px; font-weight: 600; white-space: nowrap;
+  color: var(--md-on-primary-container); background: var(--md-container-high); border: 1px solid var(--md-outline);
+}
+.copy-today.hidden { display: none; }
+@media (max-width: 380px) { .copy-today .copy-label { display: none; } .copy-today { padding: 0 6px; } }
+
+/* Score history search. */
+.hist-search { flex: 1 1 100%; min-width: 0; }
+.hist-score mark { background: rgba(250, 204, 21, 0.35); color: inherit; border-radius: 3px; padding: 0 1px; }
+html[data-theme="light"] .hist-score mark { background: rgba(234, 179, 8, 0.35); }
+
+/* Hub header logo: same look as the launcher icon the user chose. */
+.hub-logo .logo-bg { fill: #FFFFFF; stroke: var(--md-outline); stroke-width: 2; }
+.hub-logo .logo-shape { fill: url(#hubLogoGradient); }
+.hub-logo .logo-mark { fill: #FFFFFF; }
+html[data-app-icon="themed"] .hub-logo .logo-bg { fill: var(--md-primary-container); stroke: none; }
+html[data-app-icon="themed"] .hub-logo .logo-shape { fill: var(--md-primary); }
+html[data-app-icon="themed"] .hub-logo .logo-mark { fill: var(--md-on-primary); }
+
+/* Popular games picker. */
+.browse-list { max-height: min(62vh, 560px); overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 4px; }
+.browse-cat { font-size: 11.5px; font-weight: 700; color: #a9b1c1; padding: 10px 2px 2px; text-transform: uppercase; letter-spacing: 0.04em; }
+.browse-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 10px; border-radius: 14px; background: var(--md-container-low); border: 1px solid var(--md-outline); }
+.browse-row:disabled { opacity: 0.55; }
+.browse-icon { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--md-container-high); }
+.browse-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.browse-name { font-size: 13.5px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browse-desc { font-size: 11.5px; color: #a9b1c1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browse-add { flex-shrink: 0; font-size: 12px; font-weight: 700; color: var(--md-on-primary-container); background: var(--md-primary-container); border-radius: 9999px; padding: 6px 12px; }
+.browse-row:disabled .browse-add { background: transparent; color: #a9b1c1; }
+html[data-theme="light"] .browse-name { color: var(--lt-strong); }
+html[data-theme="light"] .browse-cat, html[data-theme="light"] .browse-desc { color: var(--lt-muted); }
+
+/* App icon picker (Settings → Display). */
+.hub-logo-wrap { display: inline-flex; width: 22px; height: 22px; flex-shrink: 0; }
+.icon-choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; margin-top: 10px; }
+.icon-choice { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px 6px; border-radius: 16px; border: 2px solid transparent; background: var(--md-container-low); }
+.icon-choice.on { border-color: var(--md-primary); background: var(--md-container-high); }
+.icon-choice.locked svg { filter: grayscale(0.55) brightness(0.7); }
+.icon-choice .icon-name { font-size: 11px; font-weight: 600; color: #cbd2de; white-space: nowrap; }
+.icon-choice .icon-lock { position: absolute; top: 30px; right: 12px; font-size: 13px; }
+html[data-theme="light"] .icon-choice .icon-name { color: var(--lt-strong); }
+
+/* "Play next game" prompt after logging a game from the player. */
+.next-game-panel { border-radius: 28px; padding: 20px; height: auto; align-self: center; }
+.next-game-icon { width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--md-container-high); }
+.next-game-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.next-game-play { max-width: 60%; }
+
+/* Utilities used by 1.4.0 markup (app.css only holds the classes the app uses). */
+.ml-auto { margin-left: auto; }
+.mt-2 { margin-top: 0.5rem; }
+.underline-offset-2 { text-underline-offset: 2px; }
+.hover\:underline:hover { text-decoration: underline; }
+.border-amber-500\/40 { border-color: rgba(245, 158, 11, 0.4); }
+.text-amber-300\/90 { color: rgba(252, 211, 77, 0.9); }
+@media (min-width: 640px) { .sm\:col-span-3 { grid-column: span 3 / span 3; } }
+html[data-theme="light"] .text-amber-300\/90 { color: var(--lt-streak); }
+#btnNextGameHome { white-space: nowrap; flex-shrink: 0; }

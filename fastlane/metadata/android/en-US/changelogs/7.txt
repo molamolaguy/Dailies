@@ -1,0 +1,7 @@
+1.4.0
+• Results are found automatically when a game shows its end screen.
+• Switch between today's games inside the player, or tap Next.
+• 59 popular daily games to add in one tap.
+• New app icons, including a gold one for earning every achievement.
+• Page zoom remembered per site; reset-time suggestions.
+• Search Score history; copy all of today's results at once.

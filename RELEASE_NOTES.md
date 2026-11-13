@@ -1,3 +1,39 @@
+# Dailies 1.4.0
+
+A feature update. It installs over 1.3.0 and keeps your games, streaks and history. If you're on 1.3.0, you can install it from **Settings → About → Check now**.
+
+## What's new since 1.3.0
+| | 1.3.0 | 1.4.0 |
+|---|---|---|
+| **Logging results** | You had to tap the game's Share / Copy button | When a game shows its end screen, Dailies reads the result from its Share button by itself. Nothing is copied or shared. |
+| **Several games in a row** | Back to the hub between games | Tap the game's name in the player to switch to any of today's games, or **Next** (⏭) for the next one you haven't played |
+| **After a game** | Back to the hub, then pick the next game | When a result is saved in the player, **Play \<next game\>** opens it straight away, or **Back to hub**. Logging by hand after the player asks the same. |
+| **Page zoom** | Not available | ⋮ → **Zoom** in the player; remembered for each site |
+| **Reset times** | Set by hand | If a game's puzzle numbers show its reset time is wrong, Dailies suggests the right one |
+| **Score history** | Filter by game and outcome | Also search every result you've logged (e.g. "2/6", "#117") |
+| **Copy today's results** | One at a time | **Copy** at the top of the hub copies everything you've solved today, each with its own formatting |
+| **Paging Score history** | Pages jumped | Pages follow your finger, like the calendar |
+| **App icon** | White, or matching the theme | Also Midnight, Sunset, Ocean and Mono, plus a shiny **Gold** icon unlocked by earning every achievement (Settings → Display → App Icon) |
+| **Hub logo** | Always in the theme's colours | Matches the app icon you chose |
+| **Popular games** | 12 built-in games | 59, with their links and reset times: **Add Game → Or pick from popular daily games**. Includes NYT, LinkedIn, Quordle, Worldle, Bandle, Immaculate Grid, FE Guess, Globle, Krillion and Nintendoku |
+
+## Also changed
+- The player's **Reload** and **Open in browser** buttons moved into the ⋮ menu to make room for **Next**.
+- **Find Results Automatically** can be turned off in Settings → Game Player.
+- More share formats are recognised for automatic logging, such as LinkedIn's "Queens #540 | 1:42 👑", the NYT Mini's "solved … in 0:42", Quordle's numbered boards, and results counted in words, clues or strokes.
+- Ordinary text you copy while a game is open (a shopping list with ✅, a date, an address, a link) is no longer mistaken for a result.
+- The result card in the player has a **Copy** button, Back closes it, and it follows the keyboard.
+- Results of games played earlier in one player session are logged with one **Undo**, including a game that reset while you were playing.
+- Backups now keep your achievements, so the Gold icon stays unlocked after a restore.
+- Games that share a site (e.g. Mini Nerdle next to Nerdle) can be added side by side.
+- Search in Score history no longer garbles results with apostrophes or "&" in them.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.3.0
 
 An update with fixes and polish. It installs over 1.2.0 and keeps your games, streaks and history.

@@ -206,6 +206,1320 @@
       "strict": false,
       "name": "Krillion",
       "url": "https://krillion.io/"
+    },
+    {
+      "text": "🌎 Nov 13, 2026 🌍\n🔥 4 | Avg. Guesses: 5.2\n🟨🟧🟥🟩 = 4\n\nhttps://globle-game.com\n#globle",
+      "name": "Globle",
+      "url": "https://globle-game.com/game",
+      "strict": true
+    },
+    {
+      "text": "FE Guess #530 🗡️\n🟥🟨🟩\nSolved in 3/8",
+      "name": "FE Guess",
+      "url": "https://fe-guess.com/",
+      "strict": true
+    },
+    {
+      "text": "NintenDoku #210 🍄\n✅✅❌\n✅✅✅\n❌✅✅\nhttps://n-puzzle.com/en/nintendoku",
+      "name": "Nintendoku",
+      "url": "https://n-puzzle.com/en/nintendoku",
+      "strict": true
+    },
+    {
+      "text": "Krillion #117 🦐\n60\n\n⬛⬛🫧🫧🫧🐟⬛",
+      "name": "Krillion · The Daily Dive",
+      "url": "https://krillion.io/",
+      "strict": true
+    },
+    {
+      "text": "Queens #540 | 1:42 👑\nlnkd.in/queens.",
+      "name": "Queens",
+      "url": "https://www.linkedin.com/games/queens",
+      "strict": true
+    },
+    {
+      "text": "Tango #380 | 0:58 and flawless 🌗\nlnkd.in/tango.",
+      "name": "Tango",
+      "url": "https://www.linkedin.com/games/tango",
+      "strict": true
+    },
+    {
+      "text": "Zip #210 | 0:23 🏁\nWith 1 backtrack 🛑",
+      "name": "Zip",
+      "url": "https://www.linkedin.com/games/zip",
+      "strict": true
+    },
+    {
+      "text": "Pinpoint #540 | 3 guesses\n1️⃣ | 1% match\n2️⃣ | 12% match\n3️⃣ | 100% match 📌",
+      "name": "Pinpoint",
+      "url": "https://www.linkedin.com/games/pinpoint",
+      "strict": true
+    },
+    {
+      "text": "Crossclimb #540 | 1:05 🪜",
+      "name": "Crossclimb",
+      "url": "https://www.linkedin.com/games/crossclimb",
+      "strict": true
+    },
+    {
+      "text": "Mini Sudoku #90 | 0:45 ✏️",
+      "name": "Mini Sudoku",
+      "url": "https://www.linkedin.com/games/mini-sudoku",
+      "strict": true
+    },
+    {
+      "text": "I solved the 11/13/2026 New York Times Mini Crossword in 0:42!",
+      "name": "Mini Crossword",
+      "url": "https://www.nytimes.com/crosswords/game/mini",
+      "strict": true
+    },
+    {
+      "text": "Pips #160 Hard 🔴\n3:12",
+      "name": "Pips",
+      "url": "https://www.nytimes.com/games/pips",
+      "strict": true
+    },
+    {
+      "text": "Daily Quordle 1340\n6️⃣5️⃣\n4️⃣7️⃣\nm-w.com/games/quordle/\n⬜🟨⬜⬜🟩",
+      "name": "Quordle",
+      "url": "https://www.merriam-webster.com/games/quordle",
+      "strict": true
+    },
+    {
+      "text": "Daily Octordle #1340\n8️⃣4️⃣\n🔟6️⃣\n7️⃣5️⃣\n9️⃣🕛\nScore: 61",
+      "name": "Octordle",
+      "url": "https://octordle.com/",
+      "strict": true
+    },
+    {
+      "text": "I solved Semantle #1380 in 47 guesses.",
+      "name": "Semantle",
+      "url": "https://semantle.com/",
+      "strict": true
+    },
+    {
+      "text": "I solved the 11/13 Squaredle with 2 wrong guesses.\n🟩🟩🟩🟩\n🟨🟩🟩🟩",
+      "name": "Squaredle",
+      "url": "https://squaredle.app/",
+      "strict": true
+    },
+    {
+      "text": "Phrazle 900 3/6\n🟩🟨⬜⬜⬜\n🟩🟩🟩🟩🟩",
+      "name": "Phrazle",
+      "url": "https://solitaired.com/phrazle",
+      "strict": true
+    },
+    {
+      "text": "Weaver 1200\n6 moves\n🟩⬜⬜🟩\n🟩🟩🟩🟩",
+      "name": "Weaver",
+      "url": "https://wordwormdormdork.com/",
+      "strict": true
+    },
+    {
+      "text": "[Bracket City]\nNovember 13, 2026\n\nRank: 🏆 Puppet Master\n❌ Wrong guesses: 0\n👀 Peeks: 1\n\nTotal Score: 98.0",
+      "name": "Bracket City",
+      "url": "https://www.theatlantic.com/games/bracket-city/",
+      "strict": true
+    },
+    {
+      "text": "Thrice #400 → 12 points!\n🟢🟢🟢 🟢🟡⚫ 🟢🟢🟢",
+      "name": "Thrice",
+      "url": "https://thricegame.com/",
+      "strict": true
+    },
+    {
+      "text": "#Worldle #1380 3/6 (100%)\n🟩🟩🟩🟨⬜⬅️\n🟩🟩🟩🟩🟩🎉",
+      "name": "Worldle",
+      "url": "https://worldle.teuteuf.fr/",
+      "strict": true
+    },
+    {
+      "text": "#Tradle #1100 3/6\n🟩🟩🟩🟨⬜\n🟩🟩🟩🟩🟩",
+      "name": "Tradle",
+      "url": "https://oec.world/en/games/tradle",
+      "strict": true
+    },
+    {
+      "text": "#Flagle #1000 (13.11.2026) 3/6\n🟥🟩🟥\n🟩🟩🟩",
+      "name": "Flagle",
+      "url": "https://flagle.io/",
+      "strict": true
+    },
+    {
+      "text": "TimeGuessr #540 38,456/50,000\n🌎🟩🟨⬛ 📅🟩🟩🟨",
+      "name": "TimeGuessr",
+      "url": "https://timeguessr.com/",
+      "strict": true
+    },
+    {
+      "text": "#Countryle 1000\nGuessed in 4 tries.\n🟩🟩🟩🟨\nhttps://countryle.com",
+      "name": "Countryle",
+      "url": "https://countryle.com/",
+      "strict": true
+    },
+    {
+      "text": "🌎 GeoGrid 🌍\n✅✅❌\n✅✅✅\n✅❌✅\nScore: 7/9",
+      "name": "GeoGrid",
+      "url": "https://www.geogridgame.com/",
+      "strict": true
+    },
+    {
+      "text": "Mathler 1300 3/6\n🟨🟨⬛🟩🟨⬛\n🟩🟩🟩🟩🟩🟩",
+      "name": "Mathler",
+      "url": "https://www.mathler.com/",
+      "strict": true
+    },
+    {
+      "text": "I solved the daily Clues by Sam (Nov 13th 2026) in less than 5 minutes\n🟩🟩🟩🟩\n🟩🟨🟩🟩",
+      "name": "Clues by Sam",
+      "url": "https://cluesbysam.com/",
+      "strict": true
+    },
+    {
+      "text": "Murdle for 11/13/2026\n\n👤🔪🏡   🕰️\n✅✅✅   🕰️\n⚖️\n✅",
+      "name": "Murdle",
+      "url": "https://murdle.com/",
+      "strict": true
+    },
+    {
+      "text": "Episode #400\n📺 🟥 🟥 🟩 ⬛ ⬛ ⬛",
+      "name": "Episode",
+      "url": "https://framed.wtf/episode",
+      "strict": true
+    },
+    {
+      "text": "#Moviedle #2026-11-13\n\n 🎥 🟥 🟩 ⬜️ ⬜️ ⬜️ ⬜️ ",
+      "name": "Moviedle",
+      "url": "https://moviedle.app/",
+      "strict": true
+    },
+    {
+      "text": "Bandle #850 3/6\n⬛🟥🟩⬜⬜⬜\nFound: 1/2 (50%)\n#Bandle #Heardle #Wordle",
+      "name": "Bandle",
+      "url": "https://bandle.app/",
+      "strict": true
+    },
+    {
+      "text": "Actorle #1100 3/8\n⬛⬛🟩",
+      "name": "Actorle",
+      "url": "https://actorle.com/",
+      "strict": true
+    },
+    {
+      "text": "Costcodle #560 3/6\n⬆️🟥\n⬇️🟨\n✅",
+      "name": "Costcodle",
+      "url": "https://costcodle.com/",
+      "strict": true
+    },
+    {
+      "text": "I've found #LoLdle champion in 3 tries!\n🟥🟥🟩🟥🟥🟥🟥\n🟩🟩🟩🟩🟩🟩🟩",
+      "name": "Loldle",
+      "url": "https://loldle.net/",
+      "strict": true
+    },
+    {
+      "text": "I found #Pokedle Pokémon in 4 shots!\n🟥🟩🟥🟥🟥🟥\n🟩🟩🟩🟩🟩🟩",
+      "name": "Pokedle",
+      "url": "https://pokedle.net/",
+      "strict": true
+    },
+    {
+      "text": "Immaculate Grid 920 7/9:\nRarity: 130\n⬜🟩🟩\n🟩🟩🟩\n🟩🟩⬜",
+      "name": "Immaculate Grid",
+      "url": "https://www.immaculategrid.com/",
+      "strict": true
+    },
+    {
+      "text": "putt.day #210 ⛳\n3 strokes",
+      "name": "putt.day",
+      "url": "https://putt.day/",
+      "strict": true
+    },
+    {
+      "text": "Tiles #210\nLongest combo: 18 🧩",
+      "name": "Tiles",
+      "url": "https://www.nytimes.com/puzzles/tiles",
+      "strict": true
+    },
+    {
+      "text": "Queens: place one queen in each row, column and region.",
+      "name": "Queens",
+      "url": "https://www.linkedin.com/games/queens",
+      "strict": false
+    },
+    {
+      "text": "The Mini Crossword comes out at 10:00 PM ET",
+      "name": "Mini Crossword",
+      "url": "https://www.nytimes.com/crosswords/game/mini",
+      "strict": false
+    },
+    {
+      "text": "Weaver: change one letter at a time to find the words",
+      "name": "Weaver",
+      "url": "https://wordwormdormdork.com/",
+      "strict": false
+    },
+    {
+      "text": "Meeting moved to 11/12\nRoom 4B",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Due 12/25\nDon't forget",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "✅ Done, see you at 5",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "❌ not today",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Groceries:\n✅ milk\n✅ eggs\n❌ bread",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "🔴 LIVE now",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Your verification code is 482913",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "G-482913 is your Google verification code.",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "+1 (555) 123-4567",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "3:45 PM",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Flight departs 15:45 gate 22",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Lakers 112 - 108 Celtics",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "$12.99",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "1/2 cup sugar\n3/4 cup flour",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "I rate it 9/10",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "I rate it 9/10, would try again",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Score was 3/5 honestly",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "24/7 support\ncall us",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "const x = a/2;\nreturn x;",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "for (i=0;i<n;i++) {\n  y = 1/2 * x;\n}",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "https://example.com/a/1/2\nsee this",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Check https://example.com/page/3/10 #2",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "123 Main St Apt 4/5\nSpringfield",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Did you do Wordle today?",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Wordle is at 5 points in the app store",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "wordle",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Play Wordle at 10:30",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Wordle starts 10:30 tomorrow",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Read this NYTimes article, 5 minutes",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "The nytimes paywall is $4",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "nytimes subscription 50% off",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "https://www.nytimes.com/2026/11/13/world/article.html?smid=share #5",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Great article https://www.nytimes.com/2026/11/13/world/x.html",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "My zip code is 90210, 5 minutes away",
+      "name": "Zip",
+      "url": "https://linkedin.com/games/zip/",
+      "strict": false
+    },
+    {
+      "text": "zipper broke, 20% off",
+      "name": "Zip",
+      "url": "https://linkedin.com/games/zip/",
+      "strict": false
+    },
+    {
+      "text": "Queens, NY 11375 — 10 mins",
+      "name": "Queens",
+      "url": "https://linkedin.com/games/queens/",
+      "strict": false
+    },
+    {
+      "text": "Hi, I saw your LinkedIn profile, 500+ connections, call me at 10:30",
+      "name": "Queens",
+      "url": "https://linkedin.com/games/queens/",
+      "strict": false
+    },
+    {
+      "text": "linkedin.com/in/john-doe-12345 3 moves",
+      "name": "Queens",
+      "url": "https://linkedin.com/games/queens/",
+      "strict": false
+    },
+    {
+      "text": "Job #4521 on LinkedIn 😀",
+      "name": "Tango",
+      "url": "https://linkedin.com/games/tango/",
+      "strict": false
+    },
+    {
+      "text": "Day 3 of my trip 2/3 done",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "My day: 8/10",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "BP 120/80 today",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "12/25/2026",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "11/13\n",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Order #12345 shipped 1/2",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "pips: 5 points",
+      "name": "Pips",
+      "url": "https://nytimes.com/games/pips/",
+      "strict": false
+    },
+    {
+      "text": "Tiles 12 m wide",
+      "name": "Tiles",
+      "url": "https://nytimes.com/puzzles/tiles/",
+      "strict": false
+    },
+    {
+      "text": "Episode 5 at 20:00",
+      "name": "Episode",
+      "url": "https://framed.wtf/episode/",
+      "strict": false
+    },
+    {
+      "text": "Episode #5 😀",
+      "name": "Episode",
+      "url": "https://framed.wtf/episode/",
+      "strict": false
+    },
+    {
+      "text": "Framed photo 20x30 50%",
+      "name": "Framed",
+      "url": "https://framed.wtf/",
+      "strict": false
+    },
+    {
+      "text": "Chess 10 moves",
+      "name": "Chess.com Daily Puzzle",
+      "url": "https://chess.com/daily-chess-puzzle/",
+      "strict": false
+    },
+    {
+      "text": "Wordle — Get 6 chances to guess a 5-letter word.",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Connections: Group words that share a common thread. 4 mistakes allowed",
+      "name": "Connections",
+      "url": "https://nytimes.com/games/connections/",
+      "strict": false
+    },
+    {
+      "text": "Copied link: https://www.nytimes.com/games/wordle/index.html — 6 tries",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "🟩",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "⬛⬛",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Hello ⚪ world",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "x/y",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "a) 1/2\nb) 3/4",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "2026/11/13\nlog",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Version 1/2 #3",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "ETA 12:30",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Wordle 12:30",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Wordle at 9:14pm",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Wordle at 21:14",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": false
+    },
+    {
+      "text": "Wordle 1,612 3/6\n\n⬛🟨⬛⬛⬛\n🟩🟩🟩🟩🟩",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": true
+    },
+    {
+      "text": "Wordle 1,612 X/6*\n\n⬜🟨⬜⬜⬜",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": true
+    },
+    {
+      "text": "Wordle 1,612 4/6",
+      "name": "Wordle",
+      "url": "https://nytimes.com/games/wordle/",
+      "strict": true
+    },
+    {
+      "text": "Connections\nPuzzle #890\n🟨🟨🟨🟨\n🟩🟩🟩🟩\n🟦🟦🟦🟦\n🟪🟪🟪🟪",
+      "name": "Connections",
+      "url": "https://nytimes.com/games/connections/",
+      "strict": true
+    },
+    {
+      "text": "Strands #612\n“On the house”\n🔵🔵🟡🔵\n🔵🔵🔵",
+      "name": "Strands",
+      "url": "https://nytimes.com/games/strands/",
+      "strict": true
+    },
+    {
+      "text": "Strands #612\n“On the house”\n💡🔵💡🔵",
+      "name": "Strands",
+      "url": "https://nytimes.com/games/strands/",
+      "strict": true
+    },
+    {
+      "text": "I solved the Friday 11/13/2026 New York Times Daily Crossword in 12:47!",
+      "name": "The Crossword",
+      "url": "https://nytimes.com/crosswords/game/daily/",
+      "strict": true
+    },
+    {
+      "text": "I solved the 11/13/2026 New York Times Mini Crossword in 0:42! https://www.nytimes.com/crosswords/game/mini",
+      "name": "Mini Crossword",
+      "url": "https://nytimes.com/crosswords/game/mini/",
+      "strict": true
+    },
+    {
+      "text": "Spelling Bee\nGenius 🐝\n142 points, 31 words",
+      "name": "Spelling Bee",
+      "url": "https://nytimes.com/puzzles/spelling-bee/",
+      "strict": true
+    },
+    {
+      "text": "I got to Genius in today's Spelling Bee!",
+      "name": "Spelling Bee",
+      "url": "https://nytimes.com/puzzles/spelling-bee/",
+      "strict": true
+    },
+    {
+      "text": "Letter Boxed\nSolved in 2 words",
+      "name": "Letter Boxed",
+      "url": "https://nytimes.com/puzzles/letter-boxed/",
+      "strict": true
+    },
+    {
+      "text": "Pips #88 Hard 🔴\n2:31",
+      "name": "Pips",
+      "url": "https://nytimes.com/games/pips/",
+      "strict": true
+    },
+    {
+      "text": "Pips #88 Easy 🟢\n0:51",
+      "name": "Pips",
+      "url": "https://nytimes.com/games/pips/",
+      "strict": true
+    },
+    {
+      "text": "Connections: Sports Edition\nPuzzle #412\n🟨🟨🟨🟨\n🟩🟩🟩🟩",
+      "name": "Connections: Sports Edition",
+      "url": "https://nytimes.com/athletic/connections-sports-edition/",
+      "strict": true
+    },
+    {
+      "text": "#Worldle #1,392 (13.11.2026) 2/6 (100%)\n🟩🟩🟩🟨⬛↗️\n🟩🟩🟩🟩🟩🎉\nhttps://worldle.teuteuf.fr",
+      "name": "Worldle",
+      "url": "https://worldle.teuteuf.fr/",
+      "strict": true
+    },
+    {
+      "text": "#Worldle #1392 X/6 (94%)",
+      "name": "Worldle",
+      "url": "https://worldle.teuteuf.fr/",
+      "strict": true
+    },
+    {
+      "text": "🌎 Nov 13, 2026 🌍\n🔥 12 | Avg. Guesses: 6.2\n🟧🟥🟩 = 3\n\nhttps://globle-game.com\n#globle",
+      "name": "Globle",
+      "url": "https://globle-game.com/game",
+      "strict": true
+    },
+    {
+      "text": "🌎 Nov 13, 2026 🌍\n🔥 12 | Avg. Guesses: 6.2\n⬜🟨 = 2",
+      "name": "Globle",
+      "url": "https://globle-game.com/game",
+      "strict": true
+    },
+    {
+      "text": "Framed #1340\n🎥 🟥 🟥 🟩 ⬛ ⬛ ⬛\n\nhttps://framed.wtf",
+      "name": "Framed",
+      "url": "https://framed.wtf/",
+      "strict": true
+    },
+    {
+      "text": "Episode #812\n📺 🟥 🟩 ⬛ ⬛ ⬛ ⬛",
+      "name": "Episode",
+      "url": "https://framed.wtf/episode/",
+      "strict": true
+    },
+    {
+      "text": "Daily Quordle 1389\n5️⃣7️⃣\n6️⃣4️⃣\nm-w.com/games/quordle/",
+      "name": "Quordle",
+      "url": "https://merriam-webster.com/games/quordle/",
+      "strict": true
+    },
+    {
+      "text": "Daily Quordle 1389\n🟥7️⃣\n6️⃣4️⃣",
+      "name": "Quordle",
+      "url": "https://merriam-webster.com/games/quordle/",
+      "strict": true
+    },
+    {
+      "text": "Daily Octordle #1389\n7️⃣🔟\n9️⃣🕚\n5️⃣8️⃣\n🕛4️⃣\nScore: 66",
+      "name": "Octordle",
+      "url": "https://octordle.com/",
+      "strict": true
+    },
+    {
+      "text": "nerdlegame 1400 3/6\n\n⬛🟪⬛🟩⬛⬛🟪⬛\n🟩🟩🟩🟩🟩🟩🟩🟩",
+      "name": "Nerdle",
+      "url": "https://nerdlegame.com/",
+      "strict": true
+    },
+    {
+      "text": "I solved Semantle #1750 in 47 guesses. My first guess had a similarity of 12.3.",
+      "name": "Semantle",
+      "url": "https://semantle.com/",
+      "strict": true
+    },
+    {
+      "text": "I played contexto.me #1150 and got it in 45 guesses.\n\n🟩🟩 10\n🟨🟨 12\n🟥🟥 23",
+      "name": "Contexto",
+      "url": "https://contexto.me/",
+      "strict": true
+    },
+    {
+      "text": "I played contexto.me #1150 and got it in 45 guesses and 2 tips.",
+      "name": "Contexto",
+      "url": "https://contexto.me/",
+      "strict": true
+    },
+    {
+      "text": "#waffle1390 5/5\n\n🟩🟩🟩🟩🟩\n🟩⭐🟩⭐🟩\n🟩🟩🟩🟩🟩\n\n🔥 streak: 12\nwafflegame.net",
+      "name": "Waffle",
+      "url": "https://wafflegame.net/",
+      "strict": true
+    },
+    {
+      "text": "#waffle1390 X/5",
+      "name": "Waffle",
+      "url": "https://wafflegame.net/",
+      "strict": true
+    },
+    {
+      "text": "#Tradle #1340 3/6\n🟩🟩🟩🟨⬜\n🟩🟩🟩🟩🟩\nhttps://oec.world/en/games/tradle",
+      "name": "Tradle",
+      "url": "https://oec.world/en/games/tradle/",
+      "strict": true
+    },
+    {
+      "text": "Bandle #1180 3/6\n⬛⬛🟩⬜⬜⬜\nFound: 12/14 (85.7%)\nCurrent Streak: 3 (max 9)\n#Bandle #Heardle #Wordle \n\nhttps://bandle.app/",
+      "name": "Bandle",
+      "url": "https://bandle.app/",
+      "strict": true
+    },
+    {
+      "text": "Costcodle #780 3/6\n⬆️🟥\n⬇️🟨\n✅\nhttps://costcodle.com",
+      "name": "Costcodle",
+      "url": "https://costcodle.com/",
+      "strict": true
+    },
+    {
+      "text": "Costcodle #780 3/6\n⬆️⬇️",
+      "name": "Costcodle",
+      "url": "https://costcodle.com/",
+      "strict": true
+    },
+    {
+      "text": "TimeGuessr #890 38,412/50,000\n🌎🟩🟩🟨 📅🟩🟩⬛\nhttps://timeguessr.com",
+      "name": "TimeGuessr",
+      "url": "https://timeguessr.com/",
+      "strict": true
+    },
+    {
+      "text": "TimeGuessr #890 38,412/50,000",
+      "name": "TimeGuessr",
+      "url": "https://timeguessr.com/",
+      "strict": true
+    },
+    {
+      "text": "I scored 21,345 points in today's GeoGuessr Daily Challenge",
+      "name": "GeoGuessr",
+      "url": "https://www.geoguessr.com/daily",
+      "strict": true
+    },
+    {
+      "text": "Queens #561 | 1:42 👑\nlnkd.in/queens.",
+      "name": "Queens",
+      "url": "https://linkedin.com/games/queens/",
+      "strict": true
+    },
+    {
+      "text": "Queens #561\n1:42 👑\nlnkd.in/queens.",
+      "name": "Queens",
+      "url": "https://linkedin.com/games/queens/",
+      "strict": true
+    },
+    {
+      "text": "Tango #400 | 0:58 and flawless\nFirst 5 placements:\n🌙🟡🌙🟡🌙\nlnkd.in/tango.",
+      "name": "Tango",
+      "url": "https://linkedin.com/games/tango/",
+      "strict": true
+    },
+    {
+      "text": "Zip #210 | 0:23 🏁\nWith 1 backtrack 🛑\nlnkd.in/zip.",
+      "name": "Zip",
+      "url": "https://linkedin.com/games/zip/",
+      "strict": true
+    },
+    {
+      "text": "Pinpoint #540 | 3 guesses\n1️⃣ | 1% match\n2️⃣ | 12% match\n3️⃣ | 100% match 📌\nlnkd.in/pinpoint.",
+      "name": "Pinpoint",
+      "url": "https://linkedin.com/games/pinpoint/",
+      "strict": true
+    },
+    {
+      "text": "Pinpoint #540\n🤔 🤔 📌 ⬜ ⬜ (3/5)\nlnkd.in/pinpoint.",
+      "name": "Pinpoint",
+      "url": "https://linkedin.com/games/pinpoint/",
+      "strict": true
+    },
+    {
+      "text": "Crossclimb #560 | 1:12\nFill order: 3️⃣ 2️⃣ 4️⃣ 1️⃣ 5️⃣ 🔼 🔽 🪜\nlnkd.in/crossclimb.",
+      "name": "Crossclimb",
+      "url": "https://linkedin.com/games/crossclimb/",
+      "strict": true
+    },
+    {
+      "text": "Mini Sudoku #90 | 0:45 ✏️\nlnkd.in/minisudoku.",
+      "name": "Mini Sudoku",
+      "url": "https://linkedin.com/games/mini-sudoku/",
+      "strict": true
+    },
+    {
+      "text": "I just solved today's Squaredle in 12:34 with 0 hints! squaredle.app",
+      "name": "Squaredle",
+      "url": "https://squaredle.app/",
+      "strict": true
+    },
+    {
+      "text": "Squaredle 11/13:\n📖 42/42 words (+5 bonus words)\n🎯 In the top 12% by accuracy\n🔥 Solve streak: 20\nsquaredle.app",
+      "name": "Squaredle",
+      "url": "https://squaredle.app/",
+      "strict": true
+    },
+    {
+      "text": "I solved Redactle #950 in 62 guesses with an accuracy of 45.2%. Played at https://redactle.net/",
+      "name": "Redactle",
+      "url": "https://redactle.net/",
+      "strict": true
+    },
+    {
+      "text": "THE CASE OF THE MISSING CUP\nMurdle for 11/13/2026\n\n👤🔪🏡     🕰️\n✅✅✅     0:48\n\n⚔️\nHelp Deductive Logico solve Murdle #870 at https://murdle.com",
+      "name": "Murdle",
+      "url": "https://murdle.com/",
+      "strict": true
+    },
+    {
+      "text": "Flipart • Nov 13, 2026\n⏱ 0:21 in 9 rotations\nhttps://www.puzzmo.com/play/flip-art",
+      "name": "Puzzmo",
+      "url": "https://www.puzzmo.com/today",
+      "strict": true
+    },
+    {
+      "text": "I solved Really Bad Chess in 1:12 on Puzzmo",
+      "name": "Puzzmo",
+      "url": "https://www.puzzmo.com/today",
+      "strict": true
+    },
+    {
+      "text": "Cine2Nerdle Daily #890\n🟩🟩🟩🟩\n🟨🟨🟨🟨\n❤️❤️❤️",
+      "name": "Cine2Nerdle",
+      "url": "https://www.cinenerdle2.app/",
+      "strict": true
+    },
+    {
+      "text": "Gamedle (Classic mode): 13/11/2026 🕹️🟥🟥🟩⬜⬜⬜ #Gamedle\nhttps://www.gamedle.wtf",
+      "name": "Gamedle",
+      "url": "https://gamedle.wtf/",
+      "strict": true
+    },
+    {
+      "text": "I found #LoLdle champion #850 in classic mode in 4 shots\n🟥🟥🟨🟥🟩🟥🟥\n🟩🟩🟩🟩🟩🟩🟩\nhttps://loldle.net",
+      "name": "Loldle",
+      "url": "https://loldle.net/",
+      "strict": true
+    },
+    {
+      "text": "I found #LoLdle champion #850 in classic mode in only one shot ⚔️\nhttps://loldle.net",
+      "name": "Loldle",
+      "url": "https://loldle.net/",
+      "strict": true
+    },
+    {
+      "text": "PokeDoku Summary\nScore: 7/9\nUniqueness: 312/900\n✅ ✅ ❌\n✅ ✅ ✅\n✅ ❌ ✅\npokedoku.com",
+      "name": "PokeDoku",
+      "url": "https://pokedoku.com/",
+      "strict": true
+    },
+    {
+      "text": "⚾️ Immaculate Grid 954 7/9:\nRarity: 412\n🟩🟩⬜️\n🟩🟩🟩\n🟩⬜️🟩\nPlay at: https://immaculategrid.com",
+      "name": "Immaculate Grid",
+      "url": "https://immaculategrid.com/",
+      "strict": true
+    },
+    {
+      "text": "Immaculate Grid 954 9/9",
+      "name": "Immaculate Grid",
+      "url": "https://immaculategrid.com/",
+      "strict": true
+    },
+    {
+      "text": "#travle #700 +2\n✅✅🟧✅🟥\nhttps://travle.earth",
+      "name": "Travle",
+      "url": "https://travle.earth/",
+      "strict": true
+    },
+    {
+      "text": "#travle #700 +0 (Perfect)\nhttps://travle.earth",
+      "name": "Travle",
+      "url": "https://travle.earth/",
+      "strict": true
+    },
+    {
+      "text": "#Flagle #990 (13.11.2026) 2/6\n🟥🟩🟩\n🟩🟩🟩\nhttps://www.flagle.io",
+      "name": "Flagle",
+      "url": "https://flagle.io/",
+      "strict": true
+    },
+    {
+      "text": "#Angle #890 3/4\n⬆️⬇️🎉\nhttps://angle.wtf",
+      "name": "Angle",
+      "url": "https://angle.wtf/",
+      "strict": true
+    },
+    {
+      "text": "#Angle #890 X/4\n⬆️⬇️⬇️⬆️: 2° off\nhttps://angle.wtf",
+      "name": "Angle",
+      "url": "https://angle.wtf/",
+      "strict": true
+    },
+    {
+      "text": "I got Hexcodle #600 in 3! Score: 87%\n\n🔼✅🔽🔼✅🔽\n✅✅✅✅✅✅\n\nhttps://hexcodle.com",
+      "name": "Hexcodle",
+      "url": "https://hexcodle.com/",
+      "strict": true
+    },
+    {
+      "text": "I got Hexcodle #600 in 3! Score: 87%\n⏬⏫🔼🔽⏬⏫",
+      "name": "Hexcodle",
+      "url": "https://hexcodle.com/",
+      "strict": true
+    },
+    {
+      "text": "Colorfle 890 3/6 92.4%\n⬜🟩⬜\n🟩🟩🟩",
+      "name": "Colorfle",
+      "url": "https://colorfle.com/",
+      "strict": true
+    },
+    {
+      "text": "Krillion #117 🦐\n60\n\n🫧🫧🫧🐟",
+      "name": "Krillion · The Daily Dive",
+      "url": "https://krillion.io/",
+      "strict": true
+    },
+    {
+      "text": "Krillion #117\n60",
+      "name": "Krillion · The Daily Dive",
+      "url": "https://krillion.io/",
+      "strict": true
+    },
+    {
+      "text": "FE Guess #512 4/8\n🟥🟨🟩",
+      "name": "FE Guess",
+      "url": "https://fe-guess.com/",
+      "strict": true
+    },
+    {
+      "text": "FE Guess 512 - guessed in 4",
+      "name": "FE Guess",
+      "url": "https://fe-guess.com/",
+      "strict": true
+    },
+    {
+      "text": "Nintendoku #300 7/9\n🟩🟩⬜\n🟩🟩🟩\n🟩⬜🟩",
+      "name": "Nintendoku",
+      "url": "https://n-puzzle.com/en/nintendoku/",
+      "strict": true
+    },
+    {
+      "text": "Nintendoku 300: 7/9",
+      "name": "Nintendoku",
+      "url": "https://n-puzzle.com/en/nintendoku/",
+      "strict": true
+    },
+    {
+      "text": "#Heardle #990\n\n🔊🟥🟥🟩⬜⬜⬜\n\nhttps://heardle.app",
+      "name": "Heardle",
+      "url": "https://heardle.app/",
+      "strict": true
+    },
+    {
+      "text": "#Heardle #990\n\n🔉⬛⬛⬛",
+      "name": "Heardle",
+      "url": "https://heardle.app/",
+      "strict": true
+    },
+    {
+      "text": "Thrice Game #510 → 12/15 points!\nthricegame.com",
+      "name": "Thrice",
+      "url": "https://thricegame.com/",
+      "strict": true
+    },
+    {
+      "text": "Weaver #1200\n4 steps (optimal 4)",
+      "name": "Weaver",
+      "url": "https://wordwormdormdork.com/",
+      "strict": true
+    },
+    {
+      "text": "Weaver\n🟩⬜⬜⬜\n🟩🟩⬜⬜",
+      "name": "Weaver",
+      "url": "https://wordwormdormdork.com/",
+      "strict": true
+    },
+    {
+      "text": "Mathler 1010 3/6\n⬛🟨⬛🟩⬛⬛\n🟩🟩🟩🟩🟩🟩",
+      "name": "Mathler",
+      "url": "https://mathler.com/",
+      "strict": true
+    },
+    {
+      "text": "I solved Clues by Sam, Nov 13th 2026 (Hard) in 05:12\n🟩🟩🟩🟨\nhttps://cluesbysam.com",
+      "name": "Clues by Sam",
+      "url": "https://cluesbysam.com/",
+      "strict": true
+    },
+    {
+      "text": "I solved Clues by Sam, Nov 13th 2026 (Hard) in 05:12",
+      "name": "Clues by Sam",
+      "url": "https://cluesbysam.com/",
+      "strict": true
+    },
+    {
+      "text": "Phrazle 1500: 3/6\n🟩🟨⬜ ⬜⬜\n#phrazle\nhttps://solitaired.com/phrazle",
+      "name": "Phrazle",
+      "url": "https://solitaired.com/phrazle/",
+      "strict": true
+    },
+    {
+      "text": "Countryle 990\nGuessed in 4 tries.\n🟢🟢⚪️⚪️🟢\nhttps://countryle.com",
+      "name": "Countryle",
+      "url": "https://countryle.com/",
+      "strict": true
+    },
+    {
+      "text": "Bracket City\nNovember 13, 2026\nRank: 👑 Kingmaker\n❌ Wrong guesses: 0\nTotal Score: 100.0\n██████████",
+      "name": "Bracket City",
+      "url": "https://theatlantic.com/games/bracket-city/",
+      "strict": true
+    },
+    {
+      "text": "Bracket City\nNovember 13, 2026\nRank: Mayor\nTotal Score: 85.0",
+      "name": "Bracket City",
+      "url": "https://theatlantic.com/games/bracket-city/",
+      "strict": true
+    },
+    {
+      "text": "Actorle #1100 4/8\n🟩🟨⬜",
+      "name": "Actorle",
+      "url": "https://actorle.com/",
+      "strict": true
+    },
+    {
+      "text": "Moviedle #2026-11-13 \n\n 🎥 🟥 🟥 🟩 ⬜️ ⬜️ ⬜️",
+      "name": "Moviedle",
+      "url": "https://moviedle.app/",
+      "strict": true
+    },
+    {
+      "text": "Pokedle #900 classic: 5 tries",
+      "name": "Pokedle",
+      "url": "https://pokedle.net/",
+      "strict": true
+    },
+    {
+      "text": "I found the #Pokedle Pokémon #900 in classic mode in 5 shots",
+      "name": "Pokedle",
+      "url": "https://pokedle.net/",
+      "strict": true
+    },
+    {
+      "text": "Wordiply #870\nI scored 92% with a longest word of 11 letters",
+      "name": "Wordiply",
+      "url": "https://wordiply.com/",
+      "strict": true
+    },
+    {
+      "text": "Crosswordle 1050: 2m 13s\n🟨⬜🟩",
+      "name": "Crosswordle",
+      "url": "https://crosswordle.com/",
+      "strict": true
+    },
+    {
+      "text": "Daily Jigsaw solved in 12:40",
+      "name": "Daily Jigsaw",
+      "url": "https://jigsawexplorer.com/daily-jigsaw/",
+      "strict": true
+    },
+    {
+      "text": "Chess.com Daily Puzzle solved in 0:34",
+      "name": "Chess.com Daily Puzzle",
+      "url": "https://chess.com/daily-chess-puzzle/",
+      "strict": true
+    },
+    {
+      "text": "I solved the chess.com daily puzzle in 0:34!",
+      "name": "Chess.com Daily Puzzle",
+      "url": "https://chess.com/daily-chess-puzzle/",
+      "strict": true
+    },
+    {
+      "text": "Tiles\nLongest combo: 34",
+      "name": "Tiles",
+      "url": "https://nytimes.com/puzzles/tiles/",
+      "strict": true
+    },
+    {
+      "text": "NYT Sudoku Hard 12:05",
+      "name": "NYT Sudoku",
+      "url": "https://nytimes.com/puzzles/sudoku/",
+      "strict": true
+    },
+    {
+      "text": "GeoGrid 🌍 Board #600\nScore: 153.2\nRank: 1,204 / 9,872\n✅ ✅ ❌\n✅ ✅ ✅",
+      "name": "GeoGrid",
+      "url": "https://geogridgame.com/",
+      "strict": true
+    },
+    {
+      "text": "Dordle 0990 4&5/7\n⬜🟨 ⬜⬜",
+      "name": "Dordle",
+      "url": "https://zaratustra.itch.io/dordle",
+      "strict": true
+    },
+    {
+      "text": "Daily Dordle 0990 4&5/7",
+      "name": "Dordle",
+      "url": "https://zaratustra.itch.io/dordle",
+      "strict": true
+    },
+    {
+      "text": "Spotle #600🎧\n\n⬜⬜🟩\n\nspotle.io",
+      "name": "Spotle",
+      "url": "https://spotle.io/",
+      "strict": true
+    },
+    {
+      "text": "Daily Akari 😊 Nov 13, 2026\n✅Solved in 1:23✅",
+      "name": "Daily Akari",
+      "url": "https://dailyakari.com/",
+      "strict": true
+    },
+    {
+      "text": "Stepdle 400 5/7",
+      "name": "Stepdle",
+      "url": "https://stepdle.com",
+      "strict": true
+    },
+    {
+      "text": "Catfishing #300 7.5/10",
+      "name": "Catfishing",
+      "url": "https://catfishing.net/",
+      "strict": true
+    },
+    {
+      "text": "Catfishing #300 - 7.5/10\n🐟🐟🐈🐟",
+      "name": "Catfishing",
+      "url": "https://catfishing.net/",
+      "strict": true
+    },
+    {
+      "text": "Foodguessr - 13 Nov 2026 GMT\n  Round 1 🌕🌕🌕🌗\n  Round 2 🌕🌑🌑🌑\nTotal score: 9,500 / 15,000",
+      "name": "FoodGuessr",
+      "url": "https://foodguessr.com/",
+      "strict": true
+    },
+    {
+      "text": "Minute Cryptic - 13 Nov 2026\n🟪🟪🟪⚪️⚪️\n3 hints – 1 over the community par",
+      "name": "Minute Cryptic",
+      "url": "https://www.minutecryptic.com/",
+      "strict": true
+    },
+    {
+      "text": "Minute Cryptic\n🏆 2 under par",
+      "name": "Minute Cryptic",
+      "url": "https://www.minutecryptic.com/",
+      "strict": true
+    },
+    {
+      "text": "x/6 dayſ",
+      "name": "Game",
+      "url": "http://192.168.1.10/",
+      "strict": false
+    },
+    {
+      "text": "FE Guess 4Km",
+      "name": "FE Guess",
+      "url": "https://fe-guess.com/",
+      "strict": false
+    },
+    {
+      "text": "ſcore⁄X/6",
+      "name": "Wordle",
+      "url": "https://www.nytimes.com/games/wordle/index.html",
+      "strict": false
+    },
+    {
+      "text": "﻿🔵",
+      "name": "Wordle",
+      "url": "https://www.nytimes.com/games/wordle/index.html",
+      "strict": false
+    },
+    {
+      "text": "🟩﻿",
+      "name": "Wordle",
+      "url": "https://www.nytimes.com/games/wordle/index.html",
+      "strict": false
+    },
+    {
+      "text": "\u001f🟠",
+      "name": "Wordle",
+      "url": "https://www.nytimes.com/games/wordle/index.html",
+      "strict": false
+    },
+    {
+      "text": "Wordle 1,612 3/6﻿",
+      "name": "Wordle",
+      "url": "https://www.nytimes.com/games/wordle/index.html",
+      "strict": true
     }
   ]
 }

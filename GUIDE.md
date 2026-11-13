@@ -1,8 +1,8 @@
-# Dailies 1.2.0: How the App Works
+# Dailies 1.4.0: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.2.0` (`versionCode = 4`)
+- **Version**: `1.4.0` (`versionCode = 7`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **Licence**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -23,7 +23,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 | **Daily Hub** | A card for every game you add, with a live countdown to its next reset, your streak, and Play / Log / Edit / Remove buttons. Reorder cards by long-press and drag, or with the arrows. Filter by All / Ready / Done. |
 | **Adding games** | Paste or share a link. The app reads the game's name, icon, category and reset time from the page, and checks a built-in list of 12 popular games (Wordle, Connections, Strands, Contexto, Globle, Nerdle, Waffle, FE Guess, Framed, PokeDoku, Travle, Krillion) for known reset times. |
 | **Reset times** | Each reset is stored in the time zone the game publishes it in (your local time, UTC, or a named zone such as `America/New_York`). It's always shown in your phone's local time, with daylight-saving changes handled correctly. |
-| **Game player** | Full-screen player with Hub, Reload, Open in browser, an ad-block shield (with a blocked count) and Log. Supports fullscreen video and canvas, file uploads (Photo Picker), downloads, and "open in app" links. |
+| **Game player** | Full-screen player with Hub, a game switcher on the title, Next, an ad-block shield (with a blocked count), a ⋮ menu (Reload, Open in browser, Zoom) and Log. Supports fullscreen video and canvas, file uploads (Photo Picker), downloads, and "open in app" links. |
 | **Auto-logging** | When you tap a game's **Share** or **Copy** button, the result is captured. Going back to the hub logs it as Solved (or Missed for a failed result such as "X/6"), with the share text as your score and an **Undo** button. |
 | **Ad blocking** | About 302,000 ad, tracker and malware domains, 23,400 URL rules and 43,000 element-hiding rules, built from EasyList, EasyPrivacy, AdGuard Base, HaGeZi Pro and StevenBlack. You can switch it off per site or everywhere. |
 | **Streaks & Log** | A completion calendar per game (best streak, current streak, plays) and the full score history, 5 results per page. Swipe or tap to change pages. |
@@ -53,6 +53,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 
 ### Tab 1: Daily Hub
 - **Adding a game**: tap **+ Add Game** and paste a link, or use **Share → Dailies** from Chrome.
+  - **Or pick from popular daily games** lists the 59 built-in games by category (searchable); tap one to fill in its link, name and reset time.
   - The name, icon, category and reset time fill in by themselves.
   - Anything you've already typed is never overwritten.
   - **✓ Reset time from built-in list** means the time came from the catalogue of popular games.
@@ -62,6 +63,8 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - the reset time in your local time;
   - a status pill (Ready / Done / Missed);
   - a live countdown and the action buttons.
+- **Reset time check**: when a game's logged puzzle numbers don't fit its reset time (two puzzles on one day, or one puzzle on two), a banner suggests the time that fits, such as midnight New York time. **Update** changes it (moving history the same way as editing it); ✕ hides that suggestion for good.
+- **Copy**: the button at the top of the hub copies all of today's solved results, each as logged, with a "— — —" line between them. It shows once a result is logged today.
 - **Up next**: once you've finished a game today, a bar above the cards names the next unplayed game (after the one you played last, in your order). **Play next** opens it.
 - **Reordering**:
   - Long-press a card for about 0.4 s until it lifts, then drag it. The list auto-scrolls near the edges.
@@ -75,13 +78,16 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 ### The game player
 - **Top bar**:
   - **Hub**: go back to the hub.
-  - **Reload**.
-  - **Open in browser**.
+  - **Game name**: tap it to switch to any of today's games (▶ playing, ✓ done, ○ not yet) without going back to the hub.
+  - **After a result is saved** (copied, shared or found on the end screen), a card offers **Play \<next game\>** (opens it in the player straight away), **Back to hub**, or ✕ to keep playing. Logging by hand after leaving the player (the **Log** button, or **Solved** / **Missed** on the return prompt) shows the same choice in the hub.
+  - **Next** (⏭): the next game you haven't played, in your hub order. Each game keeps its own play time and result, all logged when you return.
   - **Shield**: shows how many requests were blocked. Tap it to allow ads on this game's site, or to block them again; the choice is remembered per game.
+  - **⋮**: **Reload**, **Open in browser** and **Zoom**. Zoom (50–200%) is remembered for each site.
   - **Log**: go back and open the log form, pre-filled with any captured result.
-- **Result capture** works two ways at once:
-  1. **Clipboard**: anything the game copies while it's on screen is checked.
-  2. **Page hooks**: a small script (`share-hook.js`) sees `navigator.clipboard`, `execCommand('copy')`, copy events, `DataTransfer.setData` and `navigator.share`. Each hook calls the original and returns its result unchanged, so games behave exactly as before.
+- **Result capture** works three ways at once:
+  1. **Clipboard**: anything the game copies while it's on screen is checked, and checked again when you come back to the player or close it.
+  2. **Find Results Automatically** (part of `share-hook.js`): when the page shows an end screen ("Next puzzle in 05:12:44", "You solved it") with a Share / Copy button a tap could actually reach, Dailies presses that button once in a probe mode where the result text is captured and nothing is copied, shared or opened. Links and buttons for other apps or images ("Share on X", "Copy link", "Share image") are never pressed, each button at most once and at most three per page, it stops once a result has gone out, and a real tap ends probe mode at once. It can be turned off in Settings.
+  3. **Page hooks**: a small script (`share-hook.js`) sees `navigator.clipboard`, `execCommand('copy')`, copy events, `DataTransfer.setData` and `navigator.share`. Each hook calls the original and returns its result unchanged, so games behave exactly as before.
 - **What counts as a result**: an emoji grid, a score like "3/6" with context, or the game's name with a count such as "#512" or "4 guesses". Links, names and random text are ignored.
   - Only the game's own page can submit a result; ads and embedded frames can't.
   - The result is logged against the puzzle that was live when you opened the game.
@@ -98,9 +104,9 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - **Score stats** below them: win rate, the average score, play times and personal bests. Scores are read as guesses ("3/6"), game times ("1:42", "1m 05s"), points ("2,450 pts", "4,250m", or a line that's just a number, like Krillion's "60") or counts ("45 guesses"); each game is compared in the kind it uses most.
 - **Score history**:
   - Every result is listed newest first, 5 per page: game, date, time, play time, outcome and streak.
-  - Filter by game (the dropdown) and by **All / Completed / Missed**.
+  - Search every result (all words must match the result text, game name or date; matches are highlighted), and filter by game (the dropdown) and by **All / Completed / Missed**.
   - Tap **Result** on an entry to see the text the game shared, and **Copy result** to copy it with its line breaks and emoji.
-  - From the 6th result, a pager appears: tap ‹ › or swipe on the list.
+  - From the 6th result, a pager appears: tap ‹ › or swipe on the list (it follows your finger, like the calendar).
   - Logging the same day again replaces that day's entry. Once today is logged as done, the card's ✓ is hidden; use **Edit entry** in the game's settings (⚙). Stats are recalculated from the history, so they go down as well as up.
 
 ### Tab 3: Settings
@@ -110,7 +116,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - AMOLED Pitch-Black Surface (dark theme only)
   - Compact Game Cards
   - Group Finished Games: today's done games move under a **Done today** header, folded away until you open it (with the All filter)
-  - App Icon Matches Theme: off gives the white icon with the yellow-to-green star; on, the icon follows the theme
+  - App Icon: Default (white, yellow-to-green star), Theme (follows the theme and wallpaper colours), Midnight, Sunset, Ocean, Mono, and Gold, which unlocks once every achievement is earned. The hub's logo matches it
 - **Gameplay & Time**:
   - 12h / 24h clock
   - Seconds in countdowns
@@ -119,6 +125,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 - **Game Player**:
   - Block Ads in Games
   - Auto-Log Shared Results
+  - Find Results Automatically
 - **Reset Alerts**:
   - The button reads **✓ Notifications enabled** when Android allows them. Otherwise it reads **Allow Notifications**, which asks for permission or opens the right Android settings page.
   - **Streak Reminder**: off, or 30 min to 6 hr before a reset. Each game can override it in its settings (⚙ → **Streak reminder for this game**: same as Settings, off, or its own time). If a game you have a streak in isn't logged by then, one notification lists them (on its own "Streak Reminders" channel).
@@ -405,3 +412,27 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Per-game reminders**: `game.reminderMinutes` (-1 = app setting, 0 = off, or 30/60/120/180/360) is synced to the native side; `StreakReminderPlanner.leadFor` uses it per game.
 - **Scores**: `parseResultValue` in `hub-core.js` returns guesses, time, count or points with a comparable `rank` (lower is better); `personalBests`, `newRecords` and `scoreStats().avgText` use the group a game scores in most.
 - **Stats rendering** is skipped when nothing changed (`statsRenderKey`, bumped by `saveState`).
+
+## 12. New in 1.4.0
+
+The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for developers:
+- **Finding results**: the probe lives inside `share-hook.js`'s closure (`__DAILIES_FIND__`), so a page can't switch probe mode on. Every message carries a per-player key (`__DAILIES_NONCE__`, filled in by `GameActivity.shareHookScript`) that the page can't read; the native listener drops messages without it. Before pressing, the hook posts `{kind: "press"}`: for 2.5 s the player refuses new windows, other apps, downloads and main-frame navigations (`probeGuarded`), and a probe result is accepted only within 3 s of the press and once per page. In probe mode the hooks report the text with `via: "probe"` and don't call the real clipboard / share / `window.open`. Buttons must be in the viewport, not under `aria-hidden` / `inert`, and the element `elementFromPoint` hits at their centre. The probe doesn't run in other sites' frames.
+- **Game switching**: the hub passes today's games as `EXTRA_LINEUP` (`openGameInLineup`). `GameActivity.switchToGame` keeps one WebView: it stores the current game's play time and result in `earlierResults`, resets the per-game state (timer, captured result, ad-block choice, blocked count) and loads the next game; history is cleared after it loads. On return the hub gets `EXTRA_EARLIER` and runs `onReturnFromEarlierGames` (play time + auto-log, no prompts) before the usual `onReturnFromGame`. The current game, lineup and earlier results survive a recreate.
+- **Zoom**: `GamePrefs.siteZoom` per registrable site, applied as CSS `zoom` on the root element at commit and finish, so it works on pages that disable pinch-zoom.
+- **Reset times**: new log rows of the current puzzle carry `loggedAt`. `HubCore.puzzleNumber`, `resetFitsObservations` (puzzle number − day must be constant) and `suggestResetTime` (common midnights first, then a whole hour when only one or two fit) drive the banner; a dismissed suggestion is kept as `game.dismissedResetSuggestion`.
+- **Search**: `historyFilter.query`; every word must appear in the row's score, game name, date or outcome.
+- **Hub logo**: `html[data-app-icon]` (`default` / `themed`) switches the header SVG's colours in `app.css`.
+- New tests: `GamePlayerTest` (Next, earlier results, zoom prefs) on device; puzzle numbers and reset suggestions in the Node tests.
+- **Catalogue**: `known-games.js` has 59 games; zones can be IANA names. Reset times that aren't verified are corrected over time by the reset-time check. The picker opens `entry.url` or `https://host/path`.
+- **More share formats**: the strict check also accepts a solve time ("0:42", not "9:14 AM") and counts in words / clues / hints / strokes when the text names the game; emoji plus a number needs a puzzle number. The probe also treats a countdown to the next puzzle ("Next puzzle in 05:12:44") and phrases like "Puzzle solved", "flawless" as an end screen.
+- **App icon styles**: `AppIcon.style` ("default", "themed", "midnight", "sunset", "ocean", "mono", "gold"), set by `setAppIconStyle`; launcher entries `.IconMidnight` … `.IconGold` with adaptive icons and pre-26 PNGs. The 1.2–1.3 "matches theme" switch maps to "themed". The hub draws the same icons (`appIconSvg`) for the picker and its logo, and only offers Gold when `state.achievements` holds every id. Previews: `design/icons/app-icon-styles.png`, `app-icon-gold.png`.
+- **Play-next prompt**: `GameActivity.showDonePrompt` after a captured result (`offerShare`); in the hub, `offerNextGame` after a log that came from the player (`logOpenedFromPlayer`, or the return prompt's Solved / Missed). Both pick the next `ready` game after the current one in hub order. Device test: `aCapturedResultOffersPlayNextOrBackToHub`.
+
+### Review fixes before release
+- **Strict detector** (`isStrictShareResult` / `ShareResultDetector`): matched on an ASCII-lower-cased copy with case-sensitive patterns and one explicit trim set, so JS and Kotlin agree (a 600,000-case differential fuzz differs only on malformed links). One result glyph needs the game's name or a `#NN` puzzle number (two side by side, or keycaps, are a grid). A fraction needs the game or a game word, `n ≤ max` and `max ≥ 3`. `gameMention` grades how clearly the text names the game: 2 = a name of several words, a line starting with the name and a number ("Zip #245"), or the game's own site; 1 = a one-word name as a word, the site's name, or a link on a site shared by several games (path names the game). Counted / timed / measured results named only in passing also need a `#NN` or "solved". `share_cases.json` has 257 cases, including ordinary copied text that must not log. The clipboard-late path also requires `mentionsGame`.
+- **Clipboard**: clip timestamps are wall-clock (`System.currentTimeMillis`), compared with `openedAt`; switching games records the current clip's stamp so the old game's copy isn't credited to the new one.
+- **Switching**: `switching` from `switchToGame` until the new page's `onPageCommitVisible` (15 s fallback); offers from the old page are dropped, and the last tap is forgotten. History is cleared at commit and again at the new page's finish. `earlierResults` holds one entry per game.
+- **Reset suggestions**: `suggestResetTime` needs 4+ rows of 3+ puzzles over 2+ days, the current schedule contradicted on 2+ days, the results pinning the reset to ≤ 90 min, and every fitting candidate being the same schedule for a year (`scheduleSignature`); a single midnight wins over other hours. `rescheduleDays` moves rows with `loggedAt` to their day under the new schedule and clamps keys to today; `applyScheduleChange` uses it.
+- **Backups** carry `achievements` and `goldUnlocked` (sticky once earned); import unions them.
+- **Catalogue**: entries can list `also` addresses (Tradle, Octordle, Quordle). Whole-site entries no longer match subdomains, and only path entries (or ones with `also`) make two links the same game, so sibling games on one site can be added. `cleanGameUrl` stores `URL.href`.
+- **Launcher icon**: `HubActivity` skips `AppIcon.apply` in `onStop` while one of its own screens covers it (`startActivityForResult` sets `coveredByOwnScreen`).

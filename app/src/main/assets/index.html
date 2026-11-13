@@ -110,14 +110,24 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="hub-header-row flex items-center gap-2.5 text-xs text-slate-400">
           <span class="inline-flex items-center gap-1.5 text-sm font-bold text-white tracking-tight mr-1">
-            <svg width="22" height="22" viewBox="0 0 108 108" class="shrink-0" aria-hidden="true">
-              <!-- The app icon in the theme's colours: primary-container ground, primary flower, on-primary sparkle. -->
-              <rect width="108" height="108" rx="30" fill="var(--md-primary-container)"/>
+            <span id="hubLogo" class="hub-logo-wrap" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 108 108" class="hub-logo shrink-0" aria-hidden="true">
+              <!-- Matches the launcher icon: the white one with the yellow-to-green star by default, or the
+                   theme's colours (primary-container ground, primary flower, on-primary sparkle) when
+                   "App Icon Matches Theme" is on. Colours come from app.css (.hub-logo). -->
+              <defs>
+                <linearGradient id="hubLogoGradient" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">
+                  <stop offset="0" stop-color="#FFD43B"/>
+                  <stop offset="1" stop-color="#2FB86A"/>
+                </linearGradient>
+              </defs>
+              <rect class="logo-bg" x="0.5" y="0.5" width="107" height="107" rx="30"/>
               <g transform="translate(54 54) scale(1.3) translate(-54 -54)">
-                <path fill="var(--md-primary)" d="M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z"/>
-                <path fill="var(--md-on-primary)" d="M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z"/>
+                <path class="logo-shape" d="M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z"/>
+                <path class="logo-mark" d="M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z"/>
               </g>
             </svg>
+            </span>
             Dailies
           </span>
           <span><strong id="kpiReadyCount" class="text-emerald-400 font-semibold">0</strong> ready</span>
@@ -125,6 +135,7 @@
           <span><strong id="kpiDoneCount" class="text-slate-200 font-semibold">0 / 0</strong> done</span>
           <span>·</span>
           <span><span aria-hidden="true">🔥</span> <span class="sr-only">Top streak</span> <strong id="kpiTopStreak" class="text-amber-300 font-semibold">0d</strong></span>
+          <button id="btnCopyToday" type="button" class="copy-today hidden ml-auto shrink-0 icon-label" aria-label="Copy today's results" title="Copy today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Copy</span></button>
         </div>
 
         <div class="hub-actions-row flex items-center gap-2">
@@ -150,6 +161,18 @@
         <div class="flex items-center gap-1 shrink-0">
           <button id="btnUpdateOpen" type="button" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold">Update</button>
           <button id="btnUpdateDismiss" type="button" class="icon-btn ghost" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
+        </div>
+      </div>
+
+      <!-- A game's results suggest its reset time is wrong -->
+      <div id="resetSuggestBanner" class="hidden glass-card rounded-2xl p-3.5 border border-amber-500/40 flex items-center justify-between gap-3" role="status">
+        <div class="min-w-0">
+          <p id="resetSuggestTitle" class="text-sm font-bold text-white">Reset time</p>
+          <p id="resetSuggestSub" class="text-xs text-slate-400"></p>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <button id="btnResetSuggestApply" type="button" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold">Update</button>
+          <button id="btnResetSuggestDismiss" type="button" class="icon-btn ghost" aria-label="Not now"><span class="ico ico-close" aria-hidden="true"></span></button>
         </div>
       </div>
 
@@ -252,6 +275,7 @@
           <p class="text-xs text-slate-400 mt-0.5">Every result you've logged, newest first.</p>
         </div>
         <div id="historyFilters" class="hist-filters">
+          <input id="historySearch" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search results (e.g. 2/6, #117, Krillion)" aria-label="Search results" class="hist-search px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500" />
           <select id="historyFilterGame" aria-label="Show results for" class="cal-select px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-semibold"></select>
           <div class="hist-chips" role="group" aria-label="Outcome">
             <button type="button" class="hist-chip on" data-hist-outcome="all" aria-pressed="true">All</button>
@@ -322,13 +346,12 @@
             <input id="settingCompactCards" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">App Icon Matches Theme</p>
-              <p class="text-[11px] text-slate-400">Off: white icon with a yellow-to-green star. On: the icon follows the theme above, set when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
-            </div>
-            <input id="settingIconTheme" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
+          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 sm:col-span-3">
+            <p class="font-bold text-white">App Icon</p>
+            <p class="text-[11px] text-slate-400">Changes when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
+            <div id="iconChoices" class="icon-choices" role="radiogroup" aria-label="App icon"></div>
+            <p id="iconGoldHint" class="text-[11px] text-amber-300/90 mt-1"></p>
+          </div>
 
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
@@ -403,6 +426,13 @@
               <p class="text-[11px] text-slate-400">When a game's Share / Copy button gives your result, log it for you (with Undo)</p>
             </div>
             <input id="settingAutoLogShare" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Find Results Automatically</p>
+              <p class="text-[11px] text-slate-400">When a game shows its end screen, quietly read the result from its Share button. Nothing is copied or shared.</p>
+            </div>
+            <input id="settingFindResults" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
@@ -541,6 +571,7 @@
             <input id="inputGameUrl" type="text" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" required placeholder="Paste a daily game link, e.g. nytimes.com/games/wordle" class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
             <button id="btnAutoDetectMeta" type="button" class="px-3 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold shrink-0">Scrape Site</button>
           </div>
+          <button id="btnBrowseGames" type="button" class="mt-2 text-xs font-semibold text-indigo-300 underline-offset-2 hover:underline">Or pick from popular daily games</button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -671,6 +702,37 @@
           <button id="btnDayEntryCopy" type="button" class="hidden px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Copy</button>
           <button id="btnDayEntryEdit" type="button" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg">Edit</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPULAR GAMES PICKER (built-in catalogue) -->
+  <div id="modalBrowseGames" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="browseGamesTitle">
+    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-lg border border-slate-700 shadow-2xl overflow-hidden">
+      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2">
+        <h3 id="browseGamesTitle" class="text-sm sm:text-base font-bold text-white">Popular daily games</h3>
+        <button type="button" data-close-modal="modalBrowseGames" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="p-4 space-y-3">
+        <input id="browseGamesSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search games" aria-label="Search games" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm placeholder-slate-500" />
+        <div id="browseGamesList" class="browse-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- After logging a game played in the player: open the next one, or stay home -->
+  <div id="modalNextGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="nextGameTitle">
+    <div tabindex="-1" class="modal-panel glass-card next-game-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <div id="nextGameIcon" class="next-game-icon" aria-hidden="true"></div>
+        <div class="min-w-0">
+          <h3 id="nextGameTitle" class="text-base font-bold text-white truncate">Logged</h3>
+          <p id="nextGameSub" class="text-xs text-slate-400"></p>
+        </div>
+      </div>
+      <div class="next-game-actions">
+        <button id="btnNextGameHome" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Back to home</button>
+        <button id="btnNextGamePlay" type="button" class="next-game-play px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg truncate">Play next</button>
       </div>
     </div>
   </div>
@@ -905,7 +967,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.3.0';
+    const APP_VERSION = '1.4.0';
     const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
 
     const TIME_FMT_12 = (() => {
@@ -943,12 +1005,14 @@
         autoScrape: true,
         askToLogOnReturn: true,
         autoLogFromShare: true,
+        findResults: true,
         blockAdsInGames: true,
         confirmDelete: true,
         themeMode: 'dark',
         groupDone: true,
         darkGamePages: true,
         iconFollowsTheme: false,
+        appIcon: '',
         streakReminderMinutes: 0,
         updateCheck: false
       };
@@ -1018,10 +1082,12 @@
         addedCycleKey: HubCore.DATE_KEY_RE.test(String(g.addedCycleKey || '')) ? String(g.addedCycleKey) : undefined,
         statsBaseline: (g.statsBaseline && typeof g.statsBaseline === 'object') ? g.statsBaseline : undefined,
         archived: g.archived === true ? true : undefined,
+        dismissedResetSuggestion: typeof g.dismissedResetSuggestion === 'string' ? g.dismissedResetSuggestion.slice(0, 60) : undefined,
         playTime: (g.playTime && HubCore.DATE_KEY_RE.test(String(g.playTime.key || '')) && Number(g.playTime.ms) > 0)
           ? { key: String(g.playTime.key), ms: Math.min(Number(g.playTime.ms), 6 * 3600000) } : undefined
       };
       if (!norm.archived) delete norm.archived;
+      if (!norm.dismissedResetSuggestion) delete norm.dismissedResetSuggestion;
       if (!norm.playTime) delete norm.playTime;
       if (!norm.statsBaseline) delete norm.statsBaseline;
       if (!norm.addedCycleKey) delete norm.addedCycleKey;
@@ -1117,21 +1183,22 @@
       const shift = HubCore.scheduleKeyShift(from, to);
       g.resetTime = to.resetTime;
       g.resetZone = to.resetZone;
-      if (shift) {
-        g.dayHistory = HubCore.shiftDayHistory(g.dayHistory, shift);
+      // Rows from older versions only carry the game's name.
+      const mineRows = (logs || []).filter((l) => l && (l.gameId ? l.gameId === g.id : l.gameName === g.name));
+      const moved = HubCore.rescheduleDays(g.dayHistory, mineRows, from, to);
+      const changed = moved.dates.some((d, i) => d !== mineRows[i].date)
+        || JSON.stringify(moved.dayHistory) !== JSON.stringify(g.dayHistory || {});
+      if (shift || changed) {
+        g.dayHistory = moved.dayHistory;
+        const todayKey = HubCore.getCycleDateKey(to.resetTime, to.resetZone, new Date());
+        const clamp = (k) => (k > todayKey ? todayKey : k);
         if (HubCore.DATE_KEY_RE.test(String(g.lastCycleKey || ''))) {
-          g.lastCycleKey = HubCore.addDaysToCycleKey(g.lastCycleKey, shift);
+          g.lastCycleKey = clamp(HubCore.addDaysToCycleKey(g.lastCycleKey, shift));
         }
         if (HubCore.DATE_KEY_RE.test(String(g.addedCycleKey || ''))) {
-          g.addedCycleKey = HubCore.addDaysToCycleKey(g.addedCycleKey, shift);
+          g.addedCycleKey = clamp(HubCore.addDaysToCycleKey(g.addedCycleKey, shift));
         }
-        (logs || []).forEach((l) => {
-          // Rows from older versions only carry the game's name.
-          const mine = l && (l.gameId ? l.gameId === g.id : l.gameName === g.name);
-          if (mine && HubCore.DATE_KEY_RE.test(String(l.date || ''))) {
-            l.date = HubCore.addDaysToCycleKey(l.date, shift);
-          }
-        });
+        mineRows.forEach((l, i) => { l.date = moved.dates[i]; });
         invalidateLogIndex();
       }
       return shift;
@@ -1177,6 +1244,7 @@
         historyLogs: logs,
         notifications: Array.isArray(parsed.notifications) ? parsed.notifications.slice(0, 50) : [],
         achievements: Array.isArray(parsed.achievements) ? parsed.achievements.filter((a) => typeof a === 'string').slice(0, 100) : undefined,
+        goldUnlocked: parsed.goldUnlocked === true,
         __loadedFrom: source
       };
     }
@@ -1239,8 +1307,8 @@
         if (window.AndroidBridge && typeof window.AndroidBridge.setStreakReminder === 'function') {
           window.AndroidBridge.setStreakReminder(Number((state.settings || {}).streakReminderMinutes) || 0);
         }
-        if (window.AndroidBridge && typeof window.AndroidBridge.setIconFollowsTheme === 'function') {
-          window.AndroidBridge.setIconFollowsTheme(Boolean((state.settings || {}).iconFollowsTheme));
+        if (window.AndroidBridge && typeof window.AndroidBridge.setAppIconStyle === 'function') {
+          window.AndroidBridge.setAppIconStyle(currentAppIcon());
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setDarkGamePages === 'function') {
           window.AndroidBridge.setDarkGamePages((state.settings || {}).darkGamePages !== false);
@@ -1248,6 +1316,9 @@
         if (window.AndroidBridge && typeof window.AndroidBridge.setGamePrefs === 'function') {
           const s = state.settings || {};
           window.AndroidBridge.setGamePrefs(s.blockAdsInGames !== false, s.autoLogFromShare !== false);
+        }
+        if (window.AndroidBridge && typeof window.AndroidBridge.setFindResults === 'function') {
+          window.AndroidBridge.setFindResults((state.settings || {}).findResults !== false);
         }
       } catch (e) {}
     }
@@ -1269,6 +1340,8 @@
     function flushSaveNow() {
       saveQueued = false;
       if (state.__saveBlocked) {
+        // The saved data isn't overwritten, but device settings (icon, theme, reminders) still apply.
+        saveLaunchPrefs();
         showDataProblemBanner();
         return;
       }
@@ -1399,6 +1472,11 @@
       root.setAttribute('data-theme', light ? 'light' : 'dark');
       root.classList.toggle('dark', !light);
       root.setAttribute('data-amoled', s.amoledDark && !light ? 'true' : 'false');
+      // The header logo follows the launcher icon choice.
+      const iconStyle = currentAppIcon();
+      root.setAttribute('data-app-icon', iconStyle);
+      const logo = document.getElementById('hubLogo');
+      if (logo && logo.dataset.style !== iconStyle) { logo.innerHTML = appIconSvg(iconStyle, 22, 'hub'); logo.dataset.style = iconStyle; }
       const seed = s.dynamicWallpaper ? 'wallpaper' : (s.themeSeed || 'iris');
       root.setAttribute('data-m4-seed', seed);
       const palette = !deviceWallpaperPalette ? null
@@ -1798,12 +1876,14 @@
       if (!key) return null;
       const exact = state.games.find((g) => normalizeUrlKey(g.url) === key);
       if (exact) return exact;
-      // Two links that match the same built-in catalogue entry are the same game.
+      // Two links to the same game's page in the built-in catalogue (nytimes.com/games/wordle and
+      // …/wordle/index.html) are the same game. Not for entries that cover a whole site, where other
+      // pages can be other games (mini.nerdlegame.com, puzzmo.com/play/…).
       const known = KnownGames.find(rawUrl);
-      if (!known) return null;
+      if (!known || !(known.path || known.also)) return null;
       return state.games.find((g) => {
         const k = KnownGames.find(g.url);
-        return Boolean(k && k.host === known.host && (k.path || '') === (known.path || ''));
+        return Boolean(k && k.host === known.host && k.path === known.path && k.name === known.name);
       }) || null;
     }
 
@@ -1818,8 +1898,9 @@
       } catch (e) {
         return '';
       }
-      // https unless the link explicitly says http:// (some small games are http-only).
-      return c;
+      // https unless the link explicitly says http:// (some small games are http-only). Stored in the
+      // browser's normal form (lower-case host, %-escapes decoded), so every check reads it the same way.
+      try { return new URL(c).href; } catch (e) { return c; }
     }
 
     function mapNativeCategoryToUiCategory(cat) {
@@ -2089,6 +2170,7 @@
     }
 
     function renderGamesGrid() {
+      renderResetSuggestion();
       const grid = document.getElementById('gamesGrid');
       if (!grid) return;
       if (grid.classList.contains('drag-active')) return; // never rebuild cards mid-drag
@@ -2708,6 +2790,142 @@
       }
     }
 
+    // ---- Popular games picker (known-games.js) ----
+    const catalogUrl = (e) => e.url || `https://${e.host}${e.path || '/'}`;
+    function renderBrowseGames() {
+      const list = document.getElementById('browseGamesList');
+      if (!list) return;
+      const q = String((document.getElementById('browseGamesSearch') || {}).value || '').trim().toLowerCase();
+      const entries = KnownGames.CATALOG.filter((e) => !q || `${e.name} ${e.host} ${e.category} ${e.desc}`.toLowerCase().includes(q));
+      const groups = new Map();
+      entries.slice().sort((a, b) => a.name.localeCompare(b.name)).forEach((e) => {
+        if (!groups.has(e.category)) groups.set(e.category, []);
+        groups.get(e.category).push(e);
+      });
+      if (!entries.length) { list.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No games match.</p>'; return; }
+      list.innerHTML = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([cat, items]) => `
+        <p class="browse-cat">${escapeHtml(cat)}</p>
+        ${items.map((e) => {
+          const url = catalogUrl(e);
+          const added = Boolean(findGameByUrl(url));
+          return `<button type="button" class="browse-row" data-browse-url="${escapeHtml(url)}"${added ? ' disabled' : ''}>
+            <span class="browse-icon">${renderGameIconHtml(getDefaultFaviconUrl(url), e.name, 'w-5 h-5')}</span>
+            <span class="browse-text"><span class="browse-name">${escapeHtml(e.name)}</span><span class="browse-desc">${escapeHtml(e.desc)}</span></span>
+            <span class="browse-add">${added ? 'Added' : 'Add'}</span>
+          </button>`;
+        }).join('')}`).join('');
+    }
+    // Opened from the Add form: closing the picker without a pick goes back to it, as typed.
+    let browseReturnToAdd = false;
+    function openBrowseGames() {
+      const fromAdd = isModalOpen('modalAddGame');
+      const search = document.getElementById('browseGamesSearch');
+      if (search) search.value = '';
+      renderBrowseGames();
+      openModal('modalBrowseGames');
+      browseReturnToAdd = fromAdd; // after openModal, which closes the Add form (and resets this)
+    }
+    function pickBrowseGame(url) {
+      browseReturnToAdd = false;
+      closeModal('modalBrowseGames');
+      const meta = inferGameMetaFromUrl(url);
+      openAddOrEditModal(meta || { url }, null);
+    }
+
+    // ---- Auto-detected reset times ----
+    let resetSuggestion = null; // { gameId, resetTime, resetZone }
+    const gameLogRows = (g) => state.historyLogs.filter((l) => l && (l.gameId ? l.gameId === g.id : l.gameName === g.name));
+    /** Looks at a game's numbered results; offers a better reset time when they don't fit the current one. */
+    function checkResetSuggestion(game) {
+      if (!game || game.archived) return;
+      const sug = HubCore.suggestResetTime(gameLogRows(game), { resetTime: game.resetTime, resetZone: HubCore.normalizeZone(game.resetZone) });
+      if (!sug) {
+        if (resetSuggestion && resetSuggestion.gameId === game.id) { resetSuggestion = null; renderResetSuggestion(); }
+        return;
+      }
+      if (game.dismissedResetSuggestion === `${sug.resetTime}|${sug.resetZone}`) return;
+      resetSuggestion = { gameId: game.id, resetTime: sug.resetTime, resetZone: sug.resetZone,
+        fromTime: game.resetTime, fromZone: HubCore.normalizeZone(game.resetZone) };
+      renderResetSuggestion();
+    }
+    function renderResetSuggestion() {
+      const el = document.getElementById('resetSuggestBanner');
+      if (!el) return;
+      let game = resetSuggestion && state.games.find((g) => g.id === resetSuggestion.gameId);
+      // Gone, archived, or its reset time edited since: the suggestion no longer applies.
+      if (resetSuggestion && (!game || game.archived || game.resetTime !== resetSuggestion.fromTime
+        || HubCore.normalizeZone(game.resetZone) !== resetSuggestion.fromZone)) {
+        resetSuggestion = null;
+        game = null;
+      }
+      el.classList.toggle('hidden', !game);
+      if (!game) return;
+      const zone = resetSuggestion.resetZone;
+      const where = zone === 'local' ? 'your time' : HubCore.zoneLabel(zone);
+      const local = formatLocalResetTime(resetSuggestion.resetTime, zone);
+      document.getElementById('resetSuggestTitle').textContent = `${game.name} may reset at ${local}`;
+      const exact = zone === 'local' ? '' : ` (${resetSuggestion.resetTime} ${where})`;
+      document.getElementById('resetSuggestSub').textContent =
+        `Its puzzle numbers fit a reset at ${local}${exact}, not ${formatLocalResetTime(game.resetTime, game.resetZone)}.`;
+    }
+    function applyResetSuggestion() {
+      renderResetSuggestion();
+      const sug = resetSuggestion;
+      const game = sug && state.games.find((g) => g.id === sug.gameId);
+      resetSuggestion = null;
+      renderResetSuggestion();
+      if (!game) return;
+      const from = { resetTime: game.resetTime, resetZone: HubCore.normalizeZone(game.resetZone) };
+      applyScheduleChange(game, from, { resetTime: sug.resetTime, resetZone: sug.resetZone }, state.historyLogs);
+      const key = getCycleDateKey(game.resetTime, game.resetZone);
+      game.lastCycleKey = key;
+      game.status = (game.dayHistory && game.dayHistory[key]) || 'ready';
+      recomputeGameStatsFromHistory(game);
+      saveState({ syncNow: true });
+      renderVisibleTab();
+      showToast(`${game.name} reset time updated`, `Now resets at ${formatLocalResetTime(game.resetTime, game.resetZone)}. You can change it in the game's settings.`, 'emerald');
+    }
+    function dismissResetSuggestion() {
+      const sug = resetSuggestion;
+      const game = sug && state.games.find((g) => g.id === sug.gameId);
+      if (game) { game.dismissedResetSuggestion = `${sug.resetTime}|${sug.resetZone}`; saveState({ sync: false }); }
+      resetSuggestion = null;
+      renderResetSuggestion();
+    }
+
+    // ---- Copy today's results ----
+    const TODAY_RESULTS_DIVIDER = '\n\n— — —\n\n';
+    /** Today's solved results as logged (formatting kept), in the hub's order. */
+    function todaysResultTexts() {
+      return visibleGames().filter((g) => g.status === 'completed').map((g) => {
+        const row = findLogRow(g, getCycleDateKey(g.resetTime, g.resetZone));
+        return String((row && row.score) || g.todayScore || '').replace(/\r\n/g, '\n').trim();
+      }).filter(Boolean);
+    }
+    function copyTodaysResults() {
+      const texts = todaysResultTexts();
+      if (!texts.length) { showToast('Nothing to copy yet', 'Solve a game and log its result first.', 'indigo'); return; }
+      copyText(texts.join(TODAY_RESULTS_DIVIDER), texts.length === 1 ? "Today's result copied, formatting kept." : `${texts.length} results copied, formatting kept.`);
+    }
+
+    // ---- "Play next game" after logging a game played in the player ----
+    let logOpenedFromPlayer = false;
+    /** Offers the next unplayed game (or says everything's done) after logging one from the player. */
+    function offerNextGame(gameId) {
+      const game = state.games.find((g) => g.id === gameId);
+      if (!game || isAnyModalOpen()) return;
+      lastOpenedGameId = gameId;
+      const next = nextGameToPlay();
+      if (!next) { showToast("🎉 That's every game for today", 'Come back after the next reset.', 'emerald'); return; }
+      const m = document.getElementById('modalNextGame');
+      m.dataset.next = next.id;
+      document.getElementById('nextGameTitle').textContent = `✓ ${game.name} logged`;
+      document.getElementById('nextGameSub').textContent = `${plural(visibleGames().filter((g) => g.status === 'ready').length, 'game')} left today.`;
+      document.getElementById('btnNextGamePlay').textContent = `Play ${next.name}`;
+      document.getElementById('nextGameIcon').innerHTML = renderGameIconHtml(next.icon, next.name, 'w-6 h-6');
+      openModal('modalNextGame');
+    }
+
     // ---- Play next ----
     let lastOpenedGameId = '';
     /** The next unplayed game after the one played last (in the hub's order, wrapping), or null. */
@@ -2726,6 +2944,8 @@
     }
     /** Shown once at least one game is done today and another is still waiting. */
     function renderPlayNext() {
+      const copyBtn = document.getElementById('btnCopyToday');
+      if (copyBtn) copyBtn.classList.toggle('hidden', !todaysResultTexts().length);
       const bar = document.getElementById('playNextBar');
       if (!bar) return;
       const list = visibleGames();
@@ -2754,8 +2974,21 @@
       saveState({ sync: false });
 
       try {
-        if (window.AndroidBridge && typeof window.AndroidBridge.openGame === 'function') {
-          window.AndroidBridge.openGame(game.id, game.name, game.url);
+        const bridge = window.AndroidBridge;
+        if (bridge && typeof bridge.openGameInLineup === 'function') {
+          // Today's games, so the player can switch between them and offer Next.
+          // At most 100 games around the opened one (the player takes 200), names and links trimmed.
+          const all = visibleGames();
+          const at = Math.max(0, all.findIndex((g) => g.id === game.id));
+          const from = Math.max(0, Math.min(at - 50, all.length - 100));
+          const lineup = all.slice(from, from + 100)
+            .map((g) => ({ id: g.id, name: String(g.name || '').slice(0, 80), url: String(g.url || '').slice(0, 2000), done: g.status !== 'ready' }));
+          if (!lineup.some((g) => g.id === game.id)) lineup.unshift({ id: game.id, name: game.name, url: game.url, done: game.status !== 'ready' });
+          bridge.openGameInLineup(game.id, game.name, game.url, JSON.stringify(lineup));
+          return;
+        }
+        if (bridge && typeof bridge.openGame === 'function') {
+          bridge.openGame(game.id, game.name, game.url);
           return;
         }
       } catch (e) {}
@@ -2837,6 +3070,8 @@
         existingRow.score = displayScore;
         existingRow.streak = game.streak;
         existingRow.localTime = formatLogTime(new Date());
+        // When the current puzzle was logged: used to check the game's reset time (puzzle numbers).
+        if (isCurrentCycle) existingRow.loggedAt = Date.now();
         if (playedMs > 0) existingRow.timeMs = playedMs;
       } else {
         removeTodayLog(game, todayKey);
@@ -2851,6 +3086,7 @@
           streak: game.streak
         };
         if (playedMs > 0) loggedRow.timeMs = playedMs;
+        if (isCurrentCycle) loggedRow.loggedAt = Date.now();
         state.historyLogs.unshift(loggedRow);
       }
       const records = validStatus === 'completed' ? HubCore.newRecords(recordBaseRows, loggedRow, prevBestStreak) : [];
@@ -2874,6 +3110,7 @@
       if (records.length) announceRecords(game, records);
       historyPage = 0;
       saveState();
+      checkResetSuggestion(game);
       checkNewAchievements();
       updateSingleGameCardOrGrid(game.id);
       if (activeTab === 'stats') renderStatsAndCharts();
@@ -2888,6 +3125,92 @@
       haptic('drop');
     }
 
+    // ---- App icon styles (launcher entries in AppIcon.kt; drawn here for the picker and the hub logo) ----
+    const ICON_FLOWER = 'M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z';
+    const ICON_MARK = 'M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z';
+    const ICON_SPARKS = 'M65.5,38.3 C66.17,41.83 66.17,41.83 69.7,42.5 C66.17,43.17 66.17,43.17 65.5,46.7 C64.83,43.17 64.83,43.17 61.3,42.5 C64.83,41.83 64.83,41.83 65.5,38.3Z M43,62.5 C43.48,65.02 43.48,65.02 46,65.5 C43.48,65.98 43.48,65.98 43,68.5 C42.52,65.98 42.52,65.98 40,65.5 C42.52,65.02 42.52,65.02 43,62.5Z';
+    const ICON_STYLES = [
+      { id: 'default', label: 'Default', bg: ['#FFFFFF', '#FFFFFF'], star: [[0, '#FFD43B'], [1, '#2FB86A']], mark: '#FFFFFF', outline: true },
+      { id: 'themed', label: 'Theme', themed: true },
+      { id: 'midnight', label: 'Midnight', bg: ['#0F172A', '#1E1B4B'], star: [[0, '#7DD3FC'], [1, '#A78BFA']], mark: '#FFFFFF' },
+      { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
+      { id: 'ocean', label: 'Ocean', bg: ['#E0F7FA', '#CCF2F7'], star: [[0, '#22D3EE'], [1, '#2563EB']], mark: '#FFFFFF' },
+      { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
+      { id: 'gold', label: 'Gold', bg: ['#2A1E06', '#120C02'], star: [[0, '#FFF7CC'], [0.22, '#F7D774'], [0.48, '#C9922B'], [0.68, '#FFE68A'], [1, '#8A5A10']], mark: '#FFFBEA', sparks: '#FFFDF2', locked: true }
+    ];
+    /**
+     * True once every achievement has been earned. Remembered (state.goldUnlocked, kept in backups),
+     * so the icon stays unlocked after a restore or when a later version adds achievements.
+     */
+    function goldIconUnlocked() {
+      if (state.goldUnlocked === true) return true;
+      const have = new Set(Array.isArray(state.achievements) ? state.achievements : []);
+      const all = HubCore.ACHIEVEMENTS.every((a) => have.has(a.id));
+      if (all) state.goldUnlocked = true;
+      return all;
+    }
+    /** The chosen style ("" means the 1.2–1.3 switch decides), never a locked one. */
+    function currentAppIcon() {
+      const s = state.settings || {};
+      let style = s.appIcon || (s.iconFollowsTheme ? 'themed' : 'default');
+      if (!ICON_STYLES.some((x) => x.id === style)) style = 'default';
+      if (style === 'gold' && !goldIconUnlocked()) style = 'default';
+      return style;
+    }
+    /** The icon as an SVG (same shapes and colours as the launcher icon). */
+    function appIconSvg(styleId, size, uid) {
+      const st = ICON_STYLES.find((x) => x.id === styleId) || ICON_STYLES[0];
+      const id = `ig-${uid}-${st.id}`;
+      const shape = '<g transform="translate(54 54) scale(1.3) translate(-54 -54)">'
+        + `<path d="${ICON_FLOWER}" fill="${st.themed ? 'var(--md-primary)' : `url(#${id}-s)`}"/>`
+        + `<path d="${ICON_MARK}" fill="${st.themed ? 'var(--md-on-primary)' : st.mark}"/>`
+        + (st.sparks ? `<path d="${ICON_SPARKS}" fill="${st.sparks}"/>` : '') + '</g>';
+      if (st.themed) {
+        return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true">`
+          + `<rect width="108" height="108" rx="30" fill="var(--md-primary-container)"/>${shape}</svg>`;
+      }
+      const stops = st.star.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
+      return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true"><defs>`
+        + `<linearGradient id="${id}-b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${st.bg[0]}"/><stop offset="1" stop-color="${st.bg[1]}"/></linearGradient>`
+        + `<linearGradient id="${id}-s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">${stops}</linearGradient></defs>`
+        + `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="url(#${id}-b)"${st.outline ? ' stroke="var(--md-outline)" stroke-width="2"' : ''}/>${shape}</svg>`;
+    }
+    function renderIconChoices() {
+      const box = document.getElementById('iconChoices');
+      if (!box) return;
+      const current = currentAppIcon();
+      const unlocked = goldIconUnlocked();
+      box.innerHTML = ICON_STYLES.map((st) => {
+        const locked = st.locked && !unlocked;
+        const on = st.id === current;
+        return `<button type="button" class="icon-choice${on ? ' on' : ''}${locked ? ' locked' : ''}" data-icon-style="${st.id}" role="radio" aria-checked="${on}"`
+          + ` aria-label="${escapeHtml(st.label)}${locked ? ', locked' : ''}">${appIconSvg(st.id, 44, 'pick')}`
+          + `${locked ? '<span class="icon-lock" aria-hidden="true">🔒</span>' : ''}<span class="icon-name">${escapeHtml(st.label)}</span></button>`;
+      }).join('');
+      const hint = document.getElementById('iconGoldHint');
+      if (hint) {
+        const have = new Set(Array.isArray(state.achievements) ? state.achievements : []);
+        const n = HubCore.ACHIEVEMENTS.filter((a) => have.has(a.id)).length;
+        hint.textContent = unlocked ? '' : `Gold unlocks when you earn every achievement (${n} of ${HubCore.ACHIEVEMENTS.length} so far).`;
+      }
+    }
+    function chooseAppIcon(style) {
+      const st = ICON_STYLES.find((x) => x.id === style);
+      if (!st) return;
+      if (st.locked && !goldIconUnlocked()) {
+        showToast('Gold is locked', 'Earn every achievement (Streaks & Log) to unlock the gold icon.', 'indigo');
+        return;
+      }
+      if (!state.settings) state.settings = getDefaultSettings();
+      state.settings.appIcon = style;
+      state.settings.iconFollowsTheme = style === 'themed';
+      haptic('tick');
+      saveState({ sync: false });
+      applyThemeAndSettings();
+      renderIconChoices();
+      showToast(`${st.label} icon chosen`, 'It changes on your home screen when you leave the app.', 'emerald');
+    }
+
     /** Toasts achievements earned since the last check. The first check after updating is silent. */
     function checkNewAchievements(silent) {
       const all = HubCore.computeAchievements(state.games, state.historyLogs);
@@ -2895,10 +3218,17 @@
       const fresh = all.filter((a) => a.earned && !known.has(a.id));
       if (!fresh.length) return;
       const first = !Array.isArray(state.achievements);
+      const wasGold = goldIconUnlocked();
       state.achievements = [...known, ...fresh.map((a) => a.id)];
+      const gold = goldIconUnlocked();
       saveState({ sync: false });
+      renderIconChoices();
       if (first || silent) return;
       fresh.forEach((a, i) => setTimeout(() => showToast(`${a.icon} Achievement unlocked`, `${a.title}: ${a.desc.charAt(0).toLowerCase()}${a.desc.slice(1)}.`, 'indigo'), 900 + i * 400));
+      if (gold && !wasGold) {
+        setTimeout(() => showToast('✨ Gold icon unlocked', 'You earned every achievement. Choose the gold app icon in Settings → Display.', 'emerald'), 900 + fresh.length * 400 + 600);
+        renderIconChoices();
+      }
     }
 
     // =========================================================================
@@ -3165,13 +3495,14 @@
         }
       } catch (e) {}
       try {
-        if (navigator.share) { navigator.share({ text: String(text) }); return; }
-        navigator.clipboard.writeText(String(text)).then(() => showToast('Copied', 'Paste it wherever you like.', 'indigo'));
+        if (navigator.share) { navigator.share({ text: String(text) }).catch(() => {}); return; }
+        navigator.clipboard.writeText(String(text)).then(() => showToast('Copied', 'Paste it wherever you like.', 'indigo'),
+          () => showToast("Couldn't copy", 'Copying isn\'t allowed here.', 'indigo'));
       } catch (e) {}
     }
 
     /** Copies text exactly as logged (line breaks and emoji kept). */
-    function copyText(text) {
+    function copyText(text, note) {
       const t = String(text || '');
       if (!t) return;
       let done = false;
@@ -3181,10 +3512,11 @@
           done = true;
         }
       } catch (e) {}
-      if (!done) {
-        try { navigator.clipboard.writeText(t); done = true; } catch (e) {}
-      }
-      if (done) { haptic('tick'); showToast('Copied', 'Result copied with its formatting.', 'emerald'); }
+      const copied = () => { haptic('tick'); showToast('Copied', note || 'Result copied with its formatting.', 'emerald'); };
+      if (done) { copied(); return; }
+      try {
+        navigator.clipboard.writeText(t).then(copied, () => showToast("Couldn't copy", 'Copying isn\'t allowed here.', 'indigo'));
+      } catch (e) {}
     }
 
     let dayEntryRef = null; // { gameId, date }
@@ -3265,12 +3597,39 @@
     }
 
     // ---- Score history filter (game and outcome; kept while the app is open) ----
-    const historyFilter = { game: '', outcome: 'all' };
+    const historyFilter = { game: '', outcome: 'all', query: '' };
+    /** The search words, lower-cased; every word must appear in the result, game name or date. */
+    const historyQueryWords = () => historyFilter.query.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 8);
+    function historyRowMatches(l, words) {
+      if (!words.length) return true;
+      // The game's current name too, so a renamed game's older rows are found by either name.
+      const current = l.gameId ? (state.games.find((g) => g.id === l.gameId) || {}).name : '';
+      const hay = `${l.score || ''}\n${l.gameName || ''}\n${current || ''}\n${formatCycleDateLabel(l.date)}\n${l.date || ''}\n${l.outcome || ''}`.toLowerCase();
+      return words.every((w) => hay.includes(w));
+    }
+    /** The result text, escaped, with search words highlighted. */
+    function highlightHistoryText(text, words) {
+      const raw = String(text == null ? '' : text);
+      if (!words.length) return escapeHtml(raw);
+      // Match on the plain text and escape each piece, so a search for "3" or "a" can't land inside "&#39;" or "&amp;".
+      const re = new RegExp(words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gi');
+      let out = '';
+      let last = 0;
+      let m;
+      while ((m = re.exec(raw))) {
+        if (!m[0]) { re.lastIndex += 1; continue; }
+        out += escapeHtml(raw.slice(last, m.index)) + '<mark>' + escapeHtml(m[0]) + '</mark>';
+        last = m.index + m[0].length;
+      }
+      return out + escapeHtml(raw.slice(last));
+    }
     const historyRowGameKey = (l) => (l.gameId ? `id:${l.gameId}` : `name:${l.gameName || ''}`);
     function filteredHistoryLogs() {
+      const words = historyQueryWords();
       return state.historyLogs.filter((l) => l
         && (!historyFilter.game || historyRowGameKey(l) === historyFilter.game)
-        && (historyFilter.outcome === 'all' || l.outcome === historyFilter.outcome));
+        && (historyFilter.outcome === 'all' || l.outcome === historyFilter.outcome)
+        && historyRowMatches(l, words));
     }
     /** One option per game that has results (current names first, then removed games), newest name wins. */
     function renderHistoryFilterOptions() {
@@ -3303,7 +3662,7 @@
     let statsRenderedKey = '';
     function statsRenderKey() {
       return [stateRev, calendarYear, calendarMonth, selectedCalendarGameId, historyPage, historyFilter.game,
-        historyFilter.outcome, state.historyLogs.length, state.games.length, new Date().toDateString()].join('|');
+        historyFilter.outcome, historyFilter.query, state.historyLogs.length, state.games.length, new Date().toDateString()].join('|');
     }
 
     function renderStatsAndCharts() {
@@ -3346,8 +3705,9 @@
         if (state.historyLogs.length === 0) {
           tbody.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No results yet. Tap the check button on a game card, or log from the prompt after playing.</p>';
         } else if (!shown.length) {
-          tbody.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No results match this filter.</p>';
+          tbody.innerHTML = `<p class="py-6 text-center text-xs text-slate-500">${historyFilter.query ? 'No results match your search.' : 'No results match this filter.'}</p>`;
         } else {
+          const qWords = historyQueryWords();
           tbody.innerHTML = pageRows.map((item, i) => {
             const ok = item.outcome === 'Completed';
             const score = String(item.score || '').trim();
@@ -3361,9 +3721,9 @@
                   <span class="hist-streak"><span class="sr-only">Streak after: ${escapeHtml(plural(item.streak, 'day'))}</span><span aria-hidden="true">🔥 ${escapeHtml(item.streak)}d</span></span>
                 </div>
                 <p class="hist-date">${escapeHtml(formatCycleDateLabel(item.date))}${time ? ` · ${escapeHtml(time)}` : ''}${Number(item.timeMs) > 0 ? ` <span class="hist-time">· ⏱ ${escapeHtml(HubCore.formatDuration(item.timeMs))}</span>` : ''}</p>
-                ${score ? `<details class="hist-more">
+                ${score ? `<details class="hist-more"${qWords.length && qWords.some((w) => score.toLowerCase().includes(w)) ? ' open' : ''}>
                   <summary><span>Result</span><span class="chev" aria-hidden="true"></span></summary>
-                  <pre class="hist-score">${escapeHtml(score)}</pre>
+                  <pre class="hist-score">${highlightHistoryText(score, qWords)}</pre>
                   <button type="button" class="hist-copy icon-label" data-copy-game="${escapeHtml(item.gameId || '')}" data-copy-name="${escapeHtml(item.gameName || '')}" data-copy-date="${escapeHtml(item.date || '')}"><span class="ico ico-paste" aria-hidden="true"></span>Copy result</button>
                 </details>` : ''}
               </div>`;
@@ -3449,11 +3809,12 @@
       setChk('settingAutoScrape', s.autoScrape !== false);
       setChk('settingAskOnReturn', s.askToLogOnReturn !== false);
       setChk('settingAutoLogShare', s.autoLogFromShare !== false);
+      setChk('settingFindResults', s.findResults !== false);
       setChk('settingBlockAds', s.blockAdsInGames !== false);
       setVal('settingThemeMode', s.themeMode || 'dark');
       setChk('settingGroupDone', s.groupDone !== false);
       setChk('settingDarkPages', s.darkGamePages !== false);
-      setChk('settingIconTheme', Boolean(s.iconFollowsTheme));
+      renderIconChoices();
       renderArchivedList();
       setVal('settingStreakReminder', String(Number(s.streakReminderMinutes) || 0));
       setChk('settingUpdateCheck', Boolean(s.updateCheck));
@@ -3828,7 +4189,7 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalAddGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -3862,14 +4223,19 @@
         document.getElementById('btnConfirmDeleteModal').className = CONFIRM_BTN_DANGER;
       } else if (id === 'modalLogScore') {
         logModalCycleKey = '';
+        logOpenedFromPlayer = false;
       }
+      const reopenAdd = id === 'modalBrowseGames' && browseReturnToAdd;
+      if (id === 'modalBrowseGames') browseReturnToAdd = false;
       el.classList.add('hidden');
+      if (reopenAdd) { openModal('modalAddGame'); return; }
       if (!MODAL_IDS.some(isModalOpen) && modalReturnFocus && modalReturnFocus.isConnected) {
         try { modalReturnFocus.focus({ preventScroll: true }); } catch (e) {}
         modalReturnFocus = null;
       }
     }
     function closeAllModals(except) {
+      browseReturnToAdd = false;
       MODAL_IDS.forEach((id) => { if (id !== except) closeModal(id); });
     }
     function closeAddModal() {
@@ -3956,6 +4322,8 @@
       const modal = document.getElementById('modalAddGame');
       document.getElementById('modalAddTitle').textContent = existingGame ? `Edit ${existingGame.name}` : 'Add Daily Game by Link';
       document.getElementById('editGameId').value = existingGame ? existingGame.id : '';
+      // Picking a popular game starts a new one, so it isn't offered while editing.
+      document.getElementById('btnBrowseGames').classList.toggle('hidden', Boolean(existingGame));
 
       lastAutoScrapedUrl = '';
       userEditedModalFields.clear();
@@ -4291,10 +4659,11 @@
       const captured = returnPromptShareText;
       returnPromptShareText = '';
       const opts = cycleKey ? { cycleKey } : undefined;
-      if (action === 'solved') recordGameOutcome(game.id, 'completed', captured, opts);
-      else if (action === 'missed') recordGameOutcome(game.id, 'missed', '', opts);
+      if (action === 'solved') { recordGameOutcome(game.id, 'completed', captured, opts); setTimeout(() => offerNextGame(game.id), 250); }
+      else if (action === 'missed') { recordGameOutcome(game.id, 'missed', '', opts); setTimeout(() => offerNextGame(game.id), 250); }
       else if (action === 'details') {
         openLogModal(game.id, opts);
+        logOpenedFromPlayer = true;
         // Prefer the result the game player captured; otherwise check the clipboard.
         const clip = captured || await readClipboardText();
         const box = document.getElementById('inputLogScoreText');
@@ -4353,13 +4722,16 @@
      * wasn't solved ("X/6", "Next time", four Connections mistakes) is logged as Missed, with its text.
      * Returns false if exactly this result is already logged.
      */
-    function autoLogShareResult(game, text, cycleKey) {
+    function autoLogShareResult(game, text, cycleKey, opts) {
       const outcome = HubCore.isFailedShareResult(text) ? 'missed' : 'completed';
+      const row = findLogRow(game, cycleKey);
       const alreadySame = game.dayHistory && game.dayHistory[cycleKey] === outcome
-        && cycleKey === getCycleDateKey(game.resetTime, game.resetZone) && game.todayScore === text;
+        && (cycleKey === getCycleDateKey(game.resetTime, game.resetZone) ? game.todayScore === text : Boolean(row && row.score === text));
       if (alreadySame) return false;
       const snap = snapshotForUndo(game, cycleKey);
       recordGameOutcome(game.id, outcome, text, { cycleKey, quiet: true });
+      // Earlier games of one player session are reported together (see onReturnFromEarlierGames).
+      if (opts && opts.batch) { opts.batch.push({ game, snap, outcome }); return true; }
       const firstLine = text.split('\n')[0].slice(0, 60);
       showToast(outcome === 'missed' ? `${game.name} logged as missed` : `🔥 ${game.name} logged automatically`,
         firstLine, outcome === 'missed' ? 'indigo' : 'emerald', null,
@@ -4382,10 +4754,32 @@
       saveState({ sync: false });
     }
 
-    window.onReturnFromGame = function (gameId, openLog, elapsedMs, shareText, openedAt) {
+    /**
+     * Games played earlier in one player session (the player switched to another game): add their
+     * play time and log any result they captured, without asking about each one.
+     */
+    window.onReturnFromEarlierGames = function (list) {
+      const batch = [];
+      (Array.isArray(list) ? list : []).forEach((r) => {
+        if (!r || typeof r !== 'object') return;
+        window.onReturnFromGame(String(r.id || ''), false, Number(r.elapsedMs) || 0, typeof r.share === 'string' ? r.share : '', Number(r.openedAt) || 0, { background: true, batch });
+      });
+      if (!batch.length) return;
+      // One toast with one Undo for all of them (the toast area only holds three).
+      const names = batch.map((b) => b.game.name);
+      const title = batch.length === 1
+        ? (batch[0].outcome === 'missed' ? `${names[0]} logged as missed` : `🔥 ${names[0]} logged automatically`)
+        : `🔥 ${batch.length} earlier games logged`;
+      showToast(title, batch.length === 1 ? '' : names.join(', '), 'emerald', null,
+        { actionLabel: 'Undo', onAction: () => batch.slice().reverse().forEach((b) => restoreUndo(b.snap)) });
+    };
+
+    window.onReturnFromGame = function (gameId, openLog, elapsedMs, shareText, openedAt, opts) {
       checkDailyRollovers({ silent: true });
       const game = state.games.find((g) => g.id === gameId);
       if (!game) return;
+      const background = Boolean(opts && opts.background);
+      if (!background) lastOpenedGameId = game.id;
       switchNavigation('dashboard');
       const captured = (typeof shareText === 'string' && HubCore.isStrictShareResult(shareText, game))
         ? shareText.replace(/\r\n/g, '\n').trim() : '';
@@ -4394,8 +4788,21 @@
       const openedKey = Number(openedAt) > 0 ? getCycleDateKey(game.resetTime, game.resetZone, new Date(Number(openedAt))) : '';
       const resetWhilePlaying = Boolean(openedKey && openedKey !== currentKey && cycleKeyToDay(openedKey) < cycleKeyToDay(currentKey));
       addPlayTime(game, resetWhilePlaying ? openedKey : currentKey, Number(elapsedMs) || 0);
+      if (background) {
+        // A game that reset while the session went on: its result is for the puzzle it was opened on.
+        const key = resetWhilePlaying ? openedKey : currentKey;
+        if (captured && autoLog) autoLogShareResult(game, captured, key, { batch: opts.batch });
+        else if (captured) {
+          // Auto-log is off: offer it instead of dropping it.
+          showToast(`${game.name} result found`, captured.split('\n')[0].slice(0, 60), 'indigo', null,
+            { actionLabel: 'Log', onAction: () => autoLogShareResult(game, captured, key) });
+          saveState({ sync: false });
+        } else saveState({ sync: false });
+        return;
+      }
       if (openLog) {
         openLogModal(game.id, resetWhilePlaying ? { cycleKey: openedKey } : undefined);
+        logOpenedFromPlayer = true;
         const box = document.getElementById('inputLogScoreText');
         if (captured && box && !box.value.trim()) {
           box.value = captured;
@@ -4458,6 +4865,8 @@
         let rawLogs = null;
         let rawSettings = null;
         let rawRetained = null;
+        let rawAchievements = null;
+        let rawGold = false;
 
         if (Array.isArray(parsed)) {
           rawGames = parsed;
@@ -4466,6 +4875,8 @@
           if (Array.isArray(parsed.historyLogs)) rawLogs = parsed.historyLogs;
           if (parsed.settings && typeof parsed.settings === 'object') rawSettings = parsed.settings;
           if (parsed.retainedGameStats && typeof parsed.retainedGameStats === 'object') rawRetained = parsed.retainedGameStats;
+          if (Array.isArray(parsed.achievements)) rawAchievements = parsed.achievements.filter((a) => typeof a === 'string').slice(0, 100);
+          if (parsed.goldUnlocked === true) rawGold = true;
         } else {
           throw new Error('Invalid backup root');
         }
@@ -4521,6 +4932,9 @@
             state.retainedGameStats = normalizeRetainedMap(rawRetained);
           }
           if (!state.retainedGameStats || typeof state.retainedGameStats !== 'object') state.retainedGameStats = {};
+          // Earned achievements are kept (some can't be re-earned from the data alone, e.g. Collector).
+          if (rawAchievements) state.achievements = [...new Set([...(Array.isArray(state.achievements) ? state.achievements : []), ...rawAchievements])];
+          if (rawGold) state.goldUnlocked = true;
           dropped.forEach((g) => {
             const snap = normalizeRetained(Object.assign({}, g, { dayHistory: Object.assign({}, g.dayHistory || {}) }));
             if (!snap) return;
@@ -4538,6 +4952,7 @@
             if (banner) banner.classList.add('hidden');
           }
           checkDailyRollovers({ silent: true });
+          checkNewAchievements(true);
 
           selectedCalendarGameId = (state.games && state.games[0]) ? state.games[0].id : '';
           saveState({ syncNow: true });
@@ -4642,40 +5057,85 @@
       } catch (e) {}
 
       // Keep Android's predictive-back state in sync with modal visibility.
-      ['modalAddGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList', 'returnPrompt'].forEach((id) => {
+      ['modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList', 'returnPrompt'].forEach((id) => {
         const el = document.getElementById(id);
         if (el) new MutationObserver(syncBackInterceptState).observe(el, { attributes: true, attributeFilter: ['class'] });
       });
       syncBackInterceptState();
 
-      // Score History pages: ‹ › buttons and horizontal swipes inside the block.
-      const goHistoryPage = (delta) => {
+      // Score History pages: ‹ › buttons, and a sideways swipe that the list follows (like the calendar).
+      const goHistoryPage = (delta, fromSwipe) => {
         const pageCount = Math.max(1, Math.ceil(filteredHistoryLogs().length / HISTORY_PAGE_SIZE));
         const next = Math.min(Math.max(0, historyPage + delta), pageCount - 1);
-        if (next === historyPage) return;
+        if (next === historyPage) return false;
         historyPage = next;
         renderStatsAndCharts();
+        if (REDUCED_MOTION) return true;
+        const from = delta > 0 ? 1 : -1;
+        const ease = 'cubic-bezier(0.2, 0, 0, 1)';
         const list = document.getElementById('historyTableBody');
-        if (list) {
-          list.classList.remove('slide-left', 'slide-right');
-          void list.offsetWidth;
-          list.classList.add(delta > 0 ? 'slide-left' : 'slide-right');
+        if (list && typeof list.animate === 'function') {
+          list.animate([{ transform: `translate3d(${from * (fromSwipe ? 40 : 28)}%,0,0)`, opacity: fromSwipe ? 0.4 : 0 }, { transform: 'none', opacity: 1 }],
+            { duration: 300, easing: ease });
         }
+        const label = document.querySelector('#historyPager .page-label');
+        if (label && typeof label.animate === 'function') {
+          label.animate([{ transform: `translate3d(${from * 24}px,0,0)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: ease });
+        }
+        return true;
       };
       document.getElementById('btnHistoryPrev').addEventListener('click', () => goHistoryPage(-1));
       document.getElementById('btnHistoryNext').addEventListener('click', () => goHistoryPage(1));
       const historyBlock = document.getElementById('historyBlock');
-      let histX = 0, histY = 0;
+      let hs = null;
+      const histList = () => document.getElementById('historyTableBody');
       historyBlock.addEventListener('touchstart', (e) => {
-        if (e.touches && e.touches.length === 1) { histX = e.touches[0].clientX; histY = e.touches[0].clientY; }
+        hs = e.touches && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false, t: performance.now() } : null;
       }, { passive: true });
-      historyBlock.addEventListener('touchend', (e) => {
-        if (!e.changedTouches || e.changedTouches.length !== 1) return;
-        const dx = e.changedTouches[0].clientX - histX;
-        const dy = e.changedTouches[0].clientY - histY;
-        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.35) return;
-        goHistoryPage(dx < 0 ? 1 : -1);
+      historyBlock.addEventListener('touchmove', (e) => {
+        if (!hs || !e.touches || e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - hs.x;
+        const dy = e.touches[0].clientY - hs.y;
+        if (!hs.locked) {
+          if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { hs = null; return; }
+          if (Math.abs(dx) < 10) return;
+          hs.locked = true;
+          // Counted once per swipe, not on every move.
+          hs.pages = Math.max(1, Math.ceil(filteredHistoryLogs().length / HISTORY_PAGE_SIZE));
+        }
+        // Rubber band when there's no page that way.
+        const pageCount = hs.pages;
+        const blocked = (dx < 0 && historyPage >= pageCount - 1) || (dx > 0 && historyPage <= 0);
+        hs.dx = blocked ? dx * 0.2 : dx;
+        const l = histList();
+        if (l && !REDUCED_MOTION) {
+          l.style.transition = 'none';
+          l.style.transform = `translate3d(${hs.dx}px,0,0)`;
+          l.style.opacity = String(1 - Math.min(0.6, Math.abs(hs.dx) / (historyBlock.offsetWidth || 320)));
+        }
       }, { passive: true });
+      const histEnd = (e) => {
+        const c = hs;
+        hs = null;
+        if (!c || !c.locked) return;
+        const l = histList();
+        const w = historyBlock.offsetWidth || 320;
+        const fast = Math.abs(c.dx) / Math.max(1, performance.now() - c.t) > 0.5;
+        // A cancelled touch (the system took it) only snaps back.
+        const cancelled = Boolean(e && e.type === 'touchcancel');
+        if (!cancelled && (Math.abs(c.dx) > w * 0.2 || (fast && Math.abs(c.dx) > 30))) {
+          if (l) { l.style.transition = ''; l.style.transform = ''; l.style.opacity = ''; }
+          if (goHistoryPage(c.dx < 0 ? 1 : -1, true)) { haptic('tick'); return; }
+        }
+        if (l) {
+          l.style.transition = 'transform 240ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms';
+          l.style.transform = '';
+          l.style.opacity = '';
+          setTimeout(() => { l.style.transition = ''; }, 260);
+        }
+      };
+      historyBlock.addEventListener('touchend', histEnd, { passive: true });
+      historyBlock.addEventListener('touchcancel', histEnd, { passive: true });
 
       const zoneSelect = document.getElementById('inputResetZone');
       const timeInput = document.getElementById('inputResetTime');
@@ -4803,7 +5263,7 @@
             state.settings.streakReminderMinutes = Number(el.value) || 0;
             try { window.AndroidBridge && window.AndroidBridge.setStreakReminder && window.AndroidBridge.setStreakReminder(state.settings.streakReminderMinutes); } catch (e) {}
           }
-          if (key === 'themeMode' || key === 'darkGamePages' || key === 'iconFollowsTheme' || key === 'dynamicWallpaper') saveLaunchPrefs();
+          if (key === 'themeMode' || key === 'darkGamePages' || key === 'dynamicWallpaper') saveLaunchPrefs();
           if (key === 'updateCheck' && el.checked) runUpdateCheck(true);
           if (key === 'compactCards' || key === 'groupDone') {
             renderGamesGrid();
@@ -4820,11 +5280,15 @@
       bindSetting('settingAutoScrape', 'autoScrape', true);
       bindSetting('settingAskOnReturn', 'askToLogOnReturn', true);
       bindSetting('settingAutoLogShare', 'autoLogFromShare', true);
+      bindSetting('settingFindResults', 'findResults', true);
       bindSetting('settingBlockAds', 'blockAdsInGames', true);
       bindSetting('settingThemeMode', 'themeMode', false);
       bindSetting('settingGroupDone', 'groupDone', true);
       bindSetting('settingDarkPages', 'darkGamePages', true);
-      bindSetting('settingIconTheme', 'iconFollowsTheme', true);
+      document.getElementById('iconChoices').addEventListener('click', (e) => {
+        const b = e.target && e.target.closest ? e.target.closest('[data-icon-style]') : null;
+        if (b) chooseAppIcon(b.getAttribute('data-icon-style'));
+      });
       bindSetting('settingStreakReminder', 'streakReminderMinutes', false);
       bindSetting('settingUpdateCheck', 'updateCheck', true);
 
@@ -4915,7 +5379,9 @@
           settings: state.settings,
           games: state.games,
           retainedGameStats: state.retainedGameStats || {},
-          historyLogs: state.historyLogs
+          historyLogs: state.historyLogs,
+          achievements: Array.isArray(state.achievements) ? state.achievements : [],
+          goldUnlocked: goldIconUnlocked()
         };
         const jsonStr = JSON.stringify(backupPayload, null, 2);
 
@@ -5176,6 +5642,18 @@
         closeAddModal();
         if (game) setArchived([game.id], true);
       });
+      document.getElementById('btnCopyToday').addEventListener('click', copyTodaysResults);
+      document.getElementById('btnResetSuggestApply').addEventListener('click', applyResetSuggestion);
+      document.getElementById('btnBrowseGames').addEventListener('click', openBrowseGames);
+      document.getElementById('browseGamesSearch').addEventListener('input', renderBrowseGames);
+      document.getElementById('browseGamesList').addEventListener('click', (e) => {
+        const row = e.target && e.target.closest ? e.target.closest('[data-browse-url]') : null;
+        if (row && !row.disabled) pickBrowseGame(row.getAttribute('data-browse-url'));
+      });
+      document.getElementById('btnResetSuggestDismiss').addEventListener('click', dismissResetSuggestion);
+      // Check every game once at start-up (results logged by an older version have no times, so this
+      // only starts suggesting after a few new results).
+      setTimeout(() => { visibleGames().some((g) => { checkResetSuggestion(g); return Boolean(resetSuggestion); }); }, 1500);
       document.getElementById('btnPlayNext').addEventListener('click', () => {
         const id = document.getElementById('playNextBar').dataset.id;
         if (id) openGameInPlayer(id);
@@ -5187,6 +5665,15 @@
       });
       document.getElementById('btnDayEntryCopy').addEventListener('click', () => {
         copyText(document.getElementById('dayEntryScore').textContent);
+      });
+      let historySearchTimer = null;
+      document.getElementById('historySearch').addEventListener('input', (e) => {
+        clearTimeout(historySearchTimer);
+        historySearchTimer = setTimeout(() => {
+          historyFilter.query = String(e.target.value || '').slice(0, 100);
+          historyPage = 0;
+          renderStatsAndCharts();
+        }, 150);
       });
       document.getElementById('historyFilterGame').addEventListener('change', (e) => {
         historyFilter.game = e.target.value;
@@ -5502,8 +5989,16 @@
         const gId = document.getElementById('logGameId').value;
         const scoreVal = document.getElementById('inputLogScoreText').value;
         recordGameOutcome(gId, selectedLogStatus, scoreVal, logModalCycleKey ? { cycleKey: logModalCycleKey } : undefined);
+        const fromPlayer = logOpenedFromPlayer;
         closeModal('modalLogScore');
+        if (fromPlayer) setTimeout(() => offerNextGame(gId), 250);
       });
+      document.getElementById('btnNextGamePlay').addEventListener('click', () => {
+        const id = document.getElementById('modalNextGame').dataset.next;
+        closeModal('modalNextGame');
+        if (id) openGameInPlayer(id);
+      });
+      document.getElementById('btnNextGameHome').addEventListener('click', () => closeModal('modalNextGame'));
 
       // Notifications & Permission button in Settings tab
       window.onNotificationPermissionResult = function (granted) {
