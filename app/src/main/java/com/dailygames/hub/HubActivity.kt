@@ -233,6 +233,9 @@ class HubActivity : ComponentActivity() {
         webView = WebView(this).apply {
             setBackgroundColor(surfaceColor)
             settings.javaScriptEnabled = true
+            // No Android scroll bar on the right while scrolling (1.5.1).
+            isVerticalScrollBarEnabled = false
+            isHorizontalScrollBarEnabled = false
             settings.domStorageEnabled = true
             settings.mediaPlaybackRequiresUserGesture = false
             // The hub UI only ever loads from packaged assets (keep standard WebView cache intact — P1).

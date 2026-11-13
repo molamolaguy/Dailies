@@ -1,3 +1,23 @@
+# Dailies 1.5.1
+
+Polish and fixes. It installs over 1.5.0 and keeps everything.
+
+## Changes
+- **Settings** sections start open again; you can still fold any of them.
+- **Swiping between tabs**: the highlight in the bottom bar now slides along with your finger, so it's already under the new tab when the page arrives.
+- **Krillion** results are found automatically: a "Copy result" button on a game's end screen is now recognised on its own, including buttons built from plain page elements.
+- **No scroll bar** on the right while scrolling.
+- **Achievements**: every tile is the same size, with just the icon, name and progress. Tap one to see what each tier takes and how far along you are. Tier 2 shows a ★ in the corner instead of a tier badge. Marathon counts whole hours.
+- **Done** tags show a ★ instead of a dot.
+- **Game pickers** in the calendar and Score history open the app's own drop-down list instead of Android's picker.
+- **Gold** now uses a softer champagne gold throughout, including the Gold app icon.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.5.0
 
 An update with more achievements and a tidier layout. It installs over 1.4.0 and keeps your games, streaks, history and earned achievements. If you're on 1.4.0, you can install it from **Settings → About → Check now**.

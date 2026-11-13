@@ -885,8 +885,8 @@
       { desc: 'Solve something on 30 different days', metric: 'days', target: 30 },
       { desc: 'Solve something on 365 different days', metric: 'days', target: 365 }] },
     { id: 'marathon', icon: '⏳', title: 'Marathon', tiers: [
-      { desc: 'Play for 10 hours in the game player', metric: 'playMs', target: 10 * HOUR },
-      { desc: 'Play for 50 hours in the game player', metric: 'playMs', target: 50 * HOUR }] },
+      { desc: 'Play for 10 hours in the game player', metric: 'playMs', target: 10 * HOUR, scale: HOUR, unit: 'hours' },
+      { desc: 'Play for 50 hours in the game player', metric: 'playMs', target: 50 * HOUR, scale: HOUR, unit: 'hours' }] },
     { id: 'weekend', icon: '🗓️', title: 'Weekend warrior', tiers: [
       { desc: 'Solve on both days of 4 weekends', metric: 'weekends', target: 4 },
       { desc: 'Solve on both days of 26 weekends', metric: 'weekends', target: 26 }] }
@@ -1036,12 +1036,17 @@
       const met = a.tiers.map((t) => (t.below ? m[t.metric] < t.target : (m[t.metric] || 0) >= t.target));
       const tier = met[1] && met[0] ? 2 : (met[0] ? 1 : 0);
       const next = a.tiers[tier] || null;
-      const progressOf = (t) => (t.below ? (m[t.metric] < t.target ? 1 : 0) : Math.min(t.target, m[t.metric] || 0));
+      // Shown in the tier's own unit (Marathon in whole hours, rounded).
+      const progressOf = (t) => (t.below ? (m[t.metric] < t.target ? 1 : 0)
+        : Math.round(Math.min(t.target, m[t.metric] || 0) / (t.scale || 1)));
+      const targetOf = (t) => (t.below ? 1 : Math.round(t.target / (t.scale || 1)));
       return {
         id: a.id, icon: a.icon, title: a.title, tier, tiers: a.tiers.length,
         keys: a.tiers.slice(0, tier).map((t, i) => tierKey(a.id, i + 1)),
         desc: (next || a.tiers[a.tiers.length - 1]).desc,
-        next: next ? { desc: next.desc, progress: progressOf(next), target: next.below ? 1 : next.target, below: Boolean(next.below) } : null,
+        next: next ? { desc: next.desc, progress: progressOf(next), target: targetOf(next), below: Boolean(next.below), unit: next.unit || '' } : null,
+        // Each tier with whether it's earned and its progress, for the details sheet.
+        tierList: a.tiers.map((t, i) => ({ desc: t.desc, earned: met[i] && (i === 0 || met[0]), progress: progressOf(t), target: targetOf(t), below: Boolean(t.below), unit: t.unit || '' })),
         earned: tier >= 1
       };
     });

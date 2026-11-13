@@ -1,8 +1,8 @@
-# Dailies 1.5.0: How the App Works
+# Dailies 1.5.1: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.5.0` (`versionCode = 8`)
+- **Version**: `1.5.1` (`versionCode = 9`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **Licence**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -450,3 +450,13 @@ The user-facing changes are in [RELEASE_NOTES.md](RELEASE_NOTES.md). Notes for d
 - **Tab scroll position**: `switchNavigation` and `Pager.attach` keep the scroll fraction (`scrollFraction`): the incoming page is placed at the spot it will have once current, and `jumpScroll` sets it without smooth scrolling.
 - **Gold accents styling**: `--gold-shine` (the icon's metallic gradient) on filled buttons, tonal pills, chips, bars, mask icons and solved calendar days; `--gold-text` as gradient text on the title, card headings and stat values; `--gold-edge` as a gradient border (padding-box / border-box backgrounds) on cards and the dock. Native checkboxes use a solid gold `accent-color`.
 - **Easter egg**: the Achievements card doesn't say what the gold unlocks need.
+
+## 14. New in 1.5.1
+
+- **Folding**: Settings cards carry `data-fold-default="open"`; `foldState` remembers a choice until the app closes. Achievements still start folded.
+- **Bottom bar highlight**: `#navIndicator` (one pill under the three buttons). `NavIndicator.set(a, b, t)` places it between two tabs; `Pager.follow` moves it by the swipe's fraction and `Pager.settle` animates it with the page's duration and easing.
+- **Finding results**: a button whose label reads "Copy/Share result(s)/score/stats/grid" counts as an end screen by itself (`RESULT_BUTTON_RE`), and clickable divs/spans (`[onclick]`, `*[class*=btn]`, `div[tabindex="0"]`) are candidates too (Krillion).
+- **Scroll bars**: hidden in CSS and on both WebViews (`isVerticalScrollBarEnabled = false`).
+- **Achievements**: tiles are buttons of one size (`grid-auto-rows: 1fr`); `openAchievementDetails` shows each tier (`tierList`) in `modalAchievement`. A tier can carry `scale` / `unit` (Marathon: hours, rounded).
+- **Themed drop-downs**: `themeSelect(sel)` puts a button after a `<select>` and opens `.tsel-menu`; picking sets the select and fires `change`. The select's `value` / `selectedIndex` setters and a MutationObserver keep the label current. Used for `#calendarGameSelect` and `#historyFilterGame`; Back closes the menu.
+- **Gold palette**: champagne gold (`#F6E7BF`, `#E6BD5C`, `#C9A14C`, `#A07C2B`, `#6E5418`) in `--gold-shine` / `--gold-text` / `--gold-edge`, the theme override, `.ach.max` and the Gold launcher icon (vectors and PNGs regenerated).

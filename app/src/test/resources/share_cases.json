@@ -1520,6 +1520,66 @@
       "name": "Wordle",
       "url": "https://www.nytimes.com/games/wordle/index.html",
       "strict": true
+    },
+    {
+      "text": "🎮 NintenDoku, Daily, Nov 12, 2026\n\n8/9, 587/1200 pts\n\n🟩🟩🟩\n\n🟩🟩🟩\n\n🟩⬜🟩\n\n🔥 5 day streak\n\nhttps://www.n-puzzle.com/en/nintendoku",
+      "name": "NintenDoku",
+      "url": "https://www.n-puzzle.com/en/nintendoku",
+      "strict": true
+    },
+    {
+      "text": "Krillion #120 🦐\n355\n\n🦑🏮🐟🦑🦑🐟🐟",
+      "name": "Krillion · The Daily Dive",
+      "url": "https://krillion.io/",
+      "strict": true
+    },
+    {
+      "text": "🌎 Nov 12, 2026 🌍\n🔥 4 | Avg. Guesses: 8.5\n🟨🟧🟥🟥🟥🟥🟥🟩 = 8\n\nhttps://globle-game.com\n#globle",
+      "name": "Globle",
+      "url": "https://globle-game.com/game",
+      "strict": true
+    },
+    {
+      "text": "FE Guess #148 · 12/11/2026\nFound in 6/8\n\n🟥🟩🟥🟥🟩🟥🟥\n🟥🟩🟥🟥🟩🟥🟩\n🟥🟩🟩🟥🟩🟥🟩\n🟥🟩🟩🟥🟩🟥🟩\n🟥🟩🟩🟧🟩🟩🟩\n🟩🟩🟩🟩🟩🟩🟩",
+      "name": "FE Guess",
+      "url": "https://fe-guess.com/",
+      "strict": true
+    },
+    {
+      "text": "🎮 NintenDoku, Daily, Nov 11, 2026\n\n4/9, 364/1200 pts\n\n🟩🟩🟩\n\n⬜⬜⬜\n\n🟩⬜⬜\n\n🔥 4 day streak\n\nhttps://www.n-puzzle.com/en/nintendoku",
+      "name": "NintenDoku",
+      "url": "https://www.n-puzzle.com/en/nintendoku",
+      "strict": true
+    },
+    {
+      "text": "Krillion #119 🦐\n470\n\n🦑🏮🦑🦑🏮🦑🦑",
+      "name": "Krillion · The Daily Dive",
+      "url": "https://krillion.io/",
+      "strict": true
+    },
+    {
+      "text": "🌎 Nov 11, 2026 🌍\n🔥 3 | Avg. Guesses: 8.67\n⬜⬜🟧🟨🟥🟥🟧🟩 = 8\n\nhttps://globle-game.com\n#globle",
+      "name": "Globle",
+      "url": "https://globle-game.com/game",
+      "strict": true
+    },
+    {
+      "text": "FE Guess #147 · 11/11/2026\nFound in 4/8\n\n🟥🟥🟥🟥🟩🟥🟥\n🟥🟩🟥🟥🟩🟩🟥\n🟩🟩🟥🟥🟩🟩🟥\n🟩🟩🟩🟩🟩🟩🟩",
+      "name": "FE Guess",
+      "url": "https://fe-guess.com/",
+      "strict": true
+    },
+    {
+      "text": "🎮 NintenDoku, Daily, Nov 10, 2026\n\n6/9, 455/1200 pts\n\n🟩🟩🟩\n\n⬜🟩🟩\n\n⬜🟩⬜\n\n🔥 3 day streak\n\nhttps://www.n-puzzle.com/en/nintendoku",
+      "name": "NintenDoku",
+      "url": "https://www.n-puzzle.com/en/nintendoku",
+      "strict": true
+    },
+    {
+      "text": "🌎 Nov 10, 2026 🌍\n🔥 2 | Avg. Guesses: 9\n⬜⬜🟧🟨🟨🟨🟧🟧\n🟥🟩 = 10\n\nhttps://globle-game.com\n#globle",
+      "name": "Globle",
+      "url": "https://globle-game.com/game",
+      "strict": true
     }
   ]
 }

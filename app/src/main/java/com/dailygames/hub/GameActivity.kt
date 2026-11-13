@@ -396,6 +396,9 @@ class GameActivity : ComponentActivity() {
         setBackgroundColor(surfaceColor)
         applyDarkPages(this)
         settings.javaScriptEnabled = true
+        // No Android scroll bar on the right while scrolling (1.5.1).
+        isVerticalScrollBarEnabled = false
+        isHorizontalScrollBarEnabled = false
         settings.domStorageEnabled = true
         // With ad blocking on, scripts can't open pop-ups/pop-unders without a tap.
         settings.javaScriptCanOpenWindowsAutomatically = !adBlockActive

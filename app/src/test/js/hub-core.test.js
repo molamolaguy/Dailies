@@ -409,7 +409,12 @@ test('1.5.0: two-tier achievements, old badges carried over', () => {
   assert.equal(speed.next, null);
   const first = ach.find((a) => a.id === 'first');
   assert.equal(first.tier, 1);
-  assert.deepEqual(first.next, { desc: 'Solve a puzzle in 5 different games', progress: 1, target: 5, below: false });
+  assert.deepEqual(first.next, { desc: 'Solve a puzzle in 5 different games', progress: 1, target: 5, below: false, unit: '' });
+  assert.deepEqual(first.tierList.map((t) => t.earned), [true, false]);
+  // Marathon counts whole hours (rounded), not milliseconds.
+  const marathon = core.computeAchievements([{ id: 'a' }], [{ gameId: 'a', date: '2026-11-01', outcome: 'Completed', score: 'x', timeMs: 3.6 * 3600000 }])
+    .find((x) => x.id === 'marathon');
+  assert.deepEqual([marathon.next.progress, marathon.next.target, marathon.next.unit], [4, 10, 'hours']);
   // Clean sweep needs at least 3 games, all solved on the day.
   const three = ['a', 'b', 'c'].map((id) => ({ id, dayHistory: { [day(1)]: 'completed', [day(2)]: id === 'c' ? 'missed' : 'completed' } }));
   assert.equal(core.achievementMetrics(three, []).sweeps, 1);

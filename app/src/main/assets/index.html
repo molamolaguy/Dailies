@@ -302,7 +302,7 @@
     <!-- View 3: SETTINGS & REFRESH ALERTS TAB -->
     <section id="viewSettings" class="hidden space-y-4">
       <!-- 1. Display Settings -->
-      <div data-fold="display" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="display" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-palette section-icon" aria-hidden="true"></span>Display</span>
@@ -372,7 +372,7 @@
       </div>
 
       <!-- 2. Gameplay, Streaks & Local Time Settings -->
-      <div data-fold="gameplay" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="gameplay" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div class="min-w-0">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -421,7 +421,7 @@
       </div>
 
       <!-- Game Player: share capture + ad blocking -->
-      <div data-fold="player" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="player" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-shield section-icon" aria-hidden="true"></span>Game Player</span>
@@ -460,7 +460,7 @@
       </div>
 
       <!-- 3. Daily Game Refresh Notification Engine -->
-      <div data-fold="alerts" class="glass-card rounded-2xl p-4 border border-indigo-500/30">
+      <div data-fold="alerts" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-indigo-500/30">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800">
           <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -493,7 +493,7 @@
       </div>
 
       <!-- 4. Data & Backup Management -->
-      <div data-fold="data" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="data" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-save section-icon" aria-hidden="true"></span>Data &amp; Backup</h3>
           <p class="text-xs text-slate-400">Export or import your backup file.</p>
@@ -521,7 +521,7 @@
       </div>
 
       <!-- Archived games -->
-      <div data-fold="archived" id="archivedCard" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="archived" data-fold-default="open" id="archivedCard" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white">Archived Games</h3>
           <p class="text-xs text-slate-400">Hidden from the hub, with no alerts. Their history and stats are kept.</p>
@@ -530,7 +530,7 @@
       </div>
 
       <!-- 5. About & updates -->
-      <div data-fold="about" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="about" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-info section-icon" aria-hidden="true"></span>About</h3>
           <p id="aboutVersion" class="text-xs text-slate-400">Dailies</p>
@@ -730,6 +730,20 @@
   </div>
 
   <!-- After logging a game played in the player: open the next one, or stay home -->
+  <div id="modalAchievement" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="achDetailTitle">
+    <div tabindex="-1" class="modal-panel glass-card ach-detail-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <span id="achDetailIcon" class="ach-detail-icon" aria-hidden="true"></span>
+        <div class="min-w-0 flex-1">
+          <h3 id="achDetailTitle" class="text-base font-bold text-white">Achievement</h3>
+          <p id="achDetailSub" class="text-xs text-slate-400"></p>
+        </div>
+        <button type="button" data-close-modal="modalAchievement" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div id="achDetailTiers" class="ach-detail-tiers"></div>
+    </div>
+  </div>
+
   <div id="modalNextGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="nextGameTitle">
     <div tabindex="-1" class="modal-panel glass-card next-game-panel w-full max-w-md border border-slate-700 shadow-2xl">
       <div class="flex items-center gap-3">
@@ -866,7 +880,8 @@
   <!-- ANDROID MATERIAL 3 EXPRESSIVE FLOATING NAVIGATION BAR -->
   <nav id="bottomNavWrapper" class="m3-bottom-nav-wrapper" aria-label="Primary Navigation">
     <div class="m4-floating-dock pointer-events-auto px-3 py-1.5 grid grid-cols-3 gap-2">
-      <button type="button" data-nav="dashboard" aria-current="page" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full m4-tonal-pill font-bold text-[11px]">
+      <span id="navIndicator" class="nav-indicator m4-tonal-pill" aria-hidden="true"></span>
+      <button type="button" data-nav="dashboard" aria-current="page" class="nav-btn nav-on relative flex flex-col items-center justify-center py-1 rounded-full font-bold text-[11px]">
         <span class="m3-floating-icon mb-0.5" aria-hidden="true">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <rect x="2" y="6" width="20" height="12" rx="6" />
@@ -976,7 +991,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.5.0';
+    const APP_VERSION = '1.5.1';
     const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
 
     const TIME_FMT_12 = (() => {
@@ -1578,10 +1593,10 @@
       root.setAttribute('data-gold', gold ? 'true' : 'false');
       if (gold) {
         const g = light
-          ? { '--md-primary': '#8A6100', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#FFE08A', '--md-on-primary-container': '#2B1F00',
-            '--md-secondary-container': '#F6E7BC', '--md-tertiary': '#A0522D', '--md-tertiary-container': '#FFDCC2', '--md-glow': 'rgba(184, 134, 11, 0.28)' }
-          : { '--md-primary': '#F2C94C', '--md-on-primary': '#3B2B00', '--md-primary-container': '#5A4300', '--md-on-primary-container': '#FFE29A',
-            '--md-secondary-container': '#4A3B12', '--md-tertiary': '#FFB870', '--md-tertiary-container': '#5C3A12', '--md-glow': 'rgba(242, 201, 76, 0.30)' };
+          ? { '--md-primary': '#8C6B22', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#E9C774', '--md-on-primary-container': '#241A05',
+            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#8C6B22', '--md-tertiary-container': '#F3E2C4', '--md-glow': 'rgba(160, 124, 43, 0.28)' }
+          : { '--md-primary': '#E6BD5C', '--md-on-primary': '#2A2008', '--md-primary-container': '#4F3D12', '--md-on-primary-container': '#EED9A3',
+            '--md-secondary-container': '#3F3313', '--md-tertiary': '#E8C27A', '--md-tertiary-container': '#4C3A16', '--md-glow': 'rgba(230, 189, 92, 0.30)' };
         Object.keys(g).forEach((k) => root.style.setProperty(k, g[k]));
       }
     }
@@ -2232,7 +2247,7 @@
                 <span data-role="card-reset" class="gc-reset">Resets ${escapeHtml(localResetStr)}</span>
               </div>
             </div>
-            <span data-role="card-status-pill" class="status-pill status-${status}"><span class="dot"></span>${statusLabel}</span>
+            <span data-role="card-status-pill" class="status-pill status-${status}">${status === 'completed' ? '<span class="dot-star" aria-hidden="true">★</span>' : '<span class="dot"></span>'}${statusLabel}</span>
           </div>
           <div class="gc-bottom">
             <div class="gc-countdown"><span class="label">Next in</span><span class="time game-countdown" data-game-id="${id}">${timerText}</span></div>
@@ -2965,15 +2980,105 @@
       renderResetSuggestion();
     }
 
+    // ---- Themed drop-downs (calendar game, Score history game) ----
+    // A button in the app's own style opens a list of the <select>'s options; picking one sets the
+    // select and fires its "change", so the rest of the app keeps using the select as before.
+    let themedSelectOpen = null; // { close }
+    function themeSelect(sel) {
+      if (!sel || sel.dataset.themed) return;
+      sel.dataset.themed = '1';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `${sel.className} tsel-btn`;
+      btn.setAttribute('aria-haspopup', 'listbox');
+      btn.setAttribute('aria-expanded', 'false');
+      if (sel.getAttribute('aria-label')) btn.setAttribute('aria-label', sel.getAttribute('aria-label'));
+      btn.innerHTML = '<span class="tsel-label"></span><span class="tsel-chev" aria-hidden="true"></span>';
+      sel.insertAdjacentElement('afterend', btn);
+      sel.classList.add('tsel-native');
+      const refresh = () => {
+        const o = sel.options[sel.selectedIndex];
+        btn.querySelector('.tsel-label').textContent = o ? o.textContent : '';
+      };
+      // The app sets the value in code too: keep the button's label in step.
+      const proto = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+      const protoIdx = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex');
+      try {
+        Object.defineProperty(sel, 'value', { configurable: true, get() { return proto.get.call(this); }, set(v) { proto.set.call(this, v); refresh(); } });
+        Object.defineProperty(sel, 'selectedIndex', { configurable: true, get() { return protoIdx.get.call(this); }, set(v) { protoIdx.set.call(this, v); refresh(); } });
+      } catch (e) {}
+      new MutationObserver(refresh).observe(sel, { childList: true, subtree: true, attributes: true });
+      sel.addEventListener('change', refresh);
+      refresh();
+      btn.addEventListener('click', () => {
+        if (themedSelectOpen) { themedSelectOpen.close(); return; }
+        const menu = document.createElement('div');
+        menu.className = 'tsel-menu';
+        menu.setAttribute('role', 'listbox');
+        if (sel.getAttribute('aria-label')) menu.setAttribute('aria-label', sel.getAttribute('aria-label'));
+        let html = '';
+        const item = (o) => `<button type="button" role="option" class="tsel-item${o.selected ? ' on' : ''}" aria-selected="${o.selected}" data-value="${escapeHtml(o.value)}"${o.disabled ? ' disabled' : ''}>${escapeHtml(o.textContent)}${o.selected ? '<span class="tsel-check" aria-hidden="true">✓</span>' : ''}</button>`;
+        [...sel.children].forEach((c) => {
+          if (c.tagName === 'OPTGROUP') html += `<p class="tsel-group">${escapeHtml(c.label)}</p>` + [...c.children].map(item).join('');
+          else html += item(c);
+        });
+        menu.innerHTML = html;
+        document.body.appendChild(menu);
+        const r = btn.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const below = vh - r.bottom - 12;
+        const above = r.top - 12;
+        const maxH = Math.min(380, Math.max(below, above));
+        menu.style.width = `${Math.max(r.width, 220)}px`;
+        menu.style.left = `${Math.min(Math.max(8, r.left), document.documentElement.clientWidth - Math.max(r.width, 220) - 8)}px`;
+        menu.style.maxHeight = `${maxH}px`;
+        if (below >= Math.min(260, menu.scrollHeight) || below >= above) menu.style.top = `${r.bottom + 6}px`;
+        else menu.style.bottom = `${vh - r.top + 6}px`;
+        btn.setAttribute('aria-expanded', 'true');
+        const on = menu.querySelector('.tsel-item.on');
+        if (on) on.scrollIntoView({ block: 'nearest' });
+        let closed = false;
+        const close = () => {
+          if (closed) return;
+          closed = true;
+          menu.remove();
+          btn.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('pointerdown', outside, true);
+          window.removeEventListener('scroll', onScroll, true);
+          if (themedSelectOpen && themedSelectOpen.close === close) themedSelectOpen = null;
+          syncBackInterceptState();
+        };
+        // Scrolling the page closes it (scrolling the list itself doesn't).
+        const onScroll = (e) => { if (!menu.contains(e.target)) close(); };
+        const outside = (e) => { if (!menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) close(); };
+        menu.addEventListener('click', (e) => {
+          const it = e.target.closest('.tsel-item');
+          if (!it || it.disabled) return;
+          close();
+          if (sel.value !== it.dataset.value) {
+            sel.value = it.dataset.value;
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          haptic('tick');
+        });
+        setTimeout(() => {
+          document.addEventListener('pointerdown', outside, true);
+          window.addEventListener('scroll', onScroll, true);
+        }, 0);
+        themedSelectOpen = { close };
+        syncBackInterceptState();
+      });
+    }
+
     // ---- Folding cards (Settings headings, Achievements) ----
-    // A card with data-fold shows only its first child (the heading) until it's opened. All start
-    // folded; what's opened stays open until the app is closed.
-    const openFolds = new Set();
+    // A card with data-fold shows only its first child (the heading) while folded. Settings cards
+    // start open (data-fold-default="open"), Achievements folded; a choice lasts until the app closes.
+    const foldState = new Map();
     function setFold(card, open) {
       card.classList.toggle('fold-open', open);
       const head = card.querySelector(':scope > .fold-head');
       if (head) head.setAttribute('aria-expanded', String(open));
-      if (open) openFolds.add(card.dataset.fold); else openFolds.delete(card.dataset.fold);
+      foldState.set(card.dataset.fold, open);
     }
     function initFolds() {
       document.querySelectorAll('[data-fold]').forEach((card) => {
@@ -3000,7 +3105,8 @@
         };
         head.addEventListener('click', toggle);
         head.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(e); } });
-        setFold(card, openFolds.has(card.dataset.fold));
+        const name = card.dataset.fold;
+        setFold(card, foldState.has(name) ? foldState.get(name) : card.dataset.foldDefault === 'open');
       });
     }
     /** Opens the folded card an element sits in (before scrolling to it). */
@@ -3252,7 +3358,7 @@
       { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
       { id: 'ocean', label: 'Ocean', bg: ['#E0F7FA', '#CCF2F7'], star: [[0, '#22D3EE'], [1, '#2563EB']], mark: '#FFFFFF' },
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
-      { id: 'gold', label: 'Gold', bg: ['#2A1E06', '#120C02'], star: [[0, '#FFF7CC'], [0.22, '#F7D774'], [0.48, '#C9922B'], [0.68, '#FFE68A'], [1, '#8A5A10']], mark: '#FFFBEA', sparks: '#FFFDF2', locked: true }
+      { id: 'gold', label: 'Gold', bg: ['#221B0D', '#0D0A05'], star: [[0, '#F6E7BF'], [0.22, '#E6BD5C'], [0.48, '#A07C2B'], [0.68, '#EED49A'], [1, '#6E5418']], mark: '#FFF8E8', sparks: '#FFFBF0', locked: true }
     ];
     const earnedTierKeys = () => new Set(Array.isArray(state.achievements) ? state.achievements : []);
     /**
@@ -3618,31 +3724,49 @@
       if (btn) btn.addEventListener('click', () => shareText(monthlyRecapText(), `${label} recap`));
     }
 
+    let achievementsShown = [];
     function renderAchievements() {
       const grid = document.getElementById('achievementsGrid');
       if (!grid) return;
       const all = HubCore.computeAchievements(state.games, state.historyLogs);
+      achievementsShown = all;
       const total = all.reduce((n, a) => n + a.tiers, 0);
       const n = all.reduce((x, a) => x + a.tier, 0);
       const count = document.getElementById('achievementsCount');
       if (count) count.textContent = `${n} of ${total} earned`;
       // What the gold unlocks need is an easter egg: the Achievements card doesn't say.
-      const roman = ['', 'I', 'II'];
-      grid.innerHTML = all.map((a) => {
+      // Every tile is the same size: icon, name and progress. Tap one for what it takes.
+      grid.innerHTML = all.map((a, i) => {
         const nx = a.next;
-        const state = a.tier >= 2 ? 'Both tiers earned' : (a.tier === 1 ? 'Tier I earned' : 'Not earned yet');
-        const prog = nx && !nx.below && nx.target > 1
-          ? `<span class="ach-bar" aria-hidden="true"><span style="width:${Math.round((nx.progress / nx.target) * 100)}%"></span></span><span class="ach-num">${nx.progress.toLocaleString('en-US')} / ${nx.target.toLocaleString('en-US')}</span>` : '';
-        const label = `${a.title}, ${state}. ${nx ? `Next: ${nx.desc}${nx.below ? '' : ` (${nx.progress} of ${nx.target})`}` : a.desc}`;
+        const pct = nx && !nx.below && nx.target > 0 ? Math.round((nx.progress / nx.target) * 100) : 0;
+        const state = a.tier >= 2 ? 'both tiers earned' : (a.tier === 1 ? 'tier 1 earned' : 'not earned yet');
         return `
-        <div class="ach ${a.tier >= 1 ? 'on' : ''} ${a.tier >= 2 ? 'max' : ''}" role="img" aria-label="${escapeHtml(label)}">
-          ${a.tier ? `<span class="ach-tier" aria-hidden="true">${roman[a.tier]}</span>` : ''}
+        <button type="button" class="ach ${a.tier >= 1 ? 'on' : ''} ${a.tier >= 2 ? 'max' : ''}" data-ach-index="${i}" aria-label="${escapeHtml(`${a.title}, ${state}. Show details`)}">
+          ${a.tier >= 2 ? '<span class="ach-star" aria-hidden="true">★</span>' : ''}
           <span class="ach-icon" aria-hidden="true">${a.icon}</span>
           <span class="ach-title">${escapeHtml(a.title)}</span>
-          <span class="ach-desc">${escapeHtml(nx ? nx.desc : a.desc)}</span>
-          ${prog}
+          <span class="ach-bar" aria-hidden="true"><span style="width:${a.tier >= 2 ? 100 : pct}%"></span></span>
+        </button>`;
+      }).join('');
+    }
+    /** The details sheet for one achievement: what each tier takes and how far along it is. */
+    function openAchievementDetails(i) {
+      const a = achievementsShown[i];
+      if (!a) return;
+      document.getElementById('achDetailIcon').textContent = a.icon;
+      document.getElementById('achDetailTitle').textContent = a.title;
+      document.getElementById('achDetailSub').textContent = a.tier >= 2 ? '★ Both tiers earned' : (a.tier === 1 ? 'Tier 1 earned' : 'Not earned yet');
+      const fmt = (v) => Number(v).toLocaleString('en-US');
+      document.getElementById('achDetailTiers').innerHTML = a.tierList.map((t, k) => {
+        const prog = t.earned ? 'Earned' : (t.below ? 'Not yet' : `${fmt(t.progress)} / ${fmt(t.target)}${t.unit ? ` ${t.unit}` : ''}`);
+        const pct = t.earned ? 100 : (t.below || !t.target ? 0 : Math.round((t.progress / t.target) * 100));
+        return `<div class="ach-tier-row ${t.earned ? 'done' : ''}">
+          <div class="ach-tier-head"><span class="ach-tier-name">${k === 1 ? '★ Tier 2' : 'Tier 1'}</span><span class="ach-tier-prog">${escapeHtml(prog)}</span></div>
+          <p class="ach-tier-desc">${escapeHtml(t.desc)}</p>
+          <span class="ach-bar wide" aria-hidden="true"><span style="width:${pct}%"></span></span>
         </div>`;
       }).join('');
+      openModal('modalAchievement');
     }
 
     /** Android share sheet (or the clipboard in a plain browser). */
@@ -4205,6 +4329,36 @@
       try { window.scrollTo({ top: Math.max(0, Math.round(y)), left: 0, behavior: 'instant' }); } catch (e) { window.scrollTo(0, Math.max(0, Math.round(y))); }
     }
 
+    /**
+     * The bottom bar's highlight. It follows a swipe between tabs exactly (same offset, same glide),
+     * so it is already under the new tab when the page arrives.
+     */
+    const NavIndicator = {
+      el() { return document.getElementById('navIndicator'); },
+      rect(tab) {
+        const b = document.querySelector(`.nav-btn[data-nav="${tab}"]`);
+        return b ? { x: b.offsetLeft, y: b.offsetTop, w: b.offsetWidth, h: b.offsetHeight } : null;
+      },
+      /** Between tab `a` (t = 0) and tab `b` (t = 1); `ms`/`ease` animate, otherwise it moves at once. */
+      set(a, b, t, ms, ease) {
+        const el = this.el();
+        const ra = this.rect(a);
+        const rb = this.rect(b || a) || ra;
+        if (!el || !ra) return;
+        const k = Math.max(0, Math.min(1, t || 0));
+        const x = ra.x + (rb.x - ra.x) * k;
+        const w = ra.w + (rb.w - ra.w) * k;
+        el.style.transition = ms ? `transform ${ms}ms ${ease}, width ${ms}ms ${ease}` : 'none';
+        el.style.width = `${w}px`;
+        el.style.height = `${ra.h}px`;
+        el.style.top = `${ra.y}px`;
+        el.style.transform = `translate3d(${x}px,0,0)`;
+        el.style.opacity = '1';
+      },
+      place(tab) { this.set(tab, tab, 0); }
+    };
+    window.addEventListener('resize', () => NavIndicator.place(activeTab));
+
     const Pager = {
       neighbour: null, // { tab, el, dir }
       width() { return (document.documentElement.clientWidth || window.innerWidth || 400) + 24; },
@@ -4244,6 +4398,9 @@
         if (cur) { cur.style.transition = 'none'; cur.style.transform = `translate3d(${dx}px,0,0)`; }
         const n = this.neighbour;
         if (n) n.el.style.transform = `translate3d(${dx + n.dir * this.width()}px,0,0)`;
+        // The bar's highlight slides the same fraction of the way to the neighbouring tab.
+        if (n) NavIndicator.set(activeTab, n.tab, Math.abs(dx) / this.width());
+        else NavIndicator.place(activeTab);
       },
       /** Glides to the neighbour (go) or back (stay), starting at `dx` with release velocity `v` px/ms. */
       settle(dx, v, go, onDone) {
@@ -4260,6 +4417,8 @@
         const tr = `transform ${ms}ms ${ease}`;
         if (cur) { cur.style.transition = tr; cur.style.transform = `translate3d(${target}px,0,0)`; }
         if (n) { n.el.style.transition = tr; n.el.style.transform = `translate3d(${target + n.dir * w}px,0,0)`; }
+        // The highlight glides to the tab the page lands on, with the same timing.
+        if (n) NavIndicator.set(activeTab, n.tab, go ? 1 : 0, ms, ease); else NavIndicator.set(activeTab, activeTab, 0, ms, ease);
         let finished = false;
         const finish = () => {
           if (finished) return;
@@ -4338,13 +4497,14 @@
         const active = btn.getAttribute('data-nav') === normalized;
         if (active) {
           btn.setAttribute('aria-current', 'page');
-          btn.className = 'nav-btn relative flex flex-col items-center justify-center py-1 rounded-full m4-tonal-pill font-bold text-[11px]';
+          btn.className = 'nav-btn nav-on relative flex flex-col items-center justify-center py-1 rounded-full font-bold text-[11px]';
         } else {
           btn.removeAttribute('aria-current');
           btn.className = 'nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]';
         }
       });
 
+      NavIndicator.place(normalized);
       if (!(anim && anim.prepared)) prepareTab(normalized);
       if (previous !== normalized) {
         if (anim && typeof anim.scroll === 'number') jumpScroll(anim.scroll);
@@ -4357,7 +4517,7 @@
       // While a dialog is open the page behind it doesn't scroll (or stretch at its ends).
       document.documentElement.classList.toggle('modal-open', isAnyModalOpen());
       document.documentElement.classList.toggle('qr-open', isModalOpen('modalShareList'));
-      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId) || selectMode;
+      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId) || selectMode || Boolean(themedSelectOpen);
       if (wantsBack === lastBackInterceptState) return;
       lastBackInterceptState = wantsBack;
       try {
@@ -4370,7 +4530,7 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -5014,6 +5174,7 @@
     };
 
     window.handleBackPress = function () {
+      if (themedSelectOpen) { themedSelectOpen.close(); return true; }
       // The visible top layer first: an open modal, then the "Finished?" sheet, then the tab.
       const open = MODAL_IDS.filter(isModalOpen);
       if (open.length) {
@@ -5365,6 +5526,9 @@
       });
 
       initFolds();
+      themeSelect(document.getElementById('calendarGameSelect'));
+      themeSelect(document.getElementById('historyFilterGame'));
+      requestAnimationFrame(() => NavIndicator.place(activeTab));
       if (state.__saveBlocked) showDataProblemBanner();
       document.getElementById('btnDataStartFresh').addEventListener('click', resolveDataProblemStartFresh);
       document.getElementById('btnDataGoImport').addEventListener('click', () => {
@@ -5381,7 +5545,7 @@
         swipe = null;
         if (!e.touches || e.touches.length !== 1 || isAnyModalOpen() || tabAnimating) return;
         const el = e.target;
-        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .m4-floating-dock, .return-sheet')) return;
+        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .m4-floating-dock, .return-sheet, .tsel-menu')) return;
         swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false };
       }, { passive: true });
 
@@ -5837,6 +6001,10 @@
       document.getElementById('btnCopyToday').addEventListener('click', copyTodaysResults);
       document.getElementById('btnResetSuggestApply').addEventListener('click', applyResetSuggestion);
       document.getElementById('btnBrowseGames').addEventListener('click', openBrowseGames);
+      document.getElementById('achievementsGrid').addEventListener('click', (e) => {
+        const b = e.target.closest && e.target.closest('[data-ach-index]');
+        if (b) openAchievementDetails(Number(b.getAttribute('data-ach-index')));
+      });
       document.getElementById('removedGames').addEventListener('click', (e) => {
         const b = e.target.closest && e.target.closest('[data-removed-id]');
         if (b) pickRemovedGame(b.getAttribute('data-removed-id'));
