@@ -10,6 +10,8 @@
     // so there is zero layout shift or theming lag on startup.
     (function () {
       const root = document.documentElement;
+      // The web version (no Android app around the page): Android-only settings are hidden.
+      if (!window.AndroidBridge) root.classList.add('web');
       let amoled = false;
       let useDynamic = true;
       let cachedPalette = null;
@@ -68,6 +70,7 @@
       root.classList.toggle('dark', !light);
       if (light) amoled = false;
       root.setAttribute('data-amoled', amoled ? 'true' : 'false');
+      if (!window.AndroidBridge) useDynamic = false;
       root.setAttribute('data-m4-seed', useDynamic ? 'wallpaper' : 'iris');
       window.__INITIAL_WALLPAPER_PALETTE__ = cachedPalette;
       // The wallpaper palette carries dark tones at the top level and light tones under "light".
@@ -209,7 +212,7 @@
           <p class="pn-name" id="playNextName" dir="auto"></p>
         </div>
         <span class="pn-left" id="playNextLeft"></span>
-        <button id="btnPlayAll" type="button" class="pn-all hidden">Play all</button>
+        <button id="btnPlayAll" type="button" class="pn-all android-only hidden">Play all</button>
         <button id="btnPlayNext" type="button" class="play-btn m4-primary-fab">Play next</button>
       </div>
       <div id="gamesGrid" class="space-y-2.5"></div>
@@ -350,7 +353,7 @@
             </select>
           </div>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Match Device Wallpaper Colors</p>
               <p class="text-[11px] text-slate-400">Use phone wallpaper colors</p>
@@ -360,7 +363,7 @@
 
           <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 sm:col-span-3">
             <p class="font-bold text-white">Color Theme</p>
-            <p class="text-[11px] text-slate-400">Your wallpaper's colors, a preset, or pick your own accent</p>
+            <p class="text-[11px] text-slate-400"><span class="android-only">Your wallpaper's colors, a preset, or pick your own accent</span><span class="web-only">A preset, or pick your own accent</span></p>
             <div id="themeChoices" class="theme-choices" role="radiogroup" aria-label="Color theme"></div>
             <input id="customAccentInput" type="color" value="#1E88C8" class="sr-only" tabindex="-1" aria-hidden="true" />
           </div>
@@ -381,7 +384,7 @@
             <input id="settingCompactCards" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 sm:col-span-3">
+          <div class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 sm:col-span-3">
             <p class="font-bold text-white">App Icon</p>
             <p class="text-[11px] text-slate-400">Changes when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
             <div id="iconChoices" class="icon-choices" role="radiogroup" aria-label="App icon"></div>
@@ -456,7 +459,7 @@
       </div>
 
       <!-- Game Player: share capture + ad blocking -->
-      <div data-fold="player" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="player" data-fold-default="open" class="android-only glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-shield section-icon" aria-hidden="true"></span>Game Player</span>
@@ -495,7 +498,7 @@
       </div>
 
       <!-- 3. Daily Game Refresh Notification Engine -->
-      <div data-fold="alerts" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-indigo-500/30">
+      <div data-fold="alerts" data-fold-default="open" class="android-only glass-card rounded-2xl p-4 border border-indigo-500/30">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800">
           <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -543,7 +546,7 @@
           <button id="btnShareGameList" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
           <button id="btnSettingsChanges" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">↶ Recent changes (undo)</button>
         </div>
-        <div id="autoBackupBlock" class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs space-y-2.5">
+        <div id="autoBackupBlock" class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs space-y-2.5">
           <div>
             <p class="font-bold text-white">Weekly Automatic Backup</p>
             <p id="autoBackupStatus" class="text-[11px] text-slate-400 mt-0.5">Off. Choose a folder and Dailies saves a backup there every week (the last 5 are kept).</p>
@@ -571,14 +574,14 @@
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-info section-icon" aria-hidden="true"></span>About</h3>
           <p id="aboutVersion" class="text-xs text-slate-400">Dailies</p>
         </div>
-        <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer text-xs">
+        <label class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer text-xs">
           <div>
             <p class="font-bold text-white">Check for Updates</p>
             <p class="text-[11px] text-slate-400">Once a day, ask GitHub if a newer version is out. Nothing about you is sent.</p>
           </div>
           <input id="settingUpdateCheck" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
         </label>
-        <div class="flex items-center gap-2 text-xs">
+        <div class="android-only flex items-center gap-2 text-xs">
           <button id="btnCheckUpdateNow" type="button" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Check now</button>
           <p id="updateCheckResult" class="text-[11px] text-slate-400" role="status" aria-live="polite"></p>
         </div>
@@ -939,7 +942,8 @@
       <div class="return-actions">
         <button type="button" data-return-action="solved" class="return-btn primary icon-label"><span class="ico ico-solved ico-lg" aria-hidden="true"></span>Solved</button>
         <button type="button" data-return-action="missed" class="return-btn icon-label"><span class="ico ico-missed ico-lg" aria-hidden="true"></span>Missed</button>
-        <button type="button" data-return-action="details" class="return-btn icon-label"><span class="ico ico-paste ico-lg" aria-hidden="true"></span>Score</button>
+        <button type="button" data-return-action="details" class="return-btn icon-label android-only"><span class="ico ico-paste ico-lg" aria-hidden="true"></span>Score</button>
+        <button type="button" data-return-action="paste" class="return-btn icon-label web-only"><span class="ico ico-paste ico-lg" aria-hidden="true"></span>Paste</button>
       </div>
     </div>
   </div>
@@ -1083,6 +1087,9 @@
     const getCycleDateKey = HubCore.getCycleDateKey;
     const cycleKeyToDay = HubCore.cycleKeyToDay;
     const addDaysToCycleKey = HubCore.addDaysToCycleKey;
+
+    /** The web version: no Android app around the page (see web/README.md). */
+    const IS_WEB = !window.AndroidBridge;
 
     // Recent changes kept for undo (1.6.0); used while loading the saved state, so defined first.
     const CHANGES_MAX = 25;
@@ -1630,7 +1637,8 @@
     function validHex(v) { return /^#[0-9a-f]{6}$/i.test(String(v || '')); }
     function colorThemeId() {
       const s = state.settings || {};
-      if (s.dynamicWallpaper !== false) return 'wallpaper';
+      if (s.dynamicWallpaper !== false && !IS_WEB) return 'wallpaper';
+      if (s.dynamicWallpaper !== false) return 'iris';
       return COLOR_THEMES.some((t) => t.id === s.themeSeed && t.id !== 'wallpaper') ? s.themeSeed : 'iris';
     }
     /** The seed colour of the chosen theme, or null for Wallpaper and Iris (the built-in colours). */
@@ -1647,7 +1655,7 @@
       const cur = colorThemeId();
       const light = isLightTheme();
       const wp = deviceWallpaperPalette && (light ? (deviceWallpaperPalette.light || {}) : deviceWallpaperPalette);
-      box.innerHTML = COLOR_THEMES.map((t) => {
+      box.innerHTML = COLOR_THEMES.filter((t) => !(IS_WEB && t.id === 'wallpaper')).map((t) => {
         const on = t.id === cur;
         let swatch;
         if (t.id === 'wallpaper') {
@@ -1748,7 +1756,7 @@
       const seedHex = s.dynamicWallpaper && palette ? null : themeSeedHex();
       const themeTokens = seedHex ? HubCore.themeTokens(seedHex, light) : null;
       if (themeTokens) Object.keys(themeTokens).forEach((k) => root.style.setProperty(k, themeTokens[k]));
-      root.setAttribute('data-color-theme', themeTokens ? colorThemeId() : (s.dynamicWallpaper && palette ? 'wallpaper' : 'iris'));
+      root.setAttribute('data-accent', themeTokens ? colorThemeId() : (s.dynamicWallpaper && palette ? 'wallpaper' : 'iris'));
       // Remembered for the next launch, so the first frame already has these colours.
       try {
         if (themeTokens) localStorage.setItem('dailydeck_theme_tokens_v1', JSON.stringify({ light, tokens: themeTokens }));
@@ -2474,7 +2482,7 @@
         grid.innerHTML = noGamesAtAll ? `
           <div class="glass-card rounded-2xl p-6 text-center border border-slate-800">
             <p class="text-base font-bold text-white">No games yet</p>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">Tap <strong class="text-slate-200">+ Add Game</strong> and paste a daily game's link, or share a link to Dailies from your browser.</p>
+            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">Tap <strong class="text-slate-200">+ Add Game</strong> and paste a daily game's link${IS_WEB ? ', or pick one from the list of popular games' : ', or share a link to Dailies from your browser'}.</p>
           </div>
         ` : `
           <div class="glass-card rounded-2xl p-6 text-center border border-slate-800">
@@ -3600,6 +3608,10 @@
         }
       } catch (e) {}
 
+      if (window.DailiesWeb && typeof window.DailiesWeb.openGame === 'function') {
+        window.DailiesWeb.openGame(game.id, game.url);
+        return;
+      }
       window.open(game.url, '_blank', 'noopener,noreferrer');
     }
 
@@ -4168,6 +4180,14 @@
         if (png && b && typeof b.shareImage === 'function') {
           b.shareImage(png.replace(/^data:image\/png;base64,/, ''), `${data.title} in Dailies`, text);
           return;
+        }
+        if (png && navigator.canShare) {
+          const blob = await (await fetch(png)).blob();
+          const file = new File([blob], 'dailies-recap.png', { type: 'image/png' });
+          if (navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file], title: `${data.title} in Dailies`, text }); } catch (e) { if (e && e.name === 'AbortError') return; throw e; }
+            return;
+          }
         }
       } catch (e) {}
       shareText(text, `${data.title} in Dailies`);
@@ -5573,6 +5593,24 @@
       const captured = returnPromptShareText;
       returnPromptShareText = '';
       const opts = cycleKey ? { cycleKey } : undefined;
+      if (action === 'paste') {
+        // The web version: the copied share text, read on this tap (iPhone asks to allow Paste).
+        let clip = captured;
+        if (!clip) {
+          try { clip = navigator.clipboard && navigator.clipboard.readText ? await navigator.clipboard.readText() : ''; } catch (e) { clip = ''; }
+        }
+        clip = String(clip || '').replace(/\r\n/g, '\n').trim();
+        if (clip && HubCore.isStrictShareResult(clip, game)) {
+          autoLogShareResult(game, clip, cycleKey || getCycleDateKey(game.resetTime, game.resetZone));
+          setTimeout(() => offerNextGame(game.id), 250);
+          return;
+        }
+        openLogModal(game.id, opts);
+        const box = document.getElementById('inputLogScoreText');
+        if (box && clip && HubCore.looksLikeShareResult(clip, game)) box.value = clip;
+        if (!clip) showToast('Nothing to paste', `Copy your result in ${game.name} first, or type it here.`, 'indigo');
+        return;
+      }
       if (action === 'solved') { recordGameOutcome(game.id, 'completed', captured, opts); setTimeout(() => offerNextGame(game.id), 250); }
       else if (action === 'missed') { recordGameOutcome(game.id, 'missed', '', opts); setTimeout(() => offerNextGame(game.id), 250); }
       else if (action === 'details') {

@@ -1,0 +1,15 @@
+/* Dailies web app only (web/build.mjs links it). */
+.web-install-hint {
+  position: fixed; left: 12px; right: 12px; z-index: 60; margin: 0 auto; max-width: 28rem;
+  bottom: calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 88px);
+  display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 16px; border-radius: 20px;
+  background: color-mix(in srgb, var(--md-primary-container) 30%, var(--md-container-high));
+  border: 1px solid color-mix(in srgb, var(--md-primary) 45%, transparent);
+  color: var(--md-on-primary-container); box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.5);
+  font-size: 12.5px; line-height: 1.4;
+}
+.web-install-hint .wih-text { flex: 1 1 auto; min-width: 0; }
+.web-install-hint .wih-share { display: inline-flex; vertical-align: -2px; }
+.web-install-hint .wih-go { flex-shrink: 0; padding: 7px 14px; border-radius: 9999px; font-weight: 700; color: var(--md-on-primary); background: var(--md-primary); }
+.web-install-hint .wih-x { flex-shrink: 0; width: 30px; height: 30px; border-radius: 10px; color: inherit; background: color-mix(in srgb, var(--md-primary) 16%, transparent); }
+html[data-theme="light"] .web-install-hint { background: color-mix(in srgb, var(--md-primary-container) 55%, var(--md-container)); }

@@ -1603,3 +1603,7 @@ html[data-gold="true"] .app-toast .toast-title {
 html[data-gold="true"] .app-toast .toast-msg { color: color-mix(in srgb, #DCC273 75%, transparent); }
 html[data-gold="true"][data-theme="light"] .app-toast .toast-msg { color: #4A3D22; }
 html[data-gold="true"] .app-toast .toast-close { color: #D1AB48; background: rgba(209, 171, 72, 0.14); }
+
+/* The web version (html.web, no Android app): Android-only settings hidden; web-only controls shown. */
+html.web .android-only { display: none !important; }
+html:not(.web) .web-only { display: none !important; }
