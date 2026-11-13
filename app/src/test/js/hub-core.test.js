@@ -253,8 +253,9 @@ test('1.2.0: play times, records, achievements and monthly recap', () => {
   for (let d = 1; d <= 9; d++) logs.push({ date: day(d), gameId: 'a', gameName: 'Wordle', outcome: 'Completed', score: d === 2 ? '2/6' : '4/6', streak: d, timeMs: d === 3 ? 50000 : 0 });
   const ach = core.computeAchievements([{ id: 'a', bestStreak: 9, dayHistory: hist(1, 9) }], logs);
   const earned = ach.filter((a) => a.earned).map((a) => a.id);
-  assert.deepEqual(earned.sort(), ['first', 'lucky', 'perfectWeek', 'speed', 'streak7'].sort());
-  assert.equal(ach.find((a) => a.id === 'solves10').progress, 9);
+  // 2/6 on the 2nd beat the 4/6 before it: a personal best.
+  assert.deepEqual(earned.sort(), ['first', 'lucky', 'perfectWeek', 'records', 'roll', 'speed']);
+  assert.equal(ach.find((a) => a.id === 'started').next.progress, 9);
 
   const recap = core.monthlyRecap(logs.concat([{ date: '2026-10-31', gameName: 'Wordle', outcome: 'Completed', score: '1/6' }]), 2026, 10);
   assert.equal(recap.results, 9);
@@ -377,4 +378,39 @@ test('1.4.0 review: score parsing', () => {
   assert.equal(core.puzzleNumber('Moviedle #2026-11-13'), null);
   assert.equal(core.isFailedShareResult('Daily Quordle 1389\n🟥🟥\n6️⃣4️⃣'), true);
   assert.equal(core.isFailedShareResult('I failed to resist: Wordle 1,234 3/6'), false);
+});
+
+test('1.5.0: two-tier achievements, old badges carried over', () => {
+  assert.equal(core.ACHIEVEMENTS.length, 19);
+  assert.equal(core.ALL_TIER_KEYS.length, 38);
+  assert.deepEqual(core.migrateAchievementKeys(['first', 'solves100', 'streak365', 'speed', 'roll#2', 'future#1', 42]).sort(),
+    ['centurion#1', 'centurion#2', 'first#1', 'future#1', 'roll#2', 'speed#1', 'started#1', 'started#2'].sort());
+
+  const day = (n) => `2026-11-${String(n).padStart(2, '0')}`;
+  // Midnight-UTC game: one solve 10 min after the reset, one 20 min before the next.
+  const g = { id: 'a', name: 'A', resetTime: '00:00', resetZone: 'utc', bestStreak: 3,
+    dayHistory: { [day(2)]: 'missed', [day(3)]: 'completed', [day(4)]: 'completed', [day(7)]: 'completed', [day(8)]: 'completed' } };
+  const rows = [
+    { gameId: 'a', date: day(3), outcome: 'Completed', score: 'A #3 1/6', loggedAt: Date.parse('2026-11-03T00:10:00Z'), timeMs: 15000 },
+    { gameId: 'a', date: day(4), outcome: 'Completed', score: 'A #4 3/6', loggedAt: Date.parse('2026-11-04T23:40:00Z') }
+  ];
+  const m = core.achievementMetrics([g], rows);
+  assert.equal(m.early, 1);
+  assert.equal(m.late, 1);
+  assert.equal(m.holeInOne, 1);
+  assert.equal(m.lucky, 1);
+  assert.equal(m.bounces, 1);
+  assert.equal(m.weekends, 1, 'Sat 7th and Sun 8th');
+  assert.equal(m.fastest, 15000);
+  const ach = core.computeAchievements([g], rows);
+  const speed = ach.find((a) => a.id === 'speed');
+  assert.equal(speed.tier, 2, 'under 20 seconds');
+  assert.deepEqual(speed.keys, ['speed#1', 'speed#2']);
+  assert.equal(speed.next, null);
+  const first = ach.find((a) => a.id === 'first');
+  assert.equal(first.tier, 1);
+  assert.deepEqual(first.next, { desc: 'Solve a puzzle in 5 different games', progress: 1, target: 5, below: false });
+  // Clean sweep needs at least 3 games, all solved on the day.
+  const three = ['a', 'b', 'c'].map((id) => ({ id, dayHistory: { [day(1)]: 'completed', [day(2)]: id === 'c' ? 'missed' : 'completed' } }));
+  assert.equal(core.achievementMetrics(three, []).sweeps, 1);
 });

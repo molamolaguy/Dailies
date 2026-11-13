@@ -1,3 +1,29 @@
+# Dailies 1.5.0
+
+An update with more achievements and a tidier layout. It installs over 1.4.0 and keeps your games, streaks, history and earned achievements. If you're on 1.4.0, you can install it from **Settings → About → Check now**.
+
+## What's new since 1.4.0
+| | 1.4.0 | 1.5.0 |
+|---|---|---|
+| **Achievements** | 14 badges | 19 achievements with two tiers each (38 in all). New: Early bird, Night owl, Hole in one, Record breaker, Clean sweep, Bounce back, Regular, Marathon and Weekend warrior. Badges that overlapped were merged into tiers (Getting started II is 100 solves) |
+| **Gold app icon** | Every achievement | The first tier of every achievement |
+| **Gold accents** | — | New: earn every tier to unlock gold accents across the app (Settings → Display → Gold Accents), in the dark, light and AMOLED themes |
+| **Achievements section** | Always open | Folded by default; tap to open |
+| **Settings** | Every section open | Each heading folds; all start folded |
+| **Removed games** | Re-add by pasting the link again | **Add Game → Add back a removed game** lists the 5 most recently removed games, with their streaks and history |
+
+## Also changed
+- Achievements you've already earned carry over as the matching tiers, and earned tiers are never taken away.
+- Once the Gold icon or gold accents are unlocked they stay unlocked, including after a restore and when a later update adds new achievements.
+- Backups now also keep the gold accents unlock.
+- Only the 5 most recently removed games are kept for adding back. Results you logged for older removed games stay in Score history, but those games no longer appear in the calendar.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.4.0
 
 A feature update. It installs over 1.3.0 and keeps your games, streaks and history. If you're on 1.3.0, you can install it from **Settings → About → Check now**.

@@ -1,0 +1,5 @@
+1.5.0
+• 19 achievements, each with two tiers, including 9 new ones.
+• Gold icon: earn every tier I. Gold accents: earn every tier II.
+• Achievements and Settings sections fold to save space.
+• Add back any of your 5 most recently removed games from Add Game.

@@ -128,7 +128,7 @@
               </g>
             </svg>
             </span>
-            Dailies
+            <span class="hub-title-text">Dailies</span>
           </span>
           <span><strong id="kpiReadyCount" class="text-emerald-400 font-semibold">0</strong> ready</span>
           <span>·</span>
@@ -259,12 +259,13 @@
       <!-- Monthly recap (follows the calendar's month) -->
       <div id="recapCard" class="glass-card rounded-2xl p-4 border border-slate-800"></div>
 
-      <!-- Achievements -->
-      <div class="glass-card rounded-2xl p-4 border border-slate-800">
-        <div class="flex items-center justify-between gap-2 mb-3">
+      <!-- Achievements (folded by default) -->
+      <div data-fold="achievements" class="glass-card rounded-2xl p-4 border border-slate-800">
+        <div class="flex items-center justify-between gap-2">
           <h3 class="text-base font-bold text-white">Achievements</h3>
-          <span id="achievementsCount" class="text-xs text-slate-400"></span>
+          <span id="achievementsCount" class="text-xs text-slate-400 ml-auto"></span>
         </div>
+        <p id="achievementsGoldHint" class="ach-gold-hint"></p>
         <div id="achievementsGrid" class="ach-grid"></div>
       </div>
 
@@ -302,7 +303,7 @@
     <!-- View 3: SETTINGS & REFRESH ALERTS TAB -->
     <section id="viewSettings" class="hidden space-y-4">
       <!-- 1. Display Settings -->
-      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="display" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-palette section-icon" aria-hidden="true"></span>Display</span>
@@ -353,6 +354,14 @@
             <p id="iconGoldHint" class="text-[11px] text-amber-300/90 mt-1"></p>
           </div>
 
+          <label id="goldAccentsRow" class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
+            <div>
+              <p class="font-bold text-white">👑 Gold Accents</p>
+              <p id="goldAccentsHint" class="text-[11px] text-slate-400">Gold highlights across the app</p>
+            </div>
+            <input id="settingGoldAccents" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Group Finished Games</p>
@@ -364,7 +373,7 @@
       </div>
 
       <!-- 2. Gameplay, Streaks & Local Time Settings -->
-      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="gameplay" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div class="min-w-0">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -413,7 +422,7 @@
       </div>
 
       <!-- Game Player: share capture + ad blocking -->
-      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="player" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-shield section-icon" aria-hidden="true"></span>Game Player</span>
@@ -452,7 +461,7 @@
       </div>
 
       <!-- 3. Daily Game Refresh Notification Engine -->
-      <div class="glass-card rounded-2xl p-4 border border-indigo-500/30">
+      <div data-fold="alerts" class="glass-card rounded-2xl p-4 border border-indigo-500/30">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800">
           <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -485,7 +494,7 @@
       </div>
 
       <!-- 4. Data & Backup Management -->
-      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="data" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-save section-icon" aria-hidden="true"></span>Data &amp; Backup</h3>
           <p class="text-xs text-slate-400">Export or import your backup file.</p>
@@ -513,7 +522,7 @@
       </div>
 
       <!-- Archived games -->
-      <div id="archivedCard" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="archived" id="archivedCard" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white">Archived Games</h3>
           <p class="text-xs text-slate-400">Hidden from the hub, with no alerts. Their history and stats are kept.</p>
@@ -522,7 +531,7 @@
       </div>
 
       <!-- 5. About & updates -->
-      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="about" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-info section-icon" aria-hidden="true"></span>About</h3>
           <p id="aboutVersion" class="text-xs text-slate-400">Dailies</p>
@@ -572,6 +581,7 @@
             <button id="btnAutoDetectMeta" type="button" class="px-3 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold shrink-0">Scrape Site</button>
           </div>
           <button id="btnBrowseGames" type="button" class="mt-2 text-xs font-semibold text-indigo-300 underline-offset-2 hover:underline">Or pick from popular daily games</button>
+          <div id="removedGames" class="removed-games hidden"></div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -967,7 +977,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.4.0';
+    const APP_VERSION = '1.5.0';
     const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
 
     const TIME_FMT_12 = (() => {
@@ -1014,7 +1024,8 @@
         iconFollowsTheme: false,
         appIcon: '',
         streakReminderMinutes: 0,
-        updateCheck: false
+        updateCheck: false,
+        goldAccents: false
       };
     }
 
@@ -1111,7 +1122,24 @@
         bestStreak: Math.max(0, parseInt(r.bestStreak, 10) || 0), streak: 0
       };
       if (r.statsBaseline && typeof r.statsBaseline === 'object') out.statsBaseline = r.statsBaseline;
+      if (Number(r.removedAt) > 0) out.removedAt = Number(r.removedAt);
       return out;
+    }
+    /** When a removed game was removed (older copies: its last played day). */
+    function retainedRemovedAt(r) {
+      if (Number(r.removedAt) > 0) return Number(r.removedAt);
+      const last = Object.keys(r.dayHistory || {}).sort().pop();
+      return last ? Date.parse(`${last}T12:00:00`) || 0 : 0;
+    }
+    const MAX_REMOVED_GAMES = 5;
+    /** Keeps the 5 most recently removed games (each is stored under its id and its link). */
+    function pruneRetainedMap(map) {
+      const byId = new Map();
+      Object.keys(map).forEach((k) => { const r = map[k]; if (r && r.id && !byId.has(r.id)) byId.set(r.id, r); });
+      const keep = new Set([...byId.values()].sort((a, b) => retainedRemovedAt(b) - retainedRemovedAt(a))
+        .slice(0, MAX_REMOVED_GAMES).map((r) => r.id));
+      Object.keys(map).forEach((k) => { if (!map[k] || !keep.has(map[k].id)) delete map[k]; });
+      return map;
     }
     function normalizeRetainedMap(raw) {
       const out = {};
@@ -1120,7 +1148,39 @@
         const r = normalizeRetained(raw[k]);
         if (r) out[k] = r;
       });
-      return out;
+      return pruneRetainedMap(out);
+    }
+    /** Removed games that could be added back (newest first), not ones already in the hub again. */
+    function removedGamesList() {
+      const seen = new Set();
+      const inHub = new Set(state.games.map((g) => normalizeUrlKey(g.url)));
+      return Object.values(state.retainedGameStats || {})
+        .filter((r) => r && r.id && !seen.has(r.id) && seen.add(r.id) && !inHub.has(normalizeUrlKey(r.url)))
+        .sort((a, b) => retainedRemovedAt(b) - retainedRemovedAt(a))
+        .slice(0, MAX_REMOVED_GAMES);
+    }
+    function renderRemovedGames() {
+      const box = document.getElementById('removedGames');
+      if (!box) return;
+      const editing = Boolean(document.getElementById('editGameId').value);
+      const list = editing ? [] : removedGamesList();
+      box.classList.toggle('hidden', !list.length);
+      if (!list.length) { box.innerHTML = ''; return; }
+      box.innerHTML = `<p class="removed-title">Add back a removed game</p>` + list.map((r) => {
+        const played = Object.values(r.dayHistory || {}).filter((v) => v === 'completed').length;
+        const when = retainedRemovedAt(r) ? new Date(retainedRemovedAt(r)).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+        return `<button type="button" class="removed-game" data-removed-id="${escapeHtml(r.id)}">
+          <img src="${escapeHtml(r.icon || getDefaultFaviconUrl(r.url))}" alt="" class="removed-icon" loading="lazy" referrerpolicy="no-referrer" />
+          <span class="removed-text"><span class="removed-name">${escapeHtml(r.name)}</span>
+          <span class="removed-sub">${escapeHtml([when && `Removed ${when}`, played ? `${played} solved` : '', r.bestStreak ? `best streak ${r.bestStreak}` : ''].filter(Boolean).join(' · '))}</span></span>
+          <span class="removed-add">Add back</span></button>`;
+      }).join('');
+    }
+    /** Fills the Add form with a removed game; saving it restores its streaks and history. */
+    function pickRemovedGame(id) {
+      const r = Object.values(state.retainedGameStats || {}).find((x) => x && x.id === id);
+      if (!r) return;
+      openAddOrEditModal({ url: r.url, name: r.name, icon: r.icon, resetTime: r.resetTime, resetZone: r.resetZone }, null);
     }
 
     function hasNativeStore() {
@@ -1243,8 +1303,10 @@
         retainedGameStats: normalizeRetainedMap(parsed.retainedGameStats),
         historyLogs: logs,
         notifications: Array.isArray(parsed.notifications) ? parsed.notifications.slice(0, 50) : [],
-        achievements: Array.isArray(parsed.achievements) ? parsed.achievements.filter((a) => typeof a === 'string').slice(0, 100) : undefined,
+        // Earned achievement tiers ("roll#2"); 1.4.0's one-badge ids become their tiers.
+        achievements: Array.isArray(parsed.achievements) ? HubCore.migrateAchievementKeys(parsed.achievements).slice(0, 200) : undefined,
         goldUnlocked: parsed.goldUnlocked === true,
+        goldAccentsUnlocked: parsed.goldAccentsUnlocked === true,
         __loadedFrom: source
       };
     }
@@ -1511,6 +1573,17 @@
         set('--md-tertiary-container', 'tertiaryContainer');
       } else {
         props.forEach((p) => root.style.removeProperty(p));
+      }
+      // Gold accents (every achievement tier earned): gold in place of the theme's main colour.
+      const gold = goldAccentsOn();
+      root.setAttribute('data-gold', gold ? 'true' : 'false');
+      if (gold) {
+        const g = light
+          ? { '--md-primary': '#8A6100', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#FFE08A', '--md-on-primary-container': '#2B1F00',
+            '--md-secondary-container': '#F6E7BC', '--md-tertiary': '#A0522D', '--md-tertiary-container': '#FFDCC2', '--md-glow': 'rgba(184, 134, 11, 0.28)' }
+          : { '--md-primary': '#F2C94C', '--md-on-primary': '#3B2B00', '--md-primary-container': '#5A4300', '--md-on-primary-container': '#FFE29A',
+            '--md-secondary-container': '#4A3B12', '--md-tertiary': '#FFB870', '--md-tertiary-container': '#5C3A12', '--md-glow': 'rgba(242, 201, 76, 0.30)' };
+        Object.keys(g).forEach((k) => root.style.setProperty(k, g[k]));
       }
     }
 
@@ -2893,6 +2966,50 @@
       renderResetSuggestion();
     }
 
+    // ---- Folding cards (Settings headings, Achievements) ----
+    // A card with data-fold shows only its first child (the heading) until it's opened. All start
+    // folded; what's opened stays open until the app is closed.
+    const openFolds = new Set();
+    function setFold(card, open) {
+      card.classList.toggle('fold-open', open);
+      const head = card.querySelector(':scope > .fold-head');
+      if (head) head.setAttribute('aria-expanded', String(open));
+      if (open) openFolds.add(card.dataset.fold); else openFolds.delete(card.dataset.fold);
+    }
+    function initFolds() {
+      document.querySelectorAll('[data-fold]').forEach((card) => {
+        const head = card.firstElementChild;
+        if (!head || head.classList.contains('fold-head')) return;
+        card.classList.add('fold');
+        head.classList.add('fold-head');
+        head.setAttribute('role', 'button');
+        head.setAttribute('tabindex', '0');
+        head.setAttribute('aria-expanded', 'false');
+        // Folded, the heading shows only its title: descriptions, the clock and buttons wait until it's opened.
+        [...head.children].forEach((c) => { if (c.tagName !== 'H3' && !c.querySelector('h3')) c.classList.add('fold-extra'); });
+        head.querySelectorAll('p').forEach((c) => c.classList.add('fold-extra'));
+        const chev = document.createElement('span');
+        chev.className = 'fold-chev';
+        chev.setAttribute('aria-hidden', 'true');
+        head.appendChild(chev);
+        const toggle = (e) => {
+          // Controls inside the heading (Reset Alerts' switch) keep working without folding.
+          if (e.target.closest && e.target.closest('input, select, button, a, label') && e.target.closest('.fold-head') === head
+            && !e.target.closest('.fold-chev')) return;
+          setFold(card, !card.classList.contains('fold-open'));
+          haptic('tick');
+        };
+        head.addEventListener('click', toggle);
+        head.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(e); } });
+        setFold(card, openFolds.has(card.dataset.fold));
+      });
+    }
+    /** Opens the folded card an element sits in (before scrolling to it). */
+    function revealFold(el) {
+      const card = el && el.closest ? el.closest('[data-fold]') : null;
+      if (card && !card.classList.contains('fold-open')) setFold(card, true);
+    }
+
     // ---- Copy today's results ----
     const TODAY_RESULTS_DIVIDER = '\n\n— — —\n\n';
     /** Today's solved results as logged (formatting kept), in the hub's order. */
@@ -3138,16 +3255,42 @@
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
       { id: 'gold', label: 'Gold', bg: ['#2A1E06', '#120C02'], star: [[0, '#FFF7CC'], [0.22, '#F7D774'], [0.48, '#C9922B'], [0.68, '#FFE68A'], [1, '#8A5A10']], mark: '#FFFBEA', sparks: '#FFFDF2', locked: true }
     ];
+    const earnedTierKeys = () => new Set(Array.isArray(state.achievements) ? state.achievements : []);
     /**
-     * True once every achievement has been earned. Remembered (state.goldUnlocked, kept in backups),
-     * so the icon stays unlocked after a restore or when a later version adds achievements.
+     * The Gold app icon: every achievement's first tier earned. Remembered (state.goldUnlocked, kept
+     * in backups), so it stays unlocked after a restore and when a later version adds achievements.
      */
     function goldIconUnlocked() {
       if (state.goldUnlocked === true) return true;
-      const have = new Set(Array.isArray(state.achievements) ? state.achievements : []);
-      const all = HubCore.ACHIEVEMENTS.every((a) => have.has(a.id));
+      const have = earnedTierKeys();
+      const all = HubCore.TIER1_KEYS.every((k) => have.has(k));
       if (all) state.goldUnlocked = true;
       return all;
+    }
+    /** Gold accents: every tier of every achievement earned. Remembered the same way. */
+    function goldAccentsUnlocked() {
+      if (state.goldAccentsUnlocked === true) return true;
+      const have = earnedTierKeys();
+      const all = HubCore.ALL_TIER_KEYS.every((k) => have.has(k));
+      if (all) state.goldAccentsUnlocked = true;
+      return all;
+    }
+    const goldAccentsOn = () => Boolean(state.settings && state.settings.goldAccents) && goldAccentsUnlocked();
+    function renderGoldAccentsSetting() {
+      const el = document.getElementById('settingGoldAccents');
+      if (!el) return;
+      const unlocked = goldAccentsUnlocked();
+      el.disabled = !unlocked;
+      el.checked = goldAccentsOn();
+      const row = document.getElementById('goldAccentsRow');
+      if (row) row.classList.toggle('locked', !unlocked);
+      const hint = document.getElementById('goldAccentsHint');
+      if (hint) {
+        const have = earnedTierKeys();
+        const n = HubCore.ALL_TIER_KEYS.filter((k) => have.has(k)).length;
+        hint.textContent = unlocked ? 'Gold highlights across the app, in every theme'
+          : `🔒 Unlocks when you earn every achievement tier (${n} of ${HubCore.ALL_TIER_KEYS.length} so far)`;
+      }
     }
     /** The chosen style ("" means the 1.2–1.3 switch decides), never a locked one. */
     function currentAppIcon() {
@@ -3189,16 +3332,16 @@
       }).join('');
       const hint = document.getElementById('iconGoldHint');
       if (hint) {
-        const have = new Set(Array.isArray(state.achievements) ? state.achievements : []);
-        const n = HubCore.ACHIEVEMENTS.filter((a) => have.has(a.id)).length;
-        hint.textContent = unlocked ? '' : `Gold unlocks when you earn every achievement (${n} of ${HubCore.ACHIEVEMENTS.length} so far).`;
+        const have = earnedTierKeys();
+        const n = HubCore.TIER1_KEYS.filter((k) => have.has(k)).length;
+        hint.textContent = unlocked ? '' : `Gold unlocks when you earn the first tier of every achievement (${n} of ${HubCore.TIER1_KEYS.length} so far).`;
       }
     }
     function chooseAppIcon(style) {
       const st = ICON_STYLES.find((x) => x.id === style);
       if (!st) return;
       if (st.locked && !goldIconUnlocked()) {
-        showToast('Gold is locked', 'Earn every achievement (Streaks & Log) to unlock the gold icon.', 'indigo');
+        showToast('Gold is locked', 'Earn the first tier of every achievement (Streaks & Log) to unlock the gold icon.', 'indigo');
         return;
       }
       if (!state.settings) state.settings = getDefaultSettings();
@@ -3211,23 +3354,38 @@
       showToast(`${st.label} icon chosen`, 'It changes on your home screen when you leave the app.', 'emerald');
     }
 
-    /** Toasts achievements earned since the last check. The first check after updating is silent. */
+    /** Toasts achievement tiers earned since the last check. The first check after updating is silent. */
     function checkNewAchievements(silent) {
       const all = HubCore.computeAchievements(state.games, state.historyLogs);
-      const known = new Set(Array.isArray(state.achievements) ? state.achievements : []);
-      const fresh = all.filter((a) => a.earned && !known.has(a.id));
-      if (!fresh.length) return;
+      const known = earnedTierKeys();
+      const freshKeys = HubCore.earnedAchievementKeys(all).filter((k) => !known.has(k));
+      if (!freshKeys.length) return;
       const first = !Array.isArray(state.achievements);
       const wasGold = goldIconUnlocked();
-      state.achievements = [...known, ...fresh.map((a) => a.id)];
+      const wasAccents = goldAccentsUnlocked();
+      // Earned tiers are kept even if the data later changes (a game removed, a result undone).
+      state.achievements = [...known, ...freshKeys];
       const gold = goldIconUnlocked();
+      const accents = goldAccentsUnlocked();
       saveState({ sync: false });
       renderIconChoices();
+      renderGoldAccentsSetting();
       if (first || silent) return;
-      fresh.forEach((a, i) => setTimeout(() => showToast(`${a.icon} Achievement unlocked`, `${a.title}: ${a.desc.charAt(0).toLowerCase()}${a.desc.slice(1)}.`, 'indigo'), 900 + i * 400));
+      let delay = 900;
+      freshKeys.forEach((k) => {
+        const [id, tier] = k.split('#');
+        const a = HubCore.ACHIEVEMENTS.find((x) => x.id === id);
+        const t = a && a.tiers[Number(tier) - 1];
+        if (!t) return;
+        setTimeout(() => showToast(`${a.icon} ${a.title}${tier === '2' ? ' II' : ''} unlocked`, `${t.desc}.`, 'indigo'), delay);
+        delay += 400;
+      });
       if (gold && !wasGold) {
-        setTimeout(() => showToast('✨ Gold icon unlocked', 'You earned every achievement. Choose the gold app icon in Settings → Display.', 'emerald'), 900 + fresh.length * 400 + 600);
-        renderIconChoices();
+        setTimeout(() => showToast('✨ Gold icon unlocked', 'You earned the first tier of every achievement. Choose the gold app icon in Settings → Display.', 'emerald'), delay + 600);
+        delay += 1000;
+      }
+      if (accents && !wasAccents) {
+        setTimeout(() => showToast('👑 Gold accents unlocked', 'You earned every achievement tier. Turn on Gold Accents in Settings → Display.', 'emerald'), delay + 600);
       }
     }
 
@@ -3474,16 +3632,33 @@
       const grid = document.getElementById('achievementsGrid');
       if (!grid) return;
       const all = HubCore.computeAchievements(state.games, state.historyLogs);
-      const n = all.filter((a) => a.earned).length;
+      const total = all.reduce((n, a) => n + a.tiers, 0);
+      const n = all.reduce((x, a) => x + a.tier, 0);
       const count = document.getElementById('achievementsCount');
-      if (count) count.textContent = `${n} of ${all.length}`;
-      grid.innerHTML = all.map((a) => `
-        <div class="ach ${a.earned ? 'on' : ''}" role="img" aria-label="${escapeHtml(`${a.title}: ${a.desc}. ${a.earned ? 'Earned' : `${a.progress} of ${a.target}`}`)}">
+      if (count) count.textContent = `${n} of ${total} earned`;
+      const hint = document.getElementById('achievementsGoldHint');
+      if (hint) {
+        const t1 = all.filter((a) => a.tier >= 1).length;
+        hint.textContent = goldAccentsUnlocked() ? '👑 Gold icon and gold accents unlocked'
+          : goldIconUnlocked() ? `✨ Gold icon unlocked · every tier II unlocks gold accents (${n} of ${total})`
+            : `Every tier I unlocks the gold app icon (${t1} of ${all.length}); every tier II unlocks gold accents.`;
+      }
+      const roman = ['', 'I', 'II'];
+      grid.innerHTML = all.map((a) => {
+        const nx = a.next;
+        const state = a.tier >= 2 ? 'Both tiers earned' : (a.tier === 1 ? 'Tier I earned' : 'Not earned yet');
+        const prog = nx && !nx.below && nx.target > 1
+          ? `<span class="ach-bar" aria-hidden="true"><span style="width:${Math.round((nx.progress / nx.target) * 100)}%"></span></span><span class="ach-num">${nx.progress.toLocaleString('en-US')} / ${nx.target.toLocaleString('en-US')}</span>` : '';
+        const label = `${a.title}, ${state}. ${nx ? `Next: ${nx.desc}${nx.below ? '' : ` (${nx.progress} of ${nx.target})`}` : a.desc}`;
+        return `
+        <div class="ach ${a.tier >= 1 ? 'on' : ''} ${a.tier >= 2 ? 'max' : ''}" role="img" aria-label="${escapeHtml(label)}">
+          ${a.tier ? `<span class="ach-tier" aria-hidden="true">${roman[a.tier]}</span>` : ''}
           <span class="ach-icon" aria-hidden="true">${a.icon}</span>
           <span class="ach-title">${escapeHtml(a.title)}</span>
-          <span class="ach-desc">${escapeHtml(a.desc)}</span>
-          ${a.earned || a.target <= 1 ? '' : `<span class="ach-bar" aria-hidden="true"><span style="width:${Math.round((a.progress / a.target) * 100)}%"></span></span>`}
-        </div>`).join('');
+          <span class="ach-desc">${escapeHtml(nx ? nx.desc : a.desc)}</span>
+          ${prog}
+        </div>`;
+      }).join('');
     }
 
     /** Android share sheet (or the clipboard in a plain browser). */
@@ -3815,6 +3990,7 @@
       setChk('settingGroupDone', s.groupDone !== false);
       setChk('settingDarkPages', s.darkGamePages !== false);
       renderIconChoices();
+      renderGoldAccentsSetting();
       renderArchivedList();
       setVal('settingStreakReminder', String(Number(s.streakReminderMinutes) || 0));
       setChk('settingUpdateCheck', Boolean(s.updateCheck));
@@ -4299,13 +4475,15 @@
         totalPlayed: game.totalPlayed || 0,
         totalWon: game.totalWon || 0,
         statsBaseline: game.statsBaseline,
-        dayHistory: Object.assign({}, game.dayHistory || {})
+        dayHistory: Object.assign({}, game.dayHistory || {}),
+        removedAt: Date.now()
       };
       state.retainedGameStats[game.id] = snapshot;
       const urlKey = normalizeUrlKey(game.url);
       if (urlKey) {
         state.retainedGameStats[urlKey] = snapshot;
       }
+      pruneRetainedMap(state.retainedGameStats);
 
       state.games = state.games.filter((g) => g.id !== game.id);
       closeDeleteConfirmModal();
@@ -4324,6 +4502,7 @@
       document.getElementById('editGameId').value = existingGame ? existingGame.id : '';
       // Picking a popular game starts a new one, so it isn't offered while editing.
       document.getElementById('btnBrowseGames').classList.toggle('hidden', Boolean(existingGame));
+      renderRemovedGames();
 
       lastAutoScrapedUrl = '';
       userEditedModalFields.clear();
@@ -4867,6 +5046,7 @@
         let rawRetained = null;
         let rawAchievements = null;
         let rawGold = false;
+        let rawAccents = false;
 
         if (Array.isArray(parsed)) {
           rawGames = parsed;
@@ -4875,8 +5055,9 @@
           if (Array.isArray(parsed.historyLogs)) rawLogs = parsed.historyLogs;
           if (parsed.settings && typeof parsed.settings === 'object') rawSettings = parsed.settings;
           if (parsed.retainedGameStats && typeof parsed.retainedGameStats === 'object') rawRetained = parsed.retainedGameStats;
-          if (Array.isArray(parsed.achievements)) rawAchievements = parsed.achievements.filter((a) => typeof a === 'string').slice(0, 100);
+          if (Array.isArray(parsed.achievements)) rawAchievements = HubCore.migrateAchievementKeys(parsed.achievements).slice(0, 200);
           if (parsed.goldUnlocked === true) rawGold = true;
+          if (parsed.goldAccentsUnlocked === true) rawAccents = true;
         } else {
           throw new Error('Invalid backup root');
         }
@@ -4935,13 +5116,15 @@
           // Earned achievements are kept (some can't be re-earned from the data alone, e.g. Collector).
           if (rawAchievements) state.achievements = [...new Set([...(Array.isArray(state.achievements) ? state.achievements : []), ...rawAchievements])];
           if (rawGold) state.goldUnlocked = true;
+          if (rawAccents) state.goldAccentsUnlocked = true;
           dropped.forEach((g) => {
-            const snap = normalizeRetained(Object.assign({}, g, { dayHistory: Object.assign({}, g.dayHistory || {}) }));
+            const snap = normalizeRetained(Object.assign({}, g, { dayHistory: Object.assign({}, g.dayHistory || {}), removedAt: Date.now() }));
             if (!snap) return;
             state.retainedGameStats[g.id] = snap;
             const urlKey = normalizeUrlKey(g.url);
             if (urlKey) state.retainedGameStats[urlKey] = snap;
           });
+          pruneRetainedMap(state.retainedGameStats);
           invalidateLogIndex();
           // An explicit import replaces unreadable data on purpose: saving can resume.
           const wasBlocked = Boolean(state.__saveBlocked);
@@ -5176,11 +5359,13 @@
         if (el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); el.click(); }
       });
 
+      initFolds();
       if (state.__saveBlocked) showDataProblemBanner();
       document.getElementById('btnDataStartFresh').addEventListener('click', resolveDataProblemStartFresh);
       document.getElementById('btnDataGoImport').addEventListener('click', () => {
         switchNavigation('settings');
         const b = document.getElementById('btnSettingsImportJson');
+        revealFold(b);
         if (b) b.scrollIntoView({ block: 'center' });
       });
 
@@ -5274,6 +5459,7 @@
       };
       bindSetting('settingDynamicWallpaper', 'dynamicWallpaper', true);
       bindSetting('settingAmoledDark', 'amoledDark', true);
+      bindSetting('settingGoldAccents', 'goldAccents', true);
       bindSetting('settingCompactCards', 'compactCards', true);
       bindSetting('settingTimeFormat', 'timeFormat', false);
       bindSetting('settingShowSeconds', 'showSeconds', true);
@@ -5381,7 +5567,8 @@
           retainedGameStats: state.retainedGameStats || {},
           historyLogs: state.historyLogs,
           achievements: Array.isArray(state.achievements) ? state.achievements : [],
-          goldUnlocked: goldIconUnlocked()
+          goldUnlocked: goldIconUnlocked(),
+          goldAccentsUnlocked: goldAccentsUnlocked()
         };
         const jsonStr = JSON.stringify(backupPayload, null, 2);
 
@@ -5645,6 +5832,10 @@
       document.getElementById('btnCopyToday').addEventListener('click', copyTodaysResults);
       document.getElementById('btnResetSuggestApply').addEventListener('click', applyResetSuggestion);
       document.getElementById('btnBrowseGames').addEventListener('click', openBrowseGames);
+      document.getElementById('removedGames').addEventListener('click', (e) => {
+        const b = e.target.closest && e.target.closest('[data-removed-id]');
+        if (b) pickRemovedGame(b.getAttribute('data-removed-id'));
+      });
       document.getElementById('browseGamesSearch').addEventListener('input', renderBrowseGames);
       document.getElementById('browseGamesList').addEventListener('click', (e) => {
         const row = e.target && e.target.closest ? e.target.closest('[data-browse-url]') : null;
