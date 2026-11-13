@@ -62,6 +62,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - the reset time in your local time;
   - a status pill (Ready / Done / Missed);
   - a live countdown and the action buttons.
+- **Copy**: the button at the top of the hub copies all of today's solved results, each as logged, with a "— — —" line between them. It shows once a result is logged today.
 - **Up next**: once you've finished a game today, a bar above the cards names the next unplayed game (after the one you played last, in your order). **Play next** opens it.
 - **Reordering**:
   - Long-press a card for about 0.4 s until it lifts, then drag it. The list auto-scrolls near the edges.
@@ -100,7 +101,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - Every result is listed newest first, 5 per page: game, date, time, play time, outcome and streak.
   - Filter by game (the dropdown) and by **All / Completed / Missed**.
   - Tap **Result** on an entry to see the text the game shared, and **Copy result** to copy it with its line breaks and emoji.
-  - From the 6th result, a pager appears: tap ‹ › or swipe on the list.
+  - From the 6th result, a pager appears: tap ‹ › or swipe on the list (it follows your finger, like the calendar).
   - Logging the same day again replaces that day's entry. Once today is logged as done, the card's ✓ is hidden; use **Edit entry** in the game's settings (⚙). Stats are recalculated from the history, so they go down as well as up.
 
 ### Tab 3: Settings

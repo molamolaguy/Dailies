@@ -816,10 +816,8 @@ html[data-theme="light"] .day-chip.streak { color: #8a5a00; }
 .hist-pager { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; margin-top: 4px; border-top: 1px solid var(--md-outline); }
 .hist-pager .page-label { flex: 1 1 auto; text-align: center; font-size: 12.5px; font-weight: 600; color: #cbd2de; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .hist-pager .page-sub { display: block; font-size: 11px; font-weight: 500; color: #8f97a8; }
-.hist-list.slide-left { animation: hist-left 0.2s var(--m3-spring-effects); }
-.hist-list.slide-right { animation: hist-right 0.2s var(--m3-spring-effects); }
-@keyframes hist-left { from { transform: translateX(24px); opacity: 0.2; } to { transform: none; opacity: 1; } }
-@keyframes hist-right { from { transform: translateX(-24px); opacity: 0.2; } to { transform: none; opacity: 1; } }
+/* Swiping between pages: the list follows the finger; the block clips it, like the calendar. */
+#historyBlock { overflow-x: clip; touch-action: pan-y; }
 .hist-dots { display: flex; justify-content: center; gap: 5px; padding-top: 8px; }
 .hist-dots span { width: 6px; height: 6px; border-radius: 9999px; background: var(--md-container-highest); }
 .hist-dots span.on { width: 16px; background: var(--md-primary); }
@@ -1243,3 +1241,11 @@ html[data-theme="light"] .hist-chip.on { color: var(--md-on-primary-container); 
 .play-next .pn-k { font-size: 11px; font-weight: 600; opacity: 0.8; line-height: 1.2; }
 .play-next .pn-name { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
 .play-next .pn-left { font-size: 11.5px; font-weight: 600; opacity: 0.8; white-space: nowrap; flex-shrink: 0; }
+
+/* Copy today's results (top row of the hub). */
+.copy-today {
+  min-height: 26px; padding: 0 9px; border-radius: 9999px; font-size: 12px; font-weight: 600; white-space: nowrap;
+  color: var(--md-on-primary-container); background: var(--md-container-high); border: 1px solid var(--md-outline);
+}
+.copy-today.hidden { display: none; }
+@media (max-width: 380px) { .copy-today .copy-label { display: none; } .copy-today { padding: 0 6px; } }

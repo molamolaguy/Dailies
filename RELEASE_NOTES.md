@@ -1,3 +1,17 @@
+# Dailies 1.3.1
+
+A small update. It installs over 1.3.0 and keeps your games, streaks and history.
+
+## What's new
+- **Copy today's results**: a **Copy** button at the top of the hub copies every result you've solved today in one go. Each keeps its own formatting, with a small divider between them, ready to paste into a chat.
+- **Smoother Score history paging**: swiping between pages now follows your finger and glides into place, like the calendar.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.3.0
 
 An update with fixes and polish. It installs over 1.2.0 and keeps your games, streaks and history.
