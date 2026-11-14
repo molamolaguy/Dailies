@@ -344,8 +344,8 @@
           <select id="historyFilterGame" aria-label="Show results for" class="cal-select px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-semibold"></select>
           <div class="hist-chips" role="group" aria-label="Outcome">
             <button type="button" class="hist-chip on" data-hist-outcome="all" aria-pressed="true">All</button>
-            <button type="button" class="hist-chip" data-hist-outcome="Completed" aria-pressed="false">Completed</button>
-            <button type="button" class="hist-chip" data-hist-outcome="Missed" aria-pressed="false">Missed</button>
+            <button type="button" class="hist-chip" data-hist-outcome="Completed" aria-pressed="false" aria-label="Solved only">Solved</button>
+            <button type="button" class="hist-chip" data-hist-outcome="Missed" aria-pressed="false" aria-label="Missed only">Missed</button>
           </div>
         </div>
         <div id="historyBlock">
@@ -359,7 +359,6 @@
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
             </button>
           </div>
-          <div id="historyDots" class="hist-dots"></div>
         </div>
       </div>
     </section>
@@ -1357,7 +1356,7 @@
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
     const APP_VERSION = '1.8.0';
-    const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
+    const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
       try {
@@ -4490,12 +4489,15 @@
     }
 
     // ---- Reset times (1.8.0): check every game, and optionally fix them without asking ----
+    /** Checks the games one per idle moment (each reads that game's whole log), stopping at the first suggestion. */
     function checkAllResetSuggestions() {
-      if (resetSuggestion) return;
-      for (const g of visibleGames()) {
-        checkResetSuggestion(g);
-        if (resetSuggestion) return;
-      }
+      const ids = visibleGames().map((g) => g.id);
+      const step = (i) => {
+        if (resetSuggestion || i >= ids.length) return;
+        checkResetSuggestion(state.games.find((g) => g.id === ids[i]));
+        whenIdle(() => step(i + 1), 1000);
+      };
+      step(0);
     }
     /** Settings → Fix Reset Times Automatically: applies the suggestion straight away, with Undo. */
     function autoApplyResetSuggestion() {
@@ -5211,8 +5213,22 @@
     }
 
     /** Toasts achievement tiers earned since the last check. The first check after updating is silent. */
-    function checkNewAchievements(silent) {
+    /**
+     * computeAchievements() walks every logged result (hundreds of ms on a phone with a long history),
+     * and start-up, the Streaks page and every new result all ask for it. Its inputs only change
+     * through saveState() (stateRev) or by replacing the arrays (import), so reuse the last answer.
+     */
+    let achievementsCache = null;
+    function currentAchievements() {
+      const key = [stateRev, state.games, state.historyLogs, state.games.length, state.historyLogs.length];
+      if (achievementsCache && achievementsCache.key.every((v, i) => v === key[i])) return achievementsCache.all;
       const all = HubCore.computeAchievements(state.games, state.historyLogs);
+      achievementsCache = { key, all };
+      return all;
+    }
+
+    function checkNewAchievements(silent) {
+      const all = currentAchievements();
       const secrets = HubCore.computeSecrets(state.games, state.historyLogs, { challengeBest: challengeStats().best });
       const known = earnedTierKeys();
       const freshKeys = HubCore.earnedAchievementKeys(all).concat(secrets.filter((x) => x.earned).map((x) => x.key)).filter((k) => !known.has(k));
@@ -5634,7 +5650,7 @@
     function renderAchievements() {
       const grid = document.getElementById('achievementsGrid');
       if (!grid) return;
-      const all = HubCore.computeAchievements(state.games, state.historyLogs);
+      const all = currentAchievements();
       // Secrets count once found (they're kept even if the data later changes).
       const have = earnedTierKeys();
       const secrets = HubCore.computeSecrets(state.games, state.historyLogs, { challengeBest: challengeStats().best })
@@ -5937,28 +5953,17 @@
       historyPage = Math.min(Math.max(0, historyPage), pageCount - 1);
       const start = historyPage * HISTORY_PAGE_SIZE;
       const pageRows = shown.slice(start, start + HISTORY_PAGE_SIZE);
-      // The pager only appears once there's more than one page (i.e. from the 6th result on).
+      // The pager only appears once there's more than one page.
       const pager = document.getElementById('historyPager');
       if (pager) pager.classList.toggle('hidden', pageCount <= 1);
       const pageLabel = document.getElementById('historyPageLabel');
       if (pageLabel) pageLabel.textContent = `Page ${historyPage + 1} of ${pageCount}`;
       const countLabel = document.getElementById('historyCountLabel');
-      if (countLabel) countLabel.textContent = total ? `${start + 1}–${start + pageRows.length} of ${plural(total, 'result')}` : '';
+      if (countLabel) countLabel.textContent = total ? `${(start + 1).toLocaleString()}–${(start + pageRows.length).toLocaleString()} of ${total.toLocaleString()}` : '';
       const prevBtn = document.getElementById('btnHistoryPrev');
       const nextBtn = document.getElementById('btnHistoryNext');
       if (prevBtn) prevBtn.disabled = historyPage === 0;
       if (nextBtn) nextBtn.disabled = historyPage >= pageCount - 1;
-      const dots = document.getElementById('historyDots');
-      if (dots) {
-        // Up to 7 dots, a sliding window around the current page.
-        if (pageCount <= 1) {
-          dots.innerHTML = '';
-        } else {
-          const n = Math.min(7, pageCount);
-          const first = Math.min(Math.max(0, historyPage - 3), pageCount - n);
-          dots.innerHTML = Array.from({ length: n }, (_, i) => `<span class="${first + i === historyPage ? 'on' : ''}"></span>`).join('');
-        }
-      }
       if (tbody) {
         if (state.historyLogs.length === 0) {
           tbody.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No results yet. Tap the check button on a game card, or log from the prompt after playing.</p>';
@@ -5967,33 +5972,98 @@
         } else {
           const qWords = historyQueryWords();
           const toughCache = new Map();
-          tbody.innerHTML = pageRows.map((item, i) => {
-            const ok = item.outcome === 'Completed';
-            const key = item.gameId || `n:${item.gameName}`;
-            if (!toughCache.has(key)) toughCache.set(key, toughDaysFor(item.gameId, item.gameName));
-            const tough = ok ? toughCache.get(key).get(item.date) : null;
-            const flags = (Array.isArray(item.records) && item.records.length && ok ? '<span class="hist-flag pb">🏆 PB</span>' : '')
-              + (tough ? `<span class="hist-flag tough" title="Usually ${escapeHtml(tough.typical)}">Tough day</span>` : '');
-            const score = String(item.score || '').trim();
-            const time = normalizeLogTimeLabel(item.localTime);
-            return `
-              <div class="hist-row">
-                <div class="hist-head">
-                  <span class="hist-icon">${renderGameIconHtml(item.icon, item.gameName, 'w-4 h-4')}</span>
-                  <span class="hist-name" dir="auto">${escapeHtml(item.gameName)}</span>
-                  <span class="hist-badge ${ok ? 'ok' : 'bad'}">${ok ? 'Completed' : 'Missed'}</span>
-                  <span class="hist-streak"><span class="sr-only">Streak after: ${escapeHtml(plural(item.streak, 'day'))}</span><span aria-hidden="true">🔥 ${escapeHtml(item.streak)}d</span></span>
-                </div>
-                <p class="hist-date">${escapeHtml(formatCycleDateLabel(item.date))}${time ? ` · ${escapeHtml(time)}` : ''}${Number(item.timeMs) > 0 ? ` <span class="hist-time">· ⏱ ${escapeHtml(HubCore.formatDuration(item.timeMs))}</span>` : ''}${flags}</p>
-                ${score ? `<details class="hist-more"${qWords.length && qWords.some((w) => score.toLowerCase().includes(w)) ? ' open' : ''}>
-                  <summary><span>Result</span><span class="chev" aria-hidden="true"></span></summary>
-                  <pre class="hist-score">${highlightHistoryText(score, qWords)}</pre>
-                  <button type="button" class="hist-copy icon-label" data-copy-game="${escapeHtml(item.gameId || '')}" data-copy-name="${escapeHtml(item.gameName || '')}" data-copy-date="${escapeHtml(item.date || '')}"><span class="ico ico-paste" aria-hidden="true"></span>Copy result</button>
-                </details>` : ''}
-              </div>`;
-          }).join('');
+          // Solved / logged per day, from all of that day's results (the game filter applies; the
+          // outcome filter and search don't, so "Missed only" still shows how the day went overall).
+          const pageDates = new Set(pageRows.map((l) => l.date));
+          const dayTotals = new Map();
+          state.historyLogs.forEach((l) => {
+            if (!l || !pageDates.has(l.date) || (historyFilter.game && historyRowGameKey(l) !== historyFilter.game)) return;
+            const t = dayTotals.get(l.date) || { won: 0, all: 0 };
+            t.all += 1;
+            if (l.outcome === 'Completed') t.won += 1;
+            dayTotals.set(l.date, t);
+          });
+          let html = '';
+          let lastDate = null;
+          pageRows.forEach((item) => {
+            if (item.date !== lastDate) {
+              if (lastDate !== null) html += '</div>';
+              lastDate = item.date;
+              const t = dayTotals.get(item.date) || { won: 0, all: 0 };
+              html += `<div class="hist-day" role="group" aria-label="${escapeHtml(historyDayLabel(item.date))}">`
+                + `<p class="hist-day-head"><span>${escapeHtml(historyDayLabel(item.date))}</span>`
+                + `<span class="hist-day-count">${t.won}/${t.all} solved</span></p>`;
+            }
+            html += historyRowHtml(item, qWords, toughCache);
+          });
+          if (lastDate !== null) html += '</div>';
+          tbody.innerHTML = html;
         }
       }
+    }
+
+    /** "Today", "Yesterday", "Fri, Nov 13" (the year only when it isn't this year). */
+    function historyDayLabel(key) {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      if (key === today) return 'Today';
+      if (key === HubCore.addDaysToCycleKey(today, -1)) return 'Yesterday';
+      const label = formatCycleDateLabel(key);
+      return key.slice(0, 4) === today.slice(0, 4) ? label.replace(/,? \d{4}$/, '') : label;
+    }
+
+    /** The line a result is recognised by: its first line with a letter or digit ("Wordle 1,234 3/6"), not the emoji grid. */
+    function historyPreviewLine(score) {
+      const lines = String(score || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      return lines.find((l) => /[\p{L}\p{N}]/u.test(l)) || lines[0] || '';
+    }
+
+    /** One Score History result: a compact row that opens to the full result text. */
+    function historyRowHtml(item, qWords, toughCache) {
+      const ok = item.outcome === 'Completed';
+      const key = item.gameId || `n:${item.gameName}`;
+      if (!toughCache.has(key)) toughCache.set(key, toughDaysFor(item.gameId, item.gameName));
+      const tough = ok ? toughCache.get(key).get(item.date) : null;
+      const flags = (Array.isArray(item.records) && item.records.length && ok ? '<span class="hist-flag pb">🏆 PB</span>' : '')
+        + (tough ? `<span class="hist-flag tough" title="Usually ${escapeHtml(tough.typical)}">Tough day</span>` : '');
+      const rawScore = String(item.score || '').trim();
+      const autoMissed = !ok && /^Auto-marked missed/i.test(rawScore);
+      const score = autoMissed ? '' : rawScore;
+      // The name is already on the row: "Wordle 1,234 3/6" previews as "1,234 3/6".
+      const name = String(item.gameName || '').trim();
+      const line = score ? historyPreviewLine(score) : '';
+      const trimmed = name && line.toLowerCase().startsWith(name.toLowerCase()) ? line.slice(name.length).replace(/^[\s:#·\-–—|]+/, '') : line;
+      const preview = autoMissed ? 'Not played before reset' : (score ? (trimmed || line) : (ok ? 'Solved' : 'Missed'));
+      const time = normalizeLogTimeLabel(item.localTime);
+      const streak = Number(item.streak) || 0;
+      const meta = [
+        streak > 0 ? `<span class="hist-streak" title="Streak after this result"><span aria-hidden="true">🔥</span>${escapeHtml(streak)}</span>` : '',
+        Number(item.timeMs) > 0 ? `<span class="hist-time" title="Time played">${escapeHtml(HubCore.formatDuration(item.timeMs))}</span>` : ''
+      ].filter(Boolean).join('');
+      const label = `${item.gameName}, ${ok ? 'solved' : 'missed'}${streak > 0 ? `, streak ${plural(streak, 'day')}` : ''}`;
+      const head = `
+        <span class="hist-icon">${renderGameIconHtml(item.icon, item.gameName, 'w-4 h-4')}</span>
+        <span class="hist-main">
+          <span class="hist-top"><span class="hist-name" dir="auto">${escapeHtml(item.gameName)}</span>${flags}</span>
+          <span class="hist-line${score ? '' : ' plain'}" dir="auto">${highlightHistoryText(preview, qWords)}</span>
+        </span>
+        <span class="hist-side">
+          <span class="hist-status ${ok ? 'ok' : 'bad'}"><span class="ico ${ok ? 'ico-check' : 'ico-close'}" aria-hidden="true"></span><span class="sr-only">${ok ? 'Solved' : 'Missed'}</span></span>
+          ${meta ? `<span class="hist-meta">${meta}</span>` : ''}
+        </span>`;
+      if (!score) return `<div class="hist-row" aria-label="${escapeHtml(label)}"><div class="hist-sum">${head}</div></div>`;
+      const open = qWords.length && qWords.some((w) => score.toLowerCase().includes(w));
+      return `
+        <details class="hist-row"${open ? ' open' : ''}>
+          <summary class="hist-sum" aria-label="${escapeHtml(label)}. Show result">${head}<span class="chev" aria-hidden="true"></span></summary>
+          <div class="hist-body">
+            <pre class="hist-score">${highlightHistoryText(score, qWords)}</pre>
+            <div class="hist-actions">
+              <span class="hist-when">${time ? `Logged ${escapeHtml(time)}` : ''}</span>
+              <button type="button" class="hist-copy icon-label" data-copy-game="${escapeHtml(item.gameId || '')}" data-copy-name="${escapeHtml(item.gameName || '')}" data-copy-date="${escapeHtml(item.date || '')}"><span class="ico ico-paste" aria-hidden="true"></span>Copy</button>
+            </div>
+          </div>
+        </details>`;
     }
 
     const CYCLE_DATE_FMT = (() => {
@@ -6307,6 +6377,7 @@
     const TAB_VIEW_IDS = { dashboard: 'viewDashboard', stats: 'viewStats', settings: 'viewSettings' };
     const REDUCED_MOTION = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
     let tabAnimating = false;
+    let tabSlidePending = false;
 
     /**
      * Pager for the three tabs: the real neighbouring page sits beside the current one and both move
@@ -6368,14 +6439,19 @@
         if (scaffold) { scaffold.style.position = 'relative'; scaffold.style.overflowX = 'clip'; }
         // The new page keeps the same relative scroll position (e.g. 80% of the way down), so it
         // comes in already at the spot it will stay at once it's the current page.
+        // Every measurement of the current page is read before the new one is shown, so the browser
+        // lays the page out once here instead of after each style change.
         const frac = scrollFraction();
         const docH = document.documentElement.scrollHeight;
+        const box = { left: cur.offsetLeft, top: cur.offsetTop, width: cur.offsetWidth, height: cur.offsetHeight };
+        const scrollY = Math.max(0, window.scrollY);
+        const w = this.width();
         el.classList.remove('hidden');
-        el.style.cssText = `position:absolute;left:${cur.offsetLeft}px;top:0;width:${cur.offsetWidth}px;margin:0;visibility:hidden;transition:none`;
-        const newMax = Math.max(0, docH - cur.offsetHeight + el.offsetHeight - window.innerHeight);
+        el.style.cssText = `position:absolute;left:${box.left}px;top:0;width:${box.width}px;margin:0;visibility:hidden;transition:none`;
+        const newMax = Math.max(0, docH - box.height + el.offsetHeight - window.innerHeight);
         const scroll = Math.round(frac * newMax);
-        const top = cur.offsetTop + Math.max(0, window.scrollY) - scroll;
-        el.style.cssText = `position:absolute;left:${cur.offsetLeft}px;top:${top}px;width:${cur.offsetWidth}px;margin:0;will-change:transform;pointer-events:none;transition:none;transform:translate3d(${dir * this.width()}px,0,0)`;
+        const top = box.top + scrollY - scroll;
+        el.style.cssText = `position:absolute;left:${box.left}px;top:${top}px;width:${box.width}px;margin:0;will-change:transform;pointer-events:none;transition:none;transform:translate3d(${dir * w}px,0,0)`;
         cur.style.willChange = 'transform';
         this.neighbour = { tab, el, dir, scroll };
         return this.neighbour;
@@ -6464,12 +6540,21 @@
       const normalized = (targetView === 'notifications' || targetView === 'settings')
         ? 'settings'
         : (targetView === 'stats' ? 'stats' : 'dashboard');
+      // A second tap in the frame or two before a slide starts would attach another page mid-setup.
+      if (tabSlidePending && !(anim && anim.settled)) return;
       const previous = activeTab;
       // A tap on another tab slides the pages too (a swipe has already slid them).
       if (previous !== normalized && !(anim && anim.settled) && !REDUCED_MOTION && !tabAnimating) {
         const dir = TAB_ORDER.indexOf(normalized) > TAB_ORDER.indexOf(previous) ? 1 : -1;
         if (Pager.attach(normalized, dir)) {
-          requestAnimationFrame(() => Pager.settle(0, 0, true, (tab, scroll) => switchNavigation(tab, { settled: true, prepared: true, scroll })));
+          // Start the slide a frame later: the next frame lays out and paints the new page (still off
+          // to the side), which on a phone can take longer than a frame. Started together, that slow
+          // frame swallowed the start of the slide and the page jumped instead of gliding in.
+          tabSlidePending = true;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            tabSlidePending = false;
+            Pager.settle(0, 0, true, (tab, scroll) => switchNavigation(tab, { settled: true, prepared: true, scroll }));
+          }));
           return;
         }
       }
@@ -6782,9 +6867,14 @@
         if (typeof Intl.supportedValuesOf === 'function') {
           const all = document.createElement('optgroup');
           all.label = 'All time zones';
+          // Every id Intl lists is one it supports, so skip isValidTimeZone() here: it builds a date
+          // formatter per zone (~400 of them), which took a few hundred ms on a phone.
+          const common = new Set(COMMON_ZONES.map(([c]) => c));
+          const frag = document.createDocumentFragment();
           Intl.supportedValuesOf('timeZone').forEach((z) => {
-            if (z.includes('/') && usable(z) && !COMMON_ZONES.some(([c]) => c === z)) add(all, z, z.replace(/_/g, ' '));
+            if (z.includes('/') && (!nativeZones || nativeZones.has(z)) && !common.has(z)) add(frag, z, z.replace(/_/g, ' '));
           });
+          all.appendChild(frag);
           sel.appendChild(all);
         }
       } catch (e) {}
@@ -7423,7 +7513,9 @@
       renderVisibleTab();
       flushSyncNativeNow();
       startLiveTickTimer();
-      checkNewAchievements(true); // badges already earned before this version arrive quietly
+      // Badges already earned before this version arrive quietly. Not part of the first frame: it
+      // reads the whole result log, and nothing on the hub page depends on it.
+      whenIdle(() => checkNewAchievements(true), 2000);
       if (pruneTrash()) saveState({ sync: false });
       maybeShowWhatsNew();
       setTimeout(() => whenIdle(checkAllResetSuggestions, 3000), 2500);
@@ -8160,9 +8252,6 @@
         if (row && !row.disabled) pickBrowseGame(row.getAttribute('data-browse-url'));
       });
       document.getElementById('btnResetSuggestDismiss').addEventListener('click', dismissResetSuggestion);
-      // Check every game once at start-up (results logged by an older version have no times, so this
-      // only starts suggesting after a few new results).
-      setTimeout(() => { visibleGames().some((g) => { checkResetSuggestion(g); return Boolean(resetSuggestion); }); }, 1500);
       document.getElementById('btnPlayNext').addEventListener('click', () => {
         const id = document.getElementById('playNextBar').dataset.id;
         if (id) openGameInPlayer(id);
