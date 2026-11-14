@@ -3910,25 +3910,54 @@
       return style;
     }
     /** The icon as an SVG (same shapes and colours as the launcher icon). */
+    // ---- Gold icon: satin gold star with a crisp bevel, as on the launcher (same design as its PNGs) ----
+    function goldIconSvg(o) {
+      // o: { id, size, viewBox, k, bg: bool, star: bool, clip: '' | svg clip shape }
+      const id = o.id;
+      const k = o.k || 1;
+      const star = 'M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z' + ' ' + 'M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z' + ' ' + 'M65.5,38.3 C66.17,41.83 66.17,41.83 69.7,42.5 C66.17,43.17 66.17,43.17 65.5,46.7 C64.83,43.17 64.83,43.17 61.3,42.5 C64.83,41.83 64.83,41.83 65.5,38.3Z M43,62.5 C43.48,65.02 43.48,65.02 46,65.5 C43.48,65.98 43.48,65.98 43,68.5 C42.52,65.98 42.52,65.98 40,65.5 C42.52,65.02 42.52,65.02 43,62.5Z';
+      const defs = '<defs>'
+        + '<linearGradient id="' + id + 'g" gradientUnits="userSpaceOnUse" x1="78" y1="26" x2="30" y2="82">'
+        + '<stop offset="0" stop-color="#E6D49A"/><stop offset="0.5" stop-color="#CBB679"/><stop offset="1" stop-color="#A68E54"/></linearGradient>'
+        + '<radialGradient id="' + id + 'w1" gradientUnits="userSpaceOnUse" cx="0" cy="112" r="78"><stop offset="0" stop-color="#6B5128" stop-opacity="0.75"/><stop offset="1" stop-color="#6B5128" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="' + id + 'w2" gradientUnits="userSpaceOnUse" cx="112" cy="112" r="66"><stop offset="0" stop-color="#6B5128" stop-opacity="0.6"/><stop offset="1" stop-color="#5A4424" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="' + id + 'w3" gradientUnits="userSpaceOnUse" cx="-4" cy="-4" r="48"><stop offset="0" stop-color="#4A3A20" stop-opacity="0.35"/><stop offset="1" stop-color="#4A3A20" stop-opacity="0"/></radialGradient>'
+        // Satin grain + crisp bevel: a light band where the shape ends toward the top left, a dark band toward the bottom right.
+        + '<filter id="' + id + 'f" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">'
+        + '<feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="7" result="n"/>'
+        + '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0.33 0.33 0.33 0 0" result="ng"/>'
+        + '<feComposite in="SourceGraphic" in2="ng" operator="arithmetic" k1="0" k2="1" k3="0.16" k4="-0.08" result="grain"/>'
+        + '<feComposite in="grain" in2="SourceAlpha" operator="in" result="body"/>'
+        + '<feOffset in="SourceAlpha" dx="0.75" dy="0.75" result="o1"/><feComposite in="SourceAlpha" in2="o1" operator="out" result="b1"/>'
+        + '<feGaussianBlur in="b1" stdDeviation="0.22" result="b1s"/><feFlood flood-color="#FFF7DC" flood-opacity="0.85"/><feComposite in2="b1s" operator="in"/><feComposite in2="SourceAlpha" operator="in" result="hi"/>'
+        + '<feOffset in="SourceAlpha" dx="-0.75" dy="-0.75" result="o2"/><feComposite in="SourceAlpha" in2="o2" operator="out" result="b2"/>'
+        + '<feGaussianBlur in="b2" stdDeviation="0.22" result="b2s"/><feFlood flood-color="#4A3E22" flood-opacity="0.85"/><feComposite in2="b2s" operator="in"/><feComposite in2="SourceAlpha" operator="in" result="sh"/>'
+        + '<feMerge><feMergeNode in="body"/><feMergeNode in="hi"/><feMergeNode in="sh"/></feMerge></filter>'
+        + '<filter id="' + id + 'd" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.1"/></filter>'
+        + (o.clip ? '<clipPath id="' + id + 'c">' + o.clip + '</clipPath>' : '')
+        + '</defs>';
+      const t = 'translate(54 54) scale(' + k + ') translate(-54 -54)';
+      const bg = o.bg
+        ? '<rect width="108" height="108" fill="#0B0B09"/><rect width="108" height="108" fill="url(#' + id + 'w1)"/>'
+          + '<rect width="108" height="108" fill="url(#' + id + 'w2)"/><rect width="108" height="108" fill="url(#' + id + 'w3)"/>'
+        : '';
+      const fg = o.star
+        ? '<g transform="' + t + '"><path d="' + star + '" fill-rule="evenodd" fill="#000" fill-opacity="0.55" transform="translate(0.3 0.9)" filter="url(#' + id + 'd)"/>'
+          + '<path d="' + star + '" fill-rule="evenodd" fill="url(#' + id + 'g)" filter="url(#' + id + 'f)"/></g>'
+        : '';
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="' + o.size + '" height="' + o.size + '" viewBox="' + (o.viewBox || '0 0 108 108') + '">'
+        + defs + (o.clip ? '<g clip-path="url(#' + id + 'c)">' + bg + fg + '</g>' : bg + fg) + '</svg>';
+    }
+    // ---- end gold icon ----
     function appIconSvg(styleId, size, uid) {
       const st = ICON_STYLES.find((x) => x.id === styleId) || ICON_STYLES[0];
       const id = `ig-${uid}-${st.id}`;
-      // Gold (1.6.2): a bevel lit from the top left, a soft drop shadow and engraved sparkles, like the launcher icon.
-      const bevel = st.bevel
-        ? `<path d="${ICON_FLOWER}" fill="#000" fill-opacity="0.45" transform="translate(0.7 1.1)"/>` : '';
-      const bevelOver = st.bevel
-        ? `<clipPath id="${id}-fc"><path d="${ICON_FLOWER}"/></clipPath><clipPath id="${id}-mc"><path d="${ICON_MARK} ${ICON_SPARKS}"/></clipPath>`
-          + `<g clip-path="url(#${id}-fc)"><path d="${ICON_FLOWER}" fill="none" stroke="#FFF8E1" stroke-opacity="0.8" stroke-width="2.2" stroke-linejoin="round" transform="translate(1.1 1.1)"/>`
-          + `<path d="${ICON_FLOWER}" fill="none" stroke="#2E2818" stroke-opacity="0.65" stroke-width="2.2" stroke-linejoin="round" transform="translate(-1.1 -1.1)"/></g>`
-        : '';
-      const engrave = st.bevel
-        ? `<g clip-path="url(#${id}-mc)"><path d="${ICON_MARK} ${ICON_SPARKS}" fill="none" stroke="#0E0C07" stroke-opacity="0.85" stroke-width="1.4" transform="translate(0.7 0.7)"/>`
-          + `<path d="${ICON_MARK} ${ICON_SPARKS}" fill="none" stroke="#E8DBAE" stroke-opacity="0.55" stroke-width="1.4" transform="translate(-0.7 -0.7)"/></g>`
-        : '';
-      const shape = '<g transform="translate(54 54) scale(1.3) translate(-54 -54)">' + bevel
-        + `<path d="${ICON_FLOWER}" fill="${st.themed ? 'var(--md-primary)' : `url(#${id}-s)`}"/>` + bevelOver
+      // Gold: satin grained gold with a crisp bevel, the same design as its launcher icon.
+      if (st.bevel) return goldIconSvg({ id: `${id}-`, size, k: 1.3, bg: true, star: true, clip: '<rect x="0.5" y="0.5" width="107" height="107" rx="30"/>' });
+      const shape = '<g transform="translate(54 54) scale(1.3) translate(-54 -54)">'
+        + `<path d="${ICON_FLOWER}" fill="${st.themed ? 'var(--md-primary)' : `url(#${id}-s)`}"/>`
         + `<path d="${ICON_MARK}" fill="${st.themed ? 'var(--md-on-primary)' : st.mark}"/>`
-        + (st.sparks ? `<path d="${ICON_SPARKS}" fill="${st.sparks}"/>` : '') + engrave + '</g>';
+        + (st.sparks ? `<path d="${ICON_SPARKS}" fill="${st.sparks}"/>` : '') + '</g>';
       if (st.themed) {
         return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true">`
           + `<rect width="108" height="108" rx="30" fill="var(--md-primary-container)"/>${shape}</svg>`;
@@ -3937,9 +3966,9 @@
       return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true"><defs>`
         + `<linearGradient id="${id}-b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${st.bg[0]}"/><stop offset="1" stop-color="${st.bg[1]}"/></linearGradient>`
         + `<linearGradient id="${id}-s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">${stops}</linearGradient>`
-        + (st.bevel ? `<radialGradient id="${id}-g" gradientUnits="userSpaceOnUse" cx="16" cy="100" r="62"><stop offset="0" stop-color="#4A3A1C" stop-opacity="0.48"/><stop offset="1" stop-color="#4A3A1C" stop-opacity="0"/></radialGradient>` : '') + '</defs>'
+        + '</defs>'
         + `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="url(#${id}-b)"${st.outline ? ' stroke="var(--md-outline)" stroke-width="2"' : ''}/>`
-        + (st.bevel ? `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="url(#${id}-g)"/>` : '') + `${shape}</svg>`;
+        + `${shape}</svg>`;
     }
     function renderIconChoices() {
       const box = document.getElementById('iconChoices');
