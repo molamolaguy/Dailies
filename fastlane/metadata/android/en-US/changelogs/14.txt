@@ -1,0 +1,6 @@
+• Search your games; long-press a card for quick actions and notes.
+• Trash: removed games are kept for 30 days. Undo history goes back 60 days, with search.
+• Your app icon sparkles when you finish every game.
+• Reset times checked automatically (optional auto-fix).
+• Game pages: cookie banners hidden, pull down to refresh.
+• Check links & icons, Storage, Report a problem, What's new. Faster start.

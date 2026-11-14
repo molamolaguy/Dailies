@@ -184,6 +184,7 @@ class GameActivity : ComponentActivity() {
         // Pages see the app's theme as prefers-color-scheme (light theme → light pages).
         if (ThemePrefs.isLight(this)) setTheme(R.style.Theme_Dailies_Light)
         super.onCreate(savedInstanceState)
+        CrashLog.install(this)
 
         gameId = intent.getStringExtra(EXTRA_ID).orEmpty()
         gameName = intent.getStringExtra(EXTRA_NAME).orEmpty().ifBlank { "Daily Game" }
@@ -261,6 +262,7 @@ class GameActivity : ComponentActivity() {
         val primaryContainerColor = themed["primaryContainer"] ?: primaryContainerColor0
         val onPrimaryContainerColor = themed["onPrimaryContainer"] ?: onPrimaryContainerColor0
         barColors = intArrayOf(containerColor, primaryContainerColor, onPrimaryContainerColor)
+        accentColor = if (light) primaryColor else primaryContainerColor
         accentColors = intArrayOf(primaryColor, onPrimaryColor)
 
         // ---- Top app bar (Material 3 Expressive tonal pills + Google Sans) ----
@@ -398,6 +400,8 @@ class GameActivity : ComponentActivity() {
     }
 
     private var barColors = intArrayOf(0, 0, 0)
+    /** The pull-to-refresh ring's color: the theme's accent, dark enough to show on white. */
+    private var accentColor = 0
     private var accentColors = intArrayOf(0, 0)
     private var donePrompt: View? = null
 
@@ -849,6 +853,8 @@ class GameActivity : ComponentActivity() {
                 if (autoLogEnabled) WebViewCompat.addDocumentStartJavaScript(webView, shareHookScript(), anyOrigin)
                 if (blockAdsSetting) WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/cosmetic.js"), anyOrigin)
                 WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/download-hook.js"), anyOrigin)
+                if (GamePrefs.hideCookies(this)) WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/cookie-hide.js"), anyOrigin)
+                if (GamePrefs.pullRefresh(this)) WebViewCompat.addDocumentStartJavaScript(webView, pullRefreshScript(), anyOrigin)
                 documentStartScriptsSupported = true
             }
         } catch (e: Exception) {
@@ -894,7 +900,13 @@ class GameActivity : ComponentActivity() {
         if (autoLogEnabled) webView.evaluateJavascript(shareHookScript(), null)
         if (blockAdsSetting && adBlockActive) webView.evaluateJavascript(pageScript("game/cosmetic.js"), null)
         webView.evaluateJavascript(pageScript("game/download-hook.js"), null)
+        if (GamePrefs.hideCookies(this)) webView.evaluateJavascript(pageScript("game/cookie-hide.js"), null)
+        if (GamePrefs.pullRefresh(this)) webView.evaluateJavascript(pullRefreshScript(), null)
     }
+
+    /** pull-refresh.js in the player's accent color. */
+    private fun pullRefreshScript(): String =
+        pageScript("game/pull-refresh.js").replace("__DAILIES_COLOR__", String.format(Locale.US, "#%06X", 0xFFFFFF and (if (accentColor == 0) LIGHT_PRIMARY else accentColor)))
 
     /** share-hook.js with this player's key and the Find Results setting filled in. */
     private fun shareHookScript(): String = pageScript("game/share-hook.js")
