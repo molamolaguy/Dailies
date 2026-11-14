@@ -1,3 +1,30 @@
+# Dailies 1.8.0
+
+Search, quick actions, a trash bin and a smarter player, plus tools for keeping your games in shape. It installs over 1.7.0 and keeps everything. If you're on 1.7.0, you can install it from **Settings → About → Check now**.
+
+## What's new since 1.7.0
+| | 1.7.0 | 1.8.0 |
+|---|---|---|
+| **Search** | — | Tap the magnifier on the hub to find a game by name, site or category |
+| **Quick actions** | Long-press only moved a card | Long-press a card and let go without moving it: Play, Log, notes, Stats & calendar, reset time, alerts, copy link, Archive, Remove. Right-click does the same on a computer. Dragging still reorders |
+| **Game notes** | — | Keep a tip or strategy for each game (from its quick actions) |
+| **Trash** | Removing a game kept its history out of sight | Removed games and forgotten history sit in **Settings → Data & Backup → Trash** for 30 days: restore them or delete them for good |
+| **Recent changes** | The last 25 | Everything from the last 60 days, with a search box |
+| **All done** | A toast | Your app icon sparkles, in gold or ruby if you use them, when you finish every game for the day (Settings → Display → Celebrate When All Done) |
+| **Reset times** | Checked for a game when you logged it | Every game is checked when the app opens. Turn on **Fix Reset Times Automatically** (Settings → Gameplay & Time) to have them corrected for you, with Undo |
+| **Game pages** | — | Cookie and consent banners are hidden, and pull down at the top of a page to reload it (Settings → Game Player) |
+| **Links & icons** | — | **Settings → Data & Backup → Check links & icons**: find games whose site is gone or has moved (and switch to the new address), and fetch sharper icons |
+| **Storage** | — | See what Dailies keeps on your phone (preloaded pages, icons, site cache, downloads) and clear it. Your games and history are never touched |
+| **Report a problem** | — | **Settings → About → Report a problem** gathers recent errors and crashes (no games or scores) to copy, share or attach to a GitHub issue |
+| **What's new** | Only in the release notes | Shown once after an update, and any time from **Settings → About** |
+| **Start-up** | — | The hub opens sooner |
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.7.0
 
 A daily challenge, secret achievements with a new Ruby look, more ways to style the app, and fixes for missed reset alerts. It installs over 1.6.1 and keeps everything. If you're on 1.6.1, you can install it from **Settings → About → Check now**.

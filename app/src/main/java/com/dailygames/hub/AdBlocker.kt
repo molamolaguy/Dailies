@@ -98,6 +98,16 @@ object GamePrefs {
     fun blockAds(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_BLOCK_ADS, true)
     fun autoLogShare(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_AUTO_LOG, true)
 
+    private const val KEY_HIDE_COOKIES = "hide_cookie_banners"
+    private const val KEY_PULL_REFRESH = "pull_to_refresh"
+
+    /** Settings → Hide Cookie Banners and Pull Down to Refresh (1.8.0). */
+    fun savePlayer(ctx: Context, hideCookies: Boolean, pullRefresh: Boolean) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY_HIDE_COOKIES, hideCookies); putBoolean(KEY_PULL_REFRESH, pullRefresh) }
+    }
+    fun hideCookies(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_HIDE_COOKIES, true)
+    fun pullRefresh(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_PULL_REFRESH, true)
+
     private const val KEY_FIND_RESULTS = "find_results"
     private const val ZOOM_PREFIX = "zoom_"
 

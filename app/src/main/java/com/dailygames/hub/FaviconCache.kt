@@ -48,6 +48,16 @@ class FaviconCache(
         }
     }
 
+    /** Drops the saved copy so the next request downloads it again (Refresh icons, 1.8.0). */
+    fun forget(sourceUrl: String) {
+        if (!isFetchable(sourceUrl)) return
+        val key = keyFor(sourceUrl)
+        synchronized(locks[(key.hashCode() and 0x7fffffff) % locks.size]) {
+            failures.remove(key)
+            dir.listFiles()?.filter { it.name.startsWith(key) }?.forEach { it.delete() }
+        }
+    }
+
     fun isCached(sourceUrl: String): Boolean = isFetchable(sourceUrl) && dataFile(keyFor(sourceUrl)).exists()
 
     private fun fetchAndStore(sourceUrl: String, key: String): Icon? {
