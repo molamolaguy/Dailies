@@ -202,6 +202,7 @@ object StreakReminders {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
             .setContentIntent(pending)
+            .let { Notifier.withAppIcon(ctx, it) }
             .build()
         return runCatching { nm.notify(NOTIFICATION_ID, n) }.isSuccess
     }

@@ -517,3 +517,39 @@ test('themeTokens: readable tones from a seed, in and out of gamut', () => {
   const o = H.hexToOklch('#1E88C8');
   assert.strictEqual(H.oklchToHex(o.L, o.C, o.H), '#1E88C8');
 });
+
+// ---- 1.7.0 ----
+test('secret achievements: what each measures', () => {
+  const at = (y, m, d, h, mi) => new Date(y, m - 1, d, h, mi).getTime();
+  const games = [{ id: 'w', name: 'Wordle', resetTime: '00:00', resetZone: 'local' }, { id: 'c', name: 'C', resetTime: '00:00', resetZone: 'local' }];
+  const row = (id, date, loggedAt, score, timeMs) => ({ gameId: id, date, outcome: 'Completed', score, loggedAt, timeMs });
+  const logs = [
+    row('w', '2026-11-14', at(2026, 11, 14, 0, 3), 'Wordle 6/6', 3600000),
+    row('c', '2026-11-14', at(2026, 11, 14, 3, 10), 'C 4/4', 3700000),
+    row('w', '2026-11-13', at(2026, 11, 13, 12, 0), 'Wordle 3/6', 1000)
+  ];
+  const m = H.secretMetrics(games, logs, { challengeBest: 7 });
+  assert.strictEqual(m.firstInLine, 1);
+  assert.strictEqual(m.nightShift, 1);
+  assert.strictEqual(m.clutch, 2);
+  assert.strictEqual(m.dawnPatrol, 2);
+  assert.strictEqual(m.deepDive, 7300000);
+  const s = H.computeSecrets(games, logs, { challengeBest: 7 });
+  assert.deepStrictEqual(s.filter((x) => x.earned).map((x) => x.id).sort(), ['challenger', 'deepDive', 'firstInLine', 'nightShift'].sort());
+  assert.strictEqual(H.SECRET_KEYS.length, 6);
+  // Secret keys survive the achievement-key migration (backups).
+  assert.deepStrictEqual(H.migrateAchievementKeys(['secret:clutch', 'roll#1', 'bogus']), ['secret:clutch', 'roll#1']);
+});
+
+test('daily challenge: same picks all day, least-played first, streaks', () => {
+  const ids = ['a', 'b', 'c', 'd', 'e'];
+  const a = H.pickChallenge('2026-11-14', ids, { a: 0, b: 0, c: 0, d: 20, e: 25 });
+  assert.deepStrictEqual(a, H.pickChallenge('2026-11-14', ids, { a: 0, b: 0, c: 0, d: 20, e: 25 }));
+  assert.strictEqual(a.length, 3);
+  assert.ok(a.includes('d') && a.includes('e'));
+  assert.deepStrictEqual(H.pickChallenge('2026-11-14', ['a'], {}), []);
+  assert.strictEqual(H.pickChallenge('2026-11-14', ['a', 'b'], {}).length, 2);
+  assert.deepStrictEqual(H.challengeStreaks(['2026-11-12', '2026-11-13', '2026-11-14', '2026-11-01'], '2026-11-14'), { current: 3, best: 3 });
+  assert.deepStrictEqual(H.challengeStreaks(['2026-11-12', '2026-11-13'], '2026-11-14'), { current: 2, best: 2 });
+  assert.deepStrictEqual(H.challengeStreaks(['2026-11-10'], '2026-11-14'), { current: 0, best: 1 });
+});

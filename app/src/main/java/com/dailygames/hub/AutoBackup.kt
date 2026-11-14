@@ -111,6 +111,8 @@ object AutoBackup {
             .put("achievements", state.opt("achievements") ?: org.json.JSONArray())
             .put("goldUnlocked", state.optBoolean("goldUnlocked", false))
             .put("goldAccentsUnlocked", state.optBoolean("goldAccentsUnlocked", false))
+            .put("rubyUnlocked", state.optBoolean("rubyUnlocked", false))
+            .put("challengeDays", state.opt("challengeDays") ?: org.json.JSONArray())
             .toString(2)
     }
 

@@ -1,0 +1,6 @@
+1.7.0
+• Daily challenge: finish 2–3 picked games for a challenge streak.
+• Secret achievements; find them all to unlock Ruby (icon and accents).
+• Custom app icon, card styles, countdown fonts, larger text, high contrast.
+• Restore one game from a backup.
+• Fixed missed reset alerts; alerts use your app icon. Shinier gold.

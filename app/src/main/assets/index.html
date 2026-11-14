@@ -118,7 +118,7 @@
     <!-- View 1: MINIMALISTIC DAILY HUB -->
     <section id="viewDashboard" class="space-y-4">
       <!-- Minimal Status & Filter / Add Bar -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="hub-sticky flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="hub-header-row flex items-center gap-2.5 text-xs text-slate-400">
           <span class="inline-flex items-center gap-1.5 text-sm font-bold text-white tracking-tight mr-1">
             <span id="hubLogo" class="hub-logo-wrap" aria-hidden="true">
@@ -205,6 +205,7 @@
 
       <!-- Clean Minimal Games List -->
       <!-- Play next: the next unplayed game, once today's run has started -->
+      <div id="challengeCard" class="challenge-card hidden" role="region" aria-label="Daily challenge"></div>
       <div id="playNextBar" class="play-next hidden" role="region" aria-label="Play next">
         <div class="pn-icon" id="playNextIcon" aria-hidden="true"></div>
         <div class="pn-text">
@@ -400,6 +401,58 @@
             <input id="settingGoldAccents" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
+          <label id="rubyAccentsRow" class="hidden p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
+            <div>
+              <p class="font-bold text-white">💎 Ruby Accents</p>
+              <p class="text-[11px] text-slate-400">Ruby highlights across the app (instead of gold)</p>
+            </div>
+            <input id="settingRubyAccents" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
+          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+            <div>
+              <p class="font-bold text-white">Card Style</p>
+              <p class="text-[11px] text-slate-400">How game cards and sections look</p>
+            </div>
+            <select id="settingCardStyle" aria-label="Card style" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+              <option value="filled">Filled</option>
+              <option value="glass">Glass</option>
+              <option value="outline">Outline</option>
+            </select>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+            <div>
+              <p class="font-bold text-white">Countdown Font</p>
+              <p class="text-[11px] text-slate-400">For timers and the clock</p>
+            </div>
+            <select id="settingCountdownFont" aria-label="Countdown font" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+              <option value="mono">Mono</option>
+              <option value="sans">Rounded</option>
+              <option value="serif">Classic</option>
+            </select>
+          </div>
+
+          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+            <div>
+              <p class="font-bold text-white">Text Size</p>
+              <p class="text-[11px] text-slate-400">Make everything easier to read</p>
+            </div>
+            <select id="settingTextSize" aria-label="Text size" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+              <option value="normal">Normal</option>
+              <option value="large">Large</option>
+              <option value="larger">Larger</option>
+            </select>
+          </div>
+
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">High Contrast</p>
+              <p class="text-[11px] text-slate-400">Brighter text and stronger outlines</p>
+            </div>
+            <input id="settingHighContrast" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Group Finished Games</p>
@@ -451,6 +504,14 @@
 
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
+              <p class="font-bold text-white">Daily Challenge</p>
+              <p class="text-[11px] text-slate-400">Each day, 2 or 3 of your games to finish for a challenge streak</p>
+            </div>
+            <input id="settingDailyChallenge" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
               <p class="font-bold text-white">Auto-Scrape URL on Paste</p>
               <p class="text-[11px] text-slate-400">Auto-fill game info from link</p>
             </div>
@@ -494,6 +555,13 @@
               <p id="adBlockInfo" class="text-[11px] text-slate-400">Blocks ads, trackers and pop-ups. Tap the shield in a game to allow ads there.</p>
             </div>
             <input id="settingBlockAds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Preload Games After Reset</p>
+              <p class="text-[11px] text-slate-400">On Wi-Fi, a game's page files are saved when its new puzzle comes out, so it opens faster. Deleted once you log it</p>
+            </div>
+            <input id="settingPreloadGames" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
         </div>
       </div>
@@ -546,6 +614,7 @@
           <button id="btnExportCsv" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Export history (.csv)</button>
           <button id="btnShareGameList" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
           <button id="btnSettingsChanges" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">↶ Recent changes (undo)</button>
+          <button id="btnRestoreOneGame" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Restore one game from a backup…</button>
         </div>
         <div id="autoBackupBlock" class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs space-y-2.5">
           <div>
@@ -781,6 +850,51 @@
         <button type="button" data-close-modal="modalAchievement" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div id="achDetailTiers" class="ach-detail-tiers"></div>
+    </div>
+  </div>
+
+  <div id="modalIconEditor" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="iconEditorTitle">
+    <div tabindex="-1" class="modal-panel glass-card icon-editor-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="iconEditorTitle" class="text-base font-bold text-white">Your own icon</h3>
+          <p class="text-xs text-slate-400">Pick the star and background colors.</p>
+        </div>
+        <button type="button" data-close-modal="modalIconEditor" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div id="iconEditorPreview" class="icon-editor-preview" aria-hidden="true"></div>
+      <p class="ie-label">Star</p>
+      <div id="iconEditorStar" class="ie-swatches" role="radiogroup" aria-label="Star color"></div>
+      <p class="ie-label">Background</p>
+      <div id="iconEditorBg" class="ie-swatches" role="radiogroup" aria-label="Background color"></div>
+      <input id="iconEditorColor" type="color" class="sr-only" tabindex="-1" aria-hidden="true" />
+      <p class="text-[11px] text-slate-400 leading-relaxed">Android doesn't let apps change their own icon to a custom picture, so <strong class="text-slate-200">Add to Home Screen</strong> adds a Dailies shortcut with this icon. It's also used inside the app and on alerts.</p>
+      <div class="today-results-actions">
+        <button id="btnIconEditorUse" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Use in app</button>
+        <button id="btnIconEditorPin" type="button" class="android-only px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg">Add to Home Screen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalRestoreGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="restoreGameTitle">
+    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="restoreGameTitle" class="text-base font-bold text-white">Restore one game</h3>
+          <p id="restoreGameSub" class="text-xs text-slate-400">Pick a game from the backup.</p>
+        </div>
+        <button type="button" data-close-modal="modalRestoreGame" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div id="restoreGameList" class="changes-list"></div>
+      <div id="restoreGameMode" class="hidden restore-mode">
+        <p id="restoreGameChosen" class="text-sm font-bold text-white"></p>
+        <p id="restoreGameDetail" class="text-xs text-slate-400 mt-1"></p>
+        <div class="restore-actions">
+          <button id="btnRestoreMerge" type="button" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold">Add missing days</button>
+          <button id="btnRestoreReplace" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Replace its history</button>
+        </div>
+        <p class="text-[11px] text-slate-500 mt-2">Add missing days keeps everything you have and fills in days from the backup. Replace swaps this game's history for the backup's. Either can be undone from Recent changes.</p>
+      </div>
     </div>
   </div>
 
@@ -1063,7 +1177,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.6.1';
+    const APP_VERSION = '1.7.0';
     const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
 
     const TIME_FMT_12 = (() => {
@@ -1095,6 +1209,17 @@
     // Recent changes kept for undo (1.6.0); used while loading the saved state, so defined first.
     const CHANGES_MAX = 25;
     let lastPlayerColorsSig = '';
+    let lastTextZoom = 0;
+    /** Text Size (1.7.0): the app scales text natively; a browser scales the page. */
+    function applyTextSize(size) {
+      const pct = size === 'larger' ? 130 : size === 'large' ? 115 : 100;
+      if (pct === lastTextZoom) return;
+      lastTextZoom = pct;
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.setTextZoom === 'function') { window.AndroidBridge.setTextZoom(pct); return; }
+      } catch (e) {}
+      document.documentElement.style.zoom = pct === 100 ? '' : String(pct / 100);
+    }
 
     function getDefaultSettings() {
       return {
@@ -1120,6 +1245,14 @@
         updateCheck: false,
         goldAccents: false,
         hubSort: 'custom',
+        preloadGames: true,
+        rubyAccents: false,
+        dailyChallenge: true,
+        countdownFont: 'mono',
+        cardStyle: 'filled',
+        textSize: 'normal',
+        highContrast: false,
+        customIcon: { star: '#F2C94C', bg: '#1E1B4B' },
         shareGrids: true,
         customAccent: '#1E88C8'
       };
@@ -1403,6 +1536,10 @@
         achievements: Array.isArray(parsed.achievements) ? HubCore.migrateAchievementKeys(parsed.achievements).slice(0, 200) : undefined,
         goldUnlocked: parsed.goldUnlocked === true,
         goldAccentsUnlocked: parsed.goldAccentsUnlocked === true,
+        rubyUnlocked: parsed.rubyUnlocked === true,
+        challenge: parsed.challenge && typeof parsed.challenge === 'object' && Array.isArray(parsed.challenge.ids)
+          ? { date: String(parsed.challenge.date || ''), ids: parsed.challenge.ids.map(String).slice(0, 3) } : null,
+        challengeDays: Array.isArray(parsed.challengeDays) ? parsed.challengeDays.filter((d) => HubCore.DATE_KEY_RE.test(String(d))).slice(-400) : [],
         // Recent changes (undo history) stay on this phone: never in a backup.
         recentChanges: Array.isArray(parsed.recentChanges)
           ? parsed.recentChanges.filter((c) => c && typeof c === 'object' && typeof c.id === 'string').slice(0, CHANGES_MAX) : [],
@@ -1477,6 +1614,7 @@
         if (window.AndroidBridge && typeof window.AndroidBridge.setGamePrefs === 'function') {
           const s = state.settings || {};
           window.AndroidBridge.setGamePrefs(s.blockAdsInGames !== false, s.autoLogFromShare !== false);
+          if (typeof window.AndroidBridge.setPreloadGames === 'function') window.AndroidBridge.setPreloadGames(s.preloadGames !== false);
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setFindResults === 'function') {
           window.AndroidBridge.setFindResults((state.settings || {}).findResults !== false);
@@ -1491,6 +1629,7 @@
     let stateRev = 0;
     function saveState(opts) {
       stateRev += 1;
+      queueTabPrerender();
       if (!opts || opts.sync !== false) syncWanted = true;
       if (opts && opts.syncNow) syncWanted = 'now';
       if (saveQueued) return;
@@ -1767,21 +1906,36 @@
         else localStorage.removeItem('dailydeck_theme_tokens_v1');
       } catch (e) {}
       // Gold accents (every achievement tier earned): gold in place of the theme's main colour.
-      const gold = goldAccentsOn();
+      const ruby = rubyAccentsOn();
+      const gold = goldAccentsOn() && !ruby;
       root.setAttribute('data-gold', gold ? 'true' : 'false');
+      root.setAttribute('data-ruby', ruby ? 'true' : 'false');
+      // 1.7.0 display options.
+      root.setAttribute('data-cards', ['glass', 'outline'].includes(s.cardStyle) ? s.cardStyle : 'filled');
+      root.setAttribute('data-cdfont', ['sans', 'serif'].includes(s.countdownFont) ? s.countdownFont : 'mono');
+      root.setAttribute('data-contrast', s.highContrast ? 'high' : 'normal');
+      applyTextSize(s.textSize);
+      if (ruby) {
+        const r = light
+          ? { '--md-primary': '#A3123A', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#FFD9DE', '--md-on-primary-container': '#3E0412',
+            '--md-secondary-container': '#FCE3E6', '--md-tertiary': '#A3123A', '--md-tertiary-container': '#FFE0E4', '--md-glow': 'rgba(163, 18, 58, 0.22)' }
+          : { '--md-primary': '#F25C7A', '--md-on-primary': '#3D0613', '--md-primary-container': '#5A1022', '--md-on-primary-container': '#FFD3DB',
+            '--md-secondary-container': '#4A1420', '--md-tertiary': '#FF8FA3', '--md-tertiary-container': '#5E1626', '--md-glow': 'rgba(242, 92, 122, 0.30)' };
+        Object.keys(r).forEach((k) => root.style.setProperty(k, r[k]));
+      }
       if (gold) {
         const g = light
-          ? { '--md-primary': '#7C6230', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#D3B45C', '--md-on-primary-container': '#1C1607',
-            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#7C6230', '--md-tertiary-container': '#F3E2C4', '--md-glow': 'rgba(152, 120, 65, 0.28)' }
-          : { '--md-primary': '#D1AB48', '--md-on-primary': '#1C1607', '--md-primary-container': '#4A3D22', '--md-on-primary-container': '#DCC273',
-            '--md-secondary-container': '#3F3313', '--md-tertiary': '#E8C27A', '--md-tertiary-container': '#4C3A16', '--md-glow': 'rgba(209, 171, 72, 0.30)' };
+          ? { '--md-primary': '#726542', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#CBB67A', '--md-on-primary-container': '#1B160A',
+            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#726542', '--md-tertiary-container': '#F3E2C4', '--md-glow': 'rgba(139, 125, 84, 0.28)' }
+          : { '--md-primary': '#C5AE6C', '--md-on-primary': '#1B160A', '--md-primary-container': '#473E28', '--md-on-primary-container': '#D6C38C',
+            '--md-secondary-container': '#3D331B', '--md-tertiary': '#D9C792', '--md-tertiary-container': '#473C20', '--md-glow': 'rgba(197, 174, 108, 0.30)' };
         Object.keys(g).forEach((k) => root.style.setProperty(k, g[k]));
       }
       // The game player's bar uses the same colours.
       try {
         const b = window.AndroidBridge;
         if (b && typeof b.setPlayerColors === 'function') {
-          const used = themeTokens || gold ? getComputedStyle(root) : null;
+          const used = themeTokens || gold || ruby ? getComputedStyle(root) : null;
           const pick = (n) => (used ? used.getPropertyValue(n).trim() : '');
           const colors = used ? {
             light,
@@ -2012,9 +2166,64 @@
         });
       }
       container.appendChild(toast);
+      enableToastSwipe(toast);
       setTimeout(() => {
         if (toast.parentNode) toast.remove();
       }, opts && opts.actionLabel ? 20000 : 4500);
+    }
+
+    /** Swipe a notification sideways (or up) to dismiss it; a short drag springs back. */
+    function enableToastSwipe(toast) {
+      let start = null;
+      let dx = 0;
+      let dy = 0;
+      let dragging = false;
+      const reset = () => {
+        toast.style.transition = 'transform 0.22s cubic-bezier(0.2, 0, 0, 1), opacity 0.22s';
+        toast.style.transform = '';
+        toast.style.opacity = '';
+      };
+      toast.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        start = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now() };
+        dx = 0; dy = 0; dragging = false;
+        toast.style.transition = 'none';
+      }, { passive: true });
+      toast.addEventListener('touchmove', (e) => {
+        if (!start) return;
+        dx = e.touches[0].clientX - start.x;
+        dy = e.touches[0].clientY - start.y;
+        if (!dragging && (Math.abs(dx) > 8 || dy < -8)) dragging = true;
+        if (!dragging) return;
+        if (e.cancelable) e.preventDefault();
+        const up = Math.min(0, dy);
+        const horizontal = Math.abs(dx) >= Math.abs(up);
+        toast.style.transform = horizontal ? `translateX(${dx}px)` : `translateY(${up}px)`;
+        toast.style.opacity = String(Math.max(0.2, 1 - (horizontal ? Math.abs(dx) / toast.offsetWidth : -up / 80)));
+      }, { passive: false });
+      const end = () => {
+        if (!start) return;
+        const dt = Math.max(1, performance.now() - start.t);
+        const up = Math.min(0, dy);
+        const horizontal = Math.abs(dx) >= Math.abs(up);
+        const dist = horizontal ? Math.abs(dx) : -up;
+        const fast = dist / dt > 0.5;
+        start = null;
+        if (!dragging) { reset(); return; }
+        if (dist > (horizontal ? toast.offsetWidth * 0.3 : 36) || (fast && dist > 48)) {
+          toast.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
+          toast.style.transform = horizontal ? `translateX(${dx > 0 ? '' : '-'}110%)` : 'translateY(-120%)';
+          toast.style.opacity = '0';
+          haptic('tick');
+          setTimeout(() => toast.remove(), 180);
+        } else {
+          reset();
+        }
+      };
+      toast.addEventListener('touchend', end);
+      toast.addEventListener('touchcancel', () => { start = null; reset(); });
+      // A swipe isn't a tap on the toast's text.
+      toast.addEventListener('click', (e) => { if (dragging) { e.stopPropagation(); e.preventDefault(); dragging = false; } }, true);
     }
 
     function isImageIcon(icon) {
@@ -2460,6 +2669,7 @@
       const grid = document.getElementById('gamesGrid');
       if (!grid) return;
       if (grid.classList.contains('drag-active')) return; // never rebuild cards mid-drag
+      dashboardRenderedKey = dashboardRenderKey();
       renderPlayNext();
       cardTimerElements.clear();
       const isCompact = Boolean(state.settings && state.settings.compactCards);
@@ -2949,7 +3159,9 @@
         haptic('start');
         const loop = () => {
           if (!drag) return;
-          const edgeTop = 90;
+          // Below the hub's header, which stays at the top of the screen.
+          const sticky = document.querySelector('#viewDashboard > .hub-sticky');
+          const edgeTop = (sticky ? sticky.getBoundingClientRect().bottom : 0) + 50;
           const edgeBottom = window.innerHeight - 150; // keep clear of the floating nav dock
           if (drag.lastY < edgeTop) window.scrollBy(0, -Math.ceil((edgeTop - drag.lastY) / 6));
           else if (drag.lastY > edgeBottom) window.scrollBy(0, Math.ceil((drag.lastY - edgeBottom) / 6));
@@ -3283,7 +3495,34 @@
     // A card with data-fold shows only its first child (the heading) while folded. Settings cards
     // start open (data-fold-default="open"), Achievements folded; a choice lasts until the app closes.
     const foldState = new Map();
+    // ---- Smoothness (1.6.2): work that can wait runs when the phone is idle ----
+    const whenIdle = (fn, timeout) => (window.requestIdleCallback
+      ? window.requestIdleCallback(fn, { timeout: timeout || 800 }) : setTimeout(fn, 60));
+    const foldDirty = new Map();
+    /** Renders a folded card's contents now if it's open, else when idle (and again when it opens). */
+    function renderWhenShown(fold, fn) {
+      const card = document.querySelector(`[data-fold="${fold}"]`);
+      if (!card || card.classList.contains('fold-open')) { foldDirty.delete(fold); fn(); return; }
+      if (foldDirty.has(fold)) return;
+      foldDirty.set(fold, fn);
+      whenIdle(() => { const f = foldDirty.get(fold); if (f) { foldDirty.delete(fold); f(); } });
+    }
+    /** After a change, redraws the tabs that aren't on screen while idle, so switching to them is instant. */
+    let prerenderQueued = false;
+    function queueTabPrerender() {
+      if (prerenderQueued) return;
+      prerenderQueued = true;
+      setTimeout(() => whenIdle(() => {
+        prerenderQueued = false;
+        // Not during a swipe between tabs (the neighbouring page is already drawn then).
+        if (Pager.neighbour) return;
+        // Switching to Streaks & Log shows the current month anyway, which is what this draws.
+        if (activeTab !== 'stats' && statsRenderKey() !== statsRenderedKey) prepareTab('stats');
+      }, 1500), 400);
+    }
+
     function setFold(card, open) {
+      if (open && foldDirty.has(card.dataset.fold)) { const f = foldDirty.get(card.dataset.fold); foldDirty.delete(card.dataset.fold); f(); }
       card.classList.toggle('fold-open', open);
       const head = card.querySelector(':scope > .fold-head');
       if (head) head.setAttribute('aria-expanded', String(open));
@@ -3444,6 +3683,7 @@
       if (c.kind === 'log' && c.snap) ok = restoreUndo(c.snap);
       else if (c.kind === 'remove') ok = restoreRemovedGame(c);
       else if (c.kind === 'archive') ok = restoreArchived(c);
+      else if (c.kind === 'restore') ok = restoreRestoredGame(c);
       if (!ok) return;
       c.undone = Date.now();
       saveState();
@@ -3489,6 +3729,7 @@
     function changeLabel(c) {
       if (c.kind === 'remove') return `Removed ${c.name}`;
       if (c.kind === 'archive') return `${c.archived ? 'Archived' : 'Restored'} ${c.name}`;
+      if (c.kind === 'restore') return `Restored ${c.name} from a backup`;
       const had = c.snap && c.snap.dayValue;
       if (c.outcome === 'missed') return had ? `Changed ${c.name} to missed` : `Marked ${c.name} missed`;
       return had ? `Updated ${c.name}` : `Logged ${c.name}`;
@@ -3555,7 +3796,241 @@
       return ready[0];
     }
     /** Shown once at least one game is done today and another is still waiting. */
+
+    // ---- Custom icon (1.7.0): your star and background colors ----
+    const ICON_STAR_COLORS = ['#F2C94C', '#FF8A65', '#F06292', '#BA68C8', '#7986CB', '#4FC3F7', '#4DB6AC', '#81C784', '#FFFFFF'];
+    const ICON_BG_COLORS = ['#1E1B4B', '#0F172A', '#111111', '#3B0A2A', '#0B3B2E', '#3A2A10', '#E0F7FA', '#FFF8E1', '#FFFFFF'];
+    function customIconColors() {
+      const c = (state.settings && state.settings.customIcon) || {};
+      return { star: validHex(c.star) ? c.star : '#F2C94C', bg: validHex(c.bg) ? c.bg : '#1E1B4B' };
+    }
+    /** Dark or light sparkle, whichever shows up on the star. */
+    function markOn(hex) { const o = HubCore.hexToOklch(hex); return o && o.L > 0.72 ? '#1A1A1A' : '#FFFFFF'; }
+    function customIconSvg(size, uid, colors) {
+      const c = colors || customIconColors();
+      const id = `ci-${uid}`;
+      const light = HubCore.oklchToHex(Math.min(0.97, HubCore.hexToOklch(c.star).L + 0.12), HubCore.hexToOklch(c.star).C, HubCore.hexToOklch(c.star).H);
+      return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true"><defs>`
+        + `<linearGradient id="${id}-s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78"><stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="${c.star}"/></linearGradient></defs>`
+        + `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="${c.bg}" stroke="var(--md-outline)" stroke-width="1"/>`
+        + `<g transform="translate(54 54) scale(1.3) translate(-54 -54)"><path d="${ICON_FLOWER}" fill="url(#${id}-s)"/><path d="${ICON_MARK}" fill="${markOn(c.star)}"/></g></svg>`;
+    }
+    let iconDraft = null;
+    let iconColorTarget = 'star';
+    function openIconEditor() {
+      iconDraft = Object.assign({}, customIconColors());
+      renderIconEditor();
+      openModal('modalIconEditor');
+    }
+    function renderIconEditor() {
+      document.getElementById('iconEditorPreview').innerHTML = customIconSvg(112, 'edit', iconDraft);
+      const sw = (list, cur, kind) => list.map((c) => `<button type="button" class="ie-swatch${c.toUpperCase() === cur.toUpperCase() ? ' on' : ''}" style="background:${c}" data-ie-kind="${kind}" data-ie-color="${c}" role="radio" aria-checked="${c.toUpperCase() === cur.toUpperCase()}" aria-label="${c}"></button>`).join('')
+        + `<button type="button" class="ie-swatch" style="background:conic-gradient(#F28B82,#FDD663,#81C995,#8AB4F8,#C58AF9,#F28B82)" data-ie-kind="${kind}" data-ie-color="pick" aria-label="Pick any color">✎</button>`;
+      document.getElementById('iconEditorStar').innerHTML = sw(ICON_STAR_COLORS, iconDraft.star, 'star');
+      document.getElementById('iconEditorBg').innerHTML = sw(ICON_BG_COLORS, iconDraft.bg, 'bg');
+    }
+    function saveCustomIcon() {
+      state.settings.customIcon = { star: iconDraft.star, bg: iconDraft.bg };
+      state.settings.appIcon = 'custom';
+      state.settings.iconFollowsTheme = false;
+      saveState({ sync: false });
+      applyThemeAndSettings();
+      renderIconChoices();
+    }
+    /** The custom icon as a full-bleed adaptive-icon PNG (432 px = 108 dp at 4x), for the home-screen shortcut. */
+    function customIconPng(colors) {
+      return new Promise((resolve) => {
+        const c = colors;
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 108 108"><defs><linearGradient id="s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">`
+          + `<stop offset="0" stop-color="${HubCore.oklchToHex(Math.min(0.97, HubCore.hexToOklch(c.star).L + 0.12), HubCore.hexToOklch(c.star).C, HubCore.hexToOklch(c.star).H)}"/><stop offset="1" stop-color="${c.star}"/></linearGradient></defs>`
+          + `<rect width="108" height="108" fill="${c.bg}"/><path d="${ICON_FLOWER}" fill="url(#s)"/><path d="${ICON_MARK}" fill="${markOn(c.star)}"/></svg>`;
+        const img = new Image();
+        img.onload = () => {
+          const cv = document.createElement('canvas'); cv.width = 432; cv.height = 432;
+          cv.getContext('2d').drawImage(img, 0, 0);
+          resolve(cv.toDataURL('image/png').replace(/^data:image\/png;base64,/, ''));
+        };
+        img.onerror = () => resolve('');
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      });
+    }
+    async function pinCustomIcon() {
+      saveCustomIcon();
+      const png = await customIconPng(iconDraft);
+      try {
+        if (png && window.AndroidBridge && typeof window.AndroidBridge.pinCustomIcon === 'function') { window.AndroidBridge.pinCustomIcon(png, iconDraft.star); return; }
+      } catch (e) {}
+      closeModal('modalIconEditor');
+      showToast('Custom icon saved', 'It shows in the app.', 'emerald');
+    }
+    window.onCustomIconPinned = function (result) {
+      closeModal('modalIconEditor');
+      showToast(result === 'pinned' ? 'Add it to your home screen' : 'Custom icon saved',
+        result === 'pinned' ? 'Confirm in the box your launcher shows. The shortcut opens Dailies.' : "Your launcher can't add shortcuts, but the icon is used in the app and on alerts.", 'emerald');
+    };
+
+    // ---- Restore one game from a backup (1.7.0) ----
+    let restoreGameUntil = 0;
+    let restoreBackup = null;
+    let restorePick = null;
+    function startRestoreOneGame() {
+      restoreGameUntil = Date.now() + 10 * 60000;
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.openBackupFilePicker === 'function') { window.AndroidBridge.openBackupFilePicker(); return; }
+      } catch (e) {}
+      const input = document.getElementById('inputImportBackupFile');
+      if (input) { input.value = ''; input.click(); }
+    }
+    /** A backup file chosen for "Restore one game": list its games. */
+    function openRestoreGame(raw) {
+      let parsed = null;
+      try { parsed = JSON.parse(String(raw || '').trim()); } catch (e) {}
+      const games = parsed && Array.isArray(parsed.games) ? parsed.games.filter((g) => g && g.id && g.name) : [];
+      if (!games.length) { showToast("Can't read that backup", 'Choose a Dailies backup file (.json).', 'indigo'); return; }
+      const logs = Array.isArray(parsed.historyLogs) ? parsed.historyLogs.filter((l) => l && typeof l.date === 'string') : [];
+      restoreBackup = { games, logs };
+      restorePick = null;
+      document.getElementById('restoreGameSub').textContent = `${plural(games.length, 'game')} in this backup. Pick one.`;
+      document.getElementById('restoreGameMode').classList.add('hidden');
+      const list = document.getElementById('restoreGameList');
+      list.classList.remove('hidden');
+      list.innerHTML = games.map((g, i) => {
+        const rows = logs.filter((l) => (l.gameId ? l.gameId === g.id : l.gameName === g.name));
+        const dates = rows.map((r) => r.date).sort();
+        const sub = rows.length ? `${plural(rows.length, 'result')} · ${formatCycleDateLabel(dates[0])} – ${formatCycleDateLabel(dates[dates.length - 1])}` : 'No results';
+        const inHub = state.games.some((x) => x.id === g.id || normalizeUrlKey(x.url) === normalizeUrlKey(g.url));
+        return `<button type="button" class="restore-row" data-restore-index="${i}"><span class="best-icon">${renderGameIconHtml(g.icon, g.name, 'w-5 h-5')}</span>`
+          + `<span class="rr-main"><span class="best-name" dir="auto">${escapeHtml(g.name)}</span><span class="best-sub">${escapeHtml(sub)}${inHub ? '' : ' · not in your hub'}</span></span></button>`;
+      }).join('');
+      openModal('modalRestoreGame');
+    }
+    function chooseRestoreGame(i) {
+      const g = restoreBackup && restoreBackup.games[i];
+      if (!g) return;
+      restorePick = g;
+      const rows = restoreBackup.logs.filter((l) => (l.gameId ? l.gameId === g.id : l.gameName === g.name));
+      const target = state.games.find((x) => x.id === g.id) || state.games.find((x) => normalizeUrlKey(x.url) === normalizeUrlKey(g.url));
+      document.getElementById('restoreGameList').classList.add('hidden');
+      document.getElementById('restoreGameMode').classList.remove('hidden');
+      document.getElementById('restoreGameChosen').textContent = g.name;
+      document.getElementById('restoreGameDetail').textContent = target
+        ? `${plural(rows.length, 'result')} in the backup; ${plural(state.historyLogs.filter((l) => l.gameId === target.id).length, 'result')} now.`
+        : `${plural(rows.length, 'result')} in the backup. It isn't in your hub, so it will be added back.`;
+      document.getElementById('btnRestoreReplace').classList.toggle('hidden', !target);
+    }
+    /** Brings one game's history back: "merge" fills in days you don't have; "replace" swaps it for the backup's. */
+    function applyRestoreGame(mode) {
+      const g = restorePick;
+      if (!g) return;
+      const rows = restoreBackup.logs.filter((l) => (l.gameId ? l.gameId === g.id : l.gameName === g.name));
+      let target = state.games.find((x) => x.id === g.id) || state.games.find((x) => normalizeUrlKey(x.url) === normalizeUrlKey(g.url));
+      const before = { rows: state.historyLogs.filter((l) => target && (l.gameId ? l.gameId === target.id : l.gameName === target.name)).map((r) => Object.assign({}, r)), game: target ? JSON.parse(JSON.stringify(target)) : null };
+      let added = 0;
+      if (!target) {
+        target = normalizeGameObject(JSON.parse(JSON.stringify(g)), state.games.length);
+        if (!target) return;
+        if (state.games.some((x) => x.id === target.id)) target.id = HubCore.uniqueId(target.id, new Set(state.games.map((x) => x.id)));
+        state.games.push(target);
+      }
+      const mine = (l) => (l.gameId ? l.gameId === target.id : l.gameName === target.name);
+      if (mode === 'replace') {
+        state.historyLogs = state.historyLogs.filter((l) => !mine(l));
+        target.dayHistory = {};
+      }
+      const have = new Set(state.historyLogs.filter(mine).map((l) => l.date));
+      rows.forEach((r) => {
+        if (have.has(r.date)) return;
+        state.historyLogs.push(Object.assign({}, r, { gameId: target.id, gameName: target.name }));
+        have.add(r.date);
+        added += 1;
+      });
+      if (!target.dayHistory || typeof target.dayHistory !== 'object') target.dayHistory = {};
+      Object.entries(g.dayHistory || {}).forEach(([k, v]) => {
+        if (HubCore.DATE_KEY_RE.test(k) && (v === 'completed' || v === 'missed') && (mode === 'replace' || !target.dayHistory[k])) target.dayHistory[k] = v;
+      });
+      state.historyLogs.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      invalidateLogIndex();
+      recomputeGameStatsFromHistory(target);
+      const changeId = recordChange({ kind: 'restore', gameId: target.id, name: target.name, detail: mode === 'replace' ? 'History replaced from a backup' : `${plural(added, 'day')} added from a backup`, before, newGame: !before.game });
+      saveState();
+      closeModal('modalRestoreGame');
+      renderVisibleTab();
+      checkNewAchievements();
+      showToast(`${target.name} restored`, mode === 'replace' ? 'Its history now matches the backup.' : `${plural(added, 'day')} added from the backup.`, 'emerald', null,
+        { actionLabel: 'Undo', onAction: () => undoChange(changeId) });
+    }
+    function restoreRestoredGame(c) {
+      const game = state.games.find((x) => x.id === c.gameId);
+      if (!game) return false;
+      state.historyLogs = state.historyLogs.filter((l) => (l.gameId ? l.gameId !== game.id : l.gameName !== game.name)).concat(c.before.rows || []);
+      state.historyLogs.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      if (c.newGame) state.games = state.games.filter((x) => x.id !== game.id);
+      else if (c.before.game) Object.assign(game, { dayHistory: c.before.game.dayHistory || {} });
+      invalidateLogIndex();
+      if (!c.newGame) recomputeGameStatsFromHistory(game);
+      saveState();
+      renderVisibleTab();
+      showToast('Restore undone', `${c.name} is back as it was.`, 'indigo');
+      return true;
+    }
+
+    // ---- Daily challenge (1.7.0): 2–3 of your games each day; finish them all for a challenge streak ----
+    function challengeStats() {
+      return HubCore.challengeStreaks(state.challengeDays || [], localTodayKey());
+    }
+    /** Days since each game was last solved (for picking ones you haven't played lately). */
+    function daysSinceSolved() {
+      const today = HubCore.cycleKeyToDay(localTodayKey());
+      const last = {};
+      state.historyLogs.forEach((l) => {
+        if (!l || l.outcome !== 'Completed' || !l.gameId || !HubCore.DATE_KEY_RE.test(String(l.date))) return;
+        const d = today - HubCore.cycleKeyToDay(l.date);
+        if (!(l.gameId in last) || d < last[l.gameId]) last[l.gameId] = Math.max(0, d);
+      });
+      return last;
+    }
+    /** Today's challenge: picked once per day (kept for the day even if games are added). */
+    function currentChallenge() {
+      if (state.settings && state.settings.dailyChallenge === false) return null;
+      const today = localTodayKey();
+      const visible = visibleGames();
+      const ids = new Set(visible.map((g) => g.id));
+      if (!state.challenge || state.challenge.date !== today) {
+        const picks = HubCore.pickChallenge(today, visible.map((g) => g.id), daysSinceSolved());
+        state.challenge = picks.length ? { date: today, ids: picks } : null;
+        if (state.challenge) saveState({ sync: false });
+      }
+      if (!state.challenge) return null;
+      const games = state.challenge.ids.filter((id) => ids.has(id)).map((id) => visible.find((g) => g.id === id));
+      if (games.length < 2) return null;
+      const done = games.filter((g) => g.dayHistory && g.dayHistory[getCycleDateKey(g.resetTime, g.resetZone)] === 'completed');
+      return { date: today, games, done: new Set(done.map((g) => g.id)) };
+    }
+    function renderChallenge() {
+      const el = document.getElementById('challengeCard');
+      if (!el) return;
+      const ch = currentChallenge();
+      if (!ch || selectMode) { el.classList.add('hidden'); return; }
+      const complete = ch.done.size === ch.games.length;
+      if (complete && !(state.challengeDays || []).includes(ch.date)) {
+        state.challengeDays = [...(state.challengeDays || []), ch.date].slice(-400);
+        saveState({ sync: false });
+        const st = challengeStats();
+        showToast('🎯 Daily challenge complete!', st.current > 1 ? `${st.current}-day challenge streak.` : 'Come back tomorrow for a new one.', 'emerald');
+        haptic('drop');
+        checkNewAchievements();
+      }
+      const st = challengeStats();
+      el.classList.remove('hidden');
+      el.classList.toggle('complete', complete);
+      el.innerHTML = `<div class="ch-head"><p class="ch-title"><span aria-hidden="true">🎯</span> Daily challenge${complete ? ' · done!' : ''}</p>`
+        + `<p class="ch-sub">${ch.done.size}/${ch.games.length}${st.current ? ` · 🔥 ${st.current}d` : ''}</p></div>`
+        + '<div class="ch-games">' + ch.games.map((g) => `<button type="button" class="ch-game${ch.done.has(g.id) ? ' done' : ''}" data-challenge-play="${escapeHtml(g.id)}" aria-label="${escapeHtml(g.name)}${ch.done.has(g.id) ? ', done' : ', play'}">`
+          + `<span class="ch-ic">${ch.done.has(g.id) ? '✓' : renderGameIconHtml(g.icon, g.name, 'w-4 h-4')}</span><span class="ch-name" dir="auto">${escapeHtml(g.name)}</span></button>`).join('') + '</div>';
+    }
+
     function renderPlayNext() {
+      renderChallenge();
       const copyBtn = document.getElementById('btnCopyToday');
       if (copyBtn) copyBtn.classList.toggle('hidden', !todaysResultEntries().length);
       const bar = document.getElementById('playNextBar');
@@ -3739,12 +4214,18 @@
       }
 
       if (records.length) announceRecords(game, records);
+      // Today's puzzle is logged: its preloaded page files can go.
+      if (isCurrentCycle) nativeGameFinished(game.id);
       historyPage = 0;
       saveState();
       checkResetSuggestion(game);
       checkNewAchievements();
       updateSingleGameCardOrGrid(game.id);
       if (activeTab === 'stats') renderStatsAndCharts();
+    }
+
+    function nativeGameFinished(id) {
+      try { if (window.AndroidBridge && typeof window.AndroidBridge.gameFinished === 'function') window.AndroidBridge.gameFinished(String(id)); } catch (e) {}
     }
 
     /** "Best Wordle ever: 2/6", "Fastest Wordle: 1m 05s", "Longest Wordle streak: 31 days". */
@@ -3767,7 +4248,9 @@
       { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
       { id: 'ocean', label: 'Ocean', bg: ['#E0F7FA', '#CCF2F7'], star: [[0, '#22D3EE'], [1, '#2563EB']], mark: '#FFFFFF' },
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
-      { id: 'gold', label: 'Gold', bg: ['#141109', '#050403'], star: [[0, '#E4CC7E'], [0.28, '#C7A042'], [0.55, '#987841'], [0.78, '#AF8A39'], [1, '#64512E']], mark: '#2E2614', sparks: '#3E331D', locked: true }
+      { id: 'custom', label: 'Custom', custom: true },
+      { id: 'gold', label: 'Gold', bg: ['#14130E', '#070706'], star: [[0, '#F2E8C4'], [0.2, '#D6C38A'], [0.4, '#F0E3B6'], [0.58, '#B8A469'], [0.78, '#8F8159'], [1, '#6A6044']], mark: '#2A2417', sparks: '#2A2417', bevel: true, locked: true },
+      { id: 'ruby', label: 'Ruby', bg: ['#0C090A', '#0C090A'], star: [[0, '#F0627E'], [1, '#7E0B24']], mark: '#0C090A', gem: true, locked: true }
     ];
     const earnedTierKeys = () => new Set(Array.isArray(state.achievements) ? state.achievements : []);
     /**
@@ -3790,6 +4273,26 @@
       return all;
     }
     const goldAccentsOn = () => Boolean(state.settings && state.settings.goldAccents) && goldAccentsUnlocked();
+    /** Ruby (1.7.0): every secret achievement found. Unlocks the Ruby icon and Ruby accents; remembered like Gold. */
+    function rubyUnlocked() {
+      if (state.rubyUnlocked === true) return true;
+      const have = earnedTierKeys();
+      const all = HubCore.SECRET_KEYS.every((k) => have.has(k));
+      if (all) state.rubyUnlocked = true;
+      return all;
+    }
+    const rubyAccentsOn = () => Boolean(state.settings && state.settings.rubyAccents) && rubyUnlocked();
+    /** Whether an icon style is still locked (Gold: every first tier; Ruby: every secret). */
+    const iconLocked = (st) => (st.id === 'gold' ? !goldIconUnlocked() : st.id === 'ruby' ? !rubyUnlocked() : false);
+    function renderRubyAccentsSetting() {
+      const el = document.getElementById('settingRubyAccents');
+      if (!el) return;
+      const unlocked = rubyUnlocked();
+      el.disabled = !unlocked;
+      el.checked = rubyAccentsOn();
+      const row = document.getElementById('rubyAccentsRow');
+      if (row) row.classList.toggle('hidden', !unlocked);
+    }
     function renderGoldAccentsSetting() {
       const el = document.getElementById('settingGoldAccents');
       if (!el) return;
@@ -3806,12 +4309,132 @@
       let style = s.appIcon || (s.iconFollowsTheme ? 'themed' : 'default');
       if (!ICON_STYLES.some((x) => x.id === style)) style = 'default';
       if (style === 'gold' && !goldIconUnlocked()) style = 'default';
+      if (style === 'ruby' && !rubyUnlocked()) style = 'default';
       return style;
     }
     /** The icon as an SVG (same shapes and colours as the launcher icon). */
+    // ---- Gold icon: satin gold star with a crisp bevel, as on the launcher (same design as its PNGs) ----
+    const METAL_ICON_PALETTES = {"gold":{"g0":"#E6D49A","g1":"#CBB679","g2":"#A68E54","hi":"#FFF7DC","sh":"#4A3E22","glow":"#6B5128","glow2":"#4A3A20","base":"#0B0B09"}};
+    function goldIconSvg(o) {
+      // o: { id, size, viewBox, k, bg: bool, star: bool, clip: '' | svg clip shape, p: palette (METAL_ICON_PALETTES) }
+      const id = o.id;
+      const p = o.p || METAL_ICON_PALETTES.gold;
+      const k = o.k || 1;
+      const star = 'M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z' + ' ' + 'M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z' + ' ' + 'M65.5,38.3 C66.17,41.83 66.17,41.83 69.7,42.5 C66.17,43.17 66.17,43.17 65.5,46.7 C64.83,43.17 64.83,43.17 61.3,42.5 C64.83,41.83 64.83,41.83 65.5,38.3Z M43,62.5 C43.48,65.02 43.48,65.02 46,65.5 C43.48,65.98 43.48,65.98 43,68.5 C42.52,65.98 42.52,65.98 40,65.5 C42.52,65.02 42.52,65.02 43,62.5Z';
+      const defs = '<defs>'
+        + '<linearGradient id="' + id + 'g" gradientUnits="userSpaceOnUse" x1="78" y1="26" x2="30" y2="82">'
+        + '<stop offset="0" stop-color="' + p.g0 + '"/><stop offset="0.5" stop-color="' + p.g1 + '"/><stop offset="1" stop-color="' + p.g2 + '"/></linearGradient>'
+        + '<radialGradient id="' + id + 'w1" gradientUnits="userSpaceOnUse" cx="0" cy="112" r="78"><stop offset="0" stop-color="' + p.glow + '" stop-opacity="0.75"/><stop offset="1" stop-color="' + p.glow + '" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="' + id + 'w2" gradientUnits="userSpaceOnUse" cx="112" cy="112" r="66"><stop offset="0" stop-color="' + p.glow + '" stop-opacity="0.6"/><stop offset="1" stop-color="' + p.glow + '" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="' + id + 'w3" gradientUnits="userSpaceOnUse" cx="-4" cy="-4" r="48"><stop offset="0" stop-color="' + p.glow2 + '" stop-opacity="0.35"/><stop offset="1" stop-color="' + p.glow2 + '" stop-opacity="0"/></radialGradient>'
+        // Satin grain + crisp bevel: a light band where the shape ends toward the top left, a dark band toward the bottom right.
+        + '<filter id="' + id + 'f" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">'
+        + '<feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="7" result="n"/>'
+        + '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0.33 0.33 0.33 0 0" result="ng"/>'
+        + '<feComposite in="SourceGraphic" in2="ng" operator="arithmetic" k1="0" k2="1" k3="0.16" k4="-0.08" result="grain"/>'
+        + '<feComposite in="grain" in2="SourceAlpha" operator="in" result="body"/>'
+        + '<feOffset in="SourceAlpha" dx="0.75" dy="0.75" result="o1"/><feComposite in="SourceAlpha" in2="o1" operator="out" result="b1"/>'
+        + '<feGaussianBlur in="b1" stdDeviation="0.22" result="b1s"/><feFlood flood-color="' + p.hi + '" flood-opacity="0.85"/><feComposite in2="b1s" operator="in"/><feComposite in2="SourceAlpha" operator="in" result="hi"/>'
+        + '<feOffset in="SourceAlpha" dx="-0.75" dy="-0.75" result="o2"/><feComposite in="SourceAlpha" in2="o2" operator="out" result="b2"/>'
+        + '<feGaussianBlur in="b2" stdDeviation="0.22" result="b2s"/><feFlood flood-color="' + p.sh + '" flood-opacity="0.85"/><feComposite in2="b2s" operator="in"/><feComposite in2="SourceAlpha" operator="in" result="sh"/>'
+        + '<feMerge><feMergeNode in="body"/><feMergeNode in="hi"/><feMergeNode in="sh"/></feMerge></filter>'
+        + '<filter id="' + id + 'd" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.1"/></filter>'
+        + (o.clip ? '<clipPath id="' + id + 'c">' + o.clip + '</clipPath>' : '')
+        + '</defs>';
+      const t = 'translate(54 54) scale(' + k + ') translate(-54 -54)';
+      const bg = o.bg
+        ? '<rect width="108" height="108" fill="' + p.base + '"/><rect width="108" height="108" fill="url(#' + id + 'w1)"/>'
+          + '<rect width="108" height="108" fill="url(#' + id + 'w2)"/><rect width="108" height="108" fill="url(#' + id + 'w3)"/>'
+        : '';
+      const fg = o.star
+        ? '<g transform="' + t + '"><path d="' + star + '" fill-rule="evenodd" fill="#000" fill-opacity="0.55" transform="translate(0.3 0.9)" filter="url(#' + id + 'd)"/>'
+          + '<path d="' + star + '" fill-rule="evenodd" fill="url(#' + id + 'g)" filter="url(#' + id + 'f)"/></g>'
+        : '';
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="' + o.size + '" height="' + o.size + '" viewBox="' + (o.viewBox || '0 0 108 108') + '">'
+        + defs + (o.clip ? '<g clip-path="url(#' + id + 'c)">' + bg + fg + '</g>' : bg + fg) + '</svg>';
+    }
+    // ---- end gold icon ----
+    // ---- Ruby icon: a faceted gemstone star, as on the launcher (design/icons/ruby-icon.js) ----
+    function rubyIconSvg(o) {
+      const id = o.id;
+      const k = o.k || 1;
+      const flower = 'M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z';
+      const mark = 'M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z';
+      const sparks = 'M65.5,38.3 C66.17,41.83 66.17,41.83 69.7,42.5 C66.17,43.17 66.17,43.17 65.5,46.7 C64.83,43.17 64.83,43.17 61.3,42.5 C64.83,41.83 64.83,41.83 65.5,38.3Z M43,62.5 C43.48,65.02 43.48,65.02 46,65.5 C43.48,65.98 43.48,65.98 43,68.5 C42.52,65.98 42.52,65.98 40,65.5 C42.52,65.02 42.52,65.02 43,62.5Z';
+      const mix = (a, b, t) => '#' + [0, 2, 4].map((i) => Math.round(parseInt(a.substr(i + 1, 2), 16) * (1 - t) + parseInt(b.substr(i + 1, 2), 16) * t).toString(16).padStart(2, '0')).join('');
+      const shade = (v) => { v = Math.max(0, Math.min(1, v)); return v < 0.5 ? mix('#1A0006', '#BA0C30', v * 2) : mix('#BA0C30', '#FF4E72', (v - 0.5) * 2); };
+      const pt = (r, a) => (54 + r * Math.cos(a)).toFixed(2) + ',' + (54 + r * Math.sin(a)).toFixed(2);
+      const N = 16, R = 34, C = 0.7, T = 10.5, L = -2.36, step = (2 * Math.PI) / N;
+      const inner = 'translate(54 54) scale(' + C + ') translate(-54 -54)';
+      // Outer slope (the bevel down to the edge): lit strongly from the top left, so the stone reads as raised.
+      let slope = '', crown = '', lines = '';
+      for (let i = 0; i < N; i++) {
+        const a0 = i * step - Math.PI / 2, a1 = a0 + step, m = a0 + step / 2;
+        const v = 0.5 + 0.47 * Math.cos(m - L) + (i % 2 ? 0.07 : -0.07);
+        slope += '<path d="M54,54 L' + pt(R, a0) + ' L' + pt(R, a1) + 'Z" fill="' + shade(v) + '"/>';
+        lines += 'M' + pt(R * C, a0) + ' L' + pt(R, a0) + ' ';
+      }
+      // Crown facets on top, seen through the stone, so their light is reversed (refraction) with a bright kite each.
+      for (let i = 0; i < N; i++) {
+        const a0 = i * step - Math.PI / 2 + step / 2, a1 = a0 + step, m = a0 + step / 2;
+        const v = 0.48 - 0.3 * Math.cos(m - L) + (i % 2 ? 0.12 : -0.08);
+        crown += '<path d="M' + pt(T, a0) + ' L' + pt(R * C, a0) + ' L' + pt(R * C, a1) + ' L' + pt(T, a1) + 'Z" fill="' + shade(v) + '"/>'
+          + '<path d="M' + pt(T, a0) + ' L' + pt(T * 1.85, m) + ' L' + pt(T, a1) + 'Z" fill="' + shade(v + 0.2) + '"/>';
+        lines += 'M' + pt(T, a0) + ' L' + pt(R * C, a0) + ' M' + pt(T, a0) + ' L' + pt(T * 1.85, m) + ' L' + pt(T, a1) + ' ';
+      }
+      let table = '';
+      for (let i = 0; i < 8; i++) table += (i ? ' L' : 'M') + pt(T, i * step * 2 - Math.PI / 2 + step / 2);
+      table += 'Z';
+      const glow = (n, cx, cy, r, c, op) => '<radialGradient id="' + id + n + '" gradientUnits="userSpaceOnUse" cx="' + cx + '" cy="' + cy + '" r="' + r + '"><stop offset="0" stop-color="' + c + '" stop-opacity="' + op + '"/><stop offset="1" stop-color="' + c + '" stop-opacity="0"/></radialGradient>';
+      const defs = '<defs>'
+        + glow('w1', 0, 112, 78, '#7A1028', 0.7) + glow('w2', 112, 112, 66, '#7A1028', 0.55) + glow('w3', -4, -4, 48, '#4A0E1A', 0.35)
+        + '<linearGradient id="' + id + 't" gradientUnits="userSpaceOnUse" x1="46" y1="45" x2="62" y2="63"><stop offset="0" stop-color="#FF5C7E"/><stop offset="0.45" stop-color="#D4143E"/><stop offset="1" stop-color="#6E0620"/></linearGradient>'
+        + '<linearGradient id="' + id + 'rim" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/><stop offset="0.45" stop-color="#FFB8C6" stop-opacity="0.25"/><stop offset="1" stop-color="#3A0010" stop-opacity="0.9"/></linearGradient>'
+        + '<linearGradient id="' + id + 'gl" gradientUnits="userSpaceOnUse" x1="30" y1="30" x2="60" y2="60"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.2"/><stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0.02"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>'
+        + glow('spec', 40, 39, 9, '#FFFFFF', 0.85) + glow('cau', 60, 62, 12, '#FF5A7E', 0.55)
+        + '<clipPath id="' + id + 'k"><path d="' + flower + '"/></clipPath>'
+        + '<clipPath id="' + id + 'i"><path d="' + flower + '" transform="' + inner + '"/></clipPath>'
+        + '<filter id="' + id + 'd" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4"/></filter>'
+        + '<filter id="' + id + 'b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.3"/></filter>'
+        + '<filter id="' + id + 's" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="0.9"/></filter>'
+        + (o.clip ? '<clipPath id="' + id + 'c">' + o.clip + '</clipPath>' : '')
+        + '</defs>';
+      const t = 'translate(54 54) scale(' + k + ') translate(-54 -54)';
+      const bg = o.bg
+        ? '<rect width="108" height="108" fill="#0C090A"/><rect width="108" height="108" fill="url(#' + id + 'w1)"/>'
+          + '<rect width="108" height="108" fill="url(#' + id + 'w2)"/><rect width="108" height="108" fill="url(#' + id + 'w3)"/>'
+        : '';
+      const fg = o.star
+        ? '<g transform="' + t + '">'
+          // A dark drop shadow and red light thrown under the stone.
+          + '<path d="' + flower + '" fill="#000" fill-opacity="0.7" transform="translate(1.2 3)" filter="url(#' + id + 'b)"/>'
+          + '<path d="' + flower + '" fill="#E0204A" fill-opacity="0.45" transform="translate(0 2)" filter="url(#' + id + 'd)"/>'
+          + '<g clip-path="url(#' + id + 'k)">' + slope
+          + '<g clip-path="url(#' + id + 'i)">' + crown + '<path d="' + table + '" fill="url(#' + id + 't)"/>'
+          + '<circle cx="60" cy="62" r="12" fill="url(#' + id + 'cau)"/></g>'
+          + '<path d="' + lines + table + '" fill="none" stroke="#FFD6DE" stroke-opacity="0.3" stroke-width="0.3" stroke-linejoin="round"/>'
+          // The ridge between slope and crown: a dark line with a bright edge above it.
+          + '<path d="' + flower + '" transform="' + inner + '" fill="none" stroke="#2A0009" stroke-opacity="0.75" stroke-width="1.2"/>'
+          + '<path d="' + flower + '" transform="translate(-0.45 -0.45) ' + inner + '" fill="none" stroke="#FFC9D4" stroke-opacity="0.5" stroke-width="0.5"/>'
+          + '<path d="' + flower + '" fill="url(#' + id + 'gl)"/>'
+          + '<ellipse cx="40" cy="39" rx="9" ry="5" transform="rotate(-40 40 39)" fill="url(#' + id + 'spec)"/></g>'
+          // A rim lit at the top left and in shadow at the bottom right.
+          + '<path d="' + flower + '" fill="none" stroke="url(#' + id + 'rim)" stroke-width="0.8" stroke-linejoin="round"/>'
+          // The Dailies mark and sparks as white glints.
+          + '<path d="' + mark + ' ' + sparks + '" fill="#FFFFFF" fill-opacity="0.75" filter="url(#' + id + 's)"/>'
+          + '<path d="' + mark + ' ' + sparks + '" fill="#FFFFFF"/></g>'
+        : '';
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="' + o.size + '" height="' + o.size + '" viewBox="' + (o.viewBox || '0 0 108 108') + '">'
+        + defs + (o.clip ? '<g clip-path="url(#' + id + 'c)">' + bg + fg + '</g>' : bg + fg) + '</svg>';
+    }
+    // ---- end ruby icon ----
     function appIconSvg(styleId, size, uid) {
       const st = ICON_STYLES.find((x) => x.id === styleId) || ICON_STYLES[0];
       const id = `ig-${uid}-${st.id}`;
+      // Gold: satin grained gold with a crisp bevel, the same design as its launcher icon.
+      if (st.gem) return rubyIconSvg({ id: `${id}-`, size, k: 1.3, bg: true, star: true, clip: '<rect x="0.5" y="0.5" width="107" height="107" rx="30"/>' });
+      if (st.bevel) return goldIconSvg({ id: `${id}-`, size, k: 1.3, bg: true, star: true, p: METAL_ICON_PALETTES[st.palette || 'gold'], clip: '<rect x="0.5" y="0.5" width="107" height="107" rx="30"/>' });
+      if (st.custom) return customIconSvg(size, id);
       const shape = '<g transform="translate(54 54) scale(1.3) translate(-54 -54)">'
         + `<path d="${ICON_FLOWER}" fill="${st.themed ? 'var(--md-primary)' : `url(#${id}-s)`}"/>`
         + `<path d="${ICON_MARK}" fill="${st.themed ? 'var(--md-on-primary)' : st.mark}"/>`
@@ -3823,16 +4446,17 @@
       const stops = st.star.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
       return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true"><defs>`
         + `<linearGradient id="${id}-b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${st.bg[0]}"/><stop offset="1" stop-color="${st.bg[1]}"/></linearGradient>`
-        + `<linearGradient id="${id}-s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">${stops}</linearGradient></defs>`
-        + `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="url(#${id}-b)"${st.outline ? ' stroke="var(--md-outline)" stroke-width="2"' : ''}/>${shape}</svg>`;
+        + `<linearGradient id="${id}-s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">${stops}</linearGradient>`
+        + '</defs>'
+        + `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="url(#${id}-b)"${st.outline ? ' stroke="var(--md-outline)" stroke-width="2"' : ''}/>`
+        + `${shape}</svg>`;
     }
     function renderIconChoices() {
       const box = document.getElementById('iconChoices');
       if (!box) return;
       const current = currentAppIcon();
-      const unlocked = goldIconUnlocked();
       box.innerHTML = ICON_STYLES.map((st) => {
-        const locked = st.locked && !unlocked;
+        const locked = iconLocked(st);
         const on = st.id === current;
         return `<button type="button" class="icon-choice${on ? ' on' : ''}${locked ? ' locked' : ''}" data-icon-style="${st.id}" role="radio" aria-checked="${on}"`
           + ` aria-label="${escapeHtml(st.label)}${locked ? ', locked' : ''}">${appIconSvg(st.id, 44, 'pick')}`
@@ -3845,10 +4469,11 @@
     function chooseAppIcon(style) {
       const st = ICON_STYLES.find((x) => x.id === style);
       if (!st) return;
-      if (st.locked && !goldIconUnlocked()) {
-        showToast('Gold is locked', 'Keep playing. It unlocks somewhere along the way.', 'indigo');
+      if (iconLocked(st)) {
+        showToast(`${st.label} is locked`, st.id === 'ruby' ? 'Some achievements are secret. Find them all.' : 'Keep playing. It unlocks somewhere along the way.', 'indigo');
         return;
       }
+      if (st.custom) { openIconEditor(); return; }
       if (!state.settings) state.settings = getDefaultSettings();
       state.settings.appIcon = style;
       state.settings.iconFollowsTheme = style === 'themed';
@@ -3862,22 +4487,32 @@
     /** Toasts achievement tiers earned since the last check. The first check after updating is silent. */
     function checkNewAchievements(silent) {
       const all = HubCore.computeAchievements(state.games, state.historyLogs);
+      const secrets = HubCore.computeSecrets(state.games, state.historyLogs, { challengeBest: challengeStats().best });
       const known = earnedTierKeys();
-      const freshKeys = HubCore.earnedAchievementKeys(all).filter((k) => !known.has(k));
+      const freshKeys = HubCore.earnedAchievementKeys(all).concat(secrets.filter((x) => x.earned).map((x) => x.key)).filter((k) => !known.has(k));
       if (!freshKeys.length) return;
       const first = !Array.isArray(state.achievements);
       const wasGold = goldIconUnlocked();
       const wasAccents = goldAccentsUnlocked();
+      const wasRuby = rubyUnlocked();
       // Earned tiers are kept even if the data later changes (a game removed, a result undone).
       state.achievements = [...known, ...freshKeys];
       const gold = goldIconUnlocked();
       const accents = goldAccentsUnlocked();
+      const ruby = rubyUnlocked();
       saveState({ sync: false });
       renderIconChoices();
       renderGoldAccentsSetting();
+      renderRubyAccentsSetting();
       if (first || silent) return;
       let delay = 900;
       freshKeys.forEach((k) => {
+        if (k.startsWith('secret:')) {
+          const sa = HubCore.SECRET_ACHIEVEMENTS.find((x) => `secret:${x.id}` === k);
+          if (sa) setTimeout(() => showToast(`🤫 Secret found: ${sa.icon} ${sa.title}`, `${sa.desc}.`, 'emerald'), delay);
+          delay += 400;
+          return;
+        }
         const [id, tier] = k.split('#');
         const a = HubCore.ACHIEVEMENTS.find((x) => x.id === id);
         const t = a && a.tiers[Number(tier) - 1];
@@ -3891,6 +4526,10 @@
       }
       if (accents && !wasAccents) {
         setTimeout(() => showToast('👑 Gold accents unlocked', 'You earned every achievement tier. Turn on Gold Accents in Settings → Display.', 'emerald'), delay + 600);
+        delay += 1000;
+      }
+      if (ruby && !wasRuby) {
+        setTimeout(() => showToast('💎 Ruby unlocked', 'You found every secret. Choose the Ruby icon and turn on Ruby Accents in Settings → Display.', 'emerald'), delay + 600);
       }
     }
 
@@ -4220,12 +4859,12 @@
       const rr = (X, Y, w, h, rad) => { x.beginPath(); x.moveTo(X + rad, Y); x.arcTo(X + w, Y, X + w, Y + h, rad); x.arcTo(X + w, Y + h, X, Y + h, rad); x.arcTo(X, Y + h, X, Y, rad); x.arcTo(X, Y, X + w, Y, rad); x.closePath(); };
       x.fillStyle = surface; x.fillRect(0, 0, W, H);
       const glow = x.createRadialGradient(220, 120, 0, 220, 120, 900);
-      glow.addColorStop(0, gold ? 'rgba(209,171,72,0.35)' : primary); glow.addColorStop(1, 'rgba(0,0,0,0)');
+      glow.addColorStop(0, gold ? 'rgba(197,174,108,0.35)' : primary); glow.addColorStop(1, 'rgba(0,0,0,0)');
       x.globalAlpha = gold ? 1 : 0.22; x.fillStyle = glow; x.fillRect(0, 0, W, H); x.globalAlpha = 1;
       const accent = (X, Y, w, h) => {
         if (!gold) return primary;
         const g = x.createLinearGradient(X, Y, X + w, Y + h);
-        [[0, '#DBC377'], [0.3, '#C7A042'], [0.6, '#987841'], [1, '#D6B865']].forEach(([o, col]) => g.addColorStop(o, col));
+        [[0, '#D6C38F'], [0.3, '#BAA465'], [0.6, '#8B7D54'], [1, '#CEBA81']].forEach(([o, col]) => g.addColorStop(o, col));
         return g;
       };
       // Header
@@ -4270,11 +4909,16 @@
       const grid = document.getElementById('achievementsGrid');
       if (!grid) return;
       const all = HubCore.computeAchievements(state.games, state.historyLogs);
-      achievementsShown = all;
+      // Secrets count once found (they're kept even if the data later changes).
+      const have = earnedTierKeys();
+      const secrets = HubCore.computeSecrets(state.games, state.historyLogs, { challengeBest: challengeStats().best })
+        .map((x) => Object.assign(x, { earned: x.earned || have.has(x.key), secret: true }));
+      achievementsShown = all.concat(secrets);
       const total = all.reduce((n, a) => n + a.tiers, 0);
       const n = all.reduce((x, a) => x + a.tier, 0);
+      const found = secrets.filter((x) => x.earned).length;
       const count = document.getElementById('achievementsCount');
-      if (count) count.textContent = `${n} of ${total} earned`;
+      if (count) count.textContent = `${n} of ${total} earned${found ? ` · ${found} of ${secrets.length} secrets` : ''}`;
       // What the gold unlocks need is an easter egg: the Achievements card doesn't say.
       // Every tile is the same size: icon, name and progress. Tap one for what it takes.
       grid.innerHTML = all.map((a, i) => {
@@ -4288,12 +4932,28 @@
           <span class="ach-title">${escapeHtml(a.title)}</span>
           <span class="ach-bar" aria-hidden="true"><span style="width:${a.tier >= 2 ? 100 : pct}%"></span></span>
         </button>`;
-      }).join('');
+      }).join('')
+        + `<p class="ach-secret-head"><span aria-hidden="true">🤫</span> Secret achievements</p>`
+        + secrets.map((x, j) => `
+        <button type="button" class="ach secret ${x.earned ? 'on' : ''}" data-ach-index="${all.length + j}" aria-label="${escapeHtml(x.earned ? `${x.title}, secret achievement found. Show details` : 'Secret achievement, not found yet')}">
+          <span class="ach-icon" aria-hidden="true">${x.earned ? x.icon : '❔'}</span>
+          <span class="ach-title">${escapeHtml(x.earned ? x.title : '???')}</span>
+          <span class="ach-bar" aria-hidden="true"><span style="width:${x.earned ? 100 : 0}%"></span></span>
+        </button>`).join('');
     }
     /** The details sheet for one achievement: what each tier takes and how far along it is. */
     function openAchievementDetails(i) {
       const a = achievementsShown[i];
       if (!a) return;
+      if (a.secret) {
+        document.getElementById('achDetailIcon').textContent = a.earned ? a.icon : '❔';
+        document.getElementById('achDetailTitle').textContent = a.earned ? a.title : 'Secret achievement';
+        document.getElementById('achDetailSub').textContent = a.earned ? '🤫 Secret found' : 'Not found yet';
+        document.getElementById('achDetailTiers').innerHTML = `<div class="ach-tier-row ${a.earned ? 'done' : ''}">`
+          + `<p class="ach-tier-desc">${escapeHtml(a.earned ? `${a.desc}.` : "It's a secret. Keep playing, and it'll turn up.")}</p></div>`;
+        openModal('modalAchievement');
+        return;
+      }
       document.getElementById('achDetailIcon').textContent = a.icon;
       document.getElementById('achDetailTitle').textContent = a.title;
       document.getElementById('achDetailSub').textContent = a.tier >= 2 ? '★ Both tiers earned' : (a.tier === 1 ? 'Tier 1 earned' : 'Not earned yet');
@@ -4537,8 +5197,9 @@
       statsRenderedKey = statsRenderKey();
       renderGameCalendar();
       renderRecap();
-      renderPersonalBests();
-      renderAchievements();
+      // Folded sections: drawn when there's a spare moment (or when opened), so the tab appears at once.
+      renderWhenShown('bests', renderPersonalBests);
+      renderWhenShown('achievements', renderAchievements);
 
       const tbody = document.getElementById('historyTableBody');
       renderHistoryFilterOptions();
@@ -4686,8 +5347,15 @@
       setChk('settingAutoLogShare', s.autoLogFromShare !== false);
       setChk('settingFindResults', s.findResults !== false);
       setChk('settingBlockAds', s.blockAdsInGames !== false);
+      setChk('settingPreloadGames', s.preloadGames !== false);
       setVal('settingThemeMode', s.themeMode || 'dark');
       setChk('settingGroupDone', s.groupDone !== false);
+      setVal('settingCardStyle', ['glass', 'outline'].includes(s.cardStyle) ? s.cardStyle : 'filled');
+      setVal('settingCountdownFont', ['sans', 'serif'].includes(s.countdownFont) ? s.countdownFont : 'mono');
+      setVal('settingTextSize', ['large', 'larger'].includes(s.textSize) ? s.textSize : 'normal');
+      setChk('settingHighContrast', Boolean(s.highContrast));
+      setChk('settingDailyChallenge', s.dailyChallenge !== false);
+      renderRubyAccentsSetting();
       setChk('settingDarkPages', s.darkGamePages !== false);
       renderIconChoices();
       renderGoldAccentsSetting();
@@ -5049,9 +5717,14 @@
         updateLiveTimers();
       } else {
         renderKPIs();
-        renderGamesGrid();
+        // The cards are redrawn only when something on them changed (their countdowns tick by themselves).
+        if (dashboardRenderKey() !== dashboardRenderedKey) renderGamesGrid();
         updateLiveTimers();
       }
+    }
+    let dashboardRenderedKey = '';
+    function dashboardRenderKey() {
+      return [stateRev, state.activeFilter, selectMode, selectedIds.size, doneSectionOpen, hubSortMode(), new Date().toDateString(), new Date().getHours()].join('|');
     }
 
     function switchNavigation(targetView, anim) {
@@ -5122,7 +5795,7 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalIconEditor', 'modalRestoreGame', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -5246,6 +5919,7 @@
 
       const changeId = recordChange({ kind: 'remove', gameId: game.id, name: game.name, game: JSON.parse(JSON.stringify(game)), index: state.games.indexOf(game) });
       state.games = state.games.filter((g) => g.id !== game.id);
+      nativeGameFinished(game.id);
       closeDeleteConfirmModal();
       saveState();
       renderVisibleTab();
@@ -5821,6 +6495,8 @@
     // BACKUP VALIDATION & IMPORT
     // =========================================================================
     function validateAndApplyBackup(raw) {
+      if (restoreGameUntil > Date.now()) { restoreGameUntil = 0; openRestoreGame(raw); return; }
+      restoreGameUntil = 0;
       if (!raw || !String(raw).trim()) {
         showToast('Import Cancelled', 'No backup file was selected.', 'indigo');
         return;
@@ -5832,6 +6508,8 @@
         let rawSettings = null;
         let rawRetained = null;
         let rawAchievements = null;
+        let rawRuby = false;
+        let rawChallengeDays = null;
         let rawGold = false;
         let rawAccents = false;
 
@@ -5845,6 +6523,8 @@
           if (Array.isArray(parsed.achievements)) rawAchievements = HubCore.migrateAchievementKeys(parsed.achievements).slice(0, 200);
           if (parsed.goldUnlocked === true) rawGold = true;
           if (parsed.goldAccentsUnlocked === true) rawAccents = true;
+          if (parsed.rubyUnlocked === true) rawRuby = true;
+          if (Array.isArray(parsed.challengeDays)) rawChallengeDays = parsed.challengeDays.filter((d) => HubCore.DATE_KEY_RE.test(String(d)));
         } else {
           throw new Error('Invalid backup root');
         }
@@ -5904,6 +6584,8 @@
           if (rawAchievements) state.achievements = [...new Set([...(Array.isArray(state.achievements) ? state.achievements : []), ...rawAchievements])];
           if (rawGold) state.goldUnlocked = true;
           if (rawAccents) state.goldAccentsUnlocked = true;
+          if (rawRuby) state.rubyUnlocked = true;
+          if (rawChallengeDays) state.challengeDays = [...new Set([...(state.challengeDays || []), ...rawChallengeDays])].sort().slice(-400);
           dropped.forEach((g) => {
             const snap = normalizeRetained(Object.assign({}, g, { dayHistory: Object.assign({}, g.dayHistory || {}), removedAt: Date.now() }));
             if (!snap) return;
@@ -6168,7 +6850,7 @@
         swipe = null;
         if (!e.touches || e.touches.length !== 1 || isAnyModalOpen() || tabAnimating) return;
         const el = e.target;
-        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .m4-floating-dock, .return-sheet, .tsel-menu')) return;
+        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .m4-floating-dock, .return-sheet, .tsel-menu, #toastContainer')) return;
         swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false };
       }, { passive: true });
 
@@ -6240,7 +6922,7 @@
             state.settings.streakReminderMinutes = Number(el.value) || 0;
             try { window.AndroidBridge && window.AndroidBridge.setStreakReminder && window.AndroidBridge.setStreakReminder(state.settings.streakReminderMinutes); } catch (e) {}
           }
-          if (key === 'themeMode' || key === 'darkGamePages' || key === 'dynamicWallpaper') saveLaunchPrefs();
+          if (key === 'themeMode' || key === 'darkGamePages' || key === 'dynamicWallpaper' || key === 'preloadGames' || key === 'blockAdsInGames') saveLaunchPrefs();
           if (key === 'updateCheck' && el.checked) runUpdateCheck(true);
           if (key === 'compactCards' || key === 'groupDone') {
             renderGamesGrid();
@@ -6260,8 +6942,23 @@
       bindSetting('settingAutoLogShare', 'autoLogFromShare', true);
       bindSetting('settingFindResults', 'findResults', true);
       bindSetting('settingBlockAds', 'blockAdsInGames', true);
+      bindSetting('settingPreloadGames', 'preloadGames', true);
       bindSetting('settingThemeMode', 'themeMode', false);
       bindSetting('settingGroupDone', 'groupDone', true);
+      bindSetting('settingCardStyle', 'cardStyle', false);
+      bindSetting('settingCountdownFont', 'countdownFont', false);
+      bindSetting('settingTextSize', 'textSize', false);
+      bindSetting('settingHighContrast', 'highContrast', true);
+      bindSetting('settingDailyChallenge', 'dailyChallenge', true);
+      bindSetting('settingRubyAccents', 'rubyAccents', true);
+      // Gold or Ruby accents: one at a time.
+      document.getElementById('settingRubyAccents').addEventListener('change', (e) => {
+        if (e.target.checked && state.settings.goldAccents) { state.settings.goldAccents = false; renderGoldAccentsSetting(); saveState({ sync: false }); applyThemeAndSettings(); }
+      });
+      document.getElementById('settingGoldAccents').addEventListener('change', (e) => {
+        if (e.target.checked && state.settings.rubyAccents) { state.settings.rubyAccents = false; renderRubyAccentsSetting(); saveState({ sync: false }); applyThemeAndSettings(); }
+      });
+      document.getElementById('settingDailyChallenge').addEventListener('change', () => renderChallenge());
       bindSetting('settingDarkPages', 'darkGamePages', true);
       document.getElementById('iconChoices').addEventListener('click', (e) => {
         const b = e.target && e.target.closest ? e.target.closest('[data-icon-style]') : null;
@@ -6360,7 +7057,9 @@
           historyLogs: state.historyLogs,
           achievements: Array.isArray(state.achievements) ? state.achievements : [],
           goldUnlocked: goldIconUnlocked(),
-          goldAccentsUnlocked: goldAccentsUnlocked()
+          goldAccentsUnlocked: goldAccentsUnlocked(),
+          rubyUnlocked: rubyUnlocked(),
+          challengeDays: Array.isArray(state.challengeDays) ? state.challengeDays : []
         };
         const jsonStr = JSON.stringify(backupPayload, null, 2);
 
@@ -6529,6 +7228,7 @@
       const btnSettingsImport = document.getElementById('btnSettingsImportJson');
       if (btnSettingsImport) {
         btnSettingsImport.addEventListener('click', () => {
+          restoreGameUntil = 0;
           try {
             if (window.AndroidBridge && typeof window.AndroidBridge.openBackupFilePicker === 'function') {
               window.AndroidBridge.openBackupFilePicker();
@@ -6630,6 +7330,38 @@
       document.getElementById('btnTodayResultsCopy').addEventListener('click', () => copyText(todaysCombinedText(), "Today's results copied."));
       document.getElementById('btnTodayResultsShare').addEventListener('click', () => shareText(todaysCombinedText(), "Today's Dailies"));
       document.getElementById('btnPlayAll').addEventListener('click', playAll);
+      document.getElementById('challengeCard').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-challenge-play]');
+        if (b) openGameInPlayer(b.getAttribute('data-challenge-play'));
+      });
+      document.getElementById('btnRestoreOneGame').addEventListener('click', startRestoreOneGame);
+      document.getElementById('restoreGameList').addEventListener('click', (e) => {
+        const b = e.target.closest('[data-restore-index]');
+        if (b) chooseRestoreGame(Number(b.getAttribute('data-restore-index')));
+      });
+      document.getElementById('btnRestoreMerge').addEventListener('click', () => applyRestoreGame('merge'));
+      document.getElementById('btnRestoreReplace').addEventListener('click', () => applyRestoreGame('replace'));
+      const ieColor = document.getElementById('iconEditorColor');
+      const onIeSwatch = (e) => {
+        const b = e.target.closest('[data-ie-color]');
+        if (!b || !iconDraft) return;
+        iconColorTarget = b.getAttribute('data-ie-kind');
+        const c = b.getAttribute('data-ie-color');
+        if (c === 'pick') { ieColor.value = iconDraft[iconColorTarget]; try { ieColor.showPicker ? ieColor.showPicker() : ieColor.click(); } catch (err) { ieColor.click(); } return; }
+        iconDraft[iconColorTarget] = c;
+        renderIconEditor();
+      };
+      document.getElementById('iconEditorStar').addEventListener('click', onIeSwatch);
+      document.getElementById('iconEditorBg').addEventListener('click', onIeSwatch);
+      ieColor.addEventListener('input', () => { if (iconDraft && validHex(ieColor.value)) { iconDraft[iconColorTarget] = ieColor.value.toUpperCase(); renderIconEditor(); } });
+      document.getElementById('btnIconEditorUse').addEventListener('click', async () => {
+        saveCustomIcon();
+        closeModal('modalIconEditor');
+        showToast('Custom icon chosen', 'Used in the app and on alerts.', 'emerald');
+        const png = await customIconPng(iconDraft);
+        try { if (png && window.AndroidBridge && typeof window.AndroidBridge.saveCustomIcon === 'function') window.AndroidBridge.saveCustomIcon(png, iconDraft.star); } catch (e) {}
+      });
+      document.getElementById('btnIconEditorPin').addEventListener('click', pinCustomIcon);
       const hubSortSel = document.getElementById('hubSort');
       hubSortSel.value = hubSortMode();
       themeSelect(hubSortSel);

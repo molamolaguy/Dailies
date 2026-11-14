@@ -54,6 +54,7 @@ class DailyRefreshProcessor(
             // rewind the anchor, or the same puzzle would be announced again when the clock catches up.
             // (Schedule edits re-anchor in GameRepository.sync instead.) ISO dates compare as strings.
             if (currentKey > lastKey) {
+                dispatcher.onCycleStarted(id)
                 if (g.optBoolean("notifyEnabled", true)) {
                     val (title, body) = Notifier.formatRefreshNotification(
                         g.optString("icon", ""),
@@ -100,7 +101,10 @@ class DailyRefreshWorker(
                 (0 until arr.length()).mapNotNull { arr.optJSONObject(it) }.associate { it.optString("id") to it.optString("name") }
             }
             val ready = ArrayList<Notifier.ReadyGame>()
+            val started = ArrayList<String>()
             val dispatcher = object : NotificationDispatcher {
+                override fun onCycleStarted(gameId: String) { started += gameId }
+
                 override fun notifyGameRefresh(gameId: String, title: String, body: String) {
                     val name = names[gameId]?.trim()?.takeIf { it.isNotEmpty() } ?: title.removeSuffix(" has refreshed")
                     ready += Notifier.ReadyGame(gameId, name, title, body)
@@ -115,7 +119,20 @@ class DailyRefreshWorker(
                 dispatcher = dispatcher
             )
             processor.processRefresh()
+            // New puzzles: fetch their pages' files on Wi-Fi so they open faster.
+            runCatching { PageCache.enqueue(ctx, started) }
             scheduleNextReset(ctx)
+        }
+
+        /**
+         * Re-arms the next reset after the games list changes or the app starts, but first posts any
+         * reset that has already happened and not been announced. Re-arming replaces the pending alarm,
+         * so without this a save at a reset (the hub rolls the day over the moment its countdown hits
+         * zero, just before the alarm) would push the alarm to the following reset and that alert was
+         * never posted.
+         */
+        fun refreshAndSchedule(ctx: Context) {
+            if (GameStore.hasUnannouncedReset(ctx)) runRefresh(ctx) else scheduleNextReset(ctx)
         }
 
         fun scheduleNextReset(ctx: Context, nowMs: Long = System.currentTimeMillis()) {

@@ -154,7 +154,7 @@ class HubActivity : ComponentActivity() {
             runOnUiThread { runJs("window.onHubSaveResult && window.onHubSaveResult($ok)") }
         })
         Notifier.ensureChannel(this)
-        DailyRefreshWorker.scheduleNextReset(this)
+        DailyRefreshWorker.refreshAndSchedule(this)
         AutoBackup.schedule(this)
 
         // Edge-to-edge: draw behind the status & navigation bars.
@@ -793,7 +793,7 @@ class HubActivity : ComponentActivity() {
         @JavascriptInterface
         fun syncGames(json: String) {
             GameStore.sync(applicationContext, json)
-            DailyRefreshWorker.scheduleNextReset(applicationContext)
+            DailyRefreshWorker.refreshAndSchedule(applicationContext)
         }
 
         /** Weekly automatic backups: pick (or change) the folder, which also turns them on. */
@@ -971,6 +971,61 @@ class HubActivity : ComponentActivity() {
             if (!url.startsWith("https://", true) && !url.startsWith("http://", true)) return
             if (GamePrefs.blockAds(applicationContext)) AdBlocker.warmUp(applicationContext)
             runOnUiThread { launchGame(gameId, name, url, lineup, playAll = true) }
+        }
+
+        /**
+         * Icon editor (1.7.0): saves the custom icon (a full-bleed adaptive-icon PNG) and asks the launcher
+         * to add a Dailies shortcut with it. Android can't change the app's own icon to a custom image.
+         * Answers window.onCustomIconPinned(result): "pinned" (asked), "saved" (no pinning support).
+         */
+        @JavascriptInterface
+        fun pinCustomIcon(base64Png: String, starColor: String) {
+            if (base64Png.length > 4_000_000) return
+            val bytes = runCatching { android.util.Base64.decode(base64Png, android.util.Base64.DEFAULT) }.getOrNull() ?: return
+            val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return
+            val color = ThemePrefs.parseColor(starColor) ?: 0xFFF2C94C.toInt()
+            runOnUiThread {
+                AppIcon.saveCustom(this@HubActivity, bytes, color)
+                val asked = runCatching {
+                    if (!androidx.core.content.pm.ShortcutManagerCompat.isRequestPinShortcutSupported(this@HubActivity)) return@runCatching false
+                    val shortcut = androidx.core.content.pm.ShortcutInfoCompat.Builder(this@HubActivity, "dailies-custom-icon")
+                        .setShortLabel("Dailies")
+                        .setIcon(androidx.core.graphics.drawable.IconCompat.createWithAdaptiveBitmap(bmp))
+                        .setIntent(Intent(Intent.ACTION_MAIN).setClass(this@HubActivity, HubActivity::class.java))
+                        .build()
+                    androidx.core.content.pm.ShortcutManagerCompat.requestPinShortcut(this@HubActivity, shortcut, null)
+                }.getOrDefault(false)
+                runJs("window.onCustomIconPinned && window.onCustomIconPinned(${if (asked) "'pinned'" else "'saved'"})")
+            }
+        }
+
+        /** The custom icon without a shortcut ("Use in app"): kept for alerts. */
+        @JavascriptInterface
+        fun saveCustomIcon(base64Png: String, starColor: String) {
+            if (base64Png.length > 4_000_000) return
+            val bytes = runCatching { android.util.Base64.decode(base64Png, android.util.Base64.DEFAULT) }.getOrNull() ?: return
+            if (android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) == null) return
+            AppIcon.saveCustom(applicationContext, bytes, ThemePrefs.parseColor(starColor) ?: 0xFFF2C94C.toInt())
+        }
+
+        /** Settings → Text Size: scales every text in the hub (100 = normal). */
+        @JavascriptInterface
+        fun setTextZoom(percent: Int) {
+            runOnUiThread { if (::webView.isInitialized) webView.settings.textZoom = percent.coerceIn(80, 160) }
+        }
+
+        /** Settings → Preload Games: fetch a game's page files on Wi-Fi when its puzzle resets. */
+        @JavascriptInterface
+        fun setPreloadGames(on: Boolean) {
+            PageCache.setEnabled(applicationContext, on)
+        }
+
+        /** A game was logged (or removed): its preloaded files aren't needed any more. */
+        @JavascriptInterface
+        fun gameFinished(gameId: String) {
+            if (gameId.isBlank() || gameId.length > 200) return
+            val app = applicationContext
+            Thread { PageCache.clear(app, gameId) }.start()
         }
 
         /** The hub's colour theme / gold accents for the game player's bar ("" = the default colours). */

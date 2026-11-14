@@ -30,7 +30,11 @@ import javax.net.ssl.SSLSocketFactory
  * - Bounded: an overall deadline and a maximum body size.
  */
 object SafeHttp {
-    class Response(val code: Int, val finalUrl: String, val contentType: String?, val body: ByteArray)
+    class Response(
+        val code: Int, val finalUrl: String, val contentType: String?, val body: ByteArray,
+        /** Response headers, names lower-cased, first value of each (1.6.2). */
+        val headers: Map<String, String> = emptyMap()
+    )
 
     /** For unit tests that run against a local test server. */
     @Volatile var allowPrivateHostsForTests = false
@@ -85,7 +89,11 @@ object SafeHttp {
                         if (out.size() >= maxBytes) break
                     }
                 }
-                return Response(code, current, conn.contentType, out.toByteArray())
+                val hdrs = HashMap<String, String>()
+                conn.headerFields?.forEach { (k, v) -> if (k != null && !v.isNullOrEmpty()) hdrs[k.lowercase(Locale.US)] = v[0] }
+                // A body cut off at maxBytes isn't the whole file.
+                if (out.size() >= maxBytes) hdrs["x-dailies-truncated"] = "1"
+                return Response(code, current, conn.contentType, out.toByteArray(), hdrs)
             } catch (e: Exception) {
                 return null
             } finally {

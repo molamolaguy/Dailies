@@ -1,3 +1,34 @@
+# Dailies 1.7.0
+
+A daily challenge, secret achievements with a new Ruby look, more ways to style the app, and fixes for missed reset alerts. It installs over 1.6.1 and keeps everything. If you're on 1.6.1, you can install it from **Settings → About → Check now**.
+
+## What's new since 1.6.1
+| | 1.6.1 | 1.7.0 |
+|---|---|---|
+| **Daily challenge** | — | Each day Dailies picks 2 or 3 of your games (favoring ones you haven't played lately). Finish them all for a challenge streak. Turn it off in Settings → Gameplay & Time |
+| **Secret achievements** | — | Six hidden achievements, shown as **???** until you find them |
+| **Ruby** | — | Find every secret to unlock a Ruby app icon (the Dailies star cut as a raised, faceted 3D gemstone) and Ruby accents with a glassy, faceted gem finish (choose Ruby or Gold) |
+| **Gold** | Satin gold | A polished champagne gold with a bright highlight band, and a new Gold icon in grained gold with crisp beveled edges |
+| **App icon** | Preset styles | Also **Custom**: pick the star and background colors, then use it in the app or add it to your home screen as a shortcut |
+| **Card style** | Filled | **Filled**, **Glass** or **Outline** (Settings → Display) |
+| **Countdown font** | Mono | **Mono**, **Rounded** or **Classic** |
+| **Text size and contrast** | — | **Large** and **Larger** text, and a **High Contrast** option |
+| **Restoring** | A whole backup at once | Also **one game** from a backup (Settings → Data & Backup): add the days you're missing, or replace its history. Undo it from Recent changes |
+| **Reset alerts** | Could be skipped when Dailies was open at the reset | Always posted, and they use your app icon's color and picture |
+| **Hub** | The header scrolled away | The title and filter row stay at the top; pop-ups can be swiped away |
+| **Speed** | Tabs rebuilt when opened | Smoother tab switching, and games preload after their reset on Wi-Fi so they open faster |
+
+## Also changed
+- Preloaded game files are deleted once you log the game, and expire at its next reset. Turn preloading off in **Settings → Game Player → Preload Games After Reset**.
+- The bottom navigation bar is a little more see-through.
+- Backups keep the Ruby unlock and your daily challenge history.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.6.1
 
 Fixes and polish. It installs over 1.6.0 and keeps everything.

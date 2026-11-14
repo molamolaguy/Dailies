@@ -105,6 +105,15 @@ class GameActivity : ComponentActivity() {
     // ---- Today's games (switch between them without going back to the hub) ----
     private class LineupGame(val id: String, val name: String, val url: String, var done: Boolean)
     private val lineup = ArrayList<LineupGame>()
+    /** This game's files preloaded after its reset (PageCache), or null. */
+    @Volatile private var preloaded: PageCache.Index? = null
+
+    private fun loadPreloaded(id: String) {
+        preloaded = null
+        val app = applicationContext
+        Thread { val idx = PageCache.load(app, id); if (gameId == id) preloaded = idx }.start()
+    }
+
     /** Play all: after each result the player moves on to the next unplayed game by itself. */
     private var playAll = false
     private var autoNext: Runnable? = null
@@ -186,6 +195,7 @@ class GameActivity : ComponentActivity() {
             gameUrl = savedInstanceState.getString(STATE_GAME_URL).orEmpty()
         }
         readLineup(savedInstanceState?.getString(STATE_LINEUP) ?: intent.getStringExtra(EXTRA_LINEUP))
+        loadPreloaded(gameId)
         playAll = savedInstanceState?.getBoolean(STATE_PLAY_ALL) ?: intent.getBooleanExtra(EXTRA_PLAY_ALL, false)
         savedInstanceState?.getString(STATE_EARLIER)?.let { earlierResults = runCatching { JSONArray(it) }.getOrDefault(JSONArray()) }
 
@@ -455,7 +465,7 @@ class GameActivity : ComponentActivity() {
             }
 
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? =
-                request?.let { filterRequest(it) }
+                request?.let { filterRequest(it) ?: PageCache.respond(preloaded, it) }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 this@GameActivity.progress.visibility = View.VISIBLE
@@ -1485,6 +1495,7 @@ class GameActivity : ComponentActivity() {
         closePopup()
         exitFullscreen()
         gameId = target.id
+        loadPreloaded(target.id)
         gameName = target.name
         gameUrl = target.url
         gameHost = gameUrl.toUri().host?.lowercase(Locale.US).orEmpty()

@@ -146,6 +146,18 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
+            android:name=".IconRuby"
+            android:targetActivity=".HubActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_ruby"
+            android:roundIcon="@mipmap/ic_launcher_ruby_round">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
             android:name=".IconLight"
             android:targetActivity=".HubActivity"
             android:enabled="false"

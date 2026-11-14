@@ -138,6 +138,21 @@ class GameRepository(
     fun lastNotifiedKey(id: String): String? =
         storage.getString(GameStore.NOTIFIED_PREFIX + id)
 
+    /** Whether a game with alerts on has reached a newer cycle than the one last announced. */
+    fun hasUnannouncedReset(nowMs: Long = clock()): Boolean {
+        val games = load()
+        for (i in 0 until games.length()) {
+            val g = games.optJSONObject(i) ?: continue
+            val id = g.optString("id")
+            if (id.isEmpty() || !g.optBoolean("notifyEnabled", true)) continue
+            val last = lastNotifiedKey(id) ?: continue
+            if (!Regex("""\d{4}-\d{2}-\d{2}""").matches(last)) continue
+            val current = GameStore.cycleKey(g.optString("resetTime", "00:00"), g.optString("resetZone", "local"), nowMs, localTimeZone)
+            if (current > last) return true
+        }
+        return false
+    }
+
     fun setNotifiedKey(id: String, key: String) {
         storage.putString(GameStore.NOTIFIED_PREFIX + id, key)
     }
@@ -168,6 +183,8 @@ object GameStore {
 
     fun lastNotifiedKey(ctx: Context, id: String): String? =
         repository(ctx).lastNotifiedKey(id)
+
+    fun hasUnannouncedReset(ctx: Context): Boolean = synchronized(ScheduleLock) { repository(ctx).hasUnannouncedReset() }
 
     fun setNotifiedKey(ctx: Context, id: String, key: String) {
         repository(ctx).setNotifiedKey(id, key)

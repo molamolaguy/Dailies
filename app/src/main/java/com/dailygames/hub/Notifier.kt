@@ -17,6 +17,9 @@ fun interface NotificationDispatcher {
 
     /** Called once after a refresh pass has dispatched all of its notifications (e.g. to post a group summary). */
     fun onBatchComplete() {}
+
+    /** A game's new puzzle came out (alerts on or off); used to preload its page (1.6.2). */
+    fun onCycleStarted(gameId: String) {}
 }
 
 /** Shared notification helper used by both the UI bridge and the background worker. */
@@ -58,6 +61,18 @@ object Notifier {
     private const val COMBINED_ID = 0x0DA1E6
     private const val EXTRA_READY_NAME = "dailes_ready_name"
     private const val EXTRA_READY_NAMES = "dailes_ready_names"
+
+    /**
+     * Notifications look like the app icon chosen in Settings: the status-bar icon (which Android
+     * always shows as a one-colour silhouette) is tinted with that icon's colour, and the icon itself
+     * is the notification's picture.
+     */
+    fun withAppIcon(ctx: Context, b: NotificationCompat.Builder): NotificationCompat.Builder {
+        AppIcon.accentColor(ctx)?.let { b.setColor(it) }
+        val size = (64 * ctx.resources.displayMetrics.density).toInt().coerceIn(64, 256)
+        AppIcon.chosenIconBitmap(ctx, size)?.let { b.setLargeIcon(it) }
+        return b
+    }
 
     /** A game whose new puzzle is out, for [postResetNotifications]. */
     data class ReadyGame(val id: String, val name: String, val title: String, val body: String)
@@ -175,6 +190,7 @@ object Notifier {
             .setContentIntent(pending)
             .addExtras(android.os.Bundle().apply { putString(EXTRA_READY_NAME, readyName ?: title) })
             .apply { if (grouped) setGroup(GROUP_KEY) }
+            .let { withAppIcon(ctx, it) }
             .build()
 
         return try {
@@ -234,6 +250,7 @@ object Notifier {
             .setContentIntent(pending)
             .setGroup(GROUP_KEY)
             .setGroupSummary(true)
+            .let { withAppIcon(ctx, it) }
             .build()
         try {
             nm.notify(SUMMARY_ID, summary)
@@ -300,6 +317,7 @@ object Notifier {
             .setAutoCancel(true)
             .setContentIntent(pending)
             .addExtras(android.os.Bundle().apply { putStringArray(EXTRA_READY_NAMES, names.toTypedArray()) })
+            .let { withAppIcon(ctx, it) }
             .build()
         try {
             toCancel.forEach { nm.cancel(it) }
