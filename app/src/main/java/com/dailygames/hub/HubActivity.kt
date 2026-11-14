@@ -973,6 +973,47 @@ class HubActivity : ComponentActivity() {
             runOnUiThread { launchGame(gameId, name, url, lineup, playAll = true) }
         }
 
+        /**
+         * Icon editor (1.7.0): saves the custom icon (a full-bleed adaptive-icon PNG) and asks the launcher
+         * to add a Dailies shortcut with it. Android can't change the app's own icon to a custom image.
+         * Answers window.onCustomIconPinned(result): "pinned" (asked), "saved" (no pinning support).
+         */
+        @JavascriptInterface
+        fun pinCustomIcon(base64Png: String, starColor: String) {
+            if (base64Png.length > 4_000_000) return
+            val bytes = runCatching { android.util.Base64.decode(base64Png, android.util.Base64.DEFAULT) }.getOrNull() ?: return
+            val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return
+            val color = ThemePrefs.parseColor(starColor) ?: 0xFFF2C94C.toInt()
+            runOnUiThread {
+                AppIcon.saveCustom(this@HubActivity, bytes, color)
+                val asked = runCatching {
+                    if (!androidx.core.content.pm.ShortcutManagerCompat.isRequestPinShortcutSupported(this@HubActivity)) return@runCatching false
+                    val shortcut = androidx.core.content.pm.ShortcutInfoCompat.Builder(this@HubActivity, "dailies-custom-icon")
+                        .setShortLabel("Dailies")
+                        .setIcon(androidx.core.graphics.drawable.IconCompat.createWithAdaptiveBitmap(bmp))
+                        .setIntent(Intent(Intent.ACTION_MAIN).setClass(this@HubActivity, HubActivity::class.java))
+                        .build()
+                    androidx.core.content.pm.ShortcutManagerCompat.requestPinShortcut(this@HubActivity, shortcut, null)
+                }.getOrDefault(false)
+                runJs("window.onCustomIconPinned && window.onCustomIconPinned(${if (asked) "'pinned'" else "'saved'"})")
+            }
+        }
+
+        /** The custom icon without a shortcut ("Use in app"): kept for alerts. */
+        @JavascriptInterface
+        fun saveCustomIcon(base64Png: String, starColor: String) {
+            if (base64Png.length > 4_000_000) return
+            val bytes = runCatching { android.util.Base64.decode(base64Png, android.util.Base64.DEFAULT) }.getOrNull() ?: return
+            if (android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) == null) return
+            AppIcon.saveCustom(applicationContext, bytes, ThemePrefs.parseColor(starColor) ?: 0xFFF2C94C.toInt())
+        }
+
+        /** Settings → Text Size: scales every text in the hub (100 = normal). */
+        @JavascriptInterface
+        fun setTextZoom(percent: Int) {
+            runOnUiThread { if (::webView.isInitialized) webView.settings.textZoom = percent.coerceIn(80, 160) }
+        }
+
         /** Settings → Preload Games: fetch a game's page files on Wi-Fi when its puzzle resets. */
         @JavascriptInterface
         fun setPreloadGames(on: Boolean) {

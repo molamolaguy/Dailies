@@ -1,17 +1,27 @@
-# Dailies 1.6.2
+# Dailies 1.7.0
 
-Fixes, smoother screens and faster game loading. It installs over 1.6.1 and keeps everything.
+A daily challenge, secret achievements with a new Ruby look, more ways to style the app, and fixes for missed reset alerts. It installs over 1.6.1 and keeps everything. If you're on 1.6.1, you can install it from **Settings → About → Check now**.
 
-## Changes
-- **Reset alerts at midnight**: fixed alerts that didn't arrive. If Dailies was open (or still in memory) when a game reset, the hub's own rollover moved the alarm to the following day before it went off, so that reset was never announced. Now a reset that hasn't been announced is always posted first.
-- **Alerts match your app icon**: reset alerts and streak reminders use the color of the app icon you chose, and show that icon as their picture.
-- **Swipe away pop-ups**: swipe an in-app notification sideways or up to dismiss it.
-- **Hub header stays put**: the title row and the All / Ready / Done, sort, Select and Add Game row stay at the top while you scroll through a long list.
-- **Smoother**: switching tabs does much less work (Streaks & Log opens about 4× faster the first time and instantly after that), and folded sections are drawn while the phone is idle.
-- **Preload games**: when a game's new puzzle comes out, Dailies saves the files its page needs on Wi-Fi so it opens faster, and deletes them once you log the game. Turn it off in **Settings → Game Player → Preload Games After Reset**.
-- **Bottom navigation bar**: a little more see-through.
-- **Gold**: a polished champagne gold with a bright highlight band and deep shadows, everywhere gold is used: gold accents, the shine on buttons, text and card edges, the light theme, the game player's bar and the Gold app icon.
-- **Gold app icon**: a new look in satin, finely grained gold with crisp beveled edges and cut-out sparkles, on black with a warm glow.
+## What's new since 1.6.1
+| | 1.6.1 | 1.7.0 |
+|---|---|---|
+| **Daily challenge** | — | Each day Dailies picks 2 or 3 of your games (favoring ones you haven't played lately). Finish them all for a challenge streak. Turn it off in Settings → Gameplay & Time |
+| **Secret achievements** | — | Six hidden achievements, shown as **???** until you find them |
+| **Ruby** | — | Find every secret to unlock a Ruby app icon and Ruby accents, which work like the gold ones (choose one or the other) |
+| **Gold** | Satin gold | A polished champagne gold with a bright highlight band, and a new Gold icon in grained gold with crisp beveled edges |
+| **App icon** | Preset styles | Also **Custom**: pick the star and background colors, then use it in the app or add it to your home screen as a shortcut |
+| **Card style** | Filled | **Filled**, **Glass** or **Outline** (Settings → Display) |
+| **Countdown font** | Mono | **Mono**, **Rounded** or **Classic** |
+| **Text size and contrast** | — | **Large** and **Larger** text, and a **High Contrast** option |
+| **Restoring** | A whole backup at once | Also **one game** from a backup (Settings → Data & Backup): add the days you're missing, or replace its history. Undo it from Recent changes |
+| **Reset alerts** | Could be skipped when Dailies was open at the reset | Always posted, and they use your app icon's color and picture |
+| **Hub** | The header scrolled away | The title and filter row stay at the top; pop-ups can be swiped away |
+| **Speed** | Tabs rebuilt when opened | Smoother tab switching, and games preload after their reset on Wi-Fi so they open faster |
+
+## Also changed
+- Preloaded game files are deleted once you log the game, and expire at its next reset. Turn preloading off in **Settings → Game Player → Preload Games After Reset**.
+- The bottom navigation bar is a little more see-through.
+- Backups keep the Ruby unlock and your daily challenge history.
 
 ## Requirements
 - Android 7.0 or newer.

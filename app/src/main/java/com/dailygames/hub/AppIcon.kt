@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.edit
+import androidx.core.graphics.scale
 
 /**
  * Picks which launcher entry (activity-alias in the manifest) is enabled, so the home-screen icon is
@@ -18,11 +19,13 @@ object AppIcon {
     /** Styles the hub can choose, and their launcher entries ("themed" is resolved from the theme). */
     val STYLES = mapOf(
         "default" to DEFAULT, "midnight" to ".IconMidnight", "sunset" to ".IconSunset",
-        "ocean" to ".IconOcean", "mono" to ".IconMono", "gold" to ".IconGold"
+        "ocean" to ".IconOcean", "mono" to ".IconMono", "gold" to ".IconGold", "ruby" to ".IconRuby",
+        // A custom icon (1.7.0) is a home-screen shortcut; the app's own launcher entry stays the default.
+        "custom" to DEFAULT
     )
     val ALL = listOf(
         DEFAULT, ".IconAuto", ".IconLight", ".IconDark", ".IconLightClassic", ".IconDarkClassic", ".IconAutoClassic",
-        ".IconMidnight", ".IconSunset", ".IconOcean", ".IconMono", ".IconGold"
+        ".IconMidnight", ".IconSunset", ".IconOcean", ".IconMono", ".IconGold", ".IconRuby"
     )
     /** Each launcher entry's icon (the activity-alias icons in the manifest). */
     private val ICON_RES = mapOf(
@@ -30,7 +33,8 @@ object AppIcon {
         ".IconDark" to R.mipmap.ic_launcher_dark, ".IconLightClassic" to R.mipmap.ic_launcher_lightc,
         ".IconDarkClassic" to R.mipmap.ic_launcher_darkc, ".IconAutoClassic" to R.mipmap.ic_launcher_autoc,
         ".IconMidnight" to R.mipmap.ic_launcher_midnight, ".IconSunset" to R.mipmap.ic_launcher_sunset,
-        ".IconOcean" to R.mipmap.ic_launcher_ocean, ".IconMono" to R.mipmap.ic_launcher_mono, ".IconGold" to R.mipmap.ic_launcher_gold
+        ".IconOcean" to R.mipmap.ic_launcher_ocean, ".IconMono" to R.mipmap.ic_launcher_mono, ".IconGold" to R.mipmap.ic_launcher_gold,
+        ".IconRuby" to R.mipmap.ic_launcher_ruby
     )
     private const val PREFS = "dailes_theme_prefs"
     private const val KEY_FOLLOW = "icon_follows_theme"
@@ -69,11 +73,32 @@ object AppIcon {
         "ocean" -> 0xFF2563EB.toInt()
         "mono" -> 0xFF757575.toInt()
         "gold" -> 0xFFBAA465.toInt()
+        "ruby" -> 0xFFC8163F.toInt()
+        "custom" -> customStar(ctx)
         else -> ThemePrefs.playerColors(ctx)["primary"]
     }
 
+    // ---- Custom icon (1.7.0): made in the hub's icon editor; added to the home screen as a shortcut ----
+    private const val CUSTOM_FILE = "custom_icon.png"
+    private const val KEY_CUSTOM_STAR = "custom_star"
+
+    fun saveCustom(ctx: Context, png: ByteArray, starColor: Int) {
+        java.io.File(ctx.filesDir, CUSTOM_FILE).writeBytes(png)
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putInt(KEY_CUSTOM_STAR, starColor) }
+    }
+
+    fun customBitmap(ctx: Context): android.graphics.Bitmap? = runCatching {
+        android.graphics.BitmapFactory.decodeFile(java.io.File(ctx.filesDir, CUSTOM_FILE).path)
+    }.getOrNull()
+
+    private fun customStar(ctx: Context): Int? =
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_CUSTOM_STAR, 0).takeIf { it != 0 }
+
     /** The chosen launcher icon as a bitmap (the notification's large icon), or null if it can't be drawn. */
     fun chosenIconBitmap(ctx: Context, sizePx: Int): android.graphics.Bitmap? = runCatching {
+        if (style(ctx) == "custom") {
+            customBitmap(ctx)?.let { return it.scale(sizePx, sizePx) }
+        }
         // The icon image itself: the chosen launcher entry is often still switched off (it changes
         // when the app is left), and Android doesn't hand out a disabled entry's icon.
         val res = ICON_RES[chosenEntry(ctx)] ?: R.mipmap.ic_launcher

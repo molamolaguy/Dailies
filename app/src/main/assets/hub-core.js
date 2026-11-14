@@ -896,6 +896,102 @@
   const TIER1_KEYS = ACHIEVEMENTS.map((a) => tierKey(a.id, 1));
   const ALL_TIER_KEYS = ACHIEVEMENTS.flatMap((a) => a.tiers.map((t, i) => tierKey(a.id, i + 1)));
 
+  /**
+   * Secret achievements (1.7.0): hidden ("???") until earned; finding them all unlocks Ruby. One
+   * tier each; their keys are "secret:<id>" (kept in state.achievements like tier keys).
+   */
+  const SECRET_ACHIEVEMENTS = [
+    { id: 'firstInLine', icon: '🥇', title: 'First in line', desc: 'Solve a puzzle within 5 minutes of it coming out', metric: 'firstInLine', target: 1 },
+    { id: 'nightShift', icon: '🌙', title: 'Night shift', desc: 'Solve a puzzle between 2 and 4 AM', metric: 'nightShift', target: 1 },
+    { id: 'clutch', icon: '😅', title: 'Clutch', desc: 'Solve a guessing game on its very last guess 5 times', metric: 'clutch', target: 5 },
+    { id: 'dawnPatrol', icon: '🐓', title: 'Dawn patrol', desc: 'Solve 5 different games before 8 AM on one day', metric: 'dawnPatrol', target: 5 },
+    { id: 'deepDive', icon: '🤿', title: 'Deep dive', desc: 'Play for 2 hours in one day', metric: 'deepDive', target: 2 * HOUR },
+    { id: 'challenger', icon: '🎯', title: 'Challenger', desc: 'Finish the daily challenge 7 days in a row', metric: 'challengeBest', target: 7 }
+  ];
+  const SECRET_KEYS = SECRET_ACHIEVEMENTS.map((a) => `secret:${a.id}`);
+
+  /** What the secret achievements measure. Times of day are the phone's local time when a result was logged. */
+  function secretMetrics(games, logs, extra) {
+    const gs = Array.isArray(games) ? games.filter((g) => g && typeof g === 'object') : [];
+    const byId = new Map(gs.map((g) => [g.id, g]));
+    const solved = (Array.isArray(logs) ? logs : []).filter((r) => r && r.outcome === 'Completed');
+    let firstInLine = 0;
+    let nightShift = 0;
+    const dawn = new Map();
+    const playByDay = new Map();
+    solved.forEach((r) => {
+      const at = Number(r.loggedAt);
+      if (Number(r.timeMs) > 0 && typeof r.date === 'string') playByDay.set(r.date, (playByDay.get(r.date) || 0) + Number(r.timeMs));
+      if (!(at > 0) || !Number.isFinite(at)) return;
+      const d = new Date(at);
+      const h = d.getHours();
+      if (h >= 2 && h < 4) nightShift += 1;
+      if (h < 8) {
+        const day = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+        if (!dawn.has(day)) dawn.set(day, new Set());
+        dawn.get(day).add(r.gameId || r.gameName || '');
+      }
+      const g = byId.get(r.gameId);
+      if (!g) return;
+      try {
+        const start = getNextResetDate(g.resetTime, g.resetZone, new Date(at - 20 * HOUR)).getTime();
+        if (start <= at && at - start < 5 * 60000) firstInLine += 1;
+      } catch (e) {}
+    });
+    const clutch = solved.map((r) => parseScore(r.score)).filter((p) => p && !p.fail && p.max >= 4 && p.n === p.max).length;
+    return {
+      firstInLine,
+      nightShift,
+      clutch,
+      dawnPatrol: Math.max(0, ...[...dawn.values()].map((s) => s.size)),
+      deepDive: Math.max(0, ...playByDay.values()),
+      challengeBest: Math.max(0, Number(extra && extra.challengeBest) || 0)
+    };
+  }
+
+  /** Each secret achievement with whether it's earned (its details stay hidden in the hub until then). */
+  function computeSecrets(games, logs, extra) {
+    const m = secretMetrics(games, logs, extra);
+    return SECRET_ACHIEVEMENTS.map((a) => ({
+      id: a.id, key: `secret:${a.id}`, icon: a.icon, title: a.title, desc: a.desc,
+      earned: (m[a.metric] || 0) >= a.target
+    }));
+  }
+
+  /**
+   * The daily challenge (1.7.0): two or three of the hub's games picked for a date, the same all day
+   * (seeded by the date), favouring games played least lately. ids: the hub's games in order;
+   * lastPlayed: id -> days since last played (Infinity if never).
+   */
+  function pickChallenge(dateKey, ids, lastPlayed) {
+    const list = (Array.isArray(ids) ? ids : []).filter(Boolean);
+    if (list.length < 2) return [];
+    let seed = 0;
+    for (const ch of String(dateKey)) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+    const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    const lp = lastPlayed || {};
+    const scored = list.map((id) => {
+      const days = Number.isFinite(lp[id]) ? lp[id] : 30;
+      return { id, w: Math.min(30, Math.max(0, days)) + rand() * 6 };
+    });
+    scored.sort((a, b) => b.w - a.w);
+    return scored.slice(0, Math.min(3, list.length)).map((x) => x.id);
+  }
+
+  /** Days in a row (ending today or yesterday) in a list of finished-challenge dates, and the best run. */
+  function challengeStreaks(days, todayKey) {
+    const set = new Set((Array.isArray(days) ? days : []).filter((d) => DATE_KEY_RE.test(String(d))));
+    const sorted = [...set].sort();
+    let best = 0;
+    let run = 0;
+    let prev = null;
+    sorted.forEach((d) => { run = prev && addDaysToCycleKey(prev, 1) === d ? run + 1 : 1; prev = d; best = Math.max(best, run); });
+    let current = 0;
+    let k = set.has(todayKey) ? todayKey : addDaysToCycleKey(todayKey, -1);
+    while (set.has(k)) { current += 1; k = addDaysToCycleKey(k, -1); }
+    return { current, best };
+  }
+
   // Before 1.5.0 each achievement was one badge; each maps to the tiers it now stands for.
   const LEGACY_ACHIEVEMENTS = {
     first: ['first#1'], solves10: ['started#1'], solves100: ['started#1', 'started#2'],
@@ -908,7 +1004,7 @@
     const out = new Set();
     (Array.isArray(list) ? list : []).forEach((k) => {
       if (typeof k !== 'string') return;
-      if (k.includes('#')) out.add(k);
+      if (k.includes('#') || /^secret:[A-Za-z]+$/.test(k)) out.add(k);
       else (LEGACY_ACHIEVEMENTS[k] || []).forEach((x) => out.add(x));
     });
     return [...out];
@@ -1490,6 +1586,12 @@
     ACHIEVEMENTS,
     TIER1_KEYS,
     ALL_TIER_KEYS,
+    SECRET_ACHIEVEMENTS,
+    SECRET_KEYS,
+    secretMetrics,
+    computeSecrets,
+    pickChallenge,
+    challengeStreaks,
     migrateAchievementKeys,
     achievementMetrics,
     earnedAchievementKeys,

@@ -1639,3 +1639,165 @@ html[data-theme="light"] #viewDashboard > .hub-sticky { box-shadow: 0 8px 12px -
 /* Smoothness (1.6.2): cards off screen aren't laid out or painted until they scroll into view
    (their last size is remembered, so the page height and scroll position stay put). */
 #viewStats > .glass-card, #viewSettings > .glass-card { content-visibility: auto; contain-intrinsic-size: auto 520px; }
+
+
+/* ==========================================================================
+   1.7.0: countdown font, card styles, high contrast, daily challenge, secrets, icon editor, restore
+   ========================================================================== */
+html[data-cdfont="sans"] .gc-countdown .time, html[data-cdfont="sans"] .live-clock { font-family: 'Google Sans Flex', system-ui, sans-serif; font-weight: 650; letter-spacing: 0.01em; }
+html[data-cdfont="serif"] .gc-countdown .time, html[data-cdfont="serif"] .live-clock { font-family: Georgia, 'Noto Serif', 'Times New Roman', serif; font-weight: 600; }
+
+/* Card styles: Filled (default), Glass (see-through with a light edge) or Outline. Dialogs stay filled. */
+html[data-cards="glass"] .glass-card:not(.modal-panel) {
+  background: color-mix(in srgb, var(--md-container) 55%, transparent);
+  border-color: color-mix(in srgb, #FFFFFF 13%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 22px -10px rgba(0, 0, 0, 0.5);
+}
+html[data-theme="light"][data-cards="glass"] .glass-card:not(.modal-panel) { background: color-mix(in srgb, #FFFFFF 55%, transparent); border-color: rgba(0, 0, 0, 0.08); }
+html[data-cards="outline"] .glass-card:not(.modal-panel) {
+  background: transparent; box-shadow: none;
+  border: 1.5px solid color-mix(in srgb, var(--md-primary) 32%, var(--md-outline));
+}
+html[data-cards="glass"] { --gold-card: color-mix(in srgb, var(--md-container) 55%, var(--md-surface)); }
+html[data-cards="outline"] { --gold-card: var(--md-surface); }
+
+/* High contrast: brighter text, stronger outlines. */
+html[data-contrast="high"] { --md-outline: rgba(255, 255, 255, 0.42); }
+html[data-contrast="high"] .text-slate-300, html[data-contrast="high"] .text-slate-200 { color: #FFFFFF !important; }
+html[data-contrast="high"] .text-slate-400, html[data-contrast="high"] .text-slate-500,
+html[data-contrast="high"] .gc-countdown .label, html[data-contrast="high"] .hist-date, html[data-contrast="high"] .best-sub,
+html[data-contrast="high"] .chg-sub, html[data-contrast="high"] .stat-tile .k, html[data-contrast="high"] .stat-tile .s { color: #E8EAF0 !important; }
+html[data-contrast="high"] .glass-card { border-width: 1.5px; }
+html[data-contrast="high"] .border-slate-800, html[data-contrast="high"] .border-slate-700 { border-color: rgba(255, 255, 255, 0.35) !important; }
+html[data-theme="light"][data-contrast="high"] { --md-outline: rgba(0, 0, 0, 0.45); }
+html[data-theme="light"][data-contrast="high"] .text-slate-300, html[data-theme="light"][data-contrast="high"] .text-slate-200,
+html[data-theme="light"][data-contrast="high"] .text-slate-400, html[data-theme="light"][data-contrast="high"] .text-slate-500,
+html[data-theme="light"][data-contrast="high"] .gc-countdown .label, html[data-theme="light"][data-contrast="high"] .hist-date,
+html[data-theme="light"][data-contrast="high"] .stat-tile .k, html[data-theme="light"][data-contrast="high"] .stat-tile .s { color: #111014 !important; }
+html[data-theme="light"][data-contrast="high"] .border-slate-800, html[data-theme="light"][data-contrast="high"] .border-slate-700 { border-color: rgba(0, 0, 0, 0.4) !important; }
+
+/* Daily challenge card on the hub. */
+.challenge-card { padding: 12px 14px; border-radius: 20px; background: var(--md-container); border: 1px solid var(--md-outline); }
+.challenge-card.hidden { display: none; }
+.challenge-card .ch-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.challenge-card .ch-title { font-size: 13.5px; font-weight: 800; color: #fff; }
+.challenge-card .ch-sub { font-size: 11.5px; font-weight: 600; color: #a9b1c2; white-space: nowrap; }
+.challenge-card .ch-games { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.challenge-card .ch-game { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 10px 5px 6px; border-radius: 9999px; font-size: 12px; font-weight: 700;
+  color: var(--md-on-primary-container); background: var(--md-container-high); border: 1px solid var(--md-outline); }
+.challenge-card .ch-game .ch-ic { width: 20px; height: 20px; border-radius: 6px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; background: var(--md-container-highest); flex-shrink: 0; }
+.challenge-card .ch-game .ch-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.challenge-card .ch-game.done { background: var(--md-primary-container); border-color: transparent; }
+.challenge-card .ch-game.done .ch-name { text-decoration: line-through; text-decoration-thickness: 1.5px; opacity: 0.85; }
+.challenge-card.complete { border-color: color-mix(in srgb, var(--md-primary) 55%, transparent); }
+html[data-theme="light"] .challenge-card .ch-title { color: var(--lt-on-surface); }
+html[data-theme="light"] .challenge-card .ch-sub { color: var(--lt-muted); }
+
+/* Secret achievements. */
+.ach-secret-head { grid-column: 1 / -1; margin: 10px 0 0; font-size: 12px; font-weight: 800; color: #c9cfdb; letter-spacing: 0.02em; }
+.ach.secret:not(.on) { opacity: 0.7; border-style: dashed; }
+.ach.secret.on { border-color: rgba(242, 92, 122, 0.55); background: linear-gradient(160deg, rgba(200, 22, 63, 0.18), transparent 70%), var(--md-container-low); }
+html[data-theme="light"] .ach-secret-head { color: var(--lt-strong); }
+
+/* Icon editor. */
+.icon-editor-panel { border-radius: 28px; padding: 20px; height: auto; align-self: center; display: flex; flex-direction: column; gap: 10px; }
+.icon-editor-preview { display: flex; justify-content: center; padding: 6px 0; }
+.ie-label { font-size: 12px; font-weight: 700; color: #c9cfdb; margin-top: 2px; }
+.ie-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
+.ie-swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 15px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+.ie-swatch.on { border-color: var(--md-primary); box-shadow: 0 0 0 2px var(--md-surface) inset; }
+html[data-theme="light"] .ie-label { color: var(--lt-strong); }
+
+/* Restore one game. */
+.restore-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 9px 12px; border-radius: 16px; background: var(--md-container-low); border: 1px solid var(--md-outline); }
+.restore-row .rr-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.restore-mode { padding: 12px; border-radius: 16px; background: var(--md-container-low); border: 1px solid var(--md-outline); }
+.restore-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* ==== Ruby accents: generated by design/icons/ruby-css.js from the gold rules (do not edit) ==== */
+html[data-ruby="true"] {
+  --gold-shine: linear-gradient(115deg, #B42347 0%, #E44364 15%, #FE9AA5 29%, #F65976 38%, #CA224F 56%, #981639 72%, #D53B5C 87%, #FE7B8E 100%);
+  --gold-text: linear-gradient(100deg, #FE9AA5 0%, #EB4D6C 28%, #B82148 55%, #FE7388 82%, #DF4062 100%);
+  --gold-edge: linear-gradient(135deg, rgba(254, 154, 165, 0.95), rgba(202, 34, 79, 0.4) 30%, rgba(119, 8, 41, 0.3) 60%, rgba(254, 123, 142, 0.85));
+  --gold-ink: #29060C;
+  --gold-glow: 0 4px 18px -4px rgba(239, 81, 111, 0.5);
+  --gold-card: var(--md-container);
+}
+html[data-ruby="true"][data-amoled="true"] { --gold-card: #000; }
+html[data-ruby="true"][data-theme="light"] {
+  --gold-text: linear-gradient(100deg, #7A0B2B 0%, #AA1B41 30%, #6A0022 55%, #9B183B 80%, #7A0B2B 100%);
+  --gold-edge: linear-gradient(135deg, rgba(180, 2, 64, 0.95), rgba(207, 29, 79, 0.45) 35%, rgba(180, 2, 64, 0.30) 65%, rgba(152, 16, 55, 0.85));
+  --gold-glow: 0 4px 14px -4px rgba(152, 16, 55, 0.45);
+}
+html[data-ruby="true"] .m4-primary-fab,
+html[data-ruby="true"] .bg-indigo-600,
+html[data-ruby="true"] .return-btn.primary,
+html[data-ruby="true"] .next-game-play,
+html[data-ruby="true"] .toast-action {
+  background-color: #CF1D4F !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
+  border-color: rgba(245, 92, 119, 0.6) !important; box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 250, 232, 0.7), inset 0 -1px 0 rgba(74, 0, 21, 0.35) !important;
+  text-shadow: 0 1px 0 rgba(245, 92, 119, 0.5);
+}
+html[data-ruby="true"] .m4-tonal-pill { background-color: #CF1D4F !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; box-shadow: var(--gold-glow); }
+html[data-ruby="true"] .glass-card {
+  border-color: transparent !important;
+  background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box !important;
+}
+html[data-ruby="true"] .m4-floating-dock { border: 1px solid transparent !important; background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 18px -6px rgba(221, 40, 87, 0.45); }
+html[data-ruby="true"] .play-next { background: linear-gradient(135deg, #55011A, #29060C 60%, #4B0116) !important; color: #EE5370 !important; border: 1px solid rgba(236, 86, 113, 0.55); }
+html[data-ruby="true"][data-theme="light"] .play-next { background: linear-gradient(135deg, #F55C77, #E23C61 60%, #D32C55) !important; color: #29060C !important; border-color: rgba(152, 16, 55, 0.55); }
+html[data-ruby="true"] .hub-title-text,
+html[data-ruby="true"] .glass-card h3,
+html[data-ruby="true"] #kpiTopStreak,
+html[data-ruby="true"] .ach.on .ach-title,
+html[data-ruby="true"] .stat-tile .v {
+  background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent !important; -webkit-text-fill-color: transparent;
+}
+html[data-ruby="true"] .glass-card h3 .ico, html[data-ruby="true"] .stat-tile .v .v-emoji { -webkit-text-fill-color: initial; }
+html[data-ruby="true"] .text-indigo-300, html[data-ruby="true"] .removed-add, html[data-ruby="true"] .done-toggle, html[data-ruby="true"] .bulk-actions button.bulk-done { color: #DD2857 !important; }
+html[data-ruby="true"][data-theme="light"] .text-indigo-300, html[data-ruby="true"][data-theme="light"] .removed-add,
+html[data-ruby="true"][data-theme="light"] .done-toggle, html[data-ruby="true"][data-theme="light"] .bulk-actions button.bulk-done { color: #7F002A !important; }
+html[data-ruby="true"] .gc-streak, html[data-ruby="true"] .text-amber-300 { color: #EC5671 !important; text-shadow: 0 0 10px rgba(221, 40, 87, 0.35); }
+html[data-ruby="true"][data-theme="light"] .gc-streak, html[data-ruby="true"][data-theme="light"] .text-amber-300 { color: #750127 !important; text-shadow: none; }
+html[data-ruby="true"] .section-icon, html[data-ruby="true"] .done-section-head .ico { background-color: #CF1D4F; background-image: var(--gold-shine); }
+html[data-ruby="true"] .ach-bar > span, html[data-ruby="true"] .hist-dots span.on, html[data-ruby="true"] .update-progress > span { background: var(--gold-shine) !important; }
+html[data-ruby="true"] .status-pill.status-completed { color: var(--gold-ink); background-image: var(--gold-shine); border-color: rgba(245, 92, 119, 0.6); }
+html[data-ruby="true"] .status-pill.status-completed .dot, html[data-ruby="true"] .status-dot.status-completed { background: #61001E; }
+html[data-ruby="true"] .status-dot.status-completed { background-image: var(--gold-shine); }
+html[data-ruby="true"] html[data-ruby="true"] .ach.on { border-color: rgba(221, 40, 87, 0.45); }
+html[data-ruby="true"] .copy-today, html[data-ruby="true"] .icon-choice.on { border-color: #CF1D4F; }
+html[data-ruby="true"] .cal-cell.done { background: linear-gradient(135deg, rgba(245, 92, 119, 0.38), rgba(180, 2, 64, 0.26) 50%, rgba(236, 86, 113, 0.32)) !important; border-color: rgba(221, 40, 87, 0.75); color: #F25773; }
+html[data-ruby="true"][data-theme="light"] .cal-cell.done { background: linear-gradient(135deg, #F55A76, #DD2857 55%, #E23C61) !important; border-color: rgba(152, 16, 55, 0.6); color: #29060C; }
+html[data-ruby="true"] .legend-done { background: var(--gold-shine) !important; }
+html[data-ruby="true"] .cal-today-btn, html[data-ruby="true"] #btnShareRecap {
+  background-color: #CF1D4F !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
+  border-color: rgba(245, 92, 119, 0.6) !important; box-shadow: var(--gold-glow);
+}
+html[data-ruby="true"] .cal-cell.today { box-shadow: inset 0 0 0 2px #CF1D4F; }
+html[data-ruby="true"] .accent-indigo-500, html[data-ruby="true"] input[type="checkbox"] { accent-color: #CF1D4F; }
+html[data-ruby="true"] .nav-btn.nav-on { color: var(--gold-ink) !important; }
+html[data-ruby="true"] .ach-star { background-image: var(--gold-shine); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+html[data-ruby="true"] .status-pill .dot-star { color: #55011A; }
+html[data-ruby="true"] .tsel-menu { border: 1px solid transparent; background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box; }
+html[data-ruby="true"] .tsel-item.on { background: rgba(221, 40, 87, 0.18); color: #DD2857; }
+html[data-ruby="true"][data-theme="light"] .tsel-item.on { color: #7F002A; }
+html[data-ruby="true"] .theme-choice.on { border-color: #CF1D4F; }
+html[data-ruby="true"] .recap-btn.primary, html[data-ruby="true"] .recap-seg.on, html[data-ruby="true"] .chg-undo {
+  background-color: #CF1D4F !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; border-color: rgba(245, 92, 119, 0.6) !important;
+}
+html[data-ruby="true"] .app-toast {
+  border-color: transparent;
+  background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box;
+  box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.55), var(--gold-glow);
+}
+html[data-ruby="true"] .app-toast.tone-ok::before { background: var(--gold-shine); }
+html[data-ruby="true"] .app-toast .toast-title {
+  background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+}
+html[data-ruby="true"] .app-toast .toast-msg { color: color-mix(in srgb, #EE5370 75%, transparent); }
+html[data-ruby="true"][data-theme="light"] .app-toast .toast-msg { color: #55011A; }
+html[data-ruby="true"] .app-toast .toast-close { color: #DD2857; background: rgba(221, 40, 87, 0.14); }
+html[data-ruby="true"] .m4-floating-dock {
+  background: linear-gradient(color-mix(in srgb, var(--gold-card) 63%, transparent), color-mix(in srgb, var(--gold-card) 63%, transparent)) padding-box, var(--gold-edge) border-box !important;
+}
+/* ==== end ruby accents ==== */
