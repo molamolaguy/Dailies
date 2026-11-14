@@ -1,3 +1,18 @@
+# Dailies 1.8.1
+
+A faster, smoother hub and a tidier Score History. It installs over 1.8.0 and keeps everything. If you're on 1.8.0, you can install it from **Settings → About → Check now**.
+
+## Changes
+- **Score History**: results are grouped under their day (Today, Yesterday, Fri, Nov 13) with how many of that day's games you solved. Each result is one short row: the game, a one-line preview of the result, and ✓ or ✕ with your streak and play time. Tap a row for the full result, when you logged it, and **Copy**. Eight results per page instead of five, and the filters take less room.
+- **Faster start**: the hub is ready about twice as fast with a long history. Achievements, the time-zone list and the reset-time check no longer hold up the first screen.
+- **Smoother page switching**: sliding between Daily Hub, Streaks & Log and Settings no longer jumps at the start, and going back to the hub responds sooner.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.0
 
 Search, quick actions, a trash bin and a smarter player, plus tools for keeping your games in shape. It installs over 1.7.0 and keeps everything. If you're on 1.7.0, you can install it from **Settings → About → Check now**.

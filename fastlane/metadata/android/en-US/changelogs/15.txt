@@ -1,0 +1,3 @@
+• Score History grouped by day, one short row per result with a preview; tap for the full result and Copy.
+• The hub opens about twice as fast with a long history.
+• Smoother sliding between Daily Hub, Streaks & Log and Settings.
