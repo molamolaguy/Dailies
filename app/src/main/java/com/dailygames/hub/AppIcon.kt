@@ -24,6 +24,14 @@ object AppIcon {
         DEFAULT, ".IconAuto", ".IconLight", ".IconDark", ".IconLightClassic", ".IconDarkClassic", ".IconAutoClassic",
         ".IconMidnight", ".IconSunset", ".IconOcean", ".IconMono", ".IconGold"
     )
+    /** Each launcher entry's icon (the activity-alias icons in the manifest). */
+    private val ICON_RES = mapOf(
+        DEFAULT to R.mipmap.ic_launcher, ".IconAuto" to R.mipmap.ic_launcher_auto, ".IconLight" to R.mipmap.ic_launcher_light,
+        ".IconDark" to R.mipmap.ic_launcher_dark, ".IconLightClassic" to R.mipmap.ic_launcher_lightc,
+        ".IconDarkClassic" to R.mipmap.ic_launcher_darkc, ".IconAutoClassic" to R.mipmap.ic_launcher_autoc,
+        ".IconMidnight" to R.mipmap.ic_launcher_midnight, ".IconSunset" to R.mipmap.ic_launcher_sunset,
+        ".IconOcean" to R.mipmap.ic_launcher_ocean, ".IconMono" to R.mipmap.ic_launcher_mono, ".IconGold" to R.mipmap.ic_launcher_gold
+    )
     private const val PREFS = "dailes_theme_prefs"
     private const val KEY_FOLLOW = "icon_follows_theme"
     private const val KEY_STYLE = "icon_style"
@@ -66,7 +74,10 @@ object AppIcon {
 
     /** The chosen launcher icon as a bitmap (the notification's large icon), or null if it can't be drawn. */
     fun chosenIconBitmap(ctx: Context, sizePx: Int): android.graphics.Bitmap? = runCatching {
-        val d = ctx.packageManager.getActivityIcon(ComponentName(ctx.packageName, ctx.packageName + chosenEntry(ctx)))
+        // The icon image itself: the chosen launcher entry is often still switched off (it changes
+        // when the app is left), and Android doesn't hand out a disabled entry's icon.
+        val res = ICON_RES[chosenEntry(ctx)] ?: R.mipmap.ic_launcher
+        val d = androidx.core.content.ContextCompat.getDrawable(ctx, res) ?: return null
         val bmp = androidx.core.graphics.createBitmap(sizePx, sizePx)
         val canvas = android.graphics.Canvas(bmp)
         d.setBounds(0, 0, sizePx, sizePx)
