@@ -93,6 +93,34 @@ class HubSmokeTest {
     }
 
     @Test
+    fun resetAlertsLookLikeTheChosenAppIcon() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            InstrumentationRegistry.getInstrumentation().uiAutomation
+                .grantRuntimePermission(ctx.packageName, android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+        val nm = ctx.getSystemService(NotificationManager::class.java)
+        org.junit.Assume.assumeTrue("notifications are allowed", nm.areNotificationsEnabled())
+        AppIcon.setStyle(ctx, "sunset")
+        try {
+            Notifier.postResetNotifications(ctx, listOf(Notifier.ReadyGame("icon-test", "Icon Test", "Icon Test has refreshed", "body")))
+            var posted: android.app.Notification? = null
+            val end = SystemClock.uptimeMillis() + 5_000
+            while (posted == null && SystemClock.uptimeMillis() < end) {
+                posted = nm.activeNotifications.firstOrNull {
+                    it.notification.extras.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString() == "Icon Test has refreshed"
+                }?.notification
+                if (posted == null) Thread.sleep(100)
+            }
+            assertNotNull("alert posted", posted)
+            assertEquals("tinted with the Sunset icon's color", AppIcon.accentColor(ctx), posted!!.color)
+            assertNotNull("the chosen icon is the alert's picture", posted.getLargeIcon())
+        } finally {
+            nm.cancelAll()
+            AppIcon.setStyle(ctx, "default")
+        }
+    }
+
+    @Test
     fun lightThemeAppliesFromSettings() {
         ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof applyThemeAndSettings)", "\"function\"")

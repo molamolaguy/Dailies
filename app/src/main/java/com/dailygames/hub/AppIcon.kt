@@ -50,9 +50,33 @@ object AppIcon {
         else -> STYLES[style] ?: DEFAULT
     }
 
+    /** The launcher entry for the style chosen in Settings (what the home screen shows once the app is left). */
+    fun chosenEntry(ctx: Context): String = wanted(style(ctx), ThemePrefs.mode(ctx), ThemePrefs.isDynamic(ctx))
+
+    /** The accent of an icon style, for tinting notifications to match the app icon. Null: the app's default. */
+    fun accentColor(ctx: Context): Int? = when (style(ctx)) {
+        "default" -> 0xFF2FB86A.toInt()
+        "midnight" -> 0xFF8B7CF6.toInt()
+        "sunset" -> 0xFFF43F5E.toInt()
+        "ocean" -> 0xFF2563EB.toInt()
+        "mono" -> 0xFF757575.toInt()
+        "gold" -> 0xFFC7A042.toInt()
+        else -> ThemePrefs.playerColors(ctx)["primary"]
+    }
+
+    /** The chosen launcher icon as a bitmap (the notification's large icon), or null if it can't be drawn. */
+    fun chosenIconBitmap(ctx: Context, sizePx: Int): android.graphics.Bitmap? = runCatching {
+        val d = ctx.packageManager.getActivityIcon(ComponentName(ctx.packageName, ctx.packageName + chosenEntry(ctx)))
+        val bmp = androidx.core.graphics.createBitmap(sizePx, sizePx)
+        val canvas = android.graphics.Canvas(bmp)
+        d.setBounds(0, 0, sizePx, sizePx)
+        d.draw(canvas)
+        bmp
+    }.getOrNull()
+
     /** Enables the wanted entry first, then disables the rest (so there's always one). Call when leaving the app. */
     fun apply(ctx: Context) {
-        val target = wanted(style(ctx), ThemePrefs.mode(ctx), ThemePrefs.isDynamic(ctx))
+        val target = chosenEntry(ctx)
         val pm = ctx.packageManager
         fun component(name: String) = ComponentName(ctx.packageName, ctx.packageName + name)
         fun isOn(name: String): Boolean = when (pm.getComponentEnabledSetting(component(name))) {

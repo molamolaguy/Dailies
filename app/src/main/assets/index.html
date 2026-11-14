@@ -118,7 +118,7 @@
     <!-- View 1: MINIMALISTIC DAILY HUB -->
     <section id="viewDashboard" class="space-y-4">
       <!-- Minimal Status & Filter / Add Bar -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div class="hub-sticky flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="hub-header-row flex items-center gap-2.5 text-xs text-slate-400">
           <span class="inline-flex items-center gap-1.5 text-sm font-bold text-white tracking-tight mr-1">
             <span id="hubLogo" class="hub-logo-wrap" aria-hidden="true">
@@ -494,6 +494,13 @@
               <p id="adBlockInfo" class="text-[11px] text-slate-400">Blocks ads, trackers and pop-ups. Tap the shield in a game to allow ads there.</p>
             </div>
             <input id="settingBlockAds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Preload Games After Reset</p>
+              <p class="text-[11px] text-slate-400">On Wi-Fi, a game's page files are saved when its new puzzle comes out, so it opens faster. Deleted once you log it</p>
+            </div>
+            <input id="settingPreloadGames" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
         </div>
       </div>
@@ -1063,7 +1070,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.6.1';
+    const APP_VERSION = '1.6.2';
     const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
 
     const TIME_FMT_12 = (() => {
@@ -1120,6 +1127,7 @@
         updateCheck: false,
         goldAccents: false,
         hubSort: 'custom',
+        preloadGames: true,
         shareGrids: true,
         customAccent: '#1E88C8'
       };
@@ -1477,6 +1485,7 @@
         if (window.AndroidBridge && typeof window.AndroidBridge.setGamePrefs === 'function') {
           const s = state.settings || {};
           window.AndroidBridge.setGamePrefs(s.blockAdsInGames !== false, s.autoLogFromShare !== false);
+          if (typeof window.AndroidBridge.setPreloadGames === 'function') window.AndroidBridge.setPreloadGames(s.preloadGames !== false);
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setFindResults === 'function') {
           window.AndroidBridge.setFindResults((state.settings || {}).findResults !== false);
@@ -1491,6 +1500,7 @@
     let stateRev = 0;
     function saveState(opts) {
       stateRev += 1;
+      queueTabPrerender();
       if (!opts || opts.sync !== false) syncWanted = true;
       if (opts && opts.syncNow) syncWanted = 'now';
       if (saveQueued) return;
@@ -2012,9 +2022,64 @@
         });
       }
       container.appendChild(toast);
+      enableToastSwipe(toast);
       setTimeout(() => {
         if (toast.parentNode) toast.remove();
       }, opts && opts.actionLabel ? 20000 : 4500);
+    }
+
+    /** Swipe a notification sideways (or up) to dismiss it; a short drag springs back. */
+    function enableToastSwipe(toast) {
+      let start = null;
+      let dx = 0;
+      let dy = 0;
+      let dragging = false;
+      const reset = () => {
+        toast.style.transition = 'transform 0.22s cubic-bezier(0.2, 0, 0, 1), opacity 0.22s';
+        toast.style.transform = '';
+        toast.style.opacity = '';
+      };
+      toast.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        start = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now() };
+        dx = 0; dy = 0; dragging = false;
+        toast.style.transition = 'none';
+      }, { passive: true });
+      toast.addEventListener('touchmove', (e) => {
+        if (!start) return;
+        dx = e.touches[0].clientX - start.x;
+        dy = e.touches[0].clientY - start.y;
+        if (!dragging && (Math.abs(dx) > 8 || dy < -8)) dragging = true;
+        if (!dragging) return;
+        if (e.cancelable) e.preventDefault();
+        const up = Math.min(0, dy);
+        const horizontal = Math.abs(dx) >= Math.abs(up);
+        toast.style.transform = horizontal ? `translateX(${dx}px)` : `translateY(${up}px)`;
+        toast.style.opacity = String(Math.max(0.2, 1 - (horizontal ? Math.abs(dx) / toast.offsetWidth : -up / 80)));
+      }, { passive: false });
+      const end = () => {
+        if (!start) return;
+        const dt = Math.max(1, performance.now() - start.t);
+        const up = Math.min(0, dy);
+        const horizontal = Math.abs(dx) >= Math.abs(up);
+        const dist = horizontal ? Math.abs(dx) : -up;
+        const fast = dist / dt > 0.5;
+        start = null;
+        if (!dragging) { reset(); return; }
+        if (dist > (horizontal ? toast.offsetWidth * 0.3 : 36) || (fast && dist > 48)) {
+          toast.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
+          toast.style.transform = horizontal ? `translateX(${dx > 0 ? '' : '-'}110%)` : 'translateY(-120%)';
+          toast.style.opacity = '0';
+          haptic('tick');
+          setTimeout(() => toast.remove(), 180);
+        } else {
+          reset();
+        }
+      };
+      toast.addEventListener('touchend', end);
+      toast.addEventListener('touchcancel', () => { start = null; reset(); });
+      // A swipe isn't a tap on the toast's text.
+      toast.addEventListener('click', (e) => { if (dragging) { e.stopPropagation(); e.preventDefault(); dragging = false; } }, true);
     }
 
     function isImageIcon(icon) {
@@ -2460,6 +2525,7 @@
       const grid = document.getElementById('gamesGrid');
       if (!grid) return;
       if (grid.classList.contains('drag-active')) return; // never rebuild cards mid-drag
+      dashboardRenderedKey = dashboardRenderKey();
       renderPlayNext();
       cardTimerElements.clear();
       const isCompact = Boolean(state.settings && state.settings.compactCards);
@@ -2949,7 +3015,9 @@
         haptic('start');
         const loop = () => {
           if (!drag) return;
-          const edgeTop = 90;
+          // Below the hub's header, which stays at the top of the screen.
+          const sticky = document.querySelector('#viewDashboard > .hub-sticky');
+          const edgeTop = (sticky ? sticky.getBoundingClientRect().bottom : 0) + 50;
           const edgeBottom = window.innerHeight - 150; // keep clear of the floating nav dock
           if (drag.lastY < edgeTop) window.scrollBy(0, -Math.ceil((edgeTop - drag.lastY) / 6));
           else if (drag.lastY > edgeBottom) window.scrollBy(0, Math.ceil((drag.lastY - edgeBottom) / 6));
@@ -3283,7 +3351,34 @@
     // A card with data-fold shows only its first child (the heading) while folded. Settings cards
     // start open (data-fold-default="open"), Achievements folded; a choice lasts until the app closes.
     const foldState = new Map();
+    // ---- Smoothness (1.6.2): work that can wait runs when the phone is idle ----
+    const whenIdle = (fn, timeout) => (window.requestIdleCallback
+      ? window.requestIdleCallback(fn, { timeout: timeout || 800 }) : setTimeout(fn, 60));
+    const foldDirty = new Map();
+    /** Renders a folded card's contents now if it's open, else when idle (and again when it opens). */
+    function renderWhenShown(fold, fn) {
+      const card = document.querySelector(`[data-fold="${fold}"]`);
+      if (!card || card.classList.contains('fold-open')) { foldDirty.delete(fold); fn(); return; }
+      if (foldDirty.has(fold)) return;
+      foldDirty.set(fold, fn);
+      whenIdle(() => { const f = foldDirty.get(fold); if (f) { foldDirty.delete(fold); f(); } });
+    }
+    /** After a change, redraws the tabs that aren't on screen while idle, so switching to them is instant. */
+    let prerenderQueued = false;
+    function queueTabPrerender() {
+      if (prerenderQueued) return;
+      prerenderQueued = true;
+      setTimeout(() => whenIdle(() => {
+        prerenderQueued = false;
+        // Not during a swipe between tabs (the neighbouring page is already drawn then).
+        if (Pager.neighbour) return;
+        // Switching to Streaks & Log shows the current month anyway, which is what this draws.
+        if (activeTab !== 'stats' && statsRenderKey() !== statsRenderedKey) prepareTab('stats');
+      }, 1500), 400);
+    }
+
     function setFold(card, open) {
+      if (open && foldDirty.has(card.dataset.fold)) { const f = foldDirty.get(card.dataset.fold); foldDirty.delete(card.dataset.fold); f(); }
       card.classList.toggle('fold-open', open);
       const head = card.querySelector(':scope > .fold-head');
       if (head) head.setAttribute('aria-expanded', String(open));
@@ -3739,12 +3834,18 @@
       }
 
       if (records.length) announceRecords(game, records);
+      // Today's puzzle is logged: its preloaded page files can go.
+      if (isCurrentCycle) nativeGameFinished(game.id);
       historyPage = 0;
       saveState();
       checkResetSuggestion(game);
       checkNewAchievements();
       updateSingleGameCardOrGrid(game.id);
       if (activeTab === 'stats') renderStatsAndCharts();
+    }
+
+    function nativeGameFinished(id) {
+      try { if (window.AndroidBridge && typeof window.AndroidBridge.gameFinished === 'function') window.AndroidBridge.gameFinished(String(id)); } catch (e) {}
     }
 
     /** "Best Wordle ever: 2/6", "Fastest Wordle: 1m 05s", "Longest Wordle streak: 31 days". */
@@ -4537,8 +4638,9 @@
       statsRenderedKey = statsRenderKey();
       renderGameCalendar();
       renderRecap();
-      renderPersonalBests();
-      renderAchievements();
+      // Folded sections: drawn when there's a spare moment (or when opened), so the tab appears at once.
+      renderWhenShown('bests', renderPersonalBests);
+      renderWhenShown('achievements', renderAchievements);
 
       const tbody = document.getElementById('historyTableBody');
       renderHistoryFilterOptions();
@@ -4686,6 +4788,7 @@
       setChk('settingAutoLogShare', s.autoLogFromShare !== false);
       setChk('settingFindResults', s.findResults !== false);
       setChk('settingBlockAds', s.blockAdsInGames !== false);
+      setChk('settingPreloadGames', s.preloadGames !== false);
       setVal('settingThemeMode', s.themeMode || 'dark');
       setChk('settingGroupDone', s.groupDone !== false);
       setChk('settingDarkPages', s.darkGamePages !== false);
@@ -5049,9 +5152,14 @@
         updateLiveTimers();
       } else {
         renderKPIs();
-        renderGamesGrid();
+        // The cards are redrawn only when something on them changed (their countdowns tick by themselves).
+        if (dashboardRenderKey() !== dashboardRenderedKey) renderGamesGrid();
         updateLiveTimers();
       }
+    }
+    let dashboardRenderedKey = '';
+    function dashboardRenderKey() {
+      return [stateRev, state.activeFilter, selectMode, selectedIds.size, doneSectionOpen, hubSortMode(), new Date().toDateString(), new Date().getHours()].join('|');
     }
 
     function switchNavigation(targetView, anim) {
@@ -5246,6 +5354,7 @@
 
       const changeId = recordChange({ kind: 'remove', gameId: game.id, name: game.name, game: JSON.parse(JSON.stringify(game)), index: state.games.indexOf(game) });
       state.games = state.games.filter((g) => g.id !== game.id);
+      nativeGameFinished(game.id);
       closeDeleteConfirmModal();
       saveState();
       renderVisibleTab();
@@ -6168,7 +6277,7 @@
         swipe = null;
         if (!e.touches || e.touches.length !== 1 || isAnyModalOpen() || tabAnimating) return;
         const el = e.target;
-        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .m4-floating-dock, .return-sheet, .tsel-menu')) return;
+        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .m4-floating-dock, .return-sheet, .tsel-menu, #toastContainer')) return;
         swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false };
       }, { passive: true });
 
@@ -6240,7 +6349,7 @@
             state.settings.streakReminderMinutes = Number(el.value) || 0;
             try { window.AndroidBridge && window.AndroidBridge.setStreakReminder && window.AndroidBridge.setStreakReminder(state.settings.streakReminderMinutes); } catch (e) {}
           }
-          if (key === 'themeMode' || key === 'darkGamePages' || key === 'dynamicWallpaper') saveLaunchPrefs();
+          if (key === 'themeMode' || key === 'darkGamePages' || key === 'dynamicWallpaper' || key === 'preloadGames' || key === 'blockAdsInGames') saveLaunchPrefs();
           if (key === 'updateCheck' && el.checked) runUpdateCheck(true);
           if (key === 'compactCards' || key === 'groupDone') {
             renderGamesGrid();
@@ -6260,6 +6369,7 @@
       bindSetting('settingAutoLogShare', 'autoLogFromShare', true);
       bindSetting('settingFindResults', 'findResults', true);
       bindSetting('settingBlockAds', 'blockAdsInGames', true);
+      bindSetting('settingPreloadGames', 'preloadGames', true);
       bindSetting('settingThemeMode', 'themeMode', false);
       bindSetting('settingGroupDone', 'groupDone', true);
       bindSetting('settingDarkPages', 'darkGamePages', true);

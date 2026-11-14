@@ -1,0 +1,5 @@
+1.6.2
+• Fixed reset alerts that didn't arrive (e.g. at midnight).
+• Alerts use the color of your chosen app icon.
+• Swipe pop-ups away; the hub header stays at the top.
+• Smoother tab switching; games preload after reset on Wi-Fi.

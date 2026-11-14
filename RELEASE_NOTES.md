@@ -1,3 +1,22 @@
+# Dailies 1.6.2
+
+Fixes, smoother screens and faster game loading. It installs over 1.6.1 and keeps everything.
+
+## Changes
+- **Reset alerts at midnight**: fixed alerts that didn't arrive. If Dailies was open (or still in memory) when a game reset, the hub's own rollover moved the alarm to the following day before it went off, so that reset was never announced. Now a reset that hasn't been announced is always posted first.
+- **Alerts match your app icon**: reset alerts and streak reminders use the color of the app icon you chose, and show that icon as their picture.
+- **Swipe away pop-ups**: swipe an in-app notification sideways or up to dismiss it.
+- **Hub header stays put**: the title row and the All / Ready / Done, sort, Select and Add Game row stay at the top while you scroll through a long list.
+- **Smoother**: switching tabs does much less work (Streaks & Log opens about 4× faster the first time and instantly after that), and folded sections are drawn while the phone is idle.
+- **Preload games**: when a game's new puzzle comes out, Dailies saves the files its page needs on Wi-Fi so it opens faster, and deletes them once you log the game. Turn it off in **Settings → Game Player → Preload Games After Reset**.
+- **Bottom navigation bar**: a little more see-through.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.6.1
 
 Fixes and polish. It installs over 1.6.0 and keeps everything.

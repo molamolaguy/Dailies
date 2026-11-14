@@ -483,3 +483,13 @@ The hub also runs as an installable web app on GitHub Pages; see `web/README.md`
 - **Color themes**: `COLOR_THEMES` no longer has Wallpaper. `themesLocked()` (Android, wallpaper colors on) grays out `#themeChoices` and shows `#themeLockedHint`; `savedThemeId()` is the theme that applies once wallpaper colors are off.
 - **Bottom bar**: `.m4-floating-dock` is 78% opaque with a 6 px backdrop blur (AMOLED, light and gold too).
 - **Title**: `<title>Dailies</title>` (the web app's tab).
+
+## 18. New in 1.6.2
+
+- **Missed reset alerts**: re-arming the alarm (`scheduleNextReset`) replaces the pending one, so a games-list save just after a reset (the hub's own rollover) pushed the alarm a day on and that reset was never processed. `DailyRefreshWorker.refreshAndSchedule` (used by the hub's sync and app start) runs `runRefresh` first when `GameRepository.hasUnannouncedReset()` finds a game past its last announced cycle. Tested in `DailyRefreshProcessorTest`.
+- **Alert icon**: `Notifier.withAppIcon` tints the small icon with `AppIcon.accentColor` and sets the chosen launcher icon (`AppIcon.chosenIconBitmap`, from the activity alias) as the large icon; used for reset alerts, the combined alert and streak reminders. Device test `resetAlertsLookLikeTheChosenAppIcon`.
+- **Toasts**: `enableToastSwipe` (sideways or up, with a fling); the tab pager ignores touches in `#toastContainer`.
+- **Sticky hub header**: `#viewDashboard > .hub-sticky` (`position: sticky`, solid surface, covering the status-bar area). Card drag auto-scroll starts below it.
+- **Smoothness**: `queueTabPrerender` redraws Streaks & Log while idle after a change; folded cards (`renderWhenShown`) draw when idle or opened; the hub skips redrawing cards when `dashboardRenderKey` is unchanged; off-screen Stats / Settings cards use `content-visibility: auto`.
+- **Preloaded games**: `PageCache`. On a new cycle (`NotificationDispatcher.onCycleStarted`), `PageCache.enqueue` deletes the old files and queues `PreloadWorker` (unmetered network, battery not low): it fetches the page, then up to 40 scripts / stylesheets / preloads / stylesheet fonts (4 MB each, 16 MB per game, 80 MB in all), skipping what the ad blocker would block and `no-store` / `private` responses, and keeps CORS headers. The player serves them in `shouldInterceptRequest` after the ad-block check (the page itself always comes from the network; a CORS request without a stored allow-origin header goes to the network). Files expire at the next reset; the hub calls `gameFinished(id)` when a game is logged or removed. Setting: `preloadGames` → `setPreloadGames`.
+- **Bottom bar**: 63% opaque.

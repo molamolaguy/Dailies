@@ -83,4 +83,31 @@ class DailyRefreshProcessorTest {
         val defaultProc = DailyRefreshProcessor(repo, { _, _, _ -> })
         defaultProc.processRefresh()
     }
+
+    @Test
+    fun aResetThatWasNotAnnouncedIsSeenWhenTheScheduleIsReArmed() {
+        // 2026-11-13 23:59:59 and 2026-11-14 00:00:00.5 in New York (a midnight game).
+        val ny = TimeZone.getTimeZone("America/New_York")
+        val beforeMidnight = 1794632399000L
+        val afterMidnight = 1794632400500L
+        var now = beforeMidnight
+        val storage = InMemoryGameStorage()
+        val repo = GameRepository(storage, clock = { now }, localTimeZone = ny)
+        val games = """[{"id":"w","name":"Wordle","resetTime":"00:00","resetZone":"local","notifyEnabled":true}]"""
+        repo.sync(games)
+        assertEquals(false, repo.hasUnannouncedReset())
+        // Midnight passes and the hub saves its list (its own rollover) before the reset alarm fires.
+        now = afterMidnight
+        repo.sync(games)
+        // The save must not swallow the reset: re-arming sees it and posts it first.
+        assertEquals(true, repo.hasUnannouncedReset())
+        val dispatched = mutableListOf<String>()
+        DailyRefreshProcessor(repo, { id, _, _ -> dispatched += id }, ny).processRefresh(afterMidnight)
+        assertEquals(listOf("w"), dispatched)
+        assertEquals(false, repo.hasUnannouncedReset())
+        // Alerts off: nothing to announce.
+        now = afterMidnight + 86_400_000L
+        repo.sync("""[{"id":"w","name":"Wordle","resetTime":"00:00","resetZone":"local","notifyEnabled":false}]""")
+        assertEquals(false, repo.hasUnannouncedReset())
+    }
 }

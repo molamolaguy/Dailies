@@ -154,7 +154,7 @@ class HubActivity : ComponentActivity() {
             runOnUiThread { runJs("window.onHubSaveResult && window.onHubSaveResult($ok)") }
         })
         Notifier.ensureChannel(this)
-        DailyRefreshWorker.scheduleNextReset(this)
+        DailyRefreshWorker.refreshAndSchedule(this)
         AutoBackup.schedule(this)
 
         // Edge-to-edge: draw behind the status & navigation bars.
@@ -793,7 +793,7 @@ class HubActivity : ComponentActivity() {
         @JavascriptInterface
         fun syncGames(json: String) {
             GameStore.sync(applicationContext, json)
-            DailyRefreshWorker.scheduleNextReset(applicationContext)
+            DailyRefreshWorker.refreshAndSchedule(applicationContext)
         }
 
         /** Weekly automatic backups: pick (or change) the folder, which also turns them on. */
@@ -971,6 +971,20 @@ class HubActivity : ComponentActivity() {
             if (!url.startsWith("https://", true) && !url.startsWith("http://", true)) return
             if (GamePrefs.blockAds(applicationContext)) AdBlocker.warmUp(applicationContext)
             runOnUiThread { launchGame(gameId, name, url, lineup, playAll = true) }
+        }
+
+        /** Settings → Preload Games: fetch a game's page files on Wi-Fi when its puzzle resets. */
+        @JavascriptInterface
+        fun setPreloadGames(on: Boolean) {
+            PageCache.setEnabled(applicationContext, on)
+        }
+
+        /** A game was logged (or removed): its preloaded files aren't needed any more. */
+        @JavascriptInterface
+        fun gameFinished(gameId: String) {
+            if (gameId.isBlank() || gameId.length > 200) return
+            val app = applicationContext
+            Thread { PageCache.clear(app, gameId) }.start()
         }
 
         /** The hub's colour theme / gold accents for the game player's bar ("" = the default colours). */

@@ -1612,13 +1612,29 @@ html:not(.web) .web-only { display: none !important; }
 .theme-choices.locked .theme-choice { opacity: 0.38; filter: grayscale(0.85); cursor: not-allowed; }
 .theme-choices.locked .theme-choice.on { border-color: var(--md-outline); background: var(--md-container-low); }
 
-/* Bottom navigation (1.6.1): slightly see-through, with a light blur so its labels stay readable. */
+/* Bottom navigation (1.6.1, 1.6.2 more see-through): with a light blur so its labels stay readable. */
 .m4-floating-dock {
-  background: color-mix(in srgb, var(--md-container-low) 78%, transparent) !important;
+  background: color-mix(in srgb, var(--md-container-low) 63%, transparent) !important;
   -webkit-backdrop-filter: blur(6px) saturate(1.2); backdrop-filter: blur(6px) saturate(1.2);
 }
-[data-amoled="true"] .m4-floating-dock { background: rgba(0, 0, 0, 0.78) !important; }
-html[data-theme="light"] .m4-floating-dock { background: color-mix(in srgb, var(--md-container) 80%, transparent) !important; }
+[data-amoled="true"] .m4-floating-dock { background: rgba(0, 0, 0, 0.63) !important; }
+html[data-theme="light"] .m4-floating-dock { background: color-mix(in srgb, var(--md-container) 65%, transparent) !important; }
 html[data-gold="true"] .m4-floating-dock {
-  background: linear-gradient(color-mix(in srgb, var(--gold-card) 78%, transparent), color-mix(in srgb, var(--gold-card) 78%, transparent)) padding-box, var(--gold-edge) border-box !important;
+  background: linear-gradient(color-mix(in srgb, var(--gold-card) 63%, transparent), color-mix(in srgb, var(--gold-card) 63%, transparent)) padding-box, var(--gold-edge) border-box !important;
 }
+
+/* Hub header (1.6.2): the title row and the All / Ready / Done, sort, Select and Add Game row stay at the
+   top while the game list scrolls. It covers the status-bar area too, so cards slide under it. */
+#viewDashboard > .hub-sticky {
+  position: sticky; top: 0; z-index: 30;
+  margin: calc(-1 * (var(--safe-top, 0px) + 1.15rem)) -1rem 0;
+  padding: calc(var(--safe-top, 0px) + 1.15rem) 1rem 0.65rem;
+  background: var(--md-surface);
+  box-shadow: 0 10px 14px -12px rgba(0, 0, 0, 0.55);
+}
+@media (min-width: 48rem) { #viewDashboard > .hub-sticky { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; } }
+html[data-theme="light"] #viewDashboard > .hub-sticky { box-shadow: 0 8px 12px -10px rgba(0, 0, 0, 0.18); }
+.app-toast { touch-action: none; will-change: transform; }
+/* Smoothness (1.6.2): cards off screen aren't laid out or painted until they scroll into view
+   (their last size is remembered, so the page height and scroll position stay put). */
+#viewStats > .glass-card, #viewSettings > .glass-card { content-visibility: auto; contain-intrinsic-size: auto 520px; }
