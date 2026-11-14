@@ -1781,10 +1781,10 @@
       root.setAttribute('data-gold', gold ? 'true' : 'false');
       if (gold) {
         const g = light
-          ? { '--md-primary': '#7C6230', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#D3B45C', '--md-on-primary-container': '#1C1607',
-            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#7C6230', '--md-tertiary-container': '#F3E2C4', '--md-glow': 'rgba(152, 120, 65, 0.28)' }
-          : { '--md-primary': '#D1AB48', '--md-on-primary': '#1C1607', '--md-primary-container': '#4A3D22', '--md-on-primary-container': '#DCC273',
-            '--md-secondary-container': '#3F3313', '--md-tertiary': '#E8C27A', '--md-tertiary-container': '#4C3A16', '--md-glow': 'rgba(209, 171, 72, 0.30)' };
+          ? { '--md-primary': '#726542', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#CBB67A', '--md-on-primary-container': '#1B160A',
+            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#726542', '--md-tertiary-container': '#F3E2C4', '--md-glow': 'rgba(139, 125, 84, 0.28)' }
+          : { '--md-primary': '#C5AE6C', '--md-on-primary': '#1B160A', '--md-primary-container': '#473E28', '--md-on-primary-container': '#D6C38C',
+            '--md-secondary-container': '#3D331B', '--md-tertiary': '#D9C792', '--md-tertiary-container': '#473C20', '--md-glow': 'rgba(197, 174, 108, 0.30)' };
         Object.keys(g).forEach((k) => root.style.setProperty(k, g[k]));
       }
       // The game player's bar uses the same colours.
@@ -3868,7 +3868,7 @@
       { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
       { id: 'ocean', label: 'Ocean', bg: ['#E0F7FA', '#CCF2F7'], star: [[0, '#22D3EE'], [1, '#2563EB']], mark: '#FFFFFF' },
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
-      { id: 'gold', label: 'Gold', bg: ['#141109', '#050403'], star: [[0, '#E4CC7E'], [0.28, '#C7A042'], [0.55, '#987841'], [0.78, '#AF8A39'], [1, '#64512E']], mark: '#2E2614', sparks: '#3E331D', locked: true }
+      { id: 'gold', label: 'Gold', bg: ['#14110B', '#050403'], star: [[0, '#DCC993'], [0.28, '#BAA465'], [0.55, '#8B7D54'], [0.78, '#A28F57'], [1, '#5F5336']], mark: '#2C2618', sparks: '#3B3422', locked: true }
     ];
     const earnedTierKeys = () => new Set(Array.isArray(state.achievements) ? state.achievements : []);
     /**
@@ -4321,12 +4321,12 @@
       const rr = (X, Y, w, h, rad) => { x.beginPath(); x.moveTo(X + rad, Y); x.arcTo(X + w, Y, X + w, Y + h, rad); x.arcTo(X + w, Y + h, X, Y + h, rad); x.arcTo(X, Y + h, X, Y, rad); x.arcTo(X, Y, X + w, Y, rad); x.closePath(); };
       x.fillStyle = surface; x.fillRect(0, 0, W, H);
       const glow = x.createRadialGradient(220, 120, 0, 220, 120, 900);
-      glow.addColorStop(0, gold ? 'rgba(209,171,72,0.35)' : primary); glow.addColorStop(1, 'rgba(0,0,0,0)');
+      glow.addColorStop(0, gold ? 'rgba(197,174,108,0.35)' : primary); glow.addColorStop(1, 'rgba(0,0,0,0)');
       x.globalAlpha = gold ? 1 : 0.22; x.fillStyle = glow; x.fillRect(0, 0, W, H); x.globalAlpha = 1;
       const accent = (X, Y, w, h) => {
         if (!gold) return primary;
         const g = x.createLinearGradient(X, Y, X + w, Y + h);
-        [[0, '#DBC377'], [0.3, '#C7A042'], [0.6, '#987841'], [1, '#D6B865']].forEach(([o, col]) => g.addColorStop(o, col));
+        [[0, '#D6C38F'], [0.3, '#BAA465'], [0.6, '#8B7D54'], [1, '#CEBA81']].forEach(([o, col]) => g.addColorStop(o, col));
         return g;
       };
       // Header

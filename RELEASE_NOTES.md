@@ -10,6 +10,7 @@ Fixes, smoother screens and faster game loading. It installs over 1.6.1 and keep
 - **Smoother**: switching tabs does much less work (Streaks & Log opens about 4× faster the first time and instantly after that), and folded sections are drawn while the phone is idle.
 - **Preload games**: when a game's new puzzle comes out, Dailies saves the files its page needs on Wi-Fi so it opens faster, and deletes them once you log the game. Turn it off in **Settings → Game Player → Preload Games After Reset**.
 - **Bottom navigation bar**: a little more see-through.
+- **Gold**: a softer, satin champagne gold with olive-tinted shadows, everywhere gold is used: gold accents, the shine on buttons, text and card edges, the light theme, the game player's bar and the Gold app icon.
 
 ## Requirements
 - Android 7.0 or newer.

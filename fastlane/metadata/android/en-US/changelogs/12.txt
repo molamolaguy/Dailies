@@ -3,3 +3,4 @@
 • Alerts use the color of your chosen app icon.
 • Swipe pop-ups away; the hub header stays at the top.
 • Smoother tab switching; games preload after reset on Wi-Fi.
+• Softer, satin gold everywhere gold is used.

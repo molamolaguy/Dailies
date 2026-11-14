@@ -1348,19 +1348,19 @@ html[data-theme="light"] .live-clock { color: var(--lt-strong); }
    same metallic gradient as the Gold app icon, not a flat yellow: buttons, the selected tab, chips,
    progress bars, icons, headings, card edges, streaks and solved calendar days. */
 html[data-gold="true"] {
-  /* Robinhood Gold: a satin, brushed gold (sampled from the Gold card and app icon). */
-  --gold-shine: linear-gradient(120deg, #DBC377 0%, #D1AB48 18%, #C7A042 34%, #AF8A39 55%, #987841 72%, #B8923D 86%, #D6B865 100%);
-  --gold-text: linear-gradient(100deg, #E4CC7E 0%, #D1AB48 35%, #AF8A39 65%, #DBC377 100%);
-  --gold-edge: linear-gradient(135deg, rgba(228, 204, 126, 0.9), rgba(175, 138, 57, 0.35) 30%, rgba(100, 81, 46, 0.25) 60%, rgba(219, 195, 119, 0.75));
-  --gold-ink: #1C1607;
-  --gold-glow: 0 4px 18px -4px rgba(209, 171, 72, 0.45);
+  /* Satin gold (1.6.2): soft champagne highlights and olive-tinted shadows. */
+  --gold-shine: linear-gradient(120deg, #D6C38F 0%, #C5AE6C 18%, #BAA465 34%, #A28F57 55%, #8B7D54 72%, #AB975C 86%, #CEBA81 100%);
+  --gold-text: linear-gradient(100deg, #DCC993 0%, #C5AE6C 35%, #A28F57 65%, #D6C38F 100%);
+  --gold-edge: linear-gradient(135deg, rgba(220, 201, 147, 0.9), rgba(162, 143, 87, 0.35) 30%, rgba(95, 83, 54, 0.25) 60%, rgba(214, 195, 143, 0.75));
+  --gold-ink: #1B160A;
+  --gold-glow: 0 4px 18px -4px rgba(197, 174, 108, 0.45);
   --gold-card: var(--md-container);
 }
 html[data-gold="true"][data-amoled="true"] { --gold-card: #000; }
 html[data-gold="true"][data-theme="light"] {
-  --gold-text: linear-gradient(100deg, #7C6230 0%, #987841 35%, #64512E 65%, #987841 100%);
-  --gold-edge: linear-gradient(135deg, rgba(175, 138, 57, 0.95), rgba(199, 160, 66, 0.45) 35%, rgba(175, 138, 57, 0.30) 65%, rgba(152, 120, 65, 0.85));
-  --gold-glow: 0 4px 14px -4px rgba(152, 120, 65, 0.45);
+  --gold-text: linear-gradient(100deg, #726542 0%, #8B7D54 35%, #5F5336 65%, #8B7D54 100%);
+  --gold-edge: linear-gradient(135deg, rgba(162, 143, 87, 0.95), rgba(186, 164, 101, 0.45) 35%, rgba(162, 143, 87, 0.30) 65%, rgba(139, 125, 84, 0.85));
+  --gold-glow: 0 4px 14px -4px rgba(139, 125, 84, 0.45);
 }
 /* Filled buttons: Play, Add Game, Play next, Save, Log … */
 html[data-gold="true"] .m4-primary-fab,
@@ -1368,20 +1368,20 @@ html[data-gold="true"] .bg-indigo-600,
 html[data-gold="true"] .return-btn.primary,
 html[data-gold="true"] .next-game-play,
 html[data-gold="true"] .toast-action {
-  background-color: #C7A042 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
-  border-color: rgba(228, 204, 126, 0.6) !important; box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 248, 225, 0.55) !important;
-  text-shadow: 0 1px 0 rgba(228, 204, 126, 0.5);
+  background-color: #BAA465 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
+  border-color: rgba(220, 201, 147, 0.6) !important; box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 248, 225, 0.55) !important;
+  text-shadow: 0 1px 0 rgba(220, 201, 147, 0.5);
 }
 /* The selected tab and other tonal pills. */
-html[data-gold="true"] .m4-tonal-pill { background-color: #C7A042 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; box-shadow: var(--gold-glow); }
+html[data-gold="true"] .m4-tonal-pill { background-color: #BAA465 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; box-shadow: var(--gold-glow); }
 /* Card edges: a gold gradient border (the card's own colour inside). */
 html[data-gold="true"] .glass-card {
   border-color: transparent !important;
   background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box !important;
 }
-html[data-gold="true"] .m4-floating-dock { border: 1px solid transparent !important; background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 18px -6px rgba(209, 171, 72, 0.45); }
-html[data-gold="true"] .play-next { background: linear-gradient(135deg, #4A3D22, #1C1607 60%, #3E331D) !important; color: #DCC273 !important; border: 1px solid rgba(219, 195, 119, 0.55); }
-html[data-gold="true"][data-theme="light"] .play-next { background: linear-gradient(135deg, #E4CC7E, #D3B45C 60%, #CBA650) !important; color: #1C1607 !important; border-color: rgba(152, 120, 65, 0.55); }
+html[data-gold="true"] .m4-floating-dock { border: 1px solid transparent !important; background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 18px -6px rgba(197, 174, 108, 0.45); }
+html[data-gold="true"] .play-next { background: linear-gradient(135deg, #473E28, #1B160A 60%, #3B3422) !important; color: #D6C38C !important; border: 1px solid rgba(214, 195, 143, 0.55); }
+html[data-gold="true"][data-theme="light"] .play-next { background: linear-gradient(135deg, #DCC993, #CBB67A 60%, #BEAA6E) !important; color: #1B160A !important; border-color: rgba(139, 125, 84, 0.55); }
 /* Gold text: the title, card headings, the top streak, links. */
 html[data-gold="true"] .hub-title-text,
 html[data-gold="true"] .glass-card h3,
@@ -1391,32 +1391,32 @@ html[data-gold="true"] .stat-tile .v {
   background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent !important; -webkit-text-fill-color: transparent;
 }
 html[data-gold="true"] .glass-card h3 .ico, html[data-gold="true"] .stat-tile .v .v-emoji { -webkit-text-fill-color: initial; }
-html[data-gold="true"] .text-indigo-300, html[data-gold="true"] .removed-add, html[data-gold="true"] .done-toggle, html[data-gold="true"] .bulk-actions button.bulk-done { color: #D1AB48 !important; }
+html[data-gold="true"] .text-indigo-300, html[data-gold="true"] .removed-add, html[data-gold="true"] .done-toggle, html[data-gold="true"] .bulk-actions button.bulk-done { color: #C5AE6C !important; }
 html[data-gold="true"][data-theme="light"] .text-indigo-300, html[data-gold="true"][data-theme="light"] .removed-add,
-html[data-gold="true"][data-theme="light"] .done-toggle, html[data-gold="true"][data-theme="light"] .bulk-actions button.bulk-done { color: #7C6230 !important; }
-html[data-gold="true"] .gc-streak, html[data-gold="true"] .text-amber-300 { color: #DBC377 !important; text-shadow: 0 0 10px rgba(209, 171, 72, 0.35); }
-html[data-gold="true"][data-theme="light"] .gc-streak, html[data-gold="true"][data-theme="light"] .text-amber-300 { color: #6E5A33 !important; text-shadow: none; }
+html[data-gold="true"][data-theme="light"] .done-toggle, html[data-gold="true"][data-theme="light"] .bulk-actions button.bulk-done { color: #726542 !important; }
+html[data-gold="true"] .gc-streak, html[data-gold="true"] .text-amber-300 { color: #D6C38F !important; text-shadow: 0 0 10px rgba(197, 174, 108, 0.35); }
+html[data-gold="true"][data-theme="light"] .gc-streak, html[data-gold="true"][data-theme="light"] .text-amber-300 { color: #695C3C !important; text-shadow: none; }
 /* Icons drawn as masks take the gradient directly. */
-html[data-gold="true"] .section-icon, html[data-gold="true"] .done-section-head .ico { background-color: #C7A042; background-image: var(--gold-shine); }
+html[data-gold="true"] .section-icon, html[data-gold="true"] .done-section-head .ico { background-color: #BAA465; background-image: var(--gold-shine); }
 /* Progress bars and dots. */
 html[data-gold="true"] .ach-bar > span, html[data-gold="true"] .hist-dots span.on, html[data-gold="true"] .update-progress > span { background: var(--gold-shine) !important; }
 /* Chips and badges. */
-html[data-gold="true"] .status-pill.status-completed { color: var(--gold-ink); background-image: var(--gold-shine); border-color: rgba(228, 204, 126, 0.6); }
-html[data-gold="true"] .status-pill.status-completed .dot, html[data-gold="true"] .status-dot.status-completed { background: #574824; }
+html[data-gold="true"] .status-pill.status-completed { color: var(--gold-ink); background-image: var(--gold-shine); border-color: rgba(220, 201, 147, 0.6); }
+html[data-gold="true"] .status-pill.status-completed .dot, html[data-gold="true"] .status-dot.status-completed { background: #54492D; }
 html[data-gold="true"] .status-dot.status-completed { background-image: var(--gold-shine); }
-html[data-gold="true"] html[data-gold="true"] .ach.on { border-color: rgba(209, 171, 72, 0.45); }
-html[data-gold="true"] .copy-today, html[data-gold="true"] .icon-choice.on { border-color: #C7A042; }
+html[data-gold="true"] html[data-gold="true"] .ach.on { border-color: rgba(197, 174, 108, 0.45); }
+html[data-gold="true"] .copy-today, html[data-gold="true"] .icon-choice.on { border-color: #BAA465; }
 /* Solved days in the calendar. */
-html[data-gold="true"] .cal-cell.done { background: linear-gradient(135deg, rgba(228, 204, 126, 0.38), rgba(175, 138, 57, 0.26) 50%, rgba(219, 195, 119, 0.32)) !important; border-color: rgba(209, 171, 72, 0.75); color: #DFC676; }
-html[data-gold="true"][data-theme="light"] .cal-cell.done { background: linear-gradient(135deg, #E2C97A, #D1AB48 55%, #D3B45C) !important; border-color: rgba(152, 120, 65, 0.6); color: #1C1607; }
+html[data-gold="true"] .cal-cell.done { background: linear-gradient(135deg, rgba(220, 201, 147, 0.38), rgba(162, 143, 87, 0.26) 50%, rgba(214, 195, 143, 0.32)) !important; border-color: rgba(197, 174, 108, 0.75); color: #DAC68F; }
+html[data-gold="true"][data-theme="light"] .cal-cell.done { background: linear-gradient(135deg, #DCC992, #C5AE6C 55%, #CBB67A) !important; border-color: rgba(139, 125, 84, 0.6); color: #1B160A; }
 html[data-gold="true"] .legend-done { background: var(--gold-shine) !important; }
 html[data-gold="true"] .cal-today-btn, html[data-gold="true"] #btnShareRecap {
-  background-color: #C7A042 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
-  border-color: rgba(228, 204, 126, 0.6) !important; box-shadow: var(--gold-glow);
+  background-color: #BAA465 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
+  border-color: rgba(220, 201, 147, 0.6) !important; box-shadow: var(--gold-glow);
 }
-html[data-gold="true"] .cal-cell.today { box-shadow: inset 0 0 0 2px #C7A042; }
+html[data-gold="true"] .cal-cell.today { box-shadow: inset 0 0 0 2px #BAA465; }
 /* Switches and checkboxes. */
-html[data-gold="true"] .accent-indigo-500, html[data-gold="true"] input[type="checkbox"] { accent-color: #C7A042; }
+html[data-gold="true"] .accent-indigo-500, html[data-gold="true"] input[type="checkbox"] { accent-color: #BAA465; }
 
 /* Bottom bar highlight (1.5.1): one pill that slides between tabs with the swipe. */
 .m4-floating-dock { position: relative; }
@@ -1453,7 +1453,7 @@ html[data-theme="light"] .ach-tier-prog { color: var(--lt-muted); }
 /* Done tag (1.5.1): a star instead of the dot. */
 .status-pill .dot-star { font-size: 12px; line-height: 1; color: var(--md-primary); }
 html[data-theme="light"] .status-pill .dot-star { color: var(--md-primary); }
-html[data-gold="true"] .status-pill .dot-star { color: #4A3D22; }
+html[data-gold="true"] .status-pill .dot-star { color: #473E28; }
 
 /* Themed drop-downs (1.5.1): the calendar's and Score history's game pickers. */
 .tsel-native { display: none !important; }
@@ -1475,8 +1475,8 @@ html[data-theme="light"] .tsel-menu { background: #fff; box-shadow: 0 14px 34px 
 html[data-theme="light"] .tsel-item { color: var(--lt-on-surface); }
 html[data-theme="light"] .tsel-group { color: var(--lt-muted); }
 html[data-gold="true"] .tsel-menu { border: 1px solid transparent; background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box; }
-html[data-gold="true"] .tsel-item.on { background: rgba(209, 171, 72, 0.18); color: #D1AB48; }
-html[data-gold="true"][data-theme="light"] .tsel-item.on { color: #7C6230; }
+html[data-gold="true"] .tsel-item.on { background: rgba(197, 174, 108, 0.18); color: #C5AE6C; }
+html[data-gold="true"][data-theme="light"] .tsel-item.on { color: #726542; }
 
 /* ==========================================================================
    1.6.0: Play all, sort, today's results, recent changes, recap, bests, tough days, colour themes
@@ -1545,7 +1545,7 @@ html[data-theme="light"] .recap-seg.on { color: var(--md-on-primary-container); 
 .theme-name { font-size: 11px; font-weight: 600; color: #cbd2de; white-space: nowrap; }
 html[data-theme="light"] .theme-name { color: var(--lt-strong); }
 html[data-theme="light"] .theme-swatch { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
-html[data-gold="true"] .theme-choice.on { border-color: #C7A042; }
+html[data-gold="true"] .theme-choice.on { border-color: #BAA465; }
 
 .today-results-panel, .changes-panel { border-radius: 28px; padding: 20px; height: auto; align-self: center; max-height: calc(100vh - 48px); display: flex; flex-direction: column; gap: 12px; }
 .today-results-opt { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: #cbd2de; cursor: pointer; }
@@ -1570,7 +1570,7 @@ html[data-theme="light"] .chg-sub, html[data-theme="light"] .chg-done { color: v
 
 /* Gold: the new filled buttons shine like the others. */
 html[data-gold="true"] .recap-btn.primary, html[data-gold="true"] .recap-seg.on, html[data-gold="true"] .chg-undo {
-  background-color: #C7A042 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; border-color: rgba(228, 204, 126, 0.6) !important;
+  background-color: #BAA465 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; border-color: rgba(220, 201, 147, 0.6) !important;
 }
 
 /* In-app notifications (toasts) follow the app's colours: theme, AMOLED, light and gold. */
@@ -1600,9 +1600,9 @@ html[data-gold="true"] .app-toast.tone-ok::before { background: var(--gold-shine
 html[data-gold="true"] .app-toast .toast-title {
   background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
 }
-html[data-gold="true"] .app-toast .toast-msg { color: color-mix(in srgb, #DCC273 75%, transparent); }
-html[data-gold="true"][data-theme="light"] .app-toast .toast-msg { color: #4A3D22; }
-html[data-gold="true"] .app-toast .toast-close { color: #D1AB48; background: rgba(209, 171, 72, 0.14); }
+html[data-gold="true"] .app-toast .toast-msg { color: color-mix(in srgb, #D6C38C 75%, transparent); }
+html[data-gold="true"][data-theme="light"] .app-toast .toast-msg { color: #473E28; }
+html[data-gold="true"] .app-toast .toast-close { color: #C5AE6C; background: rgba(197, 174, 108, 0.14); }
 
 /* The web version (html.web, no Android app): Android-only settings hidden; web-only controls shown. */
 html.web .android-only { display: none !important; }

@@ -68,7 +68,7 @@ object AppIcon {
         "sunset" -> 0xFFF43F5E.toInt()
         "ocean" -> 0xFF2563EB.toInt()
         "mono" -> 0xFF757575.toInt()
-        "gold" -> 0xFFC7A042.toInt()
+        "gold" -> 0xFFBAA465.toInt()
         else -> ThemePrefs.playerColors(ctx)["primary"]
     }
 
