@@ -1,5 +1,6 @@
-// Gold and Ruby app icons (1.6.2 / 1.7.0): a satin, finely grained metal Dailies star with a crisp bevel lit from the top
+// Gold app icon (1.6.2): a satin, finely grained metal Dailies star with a crisp bevel lit from the top
 // left and cut-outs that show the background, on near-black with a warm glow (matched to a reference).
+// The Ruby icon is a gemstone instead: design/icons/ruby-icon.js.
 // Run from the repo root: node design/icons/gold-icon.js (needs Playwright with Chromium).
 // One SVG design -> adaptive icon layers (PNG, every density), legacy PNGs, and the hub's own preview.
 const fs = require('fs');
@@ -52,8 +53,7 @@ const BUILDER = String.raw`function goldIconSvg(o) {
         + defs + (o.clip ? '<g clip-path="url(#' + id + 'c)">' + bg + fg + '</g>' : bg + fg) + '</svg>';
     }`;
 const PALETTES = {
-  gold: { g0: '#E6D49A', g1: '#CBB679', g2: '#A68E54', hi: '#FFF7DC', sh: '#4A3E22', glow: '#6B5128', glow2: '#4A3A20', base: '#0B0B09' },
-  ruby: { g0: '#F0627E', g1: '#C8163F', g2: '#7E0B24', hi: '#FFD3DC', sh: '#3D0612', glow: '#6E1426', glow2: '#4A0E1A', base: '#0C090A' }
+  gold: { g0: '#E6D49A', g1: '#CBB679', g2: '#A68E54', hi: '#FFF7DC', sh: '#4A3E22', glow: '#6B5128', glow2: '#4A3A20', base: '#0B0B09' }
 };
 const PALETTES_JS = 'const METAL_ICON_PALETTES = ' + JSON.stringify(PALETTES) + ';';
 const METAL_ICON_PALETTES = PALETTES;
@@ -65,7 +65,7 @@ module.exports = { goldIconSvg };
   if (process.argv[2] === 'preview') {
     const b = await chromium.launch(); const p = await b.newPage();
     await p.setViewportSize({ width: 512, height: 512 });
-    for (const metal of ['gold', 'ruby']) {
+    for (const metal of ['gold']) {
       await p.setContent(`<body style="margin:0">${goldIconSvg({ id: 'p', size: 512, viewBox: '18 18 72 72', k: 1, bg: true, star: true, p: PALETTES[metal], clip: '<rect x="18" y="18" width="72" height="72" rx="16"/>' })}</body>`);
       await p.screenshot({ path: (process.argv[3] || __dirname) + `/preview-${metal}.png` });
     }
@@ -77,7 +77,7 @@ module.exports = { goldIconSvg };
     await p.setContent(`<html><body style="margin:0;background:transparent">${svgText}</body></html>`);
     await p.screenshot({ path: file, omitBackground: true });
   };
-  for (const metal of ['gold', 'ruby']) {
+  for (const metal of ['gold']) {
     const pal = PALETTES[metal];
     // Adaptive icon layers: 108 dp each.
     for (const [dn, f] of [['mdpi', 1], ['hdpi', 1.5], ['xhdpi', 2], ['xxhdpi', 3], ['xxxhdpi', 4]]) {

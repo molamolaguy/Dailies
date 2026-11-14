@@ -4248,7 +4248,7 @@
       { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
       { id: 'ocean', label: 'Ocean', bg: ['#E0F7FA', '#CCF2F7'], star: [[0, '#22D3EE'], [1, '#2563EB']], mark: '#FFFFFF' },
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
-      { id: 'ruby', label: 'Ruby', bg: ['#0C090A', '#0C090A'], star: [[0, '#F0627E'], [1, '#7E0B24']], mark: '#0C090A', bevel: true, locked: true, palette: 'ruby' },
+      { id: 'ruby', label: 'Ruby', bg: ['#0C090A', '#0C090A'], star: [[0, '#F0627E'], [1, '#7E0B24']], mark: '#0C090A', gem: true, locked: true },
       { id: 'custom', label: 'Custom', custom: true },
       { id: 'gold', label: 'Gold', bg: ['#14130E', '#070706'], star: [[0, '#F2E8C4'], [0.2, '#D6C38A'], [0.4, '#F0E3B6'], [0.58, '#B8A469'], [0.78, '#8F8159'], [1, '#6A6044']], mark: '#2A2417', sparks: '#2A2417', bevel: true, locked: true }
     ];
@@ -4314,7 +4314,7 @@
     }
     /** The icon as an SVG (same shapes and colours as the launcher icon). */
     // ---- Gold icon: satin gold star with a crisp bevel, as on the launcher (same design as its PNGs) ----
-    const METAL_ICON_PALETTES = {"gold":{"g0":"#E6D49A","g1":"#CBB679","g2":"#A68E54","hi":"#FFF7DC","sh":"#4A3E22","glow":"#6B5128","glow2":"#4A3A20","base":"#0B0B09"},"ruby":{"g0":"#F0627E","g1":"#C8163F","g2":"#7E0B24","hi":"#FFD3DC","sh":"#3D0612","glow":"#6E1426","glow2":"#4A0E1A","base":"#0C090A"}};
+    const METAL_ICON_PALETTES = {"gold":{"g0":"#E6D49A","g1":"#CBB679","g2":"#A68E54","hi":"#FFF7DC","sh":"#4A3E22","glow":"#6B5128","glow2":"#4A3A20","base":"#0B0B09"}};
     function goldIconSvg(o) {
       // o: { id, size, viewBox, k, bg: bool, star: bool, clip: '' | svg clip shape, p: palette (METAL_ICON_PALETTES) }
       const id = o.id;
@@ -4354,10 +4354,70 @@
         + defs + (o.clip ? '<g clip-path="url(#' + id + 'c)">' + bg + fg + '</g>' : bg + fg) + '</svg>';
     }
     // ---- end gold icon ----
+    // ---- Ruby icon: a faceted gemstone star, as on the launcher (design/icons/ruby-icon.js) ----
+    function rubyIconSvg(o) {
+      const id = o.id;
+      const k = o.k || 1;
+      const flower = 'M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z';
+      const mark = 'M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z';
+      const sparks = 'M65.5,38.3 C66.17,41.83 66.17,41.83 69.7,42.5 C66.17,43.17 66.17,43.17 65.5,46.7 C64.83,43.17 64.83,43.17 61.3,42.5 C64.83,41.83 64.83,41.83 65.5,38.3Z M43,62.5 C43.48,65.02 43.48,65.02 46,65.5 C43.48,65.98 43.48,65.98 43,68.5 C42.52,65.98 42.52,65.98 40,65.5 C42.52,65.02 42.52,65.02 43,62.5Z';
+      const mix = (a, b, t) => '#' + [0, 2, 4].map((i) => Math.round(parseInt(a.substr(i + 1, 2), 16) * (1 - t) + parseInt(b.substr(i + 1, 2), 16) * t).toString(16).padStart(2, '0')).join('');
+      const shade = (v) => (v < 0.5 ? mix('#26010A', '#B8102F', v * 2) : mix('#B8102F', '#FF6A86', (v - 0.5) * 2));
+      const pt = (r, a) => (54 + r * Math.cos(a)).toFixed(2) + ',' + (54 + r * Math.sin(a)).toFixed(2);
+      const N = 16, R = 34, T = 11.5, L = -2.36;
+      let facets = '', lines = '';
+      for (let i = 0; i < N; i++) {
+        const a0 = (i / N) * 2 * Math.PI - Math.PI / 2 - Math.PI / N, a1 = a0 + (2 * Math.PI) / N, m = (a0 + a1) / 2;
+        const key = 0.5 + 0.5 * Math.cos(m - L), back = Math.pow(Math.max(0, Math.cos(m - L - Math.PI)), 3);
+        const v = Math.min(1, 0.02 + 0.6 * key + 0.5 * back + (i % 2 ? 0.16 : -0.1));
+        // Each crown facet splits in two (star facet near the table, upper girdle facet outside) for a cut look.
+        facets += '<path d="M' + pt(T, a0) + ' L' + pt(R, a0) + ' L' + pt(R, a1) + ' L' + pt(T, a1) + 'Z" fill="' + shade(v) + '"/>'
+          + '<path d="M' + pt(T, a0) + ' L' + pt(T * 1.9, m) + ' L' + pt(T, a1) + 'Z" fill="' + shade(Math.min(1, v + 0.16)) + '"/>';
+        lines += 'M' + pt(T, a0) + ' L' + pt(R, a0) + ' M' + pt(T, a0) + ' L' + pt(T * 1.9, m) + ' L' + pt(T, a1) + ' ';
+      }
+      let table = '';
+      for (let i = 0; i < 8; i++) table += (i ? ' L' : 'M') + pt(T, (i / 8) * 2 * Math.PI - Math.PI / 2 - Math.PI / N);
+      table += 'Z';
+      const defs = '<defs>'
+        + '<radialGradient id="' + id + 'w1" gradientUnits="userSpaceOnUse" cx="0" cy="112" r="78"><stop offset="0" stop-color="#7A1028" stop-opacity="0.7"/><stop offset="1" stop-color="#7A1028" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="' + id + 'w2" gradientUnits="userSpaceOnUse" cx="112" cy="112" r="66"><stop offset="0" stop-color="#7A1028" stop-opacity="0.55"/><stop offset="1" stop-color="#7A1028" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="' + id + 'w3" gradientUnits="userSpaceOnUse" cx="-4" cy="-4" r="48"><stop offset="0" stop-color="#4A0E1A" stop-opacity="0.35"/><stop offset="1" stop-color="#4A0E1A" stop-opacity="0"/></radialGradient>'
+        + '<radialGradient id="' + id + 't" gradientUnits="userSpaceOnUse" cx="50" cy="49" r="15"><stop offset="0" stop-color="#FF9AAE"/><stop offset="0.5" stop-color="#E8244E"/><stop offset="1" stop-color="#8E0A2A"/></radialGradient>'
+        + '<linearGradient id="' + id + 'gl" gradientUnits="userSpaceOnUse" x1="34" y1="28" x2="58" y2="58"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.38"/><stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0.04"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>'
+        + '<clipPath id="' + id + 'k"><path d="' + flower + '"/></clipPath>'
+        + '<filter id="' + id + 'd" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.6"/></filter>'
+        + '<filter id="' + id + 's" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="0.9"/></filter>'
+        + (o.clip ? '<clipPath id="' + id + 'c">' + o.clip + '</clipPath>' : '')
+        + '</defs>';
+      const t = 'translate(54 54) scale(' + k + ') translate(-54 -54)';
+      const bg = o.bg
+        ? '<rect width="108" height="108" fill="#0C090A"/><rect width="108" height="108" fill="url(#' + id + 'w1)"/>'
+          + '<rect width="108" height="108" fill="url(#' + id + 'w2)"/><rect width="108" height="108" fill="url(#' + id + 'w3)"/>'
+        : '';
+      const fg = o.star
+        ? '<g transform="' + t + '">'
+          // Red light thrown under the stone.
+          + '<path d="' + flower + '" fill="#E0204A" fill-opacity="0.5" transform="translate(0 1.6)" filter="url(#' + id + 'd)"/>'
+          + '<g clip-path="url(#' + id + 'k)">' + facets
+          + '<path d="' + table + '" fill="url(#' + id + 't)"/>'
+          + '<path d="' + lines + table + '" fill="none" stroke="#FFD6DE" stroke-opacity="0.35" stroke-width="0.35" stroke-linejoin="round"/>'
+          + '<path d="' + flower + '" fill="url(#' + id + 'gl)"/>'
+          // A thin dark girdle just inside the edge, and a bright rim on the lit side.
+          + '<path d="' + flower + '" fill="none" stroke="#2A020A" stroke-opacity="0.7" stroke-width="1.6"/></g>'
+          + '<path d="' + flower + '" fill="none" stroke="#FFC2CE" stroke-opacity="0.55" stroke-width="0.4" stroke-linejoin="round"/>'
+          // The Dailies mark and sparks as white glints.
+          + '<path d="' + mark + ' ' + sparks + '" fill="#FFFFFF" fill-opacity="0.75" filter="url(#' + id + 's)"/>'
+          + '<path d="' + mark + ' ' + sparks + '" fill="#FFFFFF"/></g>'
+        : '';
+      return '<svg xmlns="http://www.w3.org/2000/svg" width="' + o.size + '" height="' + o.size + '" viewBox="' + (o.viewBox || '0 0 108 108') + '">'
+        + defs + (o.clip ? '<g clip-path="url(#' + id + 'c)">' + bg + fg + '</g>' : bg + fg) + '</svg>';
+    }
+    // ---- end ruby icon ----
     function appIconSvg(styleId, size, uid) {
       const st = ICON_STYLES.find((x) => x.id === styleId) || ICON_STYLES[0];
       const id = `ig-${uid}-${st.id}`;
       // Gold: satin grained gold with a crisp bevel, the same design as its launcher icon.
+      if (st.gem) return rubyIconSvg({ id: `${id}-`, size, k: 1.3, bg: true, star: true, clip: '<rect x="0.5" y="0.5" width="107" height="107" rx="30"/>' });
       if (st.bevel) return goldIconSvg({ id: `${id}-`, size, k: 1.3, bg: true, star: true, p: METAL_ICON_PALETTES[st.palette || 'gold'], clip: '<rect x="0.5" y="0.5" width="107" height="107" rx="30"/>' });
       if (st.custom) return customIconSvg(size, id);
       const shape = '<g transform="translate(54 54) scale(1.3) translate(-54 -54)">'

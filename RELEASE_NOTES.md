@@ -7,7 +7,7 @@ A daily challenge, secret achievements with a new Ruby look, more ways to style 
 |---|---|---|
 | **Daily challenge** | — | Each day Dailies picks 2 or 3 of your games (favoring ones you haven't played lately). Finish them all for a challenge streak. Turn it off in Settings → Gameplay & Time |
 | **Secret achievements** | — | Six hidden achievements, shown as **???** until you find them |
-| **Ruby** | — | Find every secret to unlock a Ruby app icon and Ruby accents, which work like the gold ones (choose one or the other) |
+| **Ruby** | — | Find every secret to unlock a Ruby app icon (the Dailies star cut as a faceted gemstone) and Ruby accents with a glassy, faceted gem finish (choose Ruby or Gold) |
 | **Gold** | Satin gold | A polished champagne gold with a bright highlight band, and a new Gold icon in grained gold with crisp beveled edges |
 | **App icon** | Preset styles | Also **Custom**: pick the star and background colors, then use it in the app or add it to your home screen as a shortcut |
 | **Card style** | Filled | **Filled**, **Glass** or **Outline** (Settings → Display) |

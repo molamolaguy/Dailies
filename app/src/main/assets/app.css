@@ -1800,4 +1800,35 @@ html[data-ruby="true"] .app-toast .toast-close { color: #DD2857; background: rgb
 html[data-ruby="true"] .m4-floating-dock {
   background: linear-gradient(color-mix(in srgb, var(--gold-card) 63%, transparent), color-mix(in srgb, var(--gold-card) 63%, transparent)) padding-box, var(--gold-edge) border-box !important;
 }
+/* Gemstone finish */
+html[data-ruby="true"] {
+  --gold-shine: linear-gradient(180deg, rgba(255, 238, 243, 0.34) 0%, rgba(255, 238, 243, 0.08) 46%, rgba(255, 238, 243, 0) 50%, rgba(46, 0, 12, 0.2) 100%), linear-gradient(118deg, #B8123C 0 28%, #D81E4A 28% 46%, #EE3F66 46% 52%, #C41840 52% 77%, #A30F36 77% 90%, #D6224C 90%);
+  --gold-text: linear-gradient(100deg, #FF9AB0 0%, #FF4D73 35%, #E0244F 60%, #FF7593 100%);
+  --gold-edge: linear-gradient(135deg, rgba(255, 176, 194, 0.95), rgba(224, 36, 79, 0.55) 30%, rgba(120, 8, 36, 0.5) 60%, rgba(255, 120, 150, 0.9));
+  --gold-ink: #FFFFFF;
+  --gold-glow: 0 4px 18px -4px rgba(232, 38, 84, 0.55);
+}
+html[data-ruby="true"][data-theme="light"] {
+  --gold-text: linear-gradient(100deg, #A3123A 0%, #D81E4A 40%, #7E0B24 70%, #B8102F 100%);
+  --gold-edge: linear-gradient(135deg, rgba(200, 22, 63, 0.95), rgba(240, 70, 107, 0.5) 35%, rgba(126, 11, 36, 0.4) 65%, rgba(200, 22, 63, 0.85));
+  --gold-glow: 0 4px 14px -4px rgba(163, 18, 58, 0.45);
+}
+html[data-ruby="true"] .m4-primary-fab,
+html[data-ruby="true"] .bg-indigo-600,
+html[data-ruby="true"] .return-btn.primary,
+html[data-ruby="true"] .next-game-play,
+html[data-ruby="true"] .toast-action,
+html[data-ruby="true"] .m4-tonal-pill,
+html[data-ruby="true"] .recap-btn.primary,
+html[data-ruby="true"] .recap-seg.on,
+html[data-ruby="true"] .chg-undo,
+html[data-ruby="true"] .cal-today-btn,
+html[data-ruby="true"] #btnShareRecap {
+  color: #FFFFFF !important; border-color: rgba(255, 160, 182, 0.6) !important; text-shadow: 0 1px 1px rgba(80, 0, 20, 0.55);
+  box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 4px rgba(60, 0, 15, 0.35) !important;
+}
+html[data-ruby="true"] .status-pill.status-completed { color: #FFFFFF; text-shadow: 0 1px 1px rgba(80, 0, 20, 0.5); }
+html[data-ruby="true"] .status-pill.status-completed .dot-star { color: #FFE3EA; }
+html[data-ruby="true"] .status-pill.status-completed .dot { background: #FFE3EA; }
+html[data-ruby="true"] .nav-btn.nav-on { color: #FFFFFF !important; }
 /* ==== end ruby accents ==== */

@@ -1,6 +1,8 @@
 // Ruby accents (1.7.0): generated from the gold accent rules in app.css, so Ruby works exactly like
 // Gold. Every gold rule is copied with data-gold -> data-ruby and its colours moved to ruby (OKLCH:
 // hue 15, more chroma, a little darker so white highlights stay bright and shadows deep).
+// Then a gemstone finish goes on top (GEM below): faceted, glassy fills with hard-edged facets
+// instead of a metal sweep, white text on filled buttons, and a red glow.
 // Run from the repo root: node design/icons/ruby-css.js (re-run after changing the gold rules).
 const fs = require('fs');
 const path = require('path');
@@ -25,6 +27,27 @@ function rubyText(t) {
     return `rgba(${(v >> 16) & 255}${sp}${(v >> 8) & 255}${sp}${v & 255}${sp}${a})`;
   });
 }
+const BTN = ['.m4-primary-fab', '.bg-indigo-600', '.return-btn.primary', '.next-game-play', '.toast-action', '.m4-tonal-pill', '.recap-btn.primary', '.recap-seg.on', '.chg-undo', '.cal-today-btn', '#btnShareRecap'];
+const GEM = `html[data-ruby="true"] {
+  --gold-shine: linear-gradient(180deg, rgba(255, 238, 243, 0.34) 0%, rgba(255, 238, 243, 0.08) 46%, rgba(255, 238, 243, 0) 50%, rgba(46, 0, 12, 0.2) 100%), linear-gradient(118deg, #B8123C 0 28%, #D81E4A 28% 46%, #EE3F66 46% 52%, #C41840 52% 77%, #A30F36 77% 90%, #D6224C 90%);
+  --gold-text: linear-gradient(100deg, #FF9AB0 0%, #FF4D73 35%, #E0244F 60%, #FF7593 100%);
+  --gold-edge: linear-gradient(135deg, rgba(255, 176, 194, 0.95), rgba(224, 36, 79, 0.55) 30%, rgba(120, 8, 36, 0.5) 60%, rgba(255, 120, 150, 0.9));
+  --gold-ink: #FFFFFF;
+  --gold-glow: 0 4px 18px -4px rgba(232, 38, 84, 0.55);
+}
+html[data-ruby="true"][data-theme="light"] {
+  --gold-text: linear-gradient(100deg, #A3123A 0%, #D81E4A 40%, #7E0B24 70%, #B8102F 100%);
+  --gold-edge: linear-gradient(135deg, rgba(200, 22, 63, 0.95), rgba(240, 70, 107, 0.5) 35%, rgba(126, 11, 36, 0.4) 65%, rgba(200, 22, 63, 0.85));
+  --gold-glow: 0 4px 14px -4px rgba(163, 18, 58, 0.45);
+}
+${BTN.map((b) => `html[data-ruby="true"] ${b}`).join(',\n')} {
+  color: #FFFFFF !important; border-color: rgba(255, 160, 182, 0.6) !important; text-shadow: 0 1px 1px rgba(80, 0, 20, 0.55);
+  box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 4px rgba(60, 0, 15, 0.35) !important;
+}
+html[data-ruby="true"] .status-pill.status-completed { color: #FFFFFF; text-shadow: 0 1px 1px rgba(80, 0, 20, 0.5); }
+html[data-ruby="true"] .status-pill.status-completed .dot-star { color: #FFE3EA; }
+html[data-ruby="true"] .status-pill.status-completed .dot { background: #FFE3EA; }
+html[data-ruby="true"] .nav-btn.nav-on { color: #FFFFFF !important; }`;
 let css = fs.readFileSync(cssPath, 'utf8');
 if (css.includes(START)) css = css.slice(0, css.indexOf(START)) + css.slice(css.indexOf(END) + END.length);
 css = css.replace(/\n+$/, '\n');
@@ -35,6 +58,6 @@ css.replace(/([^{}]*)\{([^{}]*)\}/g, (m, sel, body) => {
   out.push(`${s} {${rubyText(body.replace(/[ \t]*\/\*[\s\S]*?\*\/\n?/g, ''))}}`);
   return m;
 });
-css += `\n${START}\n${out.join('\n')}\n${END}\n`;
+css += `\n${START}\n${out.join('\n')}\n/* Gemstone finish */\n${GEM}\n${END}\n`;
 fs.writeFileSync(cssPath, css);
 console.log(`${out.length} ruby rules`);
