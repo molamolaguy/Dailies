@@ -1349,16 +1349,17 @@ html[data-theme="light"] .live-clock { color: var(--lt-strong); }
    progress bars, icons, headings, card edges, streaks and solved calendar days. */
 html[data-gold="true"] {
   /* Satin gold (1.6.2): soft champagne highlights and olive-tinted shadows. */
-  --gold-shine: linear-gradient(120deg, #D6C38F 0%, #C5AE6C 18%, #BAA465 34%, #A28F57 55%, #8B7D54 72%, #AB975C 86%, #CEBA81 100%);
-  --gold-text: linear-gradient(100deg, #DCC993 0%, #C5AE6C 35%, #A28F57 65%, #D6C38F 100%);
-  --gold-edge: linear-gradient(135deg, rgba(220, 201, 147, 0.9), rgba(162, 143, 87, 0.35) 30%, rgba(95, 83, 54, 0.25) 60%, rgba(214, 195, 143, 0.75));
+  /* A bright specular band and deep shadows, like polished metal. */
+  --gold-shine: linear-gradient(115deg, #A69565 0%, #CDB97F 15%, #F2E6BC 29%, #DBC991 38%, #B6A267 56%, #8C7E57 72%, #C2AF79 87%, #E8D9A6 100%);
+  --gold-text: linear-gradient(100deg, #F2E6BC 0%, #D3C087 28%, #A99764 55%, #E6D6A2 82%, #C9B67D 100%);
+  --gold-edge: linear-gradient(135deg, rgba(242, 230, 188, 0.95), rgba(182, 162, 103, 0.4) 30%, rgba(106, 96, 68, 0.3) 60%, rgba(232, 217, 166, 0.85));
   --gold-ink: #1B160A;
-  --gold-glow: 0 4px 18px -4px rgba(197, 174, 108, 0.45);
+  --gold-glow: 0 4px 18px -4px rgba(214, 195, 138, 0.5);
   --gold-card: var(--md-container);
 }
 html[data-gold="true"][data-amoled="true"] { --gold-card: #000; }
 html[data-gold="true"][data-theme="light"] {
-  --gold-text: linear-gradient(100deg, #726542 0%, #8B7D54 35%, #5F5336 65%, #8B7D54 100%);
+  --gold-text: linear-gradient(100deg, #6E6447 0%, #9C8C5E 30%, #5C5236 55%, #8F8159 80%, #6E6447 100%);
   --gold-edge: linear-gradient(135deg, rgba(162, 143, 87, 0.95), rgba(186, 164, 101, 0.45) 35%, rgba(162, 143, 87, 0.30) 65%, rgba(139, 125, 84, 0.85));
   --gold-glow: 0 4px 14px -4px rgba(139, 125, 84, 0.45);
 }
@@ -1369,7 +1370,7 @@ html[data-gold="true"] .return-btn.primary,
 html[data-gold="true"] .next-game-play,
 html[data-gold="true"] .toast-action {
   background-color: #BAA465 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
-  border-color: rgba(220, 201, 147, 0.6) !important; box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 248, 225, 0.55) !important;
+  border-color: rgba(220, 201, 147, 0.6) !important; box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 250, 232, 0.7), inset 0 -1px 0 rgba(58, 50, 30, 0.35) !important;
   text-shadow: 0 1px 0 rgba(220, 201, 147, 0.5);
 }
 /* The selected tab and other tonal pills. */

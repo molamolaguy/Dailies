@@ -3868,7 +3868,7 @@
       { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
       { id: 'ocean', label: 'Ocean', bg: ['#E0F7FA', '#CCF2F7'], star: [[0, '#22D3EE'], [1, '#2563EB']], mark: '#FFFFFF' },
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
-      { id: 'gold', label: 'Gold', bg: ['#14110B', '#050403'], star: [[0, '#DCC993'], [0.28, '#BAA465'], [0.55, '#8B7D54'], [0.78, '#A28F57'], [1, '#5F5336']], mark: '#2C2618', sparks: '#3B3422', locked: true }
+      { id: 'gold', label: 'Gold', bg: ['#14130E', '#070706'], star: [[0, '#F2E8C4'], [0.2, '#D6C38A'], [0.4, '#F0E3B6'], [0.58, '#B8A469'], [0.78, '#8F8159'], [1, '#6A6044']], mark: '#2A2417', sparks: '#2A2417', bevel: true, locked: true }
     ];
     const earnedTierKeys = () => new Set(Array.isArray(state.achievements) ? state.achievements : []);
     /**
@@ -3913,10 +3913,22 @@
     function appIconSvg(styleId, size, uid) {
       const st = ICON_STYLES.find((x) => x.id === styleId) || ICON_STYLES[0];
       const id = `ig-${uid}-${st.id}`;
-      const shape = '<g transform="translate(54 54) scale(1.3) translate(-54 -54)">'
-        + `<path d="${ICON_FLOWER}" fill="${st.themed ? 'var(--md-primary)' : `url(#${id}-s)`}"/>`
+      // Gold (1.6.2): a bevel lit from the top left, a soft drop shadow and engraved sparkles, like the launcher icon.
+      const bevel = st.bevel
+        ? `<path d="${ICON_FLOWER}" fill="#000" fill-opacity="0.45" transform="translate(0.7 1.1)"/>` : '';
+      const bevelOver = st.bevel
+        ? `<clipPath id="${id}-fc"><path d="${ICON_FLOWER}"/></clipPath><clipPath id="${id}-mc"><path d="${ICON_MARK} ${ICON_SPARKS}"/></clipPath>`
+          + `<g clip-path="url(#${id}-fc)"><path d="${ICON_FLOWER}" fill="none" stroke="#FFF8E1" stroke-opacity="0.8" stroke-width="2.2" stroke-linejoin="round" transform="translate(1.1 1.1)"/>`
+          + `<path d="${ICON_FLOWER}" fill="none" stroke="#2E2818" stroke-opacity="0.65" stroke-width="2.2" stroke-linejoin="round" transform="translate(-1.1 -1.1)"/></g>`
+        : '';
+      const engrave = st.bevel
+        ? `<g clip-path="url(#${id}-mc)"><path d="${ICON_MARK} ${ICON_SPARKS}" fill="none" stroke="#0E0C07" stroke-opacity="0.85" stroke-width="1.4" transform="translate(0.7 0.7)"/>`
+          + `<path d="${ICON_MARK} ${ICON_SPARKS}" fill="none" stroke="#E8DBAE" stroke-opacity="0.55" stroke-width="1.4" transform="translate(-0.7 -0.7)"/></g>`
+        : '';
+      const shape = '<g transform="translate(54 54) scale(1.3) translate(-54 -54)">' + bevel
+        + `<path d="${ICON_FLOWER}" fill="${st.themed ? 'var(--md-primary)' : `url(#${id}-s)`}"/>` + bevelOver
         + `<path d="${ICON_MARK}" fill="${st.themed ? 'var(--md-on-primary)' : st.mark}"/>`
-        + (st.sparks ? `<path d="${ICON_SPARKS}" fill="${st.sparks}"/>` : '') + '</g>';
+        + (st.sparks ? `<path d="${ICON_SPARKS}" fill="${st.sparks}"/>` : '') + engrave + '</g>';
       if (st.themed) {
         return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true">`
           + `<rect width="108" height="108" rx="30" fill="var(--md-primary-container)"/>${shape}</svg>`;
@@ -3924,8 +3936,10 @@
       const stops = st.star.map(([o, c]) => `<stop offset="${o}" stop-color="${c}"/>`).join('');
       return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true"><defs>`
         + `<linearGradient id="${id}-b" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${st.bg[0]}"/><stop offset="1" stop-color="${st.bg[1]}"/></linearGradient>`
-        + `<linearGradient id="${id}-s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">${stops}</linearGradient></defs>`
-        + `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="url(#${id}-b)"${st.outline ? ' stroke="var(--md-outline)" stroke-width="2"' : ''}/>${shape}</svg>`;
+        + `<linearGradient id="${id}-s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">${stops}</linearGradient>`
+        + (st.bevel ? `<radialGradient id="${id}-g" gradientUnits="userSpaceOnUse" cx="16" cy="100" r="62"><stop offset="0" stop-color="#4A3A1C" stop-opacity="0.48"/><stop offset="1" stop-color="#4A3A1C" stop-opacity="0"/></radialGradient>` : '') + '</defs>'
+        + `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="url(#${id}-b)"${st.outline ? ' stroke="var(--md-outline)" stroke-width="2"' : ''}/>`
+        + (st.bevel ? `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="url(#${id}-g)"/>` : '') + `${shape}</svg>`;
     }
     function renderIconChoices() {
       const box = document.getElementById('iconChoices');
