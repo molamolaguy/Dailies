@@ -147,6 +147,7 @@ class HubActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CrashLog.install(this)
         // A downloaded update (about 5 MB) isn't needed after the install it was for.
         if (savedInstanceState == null) Thread { UpdateInstaller.clearDownloads(applicationContext) }.start()
         stateStore = HubStateStore(File(filesDir, HubStateStore.FILE_NAME), onWriteResult = { ok ->
@@ -154,8 +155,13 @@ class HubActivity : ComponentActivity() {
             runOnUiThread { runJs("window.onHubSaveResult && window.onHubSaveResult($ok)") }
         })
         Notifier.ensureChannel(this)
-        DailyRefreshWorker.refreshAndSchedule(this)
-        AutoBackup.schedule(this)
+        // Off the main thread (1.8.0): catching up on missed resets and scheduling work can read and
+        // write files, and the hub doesn't need to wait for it to appear.
+        val appCtx = applicationContext
+        Thread {
+            runCatching { DailyRefreshWorker.refreshAndSchedule(appCtx) }
+            runCatching { AutoBackup.schedule(appCtx) }
+        }.start()
 
         // Edge-to-edge: draw behind the status & navigation bars.
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -288,6 +294,7 @@ class HubActivity : ComponentActivity() {
                 }
 
                 override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
+                    runCatching { CrashLog.append(applicationContext, if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && detail?.didCrash() == true) "The hub page crashed (WebView renderer)." else "The hub page was stopped to free memory (WebView renderer).") }
                     // Recover gracefully if the OS kills the WebView renderer process under low memory (K5).
                     (view?.parent as? ViewGroup)?.removeView(view)
                     runCatching { view?.destroy() }
@@ -1152,6 +1159,64 @@ class HubActivity : ComponentActivity() {
                     cm?.setPrimaryClip(android.content.ClipData.newPlainText("Dailies result", text))
                 }
             }
+        }
+
+        // ---- 1.8.0 ----
+
+        /** Settings → Hide Cookie Banners and Pull Down to Refresh. */
+        @JavascriptInterface
+        fun setPlayerPrefs(hideCookies: Boolean, pullRefresh: Boolean) {
+            GamePrefs.savePlayer(applicationContext, hideCookies, pullRefresh)
+        }
+
+        /** Report a problem: device, Android version and recorded crashes (JSON). */
+        @JavascriptInterface
+        fun getErrorReport(): String = CrashLog.reportJson(applicationContext)
+
+        @JavascriptInterface
+        fun clearErrorLog() = CrashLog.clear(applicationContext)
+
+        /** Opens a new GitHub issue for Dailies in the browser (only that page). */
+        @JavascriptInterface
+        fun openIssuePage(url: String) {
+            if (!url.startsWith("https://github.com/molamolaguy/Dailies/issues/new")) return
+            runOnUiThread { openExternal(url.toUri()) }
+        }
+
+        /** Checks every game's link; replies via window.onLinksChecked(requestId, json). */
+        @JavascriptInterface
+        fun checkLinks(requestId: Int, gamesJson: String) {
+            Thread {
+                val json = GameHealth.checkLinks(gamesJson)
+                runOnUiThread { if (!isFinishing && !isDestroyed) runJs("window.onLinksChecked && window.onLinksChecked($requestId, ${JSONObject.quote(json)})") }
+            }.start()
+        }
+
+        /** Looks for sharper game icons; replies via window.onIconsRefreshed(requestId, json). */
+        @JavascriptInterface
+        fun refreshIcons(requestId: Int, gamesJson: String) {
+            Thread {
+                val json = GameHealth.refreshIcons(gamesJson, faviconCache)
+                runOnUiThread { if (!isFinishing && !isDestroyed) runJs("window.onIconsRefreshed && window.onIconsRefreshed($requestId, ${JSONObject.quote(json)})") }
+            }.start()
+        }
+
+        @JavascriptInterface
+        fun getStorageInfo(): String = GameHealth.storageInfo(applicationContext)
+
+        /** Clears the chosen caches (JSON array of kinds); returns about how many bytes were freed. */
+        @JavascriptInterface
+        fun clearStorage(kindsJson: String): Long {
+            val kinds = runCatching { org.json.JSONArray(kindsJson).let { a -> (0 until a.length()).map { a.getString(it) }.toSet() } }.getOrDefault(emptySet())
+            val before = GameHealth.storageInfo(applicationContext)
+            GameHealth.clearFiles(applicationContext, kinds)
+            if ("web" in kinds) {
+                val done = java.util.concurrent.CountDownLatch(1)
+                runOnUiThread { runCatching { webView.clearCache(true) }; done.countDown() }
+                runCatching { done.await(3, java.util.concurrent.TimeUnit.SECONDS) }
+            }
+            val after = GameHealth.storageInfo(applicationContext)
+            return (GameHealth.totalOf(before, kinds) - GameHealth.totalOf(after, kinds)).coerceAtLeast(0L)
         }
 
         /** Fetches the URL on a single-thread executor; replies via window.onWebsiteScraped (P9, K13, B5). */

@@ -6,6 +6,33 @@
   <title>Dailies</title>
   <link rel="stylesheet" href="app.css" />
   <script>
+    // Error log (1.8.0): page errors are kept on this device (the last 40) for Settings → About → Report a problem.
+    (function () {
+      const KEY = 'dailies_error_log_v1';
+      const clip = (t, n) => String(t == null ? '' : t).replace(/file:\/\/\/android_asset\//g, '').replace(/https?:\/\/[^\s)'"]+/g, '<url>').slice(0, n);
+      window.__dailiesLogError = function (kind, message, stack) {
+        try {
+          const list = JSON.parse(localStorage.getItem(KEY) || '[]');
+          const last = list[list.length - 1];
+          const msg = clip(message, 400);
+          if (last && last.msg === msg && Date.now() - last.at < 2000) { last.n = (last.n || 1) + 1; } else {
+            list.push({ at: Date.now(), kind: String(kind), msg, stack: clip(String(stack || '').split('\n').slice(0, 6).join('\n'), 900) });
+          }
+          while (list.length > 40) list.shift();
+          localStorage.setItem(KEY, JSON.stringify(list));
+        } catch (e) {}
+      };
+      window.addEventListener('error', (e) => {
+        if (!e || !e.message) return; // a resource (an icon) that failed to load, not a script error
+        window.__dailiesLogError('error', e.message, (e.error && e.error.stack) || `${e.filename || ''}:${e.lineno || 0}:${e.colno || 0}`);
+      });
+      window.addEventListener('unhandledrejection', (e) => {
+        const r = e && e.reason;
+        window.__dailiesLogError('promise', (r && r.message) || r, r && r.stack);
+      });
+    })();
+  </script>
+  <script>
     // Synchronously apply safe-area padding & Material 3 dynamic wallpaper theme BEFORE body parses/paints
     // so there is zero layout shift or theming lag on startup.
     (function () {
@@ -161,10 +188,16 @@
             <option value="alpha">A–Z</option>
             <option value="least">Least played</option>
           </select>
+          <button id="btnHubSearch" type="button" aria-pressed="false" aria-controls="hubSearchRow" aria-label="Search games" title="Search games" class="hub-search-btn px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 shrink-0"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></button>
           <button id="btnSelectMode" type="button" aria-pressed="false" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold shrink-0">Select</button>
-          <button id="btnOpenAddModal" type="button" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shrink-0">
-            + Add Game
+          <button id="btnOpenAddModal" type="button" aria-label="Add game" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shrink-0">
+            + Add<span class="add-game-word"> Game</span>
           </button>
+        </div>
+        <div id="hubSearchRow" class="hub-search-row hidden">
+          <span class="hub-search-ico"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></span>
+          <input id="hubSearchInput" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="Search games by name, site or category" aria-label="Search games" />
+          <button id="btnHubSearchClose" type="button" class="hub-search-close" aria-label="Close search"><span class="ico ico-close" aria-hidden="true"></span></button>
         </div>
       </div>
 
@@ -452,6 +485,13 @@
             </div>
             <input id="settingHighContrast" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Celebrate When All Done</p>
+              <p class="text-[11px] text-slate-400">Your app icon sparkles when you finish every game for the day</p>
+            </div>
+            <input id="settingCelebrate" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
 
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
@@ -512,6 +552,14 @@
 
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
             <div>
+              <p class="font-bold text-white">Fix Reset Times Automatically</p>
+              <p class="text-[11px] text-slate-400">When a game's puzzle numbers show it now resets at a different time, update it for you (with Undo) instead of asking</p>
+            </div>
+            <input id="settingAutoFixReset" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
               <p class="font-bold text-white">Auto-Scrape URL on Paste</p>
               <p class="text-[11px] text-slate-400">Auto-fill game info from link</p>
             </div>
@@ -562,6 +610,20 @@
               <p class="text-[11px] text-slate-400">On Wi-Fi, a game's page files are saved when its new puzzle comes out, so it opens faster. Deleted once you log it</p>
             </div>
             <input id="settingPreloadGames" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Hide Cookie Banners</p>
+              <p class="text-[11px] text-slate-400">Hides cookie and consent pop-ups on game sites, and lets the page scroll again. Nothing is accepted for you</p>
+            </div>
+            <input id="settingHideCookies" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Pull Down to Refresh</p>
+              <p class="text-[11px] text-slate-400">At the top of a game page, pull down to reload it</p>
+            </div>
+            <input id="settingPullRefresh" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
         </div>
       </div>
@@ -615,6 +677,9 @@
           <button id="btnShareGameList" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
           <button id="btnSettingsChanges" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">↶ Recent changes (undo)</button>
           <button id="btnRestoreOneGame" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Restore one game from a backup…</button>
+          <button id="btnOpenTrash" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">🗑 Trash</button>
+          <button id="btnGameHealth" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Check links &amp; icons</button>
+          <button id="btnStorage" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Storage</button>
         </div>
         <div id="autoBackupBlock" class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs space-y-2.5">
           <div>
@@ -654,6 +719,10 @@
         <div class="android-only flex items-center gap-2 text-xs">
           <button id="btnCheckUpdateNow" type="button" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Check now</button>
           <p id="updateCheckResult" class="text-[11px] text-slate-400" role="status" aria-live="polite"></p>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5 text-xs">
+          <button id="btnWhatsNew" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">What's new</button>
+          <button id="btnErrorLog" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Report a problem</button>
         </div>
       </div>
     </section>
@@ -876,6 +945,8 @@
     </div>
   </div>
 
+  <div id="celebrate" class="celebrate hidden" aria-hidden="true"></div>
+
   <div id="modalRestoreGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="restoreGameTitle">
     <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
       <div class="flex items-center justify-between gap-3">
@@ -916,15 +987,123 @@
     </div>
   </div>
 
+  <!-- 1.8.0: game quick actions (long-press a card) -->
+  <div id="modalGameActions" class="fixed inset-0 z-50 hidden bg-black/80 flex items-end sm:items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="gameActionsTitle">
+    <div tabindex="-1" class="modal-panel glass-card game-actions-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center gap-3">
+        <div id="gameActionsIcon" class="next-game-icon" aria-hidden="true"></div>
+        <div class="min-w-0 flex-1">
+          <h3 id="gameActionsTitle" class="text-base font-bold text-white truncate" dir="auto">Game</h3>
+          <p id="gameActionsSub" class="text-xs text-slate-400 truncate"></p>
+        </div>
+        <button type="button" data-close-modal="modalGameActions" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div id="gameActionsList" class="game-actions-list"></div>
+      <div id="gameActionsNotes" class="hidden game-notes">
+        <label for="gameNotesInput" class="text-xs font-semibold text-slate-300">Notes</label>
+        <textarea id="gameNotesInput" rows="4" maxlength="2000" dir="auto" placeholder="Tips, strategy, anything to remember about this game"></textarea>
+        <div class="flex justify-end gap-2">
+          <button id="btnGameNotesCancel" type="button" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold">Cancel</button>
+          <button id="btnGameNotesSave" type="button" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold">Save notes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1.8.0: trash -->
+  <div id="modalTrash" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="trashTitle">
+    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="trashTitle" class="text-base font-bold text-white">Trash</h3>
+          <p class="text-xs text-slate-400">Removed games, forgotten history and cleared results are kept here for 30 days.</p>
+        </div>
+        <button type="button" data-close-modal="modalTrash" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div id="trashList" class="changes-list"></div>
+      <div class="flex justify-end"><button id="btnEmptyTrash" type="button" class="px-3 py-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold">Empty trash</button></div>
+    </div>
+  </div>
+
+  <!-- 1.8.0: what's new, shown once after an update -->
+  <div id="modalWhatsNew" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle">
+    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="whatsNewTitle" class="text-base font-bold text-white">What's new</h3>
+          <p id="whatsNewSub" class="text-xs text-slate-400"></p>
+        </div>
+        <button type="button" data-close-modal="modalWhatsNew" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div id="whatsNewList" class="whats-new-list"></div>
+      <div class="flex justify-end"><button type="button" data-close-modal="modalWhatsNew" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold">Got it</button></div>
+    </div>
+  </div>
+
+  <!-- 1.8.0: error log for bug reports -->
+  <div id="modalErrorLog" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="errorLogTitle">
+    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="errorLogTitle" class="text-base font-bold text-white">Report a problem</h3>
+          <p class="text-xs text-slate-400">Recent errors and crashes, with your app and phone version. No games, scores or personal data are included. Check it before you send it.</p>
+        </div>
+        <button type="button" data-close-modal="modalErrorLog" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <pre id="errorLogText" class="today-results-preview error-log-text" dir="ltr"></pre>
+      <div class="error-log-actions">
+        <button id="btnErrorLogClear" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold">Clear log</button>
+        <button id="btnErrorLogCopy" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold">Copy</button>
+        <button id="btnErrorLogShare" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold">Share</button>
+        <button id="btnErrorLogIssue" type="button" class="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold">Open a GitHub issue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1.8.0: dead links and icon refresh -->
+  <div id="modalGameHealth" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="gameHealthTitle">
+    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="gameHealthTitle" class="text-base font-bold text-white">Links &amp; icons</h3>
+          <p id="gameHealthSub" class="text-xs text-slate-400">Check that every game's site still loads, and fetch sharper icons.</p>
+        </div>
+        <button type="button" data-close-modal="modalGameHealth" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="grid grid-cols-2 gap-2.5 text-xs">
+        <button id="btnCheckLinks" type="button" class="px-3 py-2.5 rounded-xl bg-indigo-600 text-white font-bold">Check links</button>
+        <button id="btnRefreshIcons" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Refresh icons</button>
+      </div>
+      <p id="gameHealthStatus" class="text-xs text-slate-400" role="status" aria-live="polite"></p>
+      <div id="gameHealthList" class="changes-list"></div>
+    </div>
+  </div>
+
+  <!-- 1.8.0: storage -->
+  <div id="modalStorage" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="storageTitle">
+    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="storageTitle" class="text-base font-bold text-white">Storage</h3>
+          <p id="storageSub" class="text-xs text-slate-400">What Dailies keeps on this phone. Clearing these never touches your games, history or backups.</p>
+        </div>
+        <button type="button" data-close-modal="modalStorage" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div id="storageList" class="changes-list"></div>
+      <div class="flex justify-end gap-2"><button id="btnStorageClear" type="button" class="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold" disabled>Clear selected</button></div>
+    </div>
+  </div>
+
   <div id="modalChanges" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="changesTitle">
     <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
       <div class="flex items-center justify-between gap-3">
         <div class="min-w-0">
           <h3 id="changesTitle" class="text-base font-bold text-white">Recent changes</h3>
-          <p class="text-xs text-slate-400">Your last 25 logs, edits and removals. Undo any of them.</p>
+          <p class="text-xs text-slate-400">Logs, edits and removals from the last 60 days. Undo any of them.</p>
         </div>
         <button type="button" data-close-modal="modalChanges" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
+      <div class="modal-search"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg><input id="changesSearch" type="search" autocomplete="off" placeholder="Search by game, change or date" aria-label="Search changes" /></div>
       <div id="changesList" class="changes-list"></div>
     </div>
   </div>
@@ -1177,7 +1356,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.7.0';
+    const APP_VERSION = '1.8.0';
     const HISTORY_PAGE_SIZE = 5; // entries per page in the Score History block
 
     const TIME_FMT_12 = (() => {
@@ -1207,7 +1386,8 @@
     const IS_WEB = !window.AndroidBridge;
 
     // Recent changes kept for undo (1.6.0); used while loading the saved state, so defined first.
-    const CHANGES_MAX = 25;
+    const CHANGES_MAX = 300;
+    const CHANGES_KEEP_DAYS = 60;
     let lastPlayerColorsSig = '';
     let lastTextZoom = 0;
     /** Text Size (1.7.0): the app scales text natively; a browser scales the page. */
@@ -1254,7 +1434,11 @@
         highContrast: false,
         customIcon: { star: '#F2C94C', bg: '#1E1B4B' },
         shareGrids: true,
-        customAccent: '#1E88C8'
+        customAccent: '#1E88C8',
+        autoFixReset: false,
+        hideCookieBanners: true,
+        pullToRefresh: true,
+        celebrate: true
       };
     }
 
@@ -1323,11 +1507,13 @@
         statsBaseline: (g.statsBaseline && typeof g.statsBaseline === 'object') ? g.statsBaseline : undefined,
         archived: g.archived === true ? true : undefined,
         dismissedResetSuggestion: typeof g.dismissedResetSuggestion === 'string' ? g.dismissedResetSuggestion.slice(0, 60) : undefined,
+        notes: typeof g.notes === 'string' && g.notes.trim() ? g.notes.slice(0, 2000) : undefined,
         playTime: (g.playTime && HubCore.DATE_KEY_RE.test(String(g.playTime.key || '')) && Number(g.playTime.ms) > 0)
           ? { key: String(g.playTime.key), ms: Math.min(Number(g.playTime.ms), 6 * 3600000) } : undefined
       };
       if (!norm.archived) delete norm.archived;
       if (!norm.dismissedResetSuggestion) delete norm.dismissedResetSuggestion;
+      if (!norm.notes) delete norm.notes;
       if (!norm.playTime) delete norm.playTime;
       if (!norm.statsBaseline) delete norm.statsBaseline;
       if (!norm.addedCycleKey) delete norm.addedCycleKey;
@@ -1543,6 +1729,9 @@
         // Recent changes (undo history) stay on this phone: never in a backup.
         recentChanges: Array.isArray(parsed.recentChanges)
           ? parsed.recentChanges.filter((c) => c && typeof c === 'object' && typeof c.id === 'string').slice(0, CHANGES_MAX) : [],
+        // Trash (1.8.0): removed games and forgotten history for 30 days. Also only on this phone.
+        trash: Array.isArray(parsed.trash) ? parsed.trash.filter((t) => t && typeof t === 'object' && typeof t.id === 'string' && Number(t.at) > 0).slice(0, 100) : [],
+        lastSeenVersion: typeof parsed.lastSeenVersion === 'string' ? parsed.lastSeenVersion.slice(0, 20) : '',
         __loadedFrom: source
       };
     }
@@ -1615,6 +1804,7 @@
           const s = state.settings || {};
           window.AndroidBridge.setGamePrefs(s.blockAdsInGames !== false, s.autoLogFromShare !== false);
           if (typeof window.AndroidBridge.setPreloadGames === 'function') window.AndroidBridge.setPreloadGames(s.preloadGames !== false);
+          if (typeof window.AndroidBridge.setPlayerPrefs === 'function') window.AndroidBridge.setPlayerPrefs(s.hideCookieBanners !== false, s.pullToRefresh !== false);
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setFindResults === 'function') {
           window.AndroidBridge.setFindResults((state.settings || {}).findResults !== false);
@@ -2687,9 +2877,10 @@
       }
       const list = hubOrder().filter((g) => {
         if (state.activeFilter !== 'all' && g.status !== state.activeFilter) return false;
-        return true;
+        return hubSearchMatches(g);
       });
-      const sections = gameSections(list);
+      // While searching, matches are shown together (not folded into "Done today").
+      const sections = hubSearch ? { grouped: false, open: list, done: [] } : gameSections(list);
 
       if (list.length === 0) {
         const noGamesAtAll = visibleGames().length === 0;
@@ -2701,7 +2892,7 @@
         ` : `
           <div class="glass-card rounded-2xl p-6 text-center border border-slate-800">
             <p class="text-base font-bold text-white">Nothing here</p>
-            <p class="text-xs text-slate-400 mt-1">No games match this filter. Try "All".</p>
+            <p class="text-xs text-slate-400 mt-1">${hubSearch ? `No games match "${escapeHtml(hubSearch)}".` : 'No games match this filter. Try "All".'}</p>
           </div>
         `;
         return;
@@ -3131,6 +3322,7 @@
       let press = null;   // { card, x, y, timer }
       let drag = null;    // active drag state
       let suppressClickUntil = 0;
+      let swallowTouchEnd = false;
 
       const clearPress = () => {
         if (!press) return;
@@ -3145,15 +3337,15 @@
         const cards = [...grid.querySelectorAll('[data-card-game-id]')];
         const from = cards.indexOf(card);
         clearPress();
-        if (from < 0 || cards.length < 2) return;
-        // A sorted hub: the order on screen becomes the custom order, then the drag carries on.
-        adoptSortAsCustom();
+        if (from < 0) return;
+        // Only one card: a long press can still open its quick actions (1.8.0).
+        if (cards.length < 2) { suppressClickUntil = Date.now() + 450; swallowTouchEnd = true; haptic('start'); openGameActions(card.getAttribute('data-card-game-id')); return; }
         const scroll0 = window.scrollY;
         const tops = cards.map((c) => c.getBoundingClientRect().top + scroll0);
         const heights = cards.map((c) => c.getBoundingClientRect().height);
         const gap = cards.length > 1 ? Math.max(0, tops[1] - (tops[0] + heights[0])) : 10;
         const ids = cards.map((c) => c.getAttribute('data-card-game-id'));
-        drag = { card, cards, ids, from, to: from, tops, heights, gap, startY: lastTouchY, lastY: lastTouchY, scroll0, raf: 0 };
+        drag = { card, cards, ids, from, to: from, tops, heights, gap, startY: lastTouchY, lastY: lastTouchY, scroll0, raf: 0, moved: false };
         grid.classList.add('drag-active');
         card.classList.add('dragging');
         haptic('start');
@@ -3200,12 +3392,18 @@
         if (!drag) return;
         cancelAnimationFrame(drag.raf);
         update(); // use the final finger position, even if no frame has run since the last move
-        const { from, to, cards, ids } = drag;
+        const { from, to, cards, ids, moved, card } = drag;
         drag = null;
         cardDragEndedAt = Date.now();
         grid.classList.remove('drag-active');
         cards.forEach((c) => { c.style.transform = ''; c.classList.remove('dragging'); });
         suppressClickUntil = Date.now() + 450;
+        // Lifted and let go without moving: the game's quick actions (1.8.0).
+        if (commit && !moved) {
+          renderGamesGrid();
+          openGameActions(card.getAttribute('data-card-game-id'));
+          return;
+        }
         if (commit && reorderGamesByIds(ids, from, to)) {
           haptic('drop');
           saveState();
@@ -3232,6 +3430,11 @@
         if (drag) {
           e.preventDefault(); // the page must not scroll while a card is lifted
           drag.lastY = t.clientY;
+          if (!drag.moved && Math.abs(t.clientY - drag.startY) > SLOP_PX) {
+            drag.moved = true;
+            // A sorted hub: the order on screen becomes the custom order, then the drag carries on.
+            adoptSortAsCustom();
+          }
           update();
           return;
         }
@@ -3242,10 +3445,19 @@
 
       grid.addEventListener('touchend', (e) => {
         if (drag && e.changedTouches && e.changedTouches[0]) drag.lastY = e.changedTouches[0].clientY;
+        // Quick actions open as the finger lifts: the tap the browser makes from this touch must not
+        // land on the dialog that just opened (and close it).
+        if ((swallowTouchEnd || (drag && !drag.moved)) && e.cancelable) e.preventDefault();
+        swallowTouchEnd = false;
         finish(true);
       });
       grid.addEventListener('touchcancel', () => finish(false));
-      grid.addEventListener('contextmenu', (e) => { if (press || drag) e.preventDefault(); });
+      grid.addEventListener('contextmenu', (e) => {
+        if (press || drag) { e.preventDefault(); return; }
+        // A mouse right-click (web app on a computer) opens the quick actions too.
+        const card = e.target.closest('[data-card-game-id]');
+        if (card && !selectMode) { e.preventDefault(); openGameActions(card.getAttribute('data-card-game-id')); }
+      });
       // A long press that turned into a drag must not also "tap" the button under the finger.
       grid.addEventListener('click', (e) => {
         if (Date.now() < suppressClickUntil) {
@@ -3354,6 +3566,7 @@
       if (game.dismissedResetSuggestion === `${sug.resetTime}|${sug.resetZone}`) return;
       resetSuggestion = { gameId: game.id, resetTime: sug.resetTime, resetZone: sug.resetZone,
         fromTime: game.resetTime, fromZone: HubCore.normalizeZone(game.resetZone) };
+      if (state.settings && state.settings.autoFixReset) { autoApplyResetSuggestion(); return; }
       renderResetSuggestion();
     }
     function renderResetSuggestion() {
@@ -3376,7 +3589,8 @@
       document.getElementById('resetSuggestSub').textContent =
         `Its puzzle numbers fit a reset at ${local}${exact}, not ${formatLocalResetTime(game.resetTime, game.resetZone)}.`;
     }
-    function applyResetSuggestion() {
+    function applyResetSuggestion(opts) {
+      const quiet = Boolean(opts && opts.quiet);
       renderResetSuggestion();
       const sug = resetSuggestion;
       const game = sug && state.games.find((g) => g.id === sug.gameId);
@@ -3391,7 +3605,7 @@
       recomputeGameStatsFromHistory(game);
       saveState({ syncNow: true });
       renderVisibleTab();
-      showToast(`${game.name} reset time updated`, `Now resets at ${formatLocalResetTime(game.resetTime, game.resetZone)}. You can change it in the game's settings.`, 'emerald');
+      if (!quiet) showToast(`${game.name} reset time updated`, `Now resets at ${formatLocalResetTime(game.resetTime, game.resetZone)}. You can change it in the game's settings.`, 'emerald');
     }
     function dismissResetSuggestion() {
       const sug = resetSuggestion;
@@ -3666,7 +3880,8 @@
       entry.id = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
       entry.at = Date.now();
       state.recentChanges.unshift(entry);
-      if (state.recentChanges.length > CHANGES_MAX) state.recentChanges.length = CHANGES_MAX;
+      const cut = Date.now() - CHANGES_KEEP_DAYS * 86400000;
+      state.recentChanges = state.recentChanges.filter((c) => c && Number(c.at) > cut).slice(0, CHANGES_MAX);
       if (isModalOpen('modalChanges')) renderChanges();
       return entry.id;
     }
@@ -3744,12 +3959,22 @@
     function renderChanges() {
       const el = document.getElementById('changesList');
       if (!el) return;
-      const list = (state.recentChanges || []).filter((c) => c && c.id);
-      if (!list.length) {
+      const all = (state.recentChanges || []).filter((c) => c && c.id);
+      if (!all.length) {
         el.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">Nothing yet. Logs, edits, removals and archiving show up here.</p>';
         return;
       }
-      el.innerHTML = list.map((c) => {
+      // Search (1.8.0): every word must match the change, its game, its details or its day.
+      const box = document.getElementById('changesSearch');
+      const words = String(box ? box.value : '').toLowerCase().split(/\s+/).filter(Boolean);
+      const hay = (c) => [changeLabel(c), c.name, c.detail, c.date, c.date ? formatCycleDateLabel(c.date) : '',
+        new Date(c.at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }), c.undone ? 'undone' : ''].join(' ').toLowerCase();
+      const list = words.length ? all.filter((c) => { const h = hay(c); return words.every((w) => h.includes(w)); }) : all;
+      if (!list.length) {
+        el.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">No changes match that search.</p>';
+        return;
+      }
+      el.innerHTML = (words.length ? `<p class="chg-count">${plural(list.length, 'change')} found</p>` : '') + list.map((c) => {
         const sub = [c.detail ? escapeHtml(c.detail) : '', c.date ? escapeHtml(formatCycleDateLabel(c.date)) : '', escapeHtml(timeAgo(c.at))].filter(Boolean).join(' · ');
         const act = c.undone ? '<span class="chg-done">Undone</span>'
           : `<button type="button" class="chg-undo" data-undo-change="${escapeHtml(c.id)}">Undo</button>`;
@@ -3796,6 +4021,506 @@
       return ready[0];
     }
     /** Shown once at least one game is done today and another is still waiting. */
+
+    // ======================== 1.8.0 ========================
+
+    // ---- Hub search (1.8.0): by name, site, category or notes ----
+    let hubSearch = '';
+    function hubSearchMatches(g) {
+      if (!hubSearch) return true;
+      const q = hubSearch.toLowerCase();
+      let host = '';
+      try { host = new URL(g.url).hostname.replace(/^www\./, ''); } catch (e) {}
+      return [g.name, g.category, host, g.notes].some((t) => String(t || '').toLowerCase().includes(q));
+    }
+    function setHubSearchOpen(open) {
+      const row = document.getElementById('hubSearchRow');
+      const btn = document.getElementById('btnHubSearch');
+      const input = document.getElementById('hubSearchInput');
+      if (!row || !btn || !input) return;
+      row.classList.toggle('hidden', !open);
+      btn.setAttribute('aria-pressed', String(open));
+      if (open) {
+        input.focus();
+      } else {
+        input.value = '';
+        if (hubSearch) { hubSearch = ''; renderGamesGrid(); }
+      }
+    }
+
+    // ---- Quick actions (1.8.0): long-press a game card (or right-click it) ----
+    let actionsGameId = '';
+    function openGameActions(id) {
+      const g = state.games.find((x) => x.id === id);
+      if (!g) return;
+      actionsGameId = id;
+      document.getElementById('gameActionsIcon').innerHTML = renderGameIconHtml(g.icon, g.name, 'w-6 h-6');
+      document.getElementById('gameActionsTitle').textContent = g.name;
+      document.getElementById('gameActionsSub').textContent = [g.category, `Resets ${formatLocalResetTime(g.resetTime, g.resetZone)}`, g.streak ? `🔥 ${g.streak}d` : ''].filter(Boolean).join(' · ');
+      document.getElementById('gameActionsNotes').classList.add('hidden');
+      const acts = [
+        ['play', 'Play', ''],
+        g.status === 'ready' ? ['log', 'Log result', ''] : null,
+        ['notes', g.notes ? 'Edit notes' : 'Add notes', ''],
+        ['stats', 'Stats & calendar', ''],
+        ['reset', 'Change reset time', ''],
+        IS_WEB ? null : ['alerts', g.notifyEnabled ? 'Mute alerts' : 'Turn alerts on', ''],
+        ['copy', 'Copy link', ''],
+        ['archive', 'Archive', ''],
+        ['remove', 'Remove…', 'danger']
+      ].filter(Boolean);
+      const note = g.notes ? `<div class="ga-note" dir="auto">${escapeHtml(g.notes)}</div>` : '';
+      document.getElementById('gameActionsList').innerHTML = note + acts.map(([k, label, tone]) =>
+        `<button type="button" class="ga-btn${tone ? ` ${tone}` : ''}" data-game-action="${k}">${escapeHtml(label)}</button>`).join('');
+      openModal('modalGameActions');
+    }
+    function runGameAction(kind) {
+      const g = state.games.find((x) => x.id === actionsGameId);
+      if (!g) { closeModal('modalGameActions'); return; }
+      if (kind === 'notes') {
+        const box = document.getElementById('gameActionsNotes');
+        const input = document.getElementById('gameNotesInput');
+        input.value = g.notes || '';
+        box.classList.remove('hidden');
+        input.focus();
+        return;
+      }
+      closeModal('modalGameActions');
+      if (kind === 'play') openGameInPlayer(g.id);
+      else if (kind === 'log') openLogModal(g.id);
+      else if (kind === 'stats') {
+        selectedCalendarGameId = g.id;
+        historyPage = 0;
+        statsRenderedKey = '';
+        switchNavigation('stats');
+      } else if (kind === 'reset') {
+        openAddOrEditModal(null, g);
+        setTimeout(() => { const t = document.getElementById('inputResetTime'); if (t) { t.scrollIntoView({ block: 'center' }); t.focus(); } }, 250);
+      } else if (kind === 'alerts') {
+        g.notifyEnabled = !g.notifyEnabled;
+        saveState({ syncNow: true });
+        renderNotificationsView();
+        showToast(`${g.name}: alerts ${g.notifyEnabled ? 'on' : 'muted'}`, g.notifyEnabled ? `You'll be told when it resets at ${formatLocalResetTime(g.resetTime, g.resetZone)}.` : 'No reset alert for this game until you turn it back on.', 'indigo');
+      } else if (kind === 'copy') {
+        copyPlainText(g.url);
+        showToast('Link copied', g.url, 'indigo');
+      } else if (kind === 'archive') {
+        setArchived([g.id], true);
+      } else if (kind === 'remove') {
+        openDeleteConfirmModal(g);
+      }
+    }
+    function saveGameNotes() {
+      const g = state.games.find((x) => x.id === actionsGameId);
+      if (!g) return;
+      const v = document.getElementById('gameNotesInput').value.replace(/\s+$/, '').slice(0, 2000);
+      if (v) g.notes = v; else delete g.notes;
+      saveState({ sync: false });
+      closeModal('modalGameActions');
+      showToast(v ? 'Notes saved' : 'Notes removed', v ? `Long-press ${g.name} to see them.` : '', 'indigo');
+    }
+    function copyPlainText(text) {
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.copyText === 'function') { window.AndroidBridge.copyText(text); return; }
+      } catch (e) {}
+      try { navigator.clipboard.writeText(text); } catch (e) {}
+    }
+
+    // ---- Trash (1.8.0): removed games and forgotten history, kept 30 days ----
+    const TRASH_DAYS = 30;
+    function gameIsInHub(g) {
+      const key = normalizeUrlKey(g && g.url);
+      return state.games.some((x) => x.id === (g && g.id) || (key && normalizeUrlKey(x.url) === key));
+    }
+    function addToTrash(item) {
+      item.id = `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+      item.at = Date.now();
+      state.trash = [item, ...(Array.isArray(state.trash) ? state.trash : [])].slice(0, 100);
+    }
+    /** Drops what's older than 30 days, and removed games that are back in the hub. */
+    function pruneTrash() {
+      const cut = Date.now() - TRASH_DAYS * 86400000;
+      const before = (state.trash || []).length;
+      state.trash = (Array.isArray(state.trash) ? state.trash : []).filter((t) => t && t.at > cut && !(t.kind === 'game' && gameIsInHub(t.game)));
+      return state.trash.length !== before;
+    }
+    function updateTrashButton() {
+      const b = document.getElementById('btnOpenTrash');
+      if (b) b.textContent = `🗑 Trash${(state.trash || []).length ? ` (${state.trash.length})` : ''}`;
+    }
+    function openTrash() {
+      if (pruneTrash()) saveState({ sync: false });
+      renderTrash();
+      openModal('modalTrash');
+    }
+    function renderTrash() {
+      const el = document.getElementById('trashList');
+      if (!el) return;
+      updateTrashButton();
+      const list = state.trash || [];
+      document.getElementById('btnEmptyTrash').classList.toggle('hidden', !list.length);
+      if (!list.length) {
+        el.innerHTML = '<p class="py-6 text-center text-xs text-slate-500">The trash is empty.</p>';
+        return;
+      }
+      el.innerHTML = list.map((t) => {
+        const left = Math.max(1, Math.ceil((t.at + TRASH_DAYS * 86400000 - Date.now()) / 86400000));
+        const rows = t.kind === 'forgot' ? (t.logs || []).length : state.historyLogs.filter((l) => l && l.gameId === (t.game && t.game.id)).length;
+        const what = t.kind === 'forgot' ? 'Forgotten history' : 'Removed game';
+        const sub = [what, rows ? plural(rows, 'result') : '', timeAgo(t.at), `deleted in ${plural(left, 'day')}`].filter(Boolean).join(' · ');
+        return `<div class="chg-row trash-row"><div class="min-w-0"><p class="chg-title" dir="auto">${escapeHtml(t.name)}</p><p class="chg-sub">${escapeHtml(sub)}</p></div>`
+          + `<div class="trash-acts"><button type="button" class="chg-undo" data-trash-restore="${escapeHtml(t.id)}">Restore</button>`
+          + `<button type="button" class="trash-del" data-trash-delete="${escapeHtml(t.id)}" aria-label="Delete ${escapeHtml(t.name)} for good">Delete</button></div></div>`;
+      }).join('');
+    }
+    function restoreFromTrash(id) {
+      const t = (state.trash || []).find((x) => x.id === id);
+      if (!t) return;
+      let ok = false;
+      if (t.kind === 'game') {
+        ok = restoreRemovedGame({ game: t.game, index: t.index, name: t.name });
+        const c = (state.recentChanges || []).find((x) => x.id === t.changeId);
+        if (ok && c) c.undone = Date.now();
+      } else if (t.kind === 'forgot') {
+        const r = t.snap;
+        if (!state.retainedGameStats) state.retainedGameStats = {};
+        if (r && r.id) {
+          state.retainedGameStats[r.id] = r;
+          const key = normalizeUrlKey(r.url);
+          if (key) state.retainedGameStats[key] = r;
+        }
+        const have = new Set(state.historyLogs.map((l) => `${l.gameId}|${l.date}`));
+        (t.logs || []).forEach((l) => { if (!have.has(`${l.gameId}|${l.date}`)) state.historyLogs.push(l); });
+        invalidateLogIndex();
+        ok = true;
+        showToast(`${t.name} restored`, 'Its history is back. Add the game again to carry on its streak.', 'emerald');
+      }
+      if (!ok) return;
+      state.trash = state.trash.filter((x) => x.id !== id);
+      saveState();
+      renderTrash();
+      renderVisibleTab();
+    }
+    /** Deletes a trashed item for good: a removed game's kept history and results go too. */
+    function purgeTrashItem(t) {
+      if (t.kind === 'game' && t.game && !gameIsInHub(t.game)) {
+        const retained = state.retainedGameStats || {};
+        Object.keys(retained).forEach((k) => { if (retained[k] && retained[k].id === t.game.id) delete retained[k]; });
+        state.historyLogs = state.historyLogs.filter((l) => !(l && l.gameId === t.game.id));
+        invalidateLogIndex();
+      }
+      state.trash = (state.trash || []).filter((x) => x.id !== t.id);
+    }
+    function deleteFromTrash(id) {
+      const t = (state.trash || []).find((x) => x.id === id);
+      if (!t) return;
+      openConfirmModal(`Delete ${t.name} for good?`, t.kind === 'game'
+        ? `Its streaks, calendar and score log are deleted too. This can't be undone.`
+        : `This history can't be brought back after this.`, 'Delete', () => {
+        purgeTrashItem(t);
+        saveState({ sync: false });
+        renderTrash();
+        renderVisibleTab();
+      });
+    }
+    function emptyTrash() {
+      const n = (state.trash || []).length;
+      if (!n) return;
+      openConfirmModal('Empty the trash?', `${plural(n, 'item')} and their history are deleted for good. This can't be undone.`, 'Empty trash', () => {
+        [...state.trash].forEach(purgeTrashItem);
+        state.trash = [];
+        saveState({ sync: false });
+        renderTrash();
+        renderVisibleTab();
+      });
+    }
+
+    // ---- What's new (1.8.0): shown once after an update ----
+    const WHATS_NEW = {
+      '1.8.0': [
+        ['🔎', 'Search your games', 'Tap the magnifier on the hub to find a game by name, site or category.'],
+        ['👆', 'Quick actions', 'Long-press a game card (and let go without moving) for Play, notes, stats, reset time, archive and more.'],
+        ['📝', 'Game notes', 'Keep a tip or strategy for each game from its quick actions.'],
+        ['🗑', 'Trash', 'Removed games stay in Settings → Data & Backup → Trash for 30 days.'],
+        ['↶', 'Undo from any day', 'Recent changes now goes back 60 days and can be searched.'],
+        ['✨', 'All done!', 'Your app icon sparkles when you finish every game for the day.'],
+        ['🕛', 'Reset times that fix themselves', 'Dailies checks every game\'s puzzle numbers and can correct a reset time for you.'],
+        ['🍪', 'Fewer pop-ups', 'Cookie and consent banners are hidden on game pages, and you can pull down to refresh a game.'],
+        ['🔗', 'Links & icons', 'Check every game\'s link and fetch sharper icons from Settings → Data & Backup.'],
+        ['🧹', 'Storage', 'See what Dailies keeps on your phone and clear caches.'],
+        ['🐞', 'Report a problem', 'Settings → About collects recent errors to attach to a GitHub issue.'],
+        ['⚡', 'Faster start', 'The hub opens sooner.']
+      ]
+    };
+    const versionParts = (v) => String(v || '0').split('.').map((n) => parseInt(n, 10) || 0);
+    const versionBefore = (a, b) => { const x = versionParts(a); const y = versionParts(b); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0); } return false; };
+    function openWhatsNew(version) {
+      const v = version || APP_VERSION;
+      const items = WHATS_NEW[v] || [];
+      document.getElementById('whatsNewTitle').textContent = `What's new in ${v}`;
+      document.getElementById('whatsNewSub').textContent = items.length ? 'Here\'s what changed in this update.' : 'Bug fixes and small improvements.';
+      document.getElementById('whatsNewList').innerHTML = items.map(([ic, t, d]) =>
+        `<div class="wn-row"><span class="wn-ic" aria-hidden="true">${ic}</span><div class="min-w-0"><p class="wn-title">${escapeHtml(t)}</p><p class="wn-desc">${escapeHtml(d)}</p></div></div>`).join('');
+      openModal('modalWhatsNew');
+    }
+    function maybeShowWhatsNew() {
+      const seen = state.lastSeenVersion || '';
+      if (seen === APP_VERSION || state.__saveBlocked) return;
+      // A brand-new install has nothing to compare against; someone updating from 1.7.x has games or history.
+      const updating = seen ? versionBefore(seen, APP_VERSION) : (state.games.length > 0 || state.historyLogs.length > 0);
+      state.lastSeenVersion = APP_VERSION;
+      saveState({ sync: false });
+      if (!updating || !WHATS_NEW[APP_VERSION]) return;
+      setTimeout(() => { if (!isAnyModalOpen()) openWhatsNew(); }, 1200);
+    }
+
+    // ---- Report a problem (1.8.0): recent errors for a GitHub issue ----
+    const ERROR_LOG_KEY = 'dailies_error_log_v1';
+    function pageErrors() {
+      try { return JSON.parse(localStorage.getItem(ERROR_LOG_KEY) || '[]'); } catch (e) { return []; }
+    }
+    function nativeErrorReport() {
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.getErrorReport === 'function') return JSON.parse(window.AndroidBridge.getErrorReport() || '{}');
+      } catch (e) {}
+      return null;
+    }
+    function errorReportText() {
+      const n = nativeErrorReport();
+      const ua = navigator.userAgent || '';
+      const chrome = (ua.match(/Chrome\/([0-9.]+)/) || [])[1] || '';
+      const stamp = (at) => { try { return new Date(at).toISOString().replace('T', ' ').slice(0, 19) + 'Z'; } catch (e) { return ''; } };
+      const lines = [
+        `Dailies ${APP_VERSION} (${IS_WEB ? 'web app' : 'Android app'})`,
+        n ? `Android ${n.android || '?'} (API ${n.sdk || '?'}) · ${n.device || '?'}` : `Browser: ${ua.slice(0, 160)}`,
+        chrome ? `WebView/Chrome ${chrome}` : '',
+        `Games: ${visibleGames().length} · results: ${state.historyLogs.length}`,
+        ''
+      ].filter((l, i) => l || i > 2);
+      const crashes = n && n.crashes ? String(n.crashes).trim() : '';
+      lines.push('--- App crashes ---', crashes || 'None recorded.', '');
+      const errs = pageErrors();
+      lines.push('--- Page errors ---');
+      if (!errs.length) lines.push('None recorded.');
+      errs.slice(-25).forEach((e) => {
+        lines.push(`[${stamp(e.at)}] ${e.kind}: ${e.msg}${e.n > 1 ? ` (×${e.n})` : ''}`);
+        if (e.stack) lines.push(e.stack.split('\n').map((l) => `    ${l.trim()}`).join('\n'));
+      });
+      return lines.join('\n');
+    }
+    function openErrorLog() {
+      document.getElementById('errorLogText').textContent = errorReportText();
+      openModal('modalErrorLog');
+    }
+    function clearErrorLog() {
+      try { localStorage.removeItem(ERROR_LOG_KEY); } catch (e) {}
+      try { if (window.AndroidBridge && typeof window.AndroidBridge.clearErrorLog === 'function') window.AndroidBridge.clearErrorLog(); } catch (e) {}
+      document.getElementById('errorLogText').textContent = errorReportText();
+      showToast('Error log cleared', '', 'indigo');
+    }
+    const ISSUES_URL = 'https://github.com/molamolaguy/Dailies/issues/new';
+    function openErrorIssue() {
+      let body = `**What happened?**\n\n\n**What did you expect?**\n\n\n**Error log**\n\`\`\`\n${errorReportText()}\n\`\`\`\n`;
+      if (body.length > 6000) body = body.slice(0, 5990) + '\n…\n```\n';
+      const url = `${ISSUES_URL}?title=${encodeURIComponent(`Problem in Dailies ${APP_VERSION}`)}&body=${encodeURIComponent(body)}`;
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.openIssuePage === 'function') { window.AndroidBridge.openIssuePage(url); return; }
+      } catch (e) {}
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    // ---- Links & icons (1.8.0): dead-link checker and icon refresher (Android) ----
+    let healthRequest = 0;
+    function openGameHealth() {
+      document.getElementById('gameHealthStatus').textContent = '';
+      document.getElementById('gameHealthList').innerHTML = '';
+      openModal('modalGameHealth');
+    }
+    function healthGames() {
+      return state.games.filter((g) => !g.archived).map((g) => ({ id: g.id, name: g.name, url: g.url, icon: g.icon || '' }));
+    }
+    function startLinkCheck() {
+      const games = healthGames();
+      if (!games.length) { document.getElementById('gameHealthStatus').textContent = 'No games to check.'; return; }
+      healthRequest += 1;
+      document.getElementById('gameHealthStatus').textContent = `Checking ${plural(games.length, 'link')}…`;
+      document.getElementById('gameHealthList').innerHTML = '';
+      document.getElementById('btnCheckLinks').disabled = true;
+      try { window.AndroidBridge.checkLinks(healthRequest, JSON.stringify(games)); } catch (e) { window.onLinksChecked(healthRequest, '[]'); }
+    }
+    const LINK_PROBLEMS = {
+      dead: 'Not found (the page is gone)',
+      error: 'The site returned an error',
+      unreachable: "Couldn't reach the site",
+      moved: 'Moved to a new address',
+      blocked: 'The site blocked the check (it may still work)'
+    };
+    window.onLinksChecked = function (requestId, json) {
+      if (requestId !== healthRequest) return;
+      document.getElementById('btnCheckLinks').disabled = false;
+      let res = [];
+      try { res = JSON.parse(json || '[]'); } catch (e) { res = []; }
+      const bad = res.filter((r) => r && r.status !== 'ok');
+      document.getElementById('gameHealthStatus').textContent = bad.length
+        ? `${plural(bad.length, 'game')} of ${res.length} need a look.` : `All ${plural(res.length, 'link')} work. ✓`;
+      document.getElementById('gameHealthList').innerHTML = bad.map((r) => {
+        const g = state.games.find((x) => x.id === r.id);
+        if (!g) return '';
+        const moved = r.status === 'moved' && r.finalUrl ? `<button type="button" class="chg-undo" data-health-move="${escapeHtml(g.id)}" data-url="${escapeHtml(r.finalUrl)}">Use new link</button>` : '';
+        return `<div class="chg-row"><div class="min-w-0"><p class="chg-title" dir="auto">${escapeHtml(g.name)}</p><p class="chg-sub">${escapeHtml(LINK_PROBLEMS[r.status] || r.status)}${r.code ? ` (${r.code})` : ''}${r.finalUrl && r.status === 'moved' ? ` → ${escapeHtml(r.finalUrl)}` : ''}</p></div>`
+          + `<div class="trash-acts">${moved}<button type="button" class="trash-del" data-health-edit="${escapeHtml(g.id)}">Edit</button></div></div>`;
+      }).join('');
+    };
+    function useMovedLink(id, url) {
+      const g = state.games.find((x) => x.id === id);
+      if (!g || !/^https?:\/\//i.test(url)) return;
+      g.url = cleanGameUrl(url) || g.url;
+      saveState({ syncNow: true });
+      renderVisibleTab();
+      showToast(`${g.name} link updated`, g.url, 'emerald');
+      const btn = document.querySelector(`[data-health-move="${CSS.escape(id)}"]`);
+      if (btn) btn.closest('.chg-row').remove();
+    }
+    function startIconRefresh() {
+      const games = healthGames();
+      if (!games.length) return;
+      healthRequest += 1;
+      document.getElementById('gameHealthStatus').textContent = `Looking for sharper icons for ${plural(games.length, 'game')}…`;
+      document.getElementById('gameHealthList').innerHTML = '';
+      document.getElementById('btnRefreshIcons').disabled = true;
+      try { window.AndroidBridge.refreshIcons(healthRequest, JSON.stringify(games)); } catch (e) { window.onIconsRefreshed(healthRequest, '[]'); }
+    }
+    window.onIconsRefreshed = function (requestId, json) {
+      if (requestId !== healthRequest) return;
+      document.getElementById('btnRefreshIcons').disabled = false;
+      let res = [];
+      try { res = JSON.parse(json || '[]'); } catch (e) { res = []; }
+      let changed = 0;
+      res.forEach((r) => {
+        const g = r && state.games.find((x) => x.id === r.id);
+        if (!g || !r.icon || !isImageIcon(r.icon)) return;
+        if (r.icon !== g.icon) { g.icon = r.icon; changed += 1; }
+      });
+      if (changed) { saveState({ sync: false }); renderVisibleTab(); }
+      document.getElementById('gameHealthStatus').textContent = changed
+        ? `Updated ${plural(changed, 'icon')}. The others were already the best available.` : 'Every icon is already the best one the sites offer.';
+    };
+
+    // ---- Storage (1.8.0): what Dailies keeps on the phone (Android) ----
+    const STORAGE_LABELS = {
+      pages: ['Preloaded game pages', 'Saved after each reset so games open faster. Saved again after the next reset.'],
+      icons: ['Game icons', 'Downloaded again when the hub needs them.'],
+      web: ['Game site cache', 'Images and files from game sites. Sign-ins and game progress are kept.'],
+      updates: ['Downloaded updates', 'Only needed while an update installs.'],
+      temp: ['Temporary files', 'Leftovers from sharing images and saving files.']
+    };
+    function formatBytes(n) {
+      n = Number(n) || 0;
+      if (n < 1024) return `${n} B`;
+      if (n < 1048576) return `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB`;
+      return `${(n / 1048576).toFixed(n < 10485760 ? 1 : 0)} MB`;
+    }
+    function openStorage() {
+      renderStorage();
+      openModal('modalStorage');
+    }
+    function renderStorage() {
+      let info = {};
+      try { info = JSON.parse(window.AndroidBridge.getStorageInfo() || '{}'); } catch (e) { info = {}; }
+      const parts = info.parts || {};
+      const total = Object.values(parts).reduce((a, b) => a + (Number(b) || 0), 0);
+      document.getElementById('storageSub').textContent = `Caches: ${formatBytes(total)}. Your games and history: ${formatBytes(info.data || 0)}. Clearing caches never touches your games, history or backups.`;
+      document.getElementById('storageList').innerHTML = Object.keys(STORAGE_LABELS).filter((k) => k in parts).map((k) => {
+        const [t, d] = STORAGE_LABELS[k];
+        return `<label class="chg-row storage-row"><input type="checkbox" data-storage="${k}" class="w-4 h-4 rounded accent-indigo-500 shrink-0"${Number(parts[k]) ? '' : ' disabled'} />`
+          + `<div class="min-w-0 flex-1"><p class="chg-title">${escapeHtml(t)}</p><p class="chg-sub">${escapeHtml(d)}</p></div><span class="storage-size">${formatBytes(parts[k])}</span></label>`;
+      }).join('');
+      updateStorageButton();
+    }
+    function updateStorageButton() {
+      const n = document.querySelectorAll('#storageList [data-storage]:checked').length;
+      const b = document.getElementById('btnStorageClear');
+      b.disabled = !n;
+    }
+    function clearSelectedStorage() {
+      const kinds = [...document.querySelectorAll('#storageList [data-storage]:checked')].map((x) => x.getAttribute('data-storage'));
+      if (!kinds.length) return;
+      let freed = 0;
+      try { freed = Number(window.AndroidBridge.clearStorage(JSON.stringify(kinds))) || 0; } catch (e) {}
+      renderStorage();
+      showToast('Storage cleared', `Freed ${formatBytes(freed)}.`, 'emerald');
+    }
+
+    // ---- All done (1.8.0): the app icon sparkles when every game is finished ----
+    let allDoneBaseline = null; // the hub's state when it first drew, so opening the app doesn't celebrate
+    function allGamesDone() {
+      const list = visibleGames();
+      return list.length > 0 && list.every((g) => g.status !== 'ready');
+    }
+    function checkAllDoneCelebration() {
+      const done = allGamesDone();
+      const logo = document.getElementById('hubLogo');
+      if (logo) logo.classList.toggle('all-done', done);
+      if (allDoneBaseline === null) { allDoneBaseline = done; return; }
+      if (done && !allDoneBaseline) celebrateAllDone();
+      allDoneBaseline = done;
+    }
+    function celebrateAllDone() {
+      if (state.settings && state.settings.celebrate === false) return;
+      const el = document.getElementById('celebrate');
+      if (!el) return;
+      const icon = currentAppIcon();
+      const tone = icon === 'ruby' || rubyAccentsOn() ? 'ruby' : (icon === 'gold' || goldAccentsOn()) ? 'gold' : 'theme';
+      const n = REDUCED_MOTION ? 0 : 22;
+      let sparks = '';
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + Math.random() * 0.4;
+        const r = 70 + Math.random() * 70;
+        sparks += `<span class="cel-spark" style="--x:${Math.round(Math.cos(a) * r)}px;--y:${Math.round(Math.sin(a) * r)}px;--d:${Math.round(Math.random() * 380)}ms;--s:${(0.5 + Math.random() * 0.9).toFixed(2)}"></span>`;
+      }
+      el.className = `celebrate cel-${tone}`;
+      el.innerHTML = `<div class="cel-stage"><div class="cel-icon">${appIconSvg(icon, 120, 'cel')}<span class="cel-shine"></span></div>${sparks}</div>`
+        + '<p class="cel-title">All done for today!</p><p class="cel-sub">Every game is finished. See you after the next reset.</p>';
+      el.classList.remove('hidden');
+      haptic('drop');
+      clearTimeout(celebrateAllDone.t);
+      const hide = () => { el.classList.add('cel-out'); setTimeout(() => { el.classList.add('hidden'); el.innerHTML = ''; }, 320); };
+      celebrateAllDone.t = setTimeout(hide, REDUCED_MOTION ? 1800 : 2800);
+      el.onclick = () => { clearTimeout(celebrateAllDone.t); hide(); };
+    }
+
+    // ---- Reset times (1.8.0): check every game, and optionally fix them without asking ----
+    function checkAllResetSuggestions() {
+      if (resetSuggestion) return;
+      for (const g of visibleGames()) {
+        checkResetSuggestion(g);
+        if (resetSuggestion) return;
+      }
+    }
+    /** Settings → Fix Reset Times Automatically: applies the suggestion straight away, with Undo. */
+    function autoApplyResetSuggestion() {
+      const sug = resetSuggestion;
+      const game = sug && state.games.find((g) => g.id === sug.gameId);
+      if (!game) return;
+      const from = { resetTime: game.resetTime, resetZone: HubCore.normalizeZone(game.resetZone) };
+      applyResetSuggestion({ quiet: true });
+      const to = { resetTime: game.resetTime, resetZone: HubCore.normalizeZone(game.resetZone) };
+      showToast(`${game.name} reset time fixed`, `Its puzzle numbers show it resets at ${formatLocalResetTime(to.resetTime, to.resetZone)}, not ${formatLocalResetTime(from.resetTime, from.resetZone)}.`, 'emerald', null, {
+        actionLabel: 'Undo',
+        onAction: () => {
+          const g = state.games.find((x) => x.id === game.id);
+          if (!g) return;
+          applyScheduleChange(g, to, from, state.historyLogs);
+          g.dismissedResetSuggestion = `${to.resetTime}|${to.resetZone}`;
+          const key = getCycleDateKey(g.resetTime, g.resetZone);
+          g.lastCycleKey = key;
+          g.status = (g.dayHistory && g.dayHistory[key]) || 'ready';
+          recomputeGameStatsFromHistory(g);
+          saveState({ syncNow: true });
+          renderVisibleTab();
+        }
+      });
+    }
 
     // ---- Custom icon (1.7.0): your star and background colors ----
     const ICON_STAR_COLORS = ['#F2C94C', '#FF8A65', '#F06292', '#BA68C8', '#7986CB', '#4FC3F7', '#4DB6AC', '#81C784', '#FFFFFF'];
@@ -4031,6 +4756,7 @@
 
     function renderPlayNext() {
       renderChallenge();
+      checkAllDoneCelebration();
       const copyBtn = document.getElementById('btnCopyToday');
       if (copyBtn) copyBtn.classList.toggle('hidden', !todaysResultEntries().length);
       const bar = document.getElementById('playNextBar');
@@ -5111,8 +5837,10 @@
       const snap = Object.keys(retained).map((k) => retained[k]).find((r) => r && r.id === id);
       if (!snap) return;
       openConfirmModal(`Forget ${snap.name}?`,
-        `This permanently deletes the kept streaks, calendar and score log of "${snap.name}". It can't be undone.`,
+        `This deletes the kept streaks, calendar and score log of "${snap.name}". It stays in the Trash for 30 days in case you change your mind.`,
         'Forget', () => {
+          addToTrash({ kind: 'forgot', name: snap.name, snap: JSON.parse(JSON.stringify(snap)),
+            logs: state.historyLogs.filter((l) => l && l.gameId === id).map((l) => Object.assign({}, l)) });
           Object.keys(retained).forEach((k) => { if (retained[k] && retained[k].id === id) delete retained[k]; });
           state.historyLogs = state.historyLogs.filter((l) => !(l && l.gameId === id));
           invalidateLogIndex();
@@ -5120,7 +5848,7 @@
           historyPage = 0;
           saveState({ sync: false });
           renderStatsAndCharts();
-          showToast(`${snap.name} forgotten`, 'Its history was deleted.', 'indigo');
+          showToast(`${snap.name} forgotten`, 'Its history is in the Trash for 30 days.', 'indigo');
         });
     }
 
@@ -5355,6 +6083,11 @@
       setVal('settingTextSize', ['large', 'larger'].includes(s.textSize) ? s.textSize : 'normal');
       setChk('settingHighContrast', Boolean(s.highContrast));
       setChk('settingDailyChallenge', s.dailyChallenge !== false);
+      setChk('settingAutoFixReset', Boolean(s.autoFixReset));
+      setChk('settingHideCookies', s.hideCookieBanners !== false);
+      setChk('settingPullRefresh', s.pullToRefresh !== false);
+      setChk('settingCelebrate', s.celebrate !== false);
+      updateTrashButton();
       renderRubyAccentsSetting();
       setChk('settingDarkPages', s.darkGamePages !== false);
       renderIconChoices();
@@ -5795,7 +6528,7 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalIconEditor', 'modalRestoreGame', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalIconEditor', 'modalRestoreGame', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -5918,12 +6651,13 @@
       pruneRetainedMap(state.retainedGameStats);
 
       const changeId = recordChange({ kind: 'remove', gameId: game.id, name: game.name, game: JSON.parse(JSON.stringify(game)), index: state.games.indexOf(game) });
+      addToTrash({ kind: 'game', name: game.name, game: JSON.parse(JSON.stringify(game)), index: state.games.indexOf(game), changeId });
       state.games = state.games.filter((g) => g.id !== game.id);
       nativeGameFinished(game.id);
       closeDeleteConfirmModal();
       saveState();
       renderVisibleTab();
-      showToast('Game Removed', `${game.name} was removed from Daily Hub. Streaks and log data retained.`, 'indigo', null,
+      showToast('Game Removed', `${game.name} is in the Trash for 30 days, with its streaks and history.`, 'indigo', null,
         { actionLabel: 'Undo', onAction: () => undoChange(changeId) });
     }
 
@@ -6690,6 +7424,9 @@
       flushSyncNativeNow();
       startLiveTickTimer();
       checkNewAchievements(true); // badges already earned before this version arrive quietly
+      if (pruneTrash()) saveState({ sync: false });
+      maybeShowWhatsNew();
+      setTimeout(() => whenIdle(checkAllResetSuggestions, 3000), 2500);
       // Opt-in daily update check (Settings → About).
       if (state.settings && state.settings.updateCheck && Date.now() - (Number(state.settings.lastUpdateCheckAt) || 0) > 20 * 3600 * 1000) {
         setTimeout(() => runUpdateCheck(false), 4000);
@@ -6793,7 +7530,8 @@
 
       const zoneSelect = document.getElementById('inputResetZone');
       const timeInput = document.getElementById('inputResetTime');
-      populateZoneSelect(zoneSelect);
+      // Building the list of every time zone is slow (1.8.0): it's done when the Add/Edit form needs it, or once idle.
+      whenIdle(() => populateZoneSelect(zoneSelect), 4000);
       const updateZoneHint = () => {
         const hint = document.getElementById('inputResetZoneHint');
         if (!hint || !zoneSelect || !timeInput) return;
@@ -6922,7 +7660,9 @@
             state.settings.streakReminderMinutes = Number(el.value) || 0;
             try { window.AndroidBridge && window.AndroidBridge.setStreakReminder && window.AndroidBridge.setStreakReminder(state.settings.streakReminderMinutes); } catch (e) {}
           }
-          if (key === 'themeMode' || key === 'darkGamePages' || key === 'dynamicWallpaper' || key === 'preloadGames' || key === 'blockAdsInGames') saveLaunchPrefs();
+          if (key === 'themeMode' || key === 'darkGamePages' || key === 'dynamicWallpaper' || key === 'preloadGames' || key === 'blockAdsInGames'
+            || key === 'hideCookieBanners' || key === 'pullToRefresh') saveLaunchPrefs();
+          if (key === 'autoFixReset' && el.checked) checkAllResetSuggestions();
           if (key === 'updateCheck' && el.checked) runUpdateCheck(true);
           if (key === 'compactCards' || key === 'groupDone') {
             renderGamesGrid();
@@ -6950,6 +7690,10 @@
       bindSetting('settingTextSize', 'textSize', false);
       bindSetting('settingHighContrast', 'highContrast', true);
       bindSetting('settingDailyChallenge', 'dailyChallenge', true);
+      bindSetting('settingAutoFixReset', 'autoFixReset', true);
+      bindSetting('settingHideCookies', 'hideCookieBanners', true);
+      bindSetting('settingPullRefresh', 'pullToRefresh', true);
+      bindSetting('settingCelebrate', 'celebrate', true);
       bindSetting('settingRubyAccents', 'rubyAccents', true);
       // Gold or Ruby accents: one at a time.
       document.getElementById('settingRubyAccents').addEventListener('change', (e) => {
@@ -7796,6 +8540,47 @@
           showToast('In-App Alerts Enabled', 'Using in-app toast alerts.', 'emerald');
         });
       });
+
+      // 1.8.0 controls
+      document.getElementById('btnHubSearch').addEventListener('click', () => setHubSearchOpen(document.getElementById('hubSearchRow').classList.contains('hidden')));
+      document.getElementById('btnHubSearchClose').addEventListener('click', () => setHubSearchOpen(false));
+      document.getElementById('hubSearchInput').addEventListener('input', (e) => { hubSearch = e.target.value.trim(); renderGamesGrid(); });
+      document.getElementById('hubSearchInput').addEventListener('keydown', (e) => { if (e.key === 'Escape') setHubSearchOpen(false); if (e.key === 'Enter') e.target.blur(); });
+      document.getElementById('gameActionsList').addEventListener('click', (e) => { const b = e.target.closest('[data-game-action]'); if (b) runGameAction(b.getAttribute('data-game-action')); });
+      document.getElementById('btnGameNotesSave').addEventListener('click', saveGameNotes);
+      document.getElementById('btnGameNotesCancel').addEventListener('click', () => document.getElementById('gameActionsNotes').classList.add('hidden'));
+      document.getElementById('btnOpenTrash').addEventListener('click', openTrash);
+      document.getElementById('btnEmptyTrash').addEventListener('click', emptyTrash);
+      document.getElementById('trashList').addEventListener('click', (e) => {
+        const r = e.target.closest('[data-trash-restore]');
+        if (r) { restoreFromTrash(r.getAttribute('data-trash-restore')); return; }
+        const d = e.target.closest('[data-trash-delete]');
+        if (d) deleteFromTrash(d.getAttribute('data-trash-delete'));
+      });
+      document.getElementById('changesSearch').addEventListener('input', renderChanges);
+      document.getElementById('btnWhatsNew').addEventListener('click', () => openWhatsNew());
+      document.getElementById('btnErrorLog').addEventListener('click', openErrorLog);
+      document.getElementById('btnErrorLogClear').addEventListener('click', clearErrorLog);
+      document.getElementById('btnErrorLogCopy').addEventListener('click', () => { copyPlainText(errorReportText()); showToast('Copied', 'Paste it into your report.', 'indigo'); });
+      document.getElementById('btnErrorLogShare').addEventListener('click', () => {
+        const text = errorReportText();
+        try { if (window.AndroidBridge && typeof window.AndroidBridge.shareText === 'function') { window.AndroidBridge.shareText(text, `Dailies ${APP_VERSION} error log`); return; } } catch (e) {}
+        if (navigator.share) navigator.share({ title: 'Dailies error log', text }).catch(() => {}); else copyPlainText(text);
+      });
+      document.getElementById('btnErrorLogIssue').addEventListener('click', openErrorIssue);
+      document.getElementById('btnGameHealth').addEventListener('click', openGameHealth);
+      document.getElementById('btnCheckLinks').addEventListener('click', startLinkCheck);
+      document.getElementById('btnRefreshIcons').addEventListener('click', startIconRefresh);
+      document.getElementById('gameHealthList').addEventListener('click', (e) => {
+        const m = e.target.closest('[data-health-move]');
+        if (m) { useMovedLink(m.getAttribute('data-health-move'), m.getAttribute('data-url')); return; }
+        const ed = e.target.closest('[data-health-edit]');
+        const g = ed && state.games.find((x) => x.id === ed.getAttribute('data-health-edit'));
+        if (g) { closeModal('modalGameHealth'); openAddOrEditModal(null, g); }
+      });
+      document.getElementById('btnStorage').addEventListener('click', openStorage);
+      document.getElementById('storageList').addEventListener('change', updateStorageButton);
+      document.getElementById('btnStorageClear').addEventListener('click', clearSelectedStorage);
 
       // Bottom nav buttons
       document.querySelectorAll('.nav-btn').forEach((btn) => {

@@ -132,8 +132,13 @@ class DailyRefreshWorker(
          * never posted.
          */
         fun refreshAndSchedule(ctx: Context) {
-            if (GameStore.hasUnannouncedReset(ctx)) runRefresh(ctx) else scheduleNextReset(ctx)
+            // The hub runs this off the main thread at start-up (1.8.0) and again when it syncs games:
+            // one at a time, so a missed reset is never announced twice.
+            synchronized(REFRESH_LOCK) {
+                if (GameStore.hasUnannouncedReset(ctx)) runRefresh(ctx) else scheduleNextReset(ctx)
+            }
         }
+        private val REFRESH_LOCK = Any()
 
         fun scheduleNextReset(ctx: Context, nowMs: Long = System.currentTimeMillis()) {
             // Streak reminders follow the same games list (and the same reboot / clock-change hooks).
