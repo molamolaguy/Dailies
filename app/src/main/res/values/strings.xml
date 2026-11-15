@@ -15,6 +15,9 @@
     <string name="play_next_named">Play %1$s</string>
     <string name="back_to_hub">Back to hub</string>
     <string name="keep_playing">Keep playing</string>
+    <string name="screen_result_title">%1$s result on screen. Log it?</string>
+    <string name="log_it">Log it</string>
+    <string name="not_now">Not now</string>
     <string name="next_game_in">Play %1$s in %2$d…</string>
     <plurals name="play_all_banner">
         <item quantity="one">%1$d more after this</item>

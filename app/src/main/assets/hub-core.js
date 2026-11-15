@@ -1341,6 +1341,48 @@
    * game mostly logs and needs five of them. Guesses: two or more above the median; times and counts:
    * at least 1.75x the median; points: half the median or less. At most the worst 15% of days.
    */
+  /**
+   * How a game is scored, learned from its results (1.8.3): "6 guesses", "Fastest time", "Most points"
+   * or "Fewest moves". Looks at the latest 20 results with a readable score (failed N/M grids count
+   * for the maximum); needs at least three, at least 70% of them of one kind. Null when unsure.
+   */
+  function learnScoreFormat(rows) {
+    const parsed = [];
+    (Array.isArray(rows) ? rows : []).slice().sort((a, b) => (Number(b && b.loggedAt) || 0) - (Number(a && a.loggedAt) || 0)).forEach((r) => {
+      if (parsed.length >= 20 || !r) return;
+      const text = String(r.score || '');
+      const g = parseScore(text);
+      if (g) { parsed.push({ kind: 'guesses', max: g.max }); return; }
+      const v = parseResultValue(text);
+      if (!v) return;
+      if (v.kind === 'time') parsed.push({ kind: 'time' });
+      else if (v.kind === 'points') parsed.push({ kind: 'points' });
+      else if (v.kind === 'count') parsed.push({ kind: `count:${v.unit}` });
+    });
+    if (parsed.length < 3) return null;
+    const tally = new Map();
+    parsed.forEach((p) => tally.set(p.kind, (tally.get(p.kind) || 0) + 1));
+    const [kind, n] = [...tally.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (n / parsed.length < 0.7) return null;
+    if (kind === 'guesses') {
+      const maxes = new Map();
+      parsed.filter((p) => p.kind === 'guesses').forEach((p) => maxes.set(p.max, (maxes.get(p.max) || 0) + 1));
+      const max = [...maxes.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      return { kind: 'guesses', label: `${max} guesses` };
+    }
+    if (kind === 'time') return { kind, label: 'Fastest time' };
+    if (kind === 'points') return { kind, label: 'Most points' };
+    const unit = kind.slice('count:'.length);
+    return { kind: 'count', label: `Fewest ${unit}` };
+  }
+
+  /** A score format the app filled in by itself (not one the user typed): "Daily Puzzle", "6 guesses", "60s target", "100 pts". */
+  function isGenericScoreFormat(text) {
+    const t = String(text || '').trim();
+    return !t || /^daily puzzle$/i.test(t) || /^\d{1,2} guesses$/i.test(t) || /^\d+s target$/i.test(t) || /^\d+ pts$/i.test(t)
+      || /^(fastest time|most points|fewest [a-z]+)$/i.test(t);
+  }
+
   function toughDays(rows) {
     const out = new Map();
     const vals = (Array.isArray(rows) ? rows : [])
@@ -1528,6 +1570,8 @@
     periodRecap,
     recapChange,
     toughDays,
+    learnScoreFormat,
+    isGenericScoreFormat,
     sortGames,
     isGridLine,
     combinedShareText,

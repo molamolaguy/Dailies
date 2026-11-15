@@ -1,0 +1,4 @@
+• Adding a game reads the page as it really looks: name, how-to-play, reset time.
+• Score type learned from your results, with Undo. 8 more built-in games.
+• Finds more results: "See results" screens, share links, more languages; offers on-screen results.
+• Only Play all on the hub, in-app menus, clearer card styles, swipeable recap, smoother Settings.

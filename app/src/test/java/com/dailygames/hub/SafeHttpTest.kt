@@ -59,6 +59,9 @@ class SafeHttpTest {
             start()
         }
         val prev = SafeHttp.proxyForTests
+        // Other test classes in this JVM switch local hosts on (WebsiteScraperTest): this test needs them refused.
+        val prevPrivate = SafeHttp.allowPrivateHostsForTests
+        SafeHttp.allowPrivateHostsForTests = false
         SafeHttp.proxyForTests = Proxy(Proxy.Type.HTTP, InetSocketAddress("127.0.0.1", proxy.address.port))
         try {
             val r = SafeHttp.get("http://games.example/daily", maxBytes = 1000)
@@ -72,6 +75,7 @@ class SafeHttpTest {
             assertEquals(1, seen.size)
         } finally {
             SafeHttp.proxyForTests = prev
+            SafeHttp.allowPrivateHostsForTests = prevPrivate
             proxy.stop(0)
         }
     }

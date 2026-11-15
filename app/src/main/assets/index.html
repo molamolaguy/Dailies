@@ -189,7 +189,6 @@
             <option value="least">Least played</option>
           </select>
           <button id="btnHubSearch" type="button" aria-pressed="false" aria-controls="hubSearchRow" aria-label="Search games" title="Search games" class="hub-search-btn px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 shrink-0"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></button>
-          <button id="btnSelectMode" type="button" aria-pressed="false" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold shrink-0">Select</button>
           <button id="btnOpenAddModal" type="button" aria-label="Add game" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shrink-0">
             + Add<span class="add-game-word"> Game</span>
           </button>
@@ -237,17 +236,10 @@
       </div>
 
       <!-- Clean Minimal Games List -->
-      <!-- Play next: the next unplayed game, once today's run has started -->
-      <div id="playNextBar" class="play-next hidden" role="region" aria-label="Play next">
-        <div class="pn-icon" id="playNextIcon" aria-hidden="true"></div>
-        <div class="pn-text">
-          <p class="pn-k">Up next</p>
-          <p class="pn-name" id="playNextName" dir="auto"></p>
-        </div>
-        <span class="pn-left" id="playNextLeft"></span>
-        <button id="btnPlayAll" type="button" class="pn-all android-only hidden">Play all</button>
-        <button id="btnPlayNext" type="button" class="play-btn m4-primary-fab">Play next</button>
-      </div>
+      <!-- Play all (1.8.3: the only thing at the top of the list): today's unplayed games in a row -->
+      <button id="btnPlayAll" type="button" class="play-next play-all-bar android-only hidden">
+        <span class="pa-ico" aria-hidden="true">▶</span><span class="pa-text">Play all</span><span class="pa-left" id="playAllLeft"></span>
+      </button>
       <div id="gamesGrid" class="space-y-2.5"></div>
     </section>
 
@@ -281,7 +273,6 @@
             <span><span class="status-dot status-ready legend-done"></span>Completed</span>
             <span><span class="status-dot status-missed"></span>Missed</span>
             <span><span class="status-dot" style="box-shadow: inset 0 0 0 2px var(--md-primary);"></span>Today</span>
-            <span id="legendTough" class="hidden"><span class="tough-dot" aria-hidden="true"></span>Tough day</span>
           </div>
         </div>
 
@@ -311,22 +302,13 @@
       <!-- Monthly recap (follows the calendar's month) -->
       <div id="recapCard" class="glass-card rounded-2xl p-4 border border-slate-800"></div>
 
-      <!-- Personal bests for every game (folded by default) -->
-      <div data-fold="bests" class="glass-card rounded-2xl p-4 border border-slate-800">
-        <div class="flex items-center justify-between gap-2">
-          <h3 class="text-base font-bold text-white">Personal Bests</h3>
-          <span id="bestsCount" class="text-xs text-slate-400 ml-auto"></span>
-        </div>
-        <div id="bestsList" class="bests-list"></div>
-      </div>
-
       <!-- Achievements (folded by default) -->
       <div data-fold="achievements" class="glass-card rounded-2xl p-4 border border-slate-800">
         <div class="flex items-center justify-between gap-2">
           <h3 class="text-base font-bold text-white">Achievements</h3>
           <span id="achievementsCount" class="text-xs text-slate-400 ml-auto"></span>
         </div>
-        <div id="achievementsGrid" class="ach-grid"></div>
+        <div id="achievementsGrid" class="ach-sections"></div>
       </div>
 
       <!-- Daily Completion & Score History -->
@@ -518,7 +500,7 @@
               <p class="font-bold text-white">Local Time Display Format</p>
               <p class="text-[11px] text-slate-400">12-hour or 24-hour clock</p>
             </div>
-            <select id="settingTimeFormat" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+            <select id="settingTimeFormat" aria-label="Clock format" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
               <option value="12h">12-hour</option>
               <option value="24h">24-hour</option>
             </select>
@@ -665,7 +647,6 @@
         <div class="grid grid-cols-2 gap-2.5">
           <button id="btnExportCsv" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Export history (.csv)</button>
           <button id="btnShareGameList" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
-          <button id="btnSettingsChanges" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">↶ Recent changes (undo)</button>
           <button id="btnRestoreOneGame" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Restore one game from a backup…</button>
           <button id="btnOpenTrash" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">🗑 Trash</button>
           <button id="btnGameHealth" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Check links &amp; icons</button>
@@ -1346,7 +1327,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.2';
+    const APP_VERSION = '1.8.3';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -1356,6 +1337,8 @@
         return null;
       }
     })();
+    const TIME_FMT_12_HM = (() => { try { return new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit', hour12: true }); } catch (e) { return null; } })();
+    const TIME_FMT_24_HM = (() => { try { return new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { return null; } })();
     const TIME_FMT_24 = (() => {
       try {
         return new Intl.DateTimeFormat([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
@@ -1478,6 +1461,8 @@
         resetTime,
         resetZone,
         maxTries: String(g.maxTries || 'Daily Puzzle'),
+        // A learned score format the user undid (1.8.3), so it isn't set again.
+        scoreFormatDeclined: typeof g.scoreFormatDeclined === 'string' ? g.scoreFormatDeclined.slice(0, 40) : '',
         desc: String(g.desc || ''),
         notifyEnabled: g.notifyEnabled !== false,
         // Streak reminder lead for this game: -1 = the app-wide setting, 0 = never, else minutes.
@@ -2149,12 +2134,14 @@
       return formatLocalClockHM(hour, minute);
     }
 
+    /** The Gameplay & Time clock: 12/24-hour as chosen, with seconds only when Show Seconds is on (1.8.3). */
     function formatLocalNowTime(dateObj) {
       const d = dateObj || new Date();
       const use24 = state && state.settings && state.settings.timeFormat === '24h';
-      const fmt = use24 ? TIME_FMT_24 : TIME_FMT_12;
+      const secs = !(state && state.settings && state.settings.showSeconds === false);
+      const fmt = secs ? (use24 ? TIME_FMT_24 : TIME_FMT_12) : (use24 ? TIME_FMT_24_HM : TIME_FMT_12_HM);
       if (fmt) return fmt.format(d);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: !use24 });
+      return d.toLocaleTimeString([], secs ? { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: !use24 } : { hour: '2-digit', minute: '2-digit', hour12: !use24 });
     }
 
     // =========================================================================
@@ -2650,7 +2637,7 @@
       const statusBadge = document.getElementById('scrapeStatusBadge');
       const btn = document.getElementById('btnAutoDetectMeta');
       if (statusBadge) {
-        statusBadge.textContent = 'Scraping website…';
+        statusBadge.textContent = 'Reading the game\'s page…';
         statusBadge.classList.remove('hidden');
       }
       if (btn) {
@@ -2666,12 +2653,13 @@
           const res = await new Promise((resolve) => {
             pendingScrapeResolvers.set(reqId, resolve);
             window.AndroidBridge.scrapeWebsite(reqId, cleaned);
+            // The page is also rendered with its scripts run (1.8.3), which can take a few seconds more.
             setTimeout(() => {
               if (pendingScrapeResolvers.has(reqId)) {
                 pendingScrapeResolvers.delete(reqId);
                 resolve({ ok: false, requestId: reqId });
               }
-            }, 12000);
+            }, 24000);
           });
 
           if (res && res.parsed) {
@@ -3542,6 +3530,31 @@
     let resetSuggestion = null; // { gameId, resetTime, resetZone }
     const gameLogRows = (g) => state.historyLogs.filter((l) => l && (l.gameId ? l.gameId === g.id : l.gameName === g.name));
     /** Looks at a game's numbered results; offers a better reset time when they don't fit the current one. */
+    /**
+     * Score format learned from a game's results (1.8.3): once a few results show it's timed, scored in
+     * points or out of N guesses, a format the app filled in by itself is set to match, with Undo.
+     * Never for a game from the built-in list, nor over a format the user typed.
+     */
+    function checkScoreFormat(game) {
+      if (!game || game.archived || !HubCore.isGenericScoreFormat(game.maxTries)) return;
+      if (typeof KnownGames !== 'undefined' && KnownGames.find(game.url)) return;
+      const learned = HubCore.learnScoreFormat(gameLogRows(game));
+      if (!learned || learned.label === game.maxTries || game.scoreFormatDeclined === learned.label) return;
+      const before = game.maxTries;
+      game.maxTries = learned.label;
+      saveState({ sync: false });
+      setTimeout(() => showToast(`${game.name}: ${learned.label}`, 'Score format set from your results.', 'indigo', null, {
+        actionLabel: 'Undo',
+        onAction: () => {
+          const g = state.games.find((x) => x.id === game.id);
+          if (!g) return;
+          g.maxTries = before;
+          g.scoreFormatDeclined = learned.label;
+          saveState({ sync: false });
+        }
+      }), 1200);
+    }
+
     function checkResetSuggestion(game) {
       if (!game || game.archived) return;
       const sug = HubCore.suggestResetTime(gameLogRows(game), { resetTime: game.resetTime, resetZone: HubCore.normalizeZone(game.resetZone) });
@@ -3613,13 +3626,20 @@
       btn.className = `${sel.className} tsel-btn`;
       btn.setAttribute('aria-haspopup', 'listbox');
       btn.setAttribute('aria-expanded', 'false');
-      if (sel.getAttribute('aria-label')) btn.setAttribute('aria-label', sel.getAttribute('aria-label'));
+      // Its name: the select's aria-label, else the <label for> it has (whose taps now open this list).
+      const label = sel.labels && sel.labels[0];
+      const name = sel.getAttribute('aria-label') || (label ? label.textContent.trim() : '');
+      if (name) btn.setAttribute('aria-label', name);
+      if (label) label.addEventListener('click', (e) => { e.preventDefault(); if (!btn.disabled) btn.click(); });
+      // Same box as the select (e.g. the time-zone picker's max-width).
+      if (sel.getAttribute('style')) btn.setAttribute('style', sel.getAttribute('style'));
       btn.innerHTML = '<span class="tsel-label"></span><span class="tsel-chev" aria-hidden="true"></span>';
       sel.insertAdjacentElement('afterend', btn);
       sel.classList.add('tsel-native');
       const refresh = () => {
         const o = sel.options[sel.selectedIndex];
         btn.querySelector('.tsel-label').textContent = o ? o.textContent : '';
+        btn.disabled = sel.disabled;
       };
       // The app sets the value in code too: keep the button's label in step.
       const proto = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
@@ -3720,6 +3740,8 @@
         if (activeTab !== 'stats' && statsRenderKey() !== statsRenderedKey) prepareTab('stats');
         // The hub's cards too, so swiping back to it never redraws them as the finger starts moving.
         if (activeTab !== 'dashboard' && dashboardRenderKey() !== dashboardRenderedKey) renderGamesGrid();
+        // And Settings.
+        if (activeTab !== 'settings' && settingsRenderKey() !== settingsRenderedKey) prepareTab('settings');
       }, 1500), 400);
     }
 
@@ -4225,6 +4247,13 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.3': [
+        ['🔎', 'Smarter game adding', 'Pasting a link now reads the game\'s page as it really looks, for a better name, a short how-to-play description and its reset time.'],
+        ['🎯', 'Finds more results', 'Dailies now opens a game\'s "See results" screen to find its Share button, reads results shared by link, and offers a result shown on screen.'],
+        ['📏', 'Learns the score type', 'After a few results, a game\'s score format (guesses, time or points) is set for you, with Undo.'],
+        ['🧭', 'Smoother Settings and Streaks', 'Swipe the recap boxes to change week or month, and Settings swipes in without stutter.'],
+        ['✨', 'Tidier everywhere', 'Only Play all on the hub, the app\'s own menus for every list, clearer card styles and a more see-through bar.']
+      ],
       '1.8.2': [
         ['🔔', 'Reset alerts are back', 'When several games reset together you get one "games are ready" alert again; it was being cleared the moment it appeared.'],
         ['🚀', 'Opens straight to your hub', 'No more blank screen at launch: the hub appears with your games already on it.'],
@@ -4704,27 +4733,15 @@
       checkAllDoneCelebration();
       const copyBtn = document.getElementById('btnCopyToday');
       if (copyBtn) copyBtn.classList.toggle('hidden', !todaysResultEntries().length);
-      const bar = document.getElementById('playNextBar');
-      if (!bar) return;
-      const list = visibleGames();
-      const next = nextGameToPlay();
-      const started = list.some((g) => g.status === 'completed' || g.status === 'missed');
-      const left = list.filter((g) => g.status === 'ready').length;
-      // Once today's run has started, or from the start with two or more games to play (Play all).
-      const show = Boolean(next && !selectMode && (started || left >= 2));
-      bar.classList.toggle('hidden', !show);
-      if (!show) return;
-      bar.querySelector('.pn-k').textContent = started ? 'Up next' : 'Start with';
+      // Play all: shown while two or more of today's games are unplayed (Android: it needs the game player).
       const all = document.getElementById('btnPlayAll');
-      if (all) {
-        all.classList.toggle('hidden', left < 2);
-        all.setAttribute('aria-label', `Play all ${left} games in a row`);
-      }
-      bar.dataset.id = next.id;
-      document.getElementById('playNextName').textContent = next.name;
-      document.getElementById('playNextIcon').innerHTML = renderGameIconHtml(next.icon, next.name, 'w-5 h-5');
-      document.getElementById('playNextLeft').textContent = `${left} left`;
-      document.getElementById('btnPlayNext').setAttribute('aria-label', `Play next: ${next.name}, ${plural(left, 'game')} left`);
+      if (!all) return;
+      const left = visibleGames().filter((g) => g.status === 'ready').length;
+      const show = Boolean(left >= 2 && !selectMode && nextGameToPlay());
+      all.classList.toggle('hidden', !show);
+      if (!show) return;
+      document.getElementById('playAllLeft').textContent = `${left} games`;
+      all.setAttribute('aria-label', `Play all ${left} unplayed games in a row`);
     }
 
     function openGameInPlayer(gameId) {
@@ -4890,6 +4907,7 @@
       historyPage = 0;
       saveState();
       checkResetSuggestion(game);
+      checkScoreFormat(game);
       checkNewAchievements();
       updateSingleGameCardOrGrid(game.id);
       if (activeTab === 'stats') renderStatsAndCharts();
@@ -5362,9 +5380,6 @@
       let monthCompletedCount = 0;
       let monthMissedCount = 0;
       const logIndex = getLogIndex();
-      const tough = toughDaysFor(game.id, game.name);
-      let toughShown = false;
-
       for (let d = 1; d <= daysInMonth; d++) {
         const dateKey = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const outcome = getGameDayOutcome(game, dateKey, logIndex);
@@ -5382,9 +5397,7 @@
           mark = '<span class="mark"><span class="ico ico-close" aria-hidden="true"></span></span>';
         }
         if (isToday) cls += ' today';
-        const toughDay = outcome === 'completed' ? tough.get(dateKey) : null;
-        if (toughDay) { cls += ' tough'; toughShown = true; }
-        const label = `${game.name} • ${dateKey}${outcome ? ' (' + outcome + ')' : ''}${toughDay ? ` • tough day: ${toughDay.label}, usually ${toughDay.typical}` : ''}${isToday ? ' • today' : ''}`;
+        const label = `${game.name} • ${dateKey}${outcome ? ' (' + outcome + ')' : ''}${isToday ? ' • today' : ''}`;
         // Today and past days of a game in the hub can be tapped to log or correct that day.
         const editable = isActiveGame && cycleKeyToDay(dateKey) <= cycleKeyToDay(todayKey);
         const editAttrs = editable
@@ -5394,8 +5407,6 @@
       }
 
       gridEl.innerHTML = cellsHtml;
-      const legendTough = document.getElementById('legendTough');
-      if (legendTough) legendTough.classList.toggle('hidden', !toughShown);
 
       // A removed game's history can be forgotten for good (it stays otherwise, ready for a re-add).
       let forgetBtn = document.getElementById('btnForgetRemovedGame');
@@ -5482,12 +5493,12 @@
       const head = `<div class="recap-head"><h3 class="text-base font-bold text-white min-w-0 truncate">${escapeHtml(label)} recap</h3><div class="recap-segs" role="group" aria-label="Recap period">${seg('week', 'Week')}${seg('month', 'Month')}</div></div>`
         + `<div class="recap-sub"><span class="text-xs text-slate-400">${r.results ? `${plural(r.games, 'game')} · ${plural(r.days, 'day')} played` : ''}</span>${weekNav}</div>`;
       if (!r.results) {
-        el.innerHTML = head + `<p class="text-xs text-slate-400">No results logged ${recapPeriod === 'week' ? 'this week' : 'this month'} yet.</p>`;
+        el.innerHTML = head + `<p class="recap-swipe recap-empty text-xs text-slate-400">No results logged ${recapPeriod === 'week' ? 'this week' : 'this month'} yet.</p>`;
         return;
       }
       const delta = (n, unit) => n === null || n === undefined ? '' : `<span class="recap-delta ${n > 0 ? 'up' : n < 0 ? 'down' : ''}">${escapeHtml(signed(n, unit))}</span>`;
       const tile = (k, v, sub) => `<div class="stat-tile"><p class="k">${k}</p><p class="v">${v}</p><p class="s">${sub}</p></div>`;
-      el.innerHTML = head + `<div class="stat-tiles">`
+      el.innerHTML = head + `<div class="stat-tiles recap-swipe">`
         + tile('Solved', String(r.solved), change ? `${delta(change.solved)} vs ${prev.solved}` : `of ${r.results}`)
         + tile('Win rate', `${r.winRate}%`, change && change.winRate !== null ? `${delta(change.winRate, ' pts')}` : `${r.solved}/${r.results}`)
         + tile('Best streak', `${r.bestStreak}d`, r.bestResult ? `Best ${escapeHtml(r.bestResult.score)}` : plural(r.days, 'day'))
@@ -5606,7 +5617,9 @@
       if (count) count.textContent = `${n} of ${total} earned${found ? ` · ${found} of ${secrets.length} secrets` : ''}`;
       // What the gold unlocks need is an easter egg: the Achievements card doesn't say.
       // Every tile is the same size: icon, name and progress. Tap one for what it takes.
-      grid.innerHTML = all.map((a, i) => {
+      // Two grids (1.8.3): the secrets' heading used to be a row of one grid whose rows are all as tall
+      // as a tile, which left a tile-high gap under it.
+      grid.innerHTML = '<div class="ach-grid">' + all.map((a, i) => {
         const nx = a.next;
         const pct = nx && !nx.below && nx.target > 0 ? Math.round((nx.progress / nx.target) * 100) : 0;
         const state = a.tier >= 2 ? 'both tiers earned' : (a.tier === 1 ? 'tier 1 earned' : 'not earned yet');
@@ -5617,14 +5630,14 @@
           <span class="ach-title">${escapeHtml(a.title)}</span>
           <span class="ach-bar" aria-hidden="true"><span style="width:${a.tier >= 2 ? 100 : pct}%"></span></span>
         </button>`;
-      }).join('')
+      }).join('') + '</div>'
         + `<p class="ach-secret-head"><span aria-hidden="true">🤫</span> Secret achievements</p>`
-        + secrets.map((x, j) => `
+        + '<div class="ach-grid">' + secrets.map((x, j) => `
         <button type="button" class="ach secret ${x.earned ? 'on' : ''}" data-ach-index="${all.length + j}" aria-label="${escapeHtml(x.earned ? `${x.title}, secret achievement found. Show details` : 'Secret achievement, not found yet')}">
           <span class="ach-icon" aria-hidden="true">${x.earned ? x.icon : '❔'}</span>
           <span class="ach-title">${escapeHtml(x.earned ? x.title : '???')}</span>
           <span class="ach-bar" aria-hidden="true"><span style="width:${x.earned ? 100 : 0}%"></span></span>
-        </button>`).join('');
+        </button>`).join('') + '</div>';
     }
     /** The details sheet for one achievement: what each tier takes and how far along it is. */
     function openAchievementDetails(i) {
@@ -5720,11 +5733,6 @@
     }
 
     /** Win rate, average guesses and personal bests for the calendar's game. */
-    /** A game's tough days (Map date -> { label, typical }), from its rows (old rows matched by name). */
-    function toughDaysFor(gameId, gameName) {
-      const rows = state.historyLogs.filter((l) => l && (gameId ? l.gameId === gameId : (!l.gameId && l.gameName === gameName)));
-      return HubCore.toughDays(rows);
-    }
 
     function renderScoreStats(game) {
       const el = document.getElementById('gameScoreStats');
@@ -5738,56 +5746,17 @@
       const head = [`<span><strong>${st.winRate}%</strong> win rate</span>`, `<span>${plural(st.played, 'logged result')}</span>`];
       if (st.avg !== null) head.splice(1, 0, `<span><strong>${st.avg}</strong> average (of ${st.max})</span>`);
       else if (st.avgText) head.splice(1, 0, `<span><strong>${escapeHtml(st.avgText)}</strong> ${st.scoreKind === 'time' ? 'average time' : 'average'}</span>`);
-      if (st.fastestMs) {
-        head.push(`<span>⏱ fastest <strong>${HubCore.formatDuration(st.fastestMs)}</strong></span>`);
-        head.push(`<span>average <strong>${HubCore.formatDuration(st.avgMs)}</strong></span>`);
-      }
+      // The fastest time is the ⚡ chip below; only the average is listed here (1.8.3).
+      if (st.fastestMs) head.push(`<span>average <strong>${HubCore.formatDuration(st.avgMs)}</strong></span>`);
       const pb = HubCore.personalBests(rows, Math.max(Number(game.bestStreak) || 0, Number(game.streak) || 0));
       const bests = [];
       if (pb.bestScore) bests.push(`<span class="pb-chip">🏆 Best ${escapeHtml(pb.bestScore)}</span>`);
       if (pb.fastestMs) bests.push(`<span class="pb-chip">⚡ ${escapeHtml(HubCore.formatDuration(pb.fastestMs))}</span>`);
       if (pb.bestStreak) bests.push(`<span class="pb-chip">🔥 ${escapeHtml(plural(pb.bestStreak, 'day'))}</span>`);
-      const tough = [...toughDaysFor(game.id, game.name).entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
-      const toughLine = tough.length
-        ? `<p class="tough-line"><span class="tough-dot" aria-hidden="true"></span>${plural(tough.length, 'tough day')} (usually ${escapeHtml(tough[0][1].typical)}). Latest: ${escapeHtml(formatCycleDateLabel(tough[0][0]))}, ${escapeHtml(tough[0][1].label)}</p>` : '';
       el.innerHTML = `<p class="text-xs font-bold text-white mb-0.5">Score stats</p><p class="score-head">${head.join('<span aria-hidden="true">·</span>')}</p>`
-        + (bests.length ? `<p class="pb-row" aria-label="Personal bests">${bests.join('')}</p>` : '') + toughLine;
+        + (bests.length ? `<p class="pb-row" aria-label="Personal bests">${bests.join('')}</p>` : '');
     }
 
-    /** Personal bests for every game on the hub (and kept games with results), best-known first. */
-    function renderPersonalBests() {
-      const el = document.getElementById('bestsList');
-      if (!el) return;
-      const games = getCalendarGamesList();
-      const activeIds = new Set(state.games.map((g) => g.id));
-      const items = [];
-      games.forEach((g) => {
-        const rows = state.historyLogs.filter((l) => l && (l.gameId === g.id || (!l.gameId && l.gameName === g.name)));
-        if (!rows.some((r) => r.outcome === 'Completed')) return;
-        const pb = HubCore.personalBests(rows, Math.max(Number(g.bestStreak) || 0, Number(g.streak) || 0));
-        const latest = rows.filter((r) => Array.isArray(r.records) && r.records.length).map((r) => r.date).sort().pop() || '';
-        items.push({ g, pb, latest, active: activeIds.has(g.id) && !g.archived });
-      });
-      items.sort((a, b) => (b.active - a.active) || String(a.g.name).localeCompare(String(b.g.name), undefined, { sensitivity: 'base' }));
-      const count = document.getElementById('bestsCount');
-      if (count) count.textContent = items.length ? plural(items.length, 'game') : '';
-      if (!items.length) {
-        el.innerHTML = '<p class="text-xs text-slate-400 pt-3">Solve a few puzzles and each game\'s best score, fastest time and longest streak show up here.</p>';
-        return;
-      }
-      el.innerHTML = items.map(({ g, pb, latest }) => {
-        const chips = [];
-        if (pb.bestScore) chips.push(`<span class="pb-chip">🏆 ${escapeHtml(pb.bestScore)}</span>`);
-        if (pb.fastestMs) chips.push(`<span class="pb-chip">⚡ ${escapeHtml(HubCore.formatDuration(pb.fastestMs))}</span>`);
-        if (pb.bestStreak) chips.push(`<span class="pb-chip">🔥 ${escapeHtml(plural(pb.bestStreak, 'day'))}</span>`);
-        const sub = latest ? `Last record ${escapeHtml(formatCycleDateLabel(latest))}` : 'No records yet';
-        return `<button type="button" class="best-row" data-best-game="${escapeHtml(g.id)}" aria-label="${escapeHtml(g.name)}: show in the calendar">
-          <span class="best-icon">${renderGameIconHtml(g.icon, g.name, 'w-5 h-5')}</span>
-          <span class="best-main"><span class="best-name" dir="auto">${escapeHtml(g.name)}</span><span class="best-sub">${sub}</span></span>
-          <span class="best-chips">${chips.join('') || '<span class="text-[11px] text-slate-500">—</span>'}</span>
-        </button>`;
-      }).join('');
-    }
 
     /** Permanently drops a removed game's kept history and its score-log rows (after confirming). */
     function forgetRemovedGame(id) {
@@ -5885,7 +5854,6 @@
       renderGameCalendar();
       renderRecap();
       // Folded sections: drawn when there's a spare moment (or when opened), so the tab appears at once.
-      renderWhenShown('bests', renderPersonalBests);
       renderWhenShown('achievements', renderAchievements);
 
       const tbody = document.getElementById('historyTableBody');
@@ -5914,7 +5882,6 @@
           tbody.innerHTML = `<p class="py-6 text-center text-xs text-slate-500">${historyFilter.query ? 'No results match your search.' : 'No results match this filter.'}</p>`;
         } else {
           const qWords = historyQueryWords();
-          const toughCache = new Map();
           // Solved / logged per day, from all of that day's results (the game filter applies; the
           // outcome filter and search don't, so "Missed only" still shows how the day went overall).
           const pageDates = new Set(pageRows.map((l) => l.date));
@@ -5937,7 +5904,7 @@
                 + `<p class="hist-day-head"><span>${escapeHtml(historyDayLabel(item.date))}</span>`
                 + `<span class="hist-day-count">${t.won}/${t.all} solved</span></p>`;
             }
-            html += historyRowHtml(item, qWords, toughCache);
+            html += historyRowHtml(item, qWords);
           });
           if (lastDate !== null) html += '</div>';
           tbody.innerHTML = html;
@@ -5962,13 +5929,9 @@
     }
 
     /** One Score History result: a compact row that opens to the full result text. */
-    function historyRowHtml(item, qWords, toughCache) {
+    function historyRowHtml(item, qWords) {
       const ok = item.outcome === 'Completed';
-      const key = item.gameId || `n:${item.gameName}`;
-      if (!toughCache.has(key)) toughCache.set(key, toughDaysFor(item.gameId, item.gameName));
-      const tough = ok ? toughCache.get(key).get(item.date) : null;
-      const flags = (Array.isArray(item.records) && item.records.length && ok ? '<span class="hist-flag pb">🏆 PB</span>' : '')
-        + (tough ? `<span class="hist-flag tough" title="Usually ${escapeHtml(tough.typical)}">Tough day</span>` : '');
+      const flags = Array.isArray(item.records) && item.records.length && ok ? '<span class="hist-flag pb">🏆 PB</span>' : '';
       const rawScore = String(item.score || '').trim();
       const autoMissed = !ok && /^Auto-marked missed/i.test(rawScore);
       const score = autoMissed ? '' : rawScore;
@@ -6468,8 +6431,15 @@
         // Already drawn for this data and month: skip the (largest) render, so a swipe starts smoothly.
         if (statsRenderKey() !== statsRenderedKey) renderStatsAndCharts();
       } else if (tab === 'settings') {
-        renderSettingsControls();
-        renderNotificationsView();
+        // Redrawn only when something it shows changed (1.8.3): rebuilding it, every app-icon picture
+        // included, at the start of each swipe was most of the stutter going to Settings.
+        if (settingsRenderKey() !== settingsRenderedKey) {
+          renderSettingsControls();
+          renderNotificationsView();
+          settingsRenderedKey = settingsRenderKey();
+        } else {
+          renderNotificationButton(); // Android's notification permission can change outside the app
+        }
         updateLiveTimers();
       } else {
         renderKPIs();
@@ -6479,6 +6449,13 @@
       }
     }
     let dashboardRenderedKey = '';
+    let settingsRenderedKey = '';
+    /** What Settings shows depends on the saved state and the page's look (theme, accents, cards). */
+    function settingsRenderKey() {
+      const r = document.documentElement;
+      return [stateRev, state.games.length, r.getAttribute('data-theme'), r.getAttribute('data-gold'), r.getAttribute('data-ruby'),
+        r.getAttribute('data-amoled'), r.getAttribute('data-cards'), new Date().toDateString()].join('|');
+    }
     function dashboardRenderKey() {
       return [stateRev, state.activeFilter, selectMode, selectedIds.size, doneSectionOpen, hubSortMode(), new Date().toDateString(), new Date().getHours()].join('|');
     }
@@ -7179,7 +7156,7 @@
       const batch = [];
       (Array.isArray(list) ? list : []).forEach((r) => {
         if (!r || typeof r !== 'object') return;
-        window.onReturnFromGame(String(r.id || ''), false, Number(r.elapsedMs) || 0, typeof r.share === 'string' ? r.share : '', Number(r.openedAt) || 0, { background: true, batch });
+        window.onReturnFromGame(String(r.id || ''), false, Number(r.elapsedMs) || 0, typeof r.share === 'string' ? r.share : '', Number(r.openedAt) || 0, { background: true, batch, confirmed: r.confirmed === true });
       });
       if (!batch.length) return;
       // One toast with one Undo for all of them (the toast area only holds three).
@@ -7198,7 +7175,9 @@
       const background = Boolean(opts && opts.background);
       if (!background) lastOpenedGameId = game.id;
       switchNavigation('dashboard');
-      const captured = (typeof shareText === 'string' && HubCore.isStrictShareResult(shareText, game))
+      // A result the player confirmed in the player (read off the end screen, 1.8.3) is taken as is.
+      const confirmed = Boolean(opts && opts.confirmed) && typeof shareText === 'string' && shareText.trim().length >= 3;
+      const captured = (typeof shareText === 'string' && (confirmed || HubCore.isStrictShareResult(shareText, game)))
         ? shareText.replace(/\r\n/g, '\n').trim() : '';
       const autoLog = !state.settings || state.settings.autoLogFromShare !== false;
       const currentKey = getCycleDateKey(game.resetTime, game.resetZone);
@@ -7614,6 +7593,9 @@
       initFolds();
       themeSelect(document.getElementById('calendarGameSelect'));
       themeSelect(document.getElementById('historyFilterGame'));
+      // Every other list too (Add Game, Settings, bulk time zone): the app's own menu, never Android's
+      // picker. The hub's sort menu is set up with its own value below.
+      document.querySelectorAll('select:not(#hubSort)').forEach(themeSelect);
       requestAnimationFrame(() => NavIndicator.place(activeTab));
       if (state.__saveBlocked) showDataProblemBanner();
       document.getElementById('btnDataStartFresh').addEventListener('click', resolveDataProblemStartFresh);
@@ -7631,7 +7613,7 @@
         swipe = null;
         if (!e.touches || e.touches.length !== 1 || isAnyModalOpen() || tabAnimating) return;
         const el = e.target;
-        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .m4-floating-dock, .return-sheet, .tsel-menu, #toastContainer')) return;
+        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .recap-swipe, .m4-floating-dock, .return-sheet, .tsel-menu, #toastContainer')) return;
         swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false };
       }, { passive: true });
 
@@ -7753,7 +7735,6 @@
       bindSetting('settingUpdateCheck', 'updateCheck', true);
 
       const onClick = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
-      onClick('btnSelectMode', () => setSelectMode(!selectMode));
       if (window.AndroidBridge && typeof window.AndroidBridge.pickScreenshot === 'function') {
         const shotBtn = document.getElementById('btnScreenshotScore');
         if (shotBtn) {
@@ -7973,6 +7954,63 @@
         calArea.addEventListener('touchend', calEnd, { passive: true });
         calArea.addEventListener('touchcancel', calEnd, { passive: true });
       }
+
+      // Recap (1.8.3): swipe the three big boxes left or right, like the calendar, for the next or the
+      // previous week / month. A month moves the calendar too (the month recap follows it); a week
+      // stops at this week (rubber band). The card is redrawn on every change, so listen on the card.
+      const recapCardEl = document.getElementById('recapCard');
+      if (recapCardEl) {
+        let rs = null;
+        const swipeEl = () => recapCardEl.querySelector('.recap-swipe');
+        const canGo = (dir) => recapPeriod === 'month' || dir < 0 || recapWeekOffset < 0;
+        recapCardEl.addEventListener('touchstart', (e) => {
+          const onBoxes = e.target && e.target.closest && e.target.closest('.recap-swipe');
+          rs = onBoxes && e.touches && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false, t: performance.now() } : null;
+        }, { passive: true });
+        recapCardEl.addEventListener('touchmove', (e) => {
+          if (!rs || !e.touches || e.touches.length !== 1) return;
+          const dx = e.touches[0].clientX - rs.x;
+          const dy = e.touches[0].clientY - rs.y;
+          if (!rs.locked) {
+            if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { rs = null; return; }
+            if (Math.abs(dx) < 10) return;
+            rs.locked = true;
+          }
+          const dir = dx < 0 ? 1 : -1;
+          rs.dx = canGo(dir) ? dx : dx * 0.2;
+          const b = swipeEl();
+          if (b && !REDUCED_MOTION) {
+            b.style.transition = 'none';
+            b.style.transform = `translate3d(${rs.dx}px,0,0)`;
+            b.style.opacity = String(1 - Math.min(0.6, Math.abs(rs.dx) / (recapCardEl.offsetWidth || 320)));
+          }
+        }, { passive: true });
+        const recapEnd = () => {
+          const c = rs;
+          rs = null;
+          if (!c || !c.locked) return;
+          const b = swipeEl();
+          const w = recapCardEl.offsetWidth || 320;
+          const dir = c.dx < 0 ? 1 : -1;
+          const fast = Math.abs(c.dx) / Math.max(1, performance.now() - c.t) > 0.5;
+          if (canGo(dir) && (Math.abs(c.dx) > w * 0.2 || (fast && Math.abs(c.dx) > 30))) {
+            haptic('tick');
+            if (recapPeriod === 'month') shiftCalendarMonth(dir, true);
+            else { recapWeekOffset = Math.min(0, recapWeekOffset + dir); renderRecap(); }
+            const nb = swipeEl();
+            if (nb && !REDUCED_MOTION && typeof nb.animate === 'function') {
+              nb.animate([{ transform: `translate3d(${dir * 40}%,0,0)`, opacity: 0.4 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
+            }
+          } else if (b) {
+            b.style.transition = 'transform 240ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms';
+            b.style.transform = '';
+            b.style.opacity = '';
+            setTimeout(() => { b.style.transition = ''; }, 260);
+          }
+        };
+        recapCardEl.addEventListener('touchend', recapEnd, { passive: true });
+        recapCardEl.addEventListener('touchcancel', recapEnd, { passive: true });
+      }
       const btnCalToday = document.getElementById('btnCalToday');
       if (btnCalToday) {
         btnCalToday.addEventListener('click', () => {
@@ -8151,7 +8189,6 @@
         renderGamesGrid();
       });
       document.getElementById('btnHistoryChanges').addEventListener('click', openChanges);
-      document.getElementById('btnSettingsChanges').addEventListener('click', openChanges);
       document.getElementById('changesList').addEventListener('click', (e) => {
         const b = e.target.closest('[data-undo-change]');
         if (b) undoChange(b.getAttribute('data-undo-change'));
@@ -8163,15 +8200,6 @@
         if (wk && !wk.disabled) { recapWeekOffset = Math.min(0, recapWeekOffset + Number(wk.getAttribute('data-recap-week'))); renderRecap(); return; }
         if (e.target.closest('#btnShareRecap')) { shareRecapCard(); return; }
         if (e.target.closest('#btnShareRecapText')) { const d = recapData(); shareText(recapText(), `${d.title} in Dailies`); }
-      });
-      document.getElementById('bestsList').addEventListener('click', (e) => {
-        const row = e.target.closest('[data-best-game]');
-        if (!row) return;
-        selectedCalendarGameId = row.getAttribute('data-best-game');
-        renderGameCalendar();
-        const cal = document.getElementById('calendarGameSelect');
-        const card = cal && cal.closest('.glass-card');
-        if (card) card.scrollIntoView({ behavior: REDUCED_MOTION ? 'auto' : 'smooth', block: 'start' });
       });
       document.getElementById('themeChoices').addEventListener('click', (e) => {
         const b = e.target.closest('[data-color-theme]');
@@ -8196,10 +8224,6 @@
         if (row && !row.disabled) pickBrowseGame(row.getAttribute('data-browse-url'));
       });
       document.getElementById('btnResetSuggestDismiss').addEventListener('click', dismissResetSuggestion);
-      document.getElementById('btnPlayNext').addEventListener('click', () => {
-        const id = document.getElementById('playNextBar').dataset.id;
-        if (id) openGameInPlayer(id);
-      });
       document.getElementById('btnDayEntryEdit').addEventListener('click', () => {
         const ref = dayEntryRef;
         closeModal('modalDayEntry');

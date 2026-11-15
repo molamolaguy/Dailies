@@ -28,7 +28,8 @@ class WebsiteScraperTest {
 
         val meta = WebsiteScraper.parseHtmlMetadata(html, "https://worldle.teuteuf.fr/play")
         assertEquals("Worldle & Map", meta.name)
-        assertEquals("Guess the country in 6 guesses! New puzzle refreshes at midnight UTC.", meta.description)
+        // 1.8.3: the sentence that says how to play, not the whole meta description.
+        assertEquals("Guess the country in 6 guesses!", meta.description)
         assertEquals("https://worldle.teuteuf.fr/icons/apple-touch-icon.png", meta.faviconUrl)
         assertEquals("00:00", meta.resetTime)
         assertEquals("utc", meta.resetZone)
