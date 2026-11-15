@@ -56,9 +56,14 @@ object Notifier {
         prefs.edit { putString("token", t) }
         return t
     }
-    private const val SUMMARY_ID = 0x0DA1E5
+    /**
+     * Fixed notification ids. Each must be unique across the app (see NotificationIdsTest): until 1.8.2
+     * the streak reminder shared COMBINED_ID, so clearing a finished reminder after every reset pass
+     * also removed the "several games are ready" alert a moment after it was posted.
+     */
+    const val SUMMARY_ID = 0x0DA1E5
     /** The single notification used when several games are ready (1.5.0). */
-    private const val COMBINED_ID = 0x0DA1E6
+    const val COMBINED_ID = 0x0DA1E6
     private const val EXTRA_READY_NAME = "dailes_ready_name"
     private const val EXTRA_READY_NAMES = "dailes_ready_names"
 

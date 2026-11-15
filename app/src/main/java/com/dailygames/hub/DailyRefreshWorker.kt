@@ -111,17 +111,23 @@ class DailyRefreshWorker(
                 }
 
                 override fun onBatchComplete() {
-                    Notifier.postResetNotifications(ctx, ready)
+                    runCatching { Notifier.postResetNotifications(ctx, ready) }
+                        .onFailure { runCatching { CrashLog.append(ctx, "Reset alert couldn't be posted: ${it.javaClass.simpleName}") } }
                 }
             }
             val processor = DailyRefreshProcessor(
                 repository = GameStore.repository(ctx),
                 dispatcher = dispatcher
             )
-            processor.processRefresh()
-            // New puzzles: fetch their pages' files on Wi-Fi so they open faster.
-            runCatching { PageCache.enqueue(ctx, started) }
-            scheduleNextReset(ctx)
+            try {
+                processor.processRefresh()
+                // New puzzles: fetch their pages' files on Wi-Fi so they open faster.
+                runCatching { PageCache.enqueue(ctx, started) }
+            } finally {
+                // Always arm the next reset, even if posting this pass's alert failed: otherwise one
+                // error would silence every later alert until the app was opened again.
+                scheduleNextReset(ctx)
+            }
         }
 
         /**
