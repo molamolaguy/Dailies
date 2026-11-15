@@ -1,3 +1,27 @@
+# Dailies 1.8.5
+
+Game pages checked for changes, a more see-through bottom bar you can adjust, and smoother swipes. It installs over 1.8.4 and keeps everything. If you're on 1.8.4, you can install it from **Settings → About → Check now**.
+
+## New
+- **Check Game Pages for Changes** (Settings → Gameplay & Time, off until you turn it on): once a week, on Wi-Fi with the battery not low, Dailies reads each game's page again in the background. Nothing is changed by itself. The next time you open the app, it lists what changed for each game (name, description, icon, reset time, score type, category, or a new address) with the old and new value, and you tick what to update. Anything you skip isn't suggested again. **Check now** runs it straight away. Games from the built-in list, and score types learned from your results, are left alone.
+- **Bottom Bar See-Through** (Settings → Display): a slider from solid to clear. The bar is now more see-through by default (75%).
+
+## Improvements
+- **Copied results**: copying or sharing all of today's results puts a spacer line between each game.
+- **Recaps**: more room between the lines of the weekly and monthly recap, in the app and on the shared picture.
+- **Gold and ruby accents**: the glow around buttons is now even on every side (it sat lower than the button).
+
+## Fixes
+- **First swipe to Settings**: no more stutter. Every page is now drawn ahead while the app is idle, not only the next one, so nothing heavy happens just after landing on Streaks & Log.
+- **Stretching the hub sideways** right after opening the app is smooth: drawing pages ahead stops the moment a finger touches the screen.
+- The first swipe away from the hub no longer redraws it.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.4
 
 Smoother swipes between pages. It installs over 1.8.3 and keeps everything. If you're on 1.8.3, you can install it from **Settings → About → Check now**.

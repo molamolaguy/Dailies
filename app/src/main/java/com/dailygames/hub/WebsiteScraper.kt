@@ -18,7 +18,10 @@ data class ScrapedSiteMetadata(
     val resetZone: String,
     val metricType: String,
     val par: Int,
-    val category: String
+    val category: String,
+    /** The page states its reset time / time zone (1.8.5): otherwise those are the defaults. */
+    val timeFound: Boolean = false,
+    val zoneFound: Boolean = false
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("name", name)
@@ -29,6 +32,8 @@ data class ScrapedSiteMetadata(
         put("metricType", metricType)
         put("par", par)
         put("category", category)
+        put("timeFound", timeFound)
+        put("zoneFound", zoneFound)
     }
 }
 
@@ -327,7 +332,9 @@ object WebsiteScraper {
             resetZone = resetZone,
             metricType = metricType,
             par = par,
-            category = category
+            category = category,
+            timeFound = schedule.timeFound,
+            zoneFound = schedule.zoneFound || extras.scriptZone != null
         )
     }
 

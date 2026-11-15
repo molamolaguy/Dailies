@@ -1,0 +1,5 @@
+• Optional weekly check of your games' pages: see what changed and choose what to update.
+• Bottom bar more see-through, with a slider in Settings.
+• A spacer line between games in copied results.
+• Roomier recaps; even gold and ruby glow.
+• No stutter on the first swipe to Settings or when stretching the hub.

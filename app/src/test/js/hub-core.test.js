@@ -492,11 +492,51 @@ test('combinedShareText: heading, results, names added where missing, grids opti
   assert.ok(withGrids.endsWith('❌ Strands'));
   const noGrids = H.combinedShareText(entries, { dateLabel: 'Fri 13 Nov', total: 4, grids: false });
   assert.ok(!noGrids.includes('🟩'));
-  assert.ok(noGrids.includes('Wordle 1,234 3/6\n\n✅ Krillion'));
+  assert.ok(noGrids.includes('Wordle 1,234 3/6\n\n───────────\n\n✅ Krillion'));
+  // A spacer between games, not after the heading or at the end.
+  assert.strictEqual(withGrids.split('───────────').length - 1, 2);
+  assert.ok(withGrids.includes('🟩🟩🟩🟩🟩\n\n───────────\n\n✅ Krillion\n60\n\n───────────\n\n❌ Strands'));
   assert.ok(H.isGridLine('🟩🟩⬛⬛⬛'));
   assert.ok(H.isGridLine('1️⃣ 2️⃣'));
   assert.ok(!H.isGridLine('60'));
   assert.ok(!H.isGridLine('Wordle 3/6 🟩'));
+});
+
+test('recheckChanges: only real, stated changes; known games, learned formats and declined ones left alone', () => {
+  const games = [
+    { id: 'a', name: 'Kinda Hard', url: 'https://kindahard.golf/', icon: 'https://kindahard.golf/old.png', desc: 'Golf puzzle.', resetTime: '00:00', resetZone: 'local', maxTries: 'Daily Puzzle', category: 'Custom Daily' },
+    { id: 'b', name: 'My Wordle', url: 'https://www.nytimes.com/games/wordle/index.html', icon: '🟩', desc: '', resetTime: '00:00', resetZone: 'local', maxTries: '6 guesses', category: 'Word & Association' },
+    { id: 'c', name: 'Bandle', url: 'https://bandle.app/', icon: '🎵', desc: 'Guess the song', resetTime: '00:00', resetZone: 'UTC', maxTries: 'Fewest tries', category: 'Movies & Media' },
+    { id: 'd', name: 'Moved', url: 'https://old-site.example/', icon: 'https://old-site.example/i.png', desc: 'A daily puzzle game.', resetTime: '00:00', resetZone: 'local', maxTries: 'Daily Puzzle', category: 'Custom Daily' }
+  ];
+  const parsed = (p) => Object.assign({ name: '', description: '', faviconUrl: '', resetTime: '00:00', resetZone: 'local', timeFound: false, zoneFound: false, metricType: '', par: 0, category: '' }, p);
+  const results = [
+    { id: 'a', url: 'https://kindahard.golf/', finalUrl: 'https://kindahard.golf/', parsed: parsed({ name: 'Kinda Hard Golf', description: 'A daily mini golf puzzle game.', faviconUrl: 'https://kindahard.golf/new.png', resetTime: '05:00', resetZone: 'UTC', timeFound: true, zoneFound: true, metricType: 'tries', par: 6, category: 'Trivia' }) },
+    { id: 'b', url: 'https://www.nytimes.com/games/wordle/index.html', finalUrl: 'https://www.nytimes.com/games/wordle/index.html', parsed: parsed({ name: 'Wordle', timeFound: true, resetTime: '03:00' }) },
+    // Bandle: a learned score format and an emoji icon stay; a reset time the page doesn't state isn't suggested.
+    { id: 'c', url: 'https://bandle.app/', finalUrl: 'https://bandle.app/', parsed: parsed({ name: 'bandle', description: 'Guess the song', faviconUrl: 'https://bandle.app/x.png', resetTime: '07:00', metricType: 'tries', par: 6 }) },
+    // A name made up from the address is no news; the site moved to a new host.
+    { id: 'd', url: 'https://old-site.example/', finalUrl: 'https://new-site.example/play', parsed: parsed({ name: 'New Site', description: 'A daily puzzle game.' }) },
+    { id: 'zz', url: 'https://gone.example/', parsed: parsed({ name: 'Gone' }) }
+  ];
+  const isKnown = (u) => /nytimes\.com/.test(u);
+  const category = (c) => (c === 'Trivia' ? 'Gaming & RPG' : 'Custom Daily');
+  const out = H.recheckChanges(games, results, { isKnown, category });
+  assert.deepStrictEqual(out.map((x) => x.id), ['a', 'd']);
+  const a = out[0].changes;
+  assert.deepStrictEqual(a.map((c) => c.field), ['name', 'desc', 'icon', 'reset', 'maxTries', 'category']);
+  assert.deepStrictEqual(a.find((c) => c.field === 'reset').to, { time: '05:00', zone: H.normalizeZone('UTC') });
+  assert.strictEqual(a.find((c) => c.field === 'maxTries').to, '6 guesses');
+  assert.strictEqual(a.find((c) => c.field === 'category').to, 'Gaming & RPG');
+  assert.deepStrictEqual(out[1].changes, [{ field: 'url', from: 'https://old-site.example/', to: 'https://new-site.example/play' }]);
+  // Declined suggestions aren't made again (but a different new value is).
+  const declined = { a: { name: 'Kinda Hard Golf', reset: H.recheckKey({ time: '05:00', zone: H.normalizeZone('UTC') }), desc: 'something else' } };
+  const again = H.recheckChanges(games, results, { isKnown, category, declined });
+  assert.deepStrictEqual(again[0].changes.map((c) => c.field), ['desc', 'icon', 'maxTries', 'category']);
+  // A link edited since the pass: that result no longer applies.
+  const edited = games.map((g) => (g.id === 'a' ? Object.assign({}, g, { url: 'https://kindahard.golf/daily' }) : g));
+  assert.deepStrictEqual(H.recheckChanges(edited, results, { isKnown, category }).map((x) => x.id), ['d']);
+  assert.deepStrictEqual(H.recheckChanges([], null), []);
 });
 
 test('themeTokens: readable tones from a seed, in and out of gamut', () => {

@@ -176,6 +176,7 @@ class HubActivity : ComponentActivity() {
         Thread {
             runCatching { DailyRefreshWorker.refreshAndSchedule(appCtx) }
             runCatching { AutoBackup.schedule(appCtx) }
+            runCatching { GameRecheck.schedule(appCtx) }
         }.start()
 
         // Edge-to-edge: draw behind the status & navigation bars.
@@ -1090,6 +1091,32 @@ class HubActivity : ComponentActivity() {
         @JavascriptInterface
         fun setPreloadGames(on: Boolean) {
             PageCache.setEnabled(applicationContext, on)
+        }
+
+        /** Settings → Check Game Pages for Changes (1.8.5): a weekly background pass on Wi-Fi. */
+        @JavascriptInterface
+        fun setRecheckGames(on: Boolean) {
+            if (on == GameRecheck.enabled(applicationContext)) return
+            GameRecheck.setEnabled(applicationContext, on)
+        }
+
+        /** What the last background pass found ({at, results}), or "" if there's nothing waiting. */
+        @JavascriptInterface
+        fun getRecheckResults(): String = GameRecheck.results(applicationContext)
+
+        @JavascriptInterface
+        fun clearRecheckResults() {
+            GameRecheck.clearResults(applicationContext)
+        }
+
+        /** Checks the game pages now (Settings → Check now); replies via window.onRecheckDone(count). */
+        @JavascriptInterface
+        fun recheckGamesNow() {
+            val appCtx = applicationContext
+            Thread {
+                val n = runCatching { GameRecheck.run(appCtx, force = true) }.getOrDefault(-1)
+                runOnUiThread { if (!isFinishing && !isDestroyed) runJs("window.onRecheckDone && window.onRecheckDone($n)") }
+            }.start()
         }
 
         /** A game was logged (or removed): its preloaded files aren't needed any more. */
