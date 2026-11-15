@@ -1372,7 +1372,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.5';
+    const APP_VERSION = '1.8.6';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -1823,7 +1823,16 @@
       return JSON.stringify(copy);
     }
 
+    let lastLaunchPrefs = '';
     function saveLaunchPrefs() {
+      // Only when something it sends changed (1.8.6): it ran after every save, and each call below is a
+      // round trip to Android (the theme one redrew the window's background and system bars), often in
+      // the middle of an animation.
+      const s0 = state.settings || {};
+      const sig = JSON.stringify([s0.amoledDark, s0.dynamicWallpaper, s0.themeMode, s0.streakReminderMinutes, currentAppIcon(), s0.darkGamePages,
+        s0.blockAdsInGames, s0.autoLogFromShare, s0.preloadGames, s0.recheckGames, s0.hideCookieBanners, s0.pullToRefresh, s0.findResults]);
+      if (sig === lastLaunchPrefs) return;
+      lastLaunchPrefs = sig;
       try {
         const s = state.settings || {};
         localStorage.setItem('dailydeck_launch_prefs_v1', JSON.stringify({
@@ -1879,8 +1888,27 @@
       if (opts && opts.syncNow) syncWanted = 'now';
       if (saveQueued) return;
       saveQueued = true;
-      queueMicrotask(flushSaveNow);
+      // Written at the next quiet moment (1.8.6), at most 0.6 s later, not in the same frame as the change:
+      // writing everything (over a megabyte for a long history) held up the animation the change started.
+      // Leaving the app or opening a game writes at once (flushPendingSave).
+      // Not while a finger is on the screen or a page slides either (up to 3 s), so it never lands in a
+      // scroll or a swipe.
+      const queuedAt = performance.now();
+      const busy = () => { try { return interactionBusy(); } catch (e) { return false; } };
+      const attempt = () => {
+        if (!saveQueued) return;
+        if (busy() && performance.now() - queuedAt < 3000) { setTimeout(later, 250); return; }
+        flushSaveNow();
+      };
+      const later = () => { if (window.requestIdleCallback) window.requestIdleCallback(attempt, { timeout: 600 }); else setTimeout(attempt, 60); };
+      later();
     }
+    function flushPendingSave() {
+      if (saveQueued) flushSaveNow();
+    }
+    window.__flushPendingSave = flushPendingSave;
+    window.addEventListener('pagehide', flushPendingSave);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) flushPendingSave(); });
 
     function flushSaveNow() {
       saveQueued = false;
@@ -2934,10 +2962,7 @@
         sortBtn.setAttribute('aria-label', `Sort games: ${o ? o.textContent : mode}`);
         sortBtn.title = `Sort: ${o ? o.textContent : mode}`;
       }
-      const list = hubOrder().filter((g) => {
-        if (state.activeFilter !== 'all' && g.status !== state.activeFilter) return false;
-        return hubSearchMatches(g);
-      });
+      const list = hubList();
       // While searching, matches are shown together (not folded into "Done today").
       const sections = hubSearch ? { grouped: false, open: list, done: [] } : gameSections(list);
 
@@ -2985,6 +3010,14 @@
           if (id) cardTimerElements.set(id, el);
         });
       }
+    }
+
+    /** The hub's cards in order, for the current filter and search. */
+    function hubList() {
+      return hubOrder().filter((g) => {
+        if (state.activeFilter !== 'all' && g.status !== state.activeFilter) return false;
+        return hubSearchMatches(g);
+      });
     }
 
     /** Games shown on the hub, in alerts and in the KPIs (archived ones are kept but hidden). */
@@ -3268,50 +3301,56 @@
     let doneSectionOpen = false;
 
     /**
-     * Folds or unfolds "Done today" with a height animation, and brings the cards into view when they
-     * open (they're often below the bottom of the screen, where a change would go unnoticed).
+     * Folds or unfolds "Done today" (1.8.6): only that section's cards are added or removed (the rest of
+     * the list stays as it is), and they fade and slide in or out. Both run on the GPU: the old height
+     * animation laid the whole page out again on every frame, and the whole list was rebuilt.
+     * Unfolding brings the cards into view (they're often below the bottom of the screen).
      */
     function toggleDoneSection() {
       const grid = document.getElementById('gamesGrid');
-      const before = grid && grid.querySelector('#doneSection');
-      const startH = before ? before.getBoundingClientRect().height : 0;
+      const sec = grid && grid.querySelector('#doneSection');
+      const head = grid && grid.querySelector('.done-section-head');
       doneSectionOpen = !doneSectionOpen;
       haptic('tick');
-      if (!doneSectionOpen && before && startH > 0 && !REDUCED_MOTION && before.animate) {
-        // Fold: shrink the open section first, then re-render without it.
-        // The header flips straight away; the cards are removed when the shrink ends (or after a
-        // short timeout, so the fold never depends on the animation actually running).
-        const head = grid.querySelector('.done-section-head');
-        if (head) {
-          head.setAttribute('aria-expanded', 'false');
-          const lbl = head.querySelector('.done-toggle-label');
-          if (lbl) lbl.textContent = 'Show';
-        }
-        before.style.overflow = 'hidden';
-        let finished = false;
-        const finish = () => { if (finished) return; finished = true; renderGamesGrid(); };
-        const a = before.animate([{ height: `${startH}px`, opacity: 1 }, { height: '0px', opacity: 0 }],
-          { duration: 220, easing: 'cubic-bezier(0.3, 0, 0.8, 0.15)', fill: 'forwards' });
-        a.onfinish = finish;
-        setTimeout(finish, 320);
+      if (!sec || !head || selectMode || hubSearch) { renderGamesGrid(); return; }
+      head.setAttribute('aria-expanded', String(doneSectionOpen));
+      const lbl = head.querySelector('.done-toggle-label');
+      if (lbl) lbl.textContent = doneSectionOpen ? 'Hide' : 'Show';
+      const settled = () => { dashboardRenderedKey = dashboardRenderKey(); };
+      if (!doneSectionOpen) {
+        const empty = () => {
+          if (doneSectionOpen) return; // opened again meanwhile
+          sec.querySelectorAll('.game-countdown').forEach((el) => cardTimerElements.delete(el.getAttribute('data-game-id')));
+          sec.hidden = true;
+          sec.innerHTML = '';
+          settled();
+        };
+        if (REDUCED_MOTION || !sec.animate || sec.hidden) { empty(); return; }
+        const a = sec.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translate3d(0,-10px,0)' }],
+          { duration: 170, easing: 'cubic-bezier(0.3, 0, 0.8, 0.15)', fill: 'forwards' });
+        let done = false;
+        const fin = () => { if (done) return; done = true; empty(); a.cancel(); };
+        a.onfinish = fin;
+        setTimeout(fin, 260);
         return;
       }
-      renderGamesGrid();
-      const sec = document.getElementById('doneSection');
-      if (doneSectionOpen && sec) {
-        const h = sec.getBoundingClientRect().height;
-        if (!REDUCED_MOTION && sec.animate && h > 0) {
-          sec.style.overflow = 'hidden';
-          const a = sec.animate([{ height: '0px', opacity: 0 }, { height: `${h}px`, opacity: 1 }],
-            { duration: 320, easing: 'cubic-bezier(0.05, 0.7, 0.1, 1)' });
-          a.onfinish = () => { sec.style.overflow = ''; };
-        }
-        const head = document.querySelector('.done-section-head');
-        const r = head && head.getBoundingClientRect();
-        const dockTop = window.innerHeight - 96;
-        if (r && r.bottom + Math.min(h, 220) > dockTop) {
-          window.scrollBy({ top: r.bottom + Math.min(h, 220) - dockTop, behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
-        }
+      const isCompact = Boolean(state.settings && state.settings.compactCards);
+      const done = gameSections(hubList()).done;
+      sec.getAnimations().forEach((x) => x.cancel());
+      sec.innerHTML = done.map((g, idx) => buildGameCardHtml(g, idx, done.length, isCompact)).join('');
+      sec.hidden = false;
+      if (!isCompact) sec.querySelectorAll('.game-countdown').forEach((el) => { const id = el.getAttribute('data-game-id'); if (id) cardTimerElements.set(id, el); });
+      settled();
+      updateLiveTimers();
+      if (!REDUCED_MOTION && sec.animate) {
+        sec.animate([{ opacity: 0, transform: 'translate3d(0,-12px,0)' }, { opacity: 1, transform: 'none' }],
+          { duration: 280, easing: 'cubic-bezier(0.05, 0.7, 0.1, 1)' });
+      }
+      const r = head.getBoundingClientRect();
+      const h = sec.offsetHeight;
+      const dockTop = window.innerHeight - 96;
+      if (r.bottom + Math.min(h, 220) > dockTop) {
+        window.scrollBy({ top: r.bottom + Math.min(h, 220) - dockTop, behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
       }
     }
 
@@ -3548,24 +3587,15 @@
 
     function updateLiveTimers() {
       const now = new Date();
-      if (activeTab === 'settings') {
-        const clockEl = document.getElementById('liveClockDisplay');
-        if (clockEl) {
-          clockEl.textContent = formatLocalNowTime(now);
-        }
-      }
+      // Text is only written when it changed (1.8.6): with seconds hidden most ticks change nothing,
+      // and every write meant drawing that part of the page again.
+      const put = (el, text) => { if (el && el.__text !== text) { el.__text = text; el.textContent = text; } };
+      if (activeTab === 'settings') put(document.getElementById('liveClockDisplay'), formatLocalNowTime(now));
 
       for (let i = 0; i < state.games.length; i++) {
         const g = state.games[i];
-        const ms = msUntilNextResetCached(g, now);
-        const formatted = formatDurationHMS(ms);
-        if (activeTab === 'dashboard') {
-          const timerEl = cardTimerElements.get(g.id);
-          if (timerEl) timerEl.textContent = formatted;
-        } else if (activeTab === 'settings') {
-          const schedEl = schedTimerElements.get(g.id);
-          if (schedEl) schedEl.textContent = formatted;
-        }
+        const el = activeTab === 'dashboard' ? cardTimerElements.get(g.id) : (activeTab === 'settings' ? schedTimerElements.get(g.id) : null);
+        if (el) put(el, formatDurationHMS(msUntilNextResetCached(g, now)));
       }
     }
 
@@ -3869,12 +3899,44 @@
       }, 1500), 400);
     }
 
-    function setFold(card, open) {
+    function setFold(card, open, animate) {
       if (open && foldDirty.has(card.dataset.fold)) { const f = foldDirty.get(card.dataset.fold); foldDirty.delete(card.dataset.fold); f(); }
-      card.classList.toggle('fold-open', open);
-      const head = card.querySelector(':scope > .fold-head');
-      if (head) head.setAttribute('aria-expanded', String(open));
+      const change = () => {
+        card.classList.toggle('fold-open', open);
+        const head = card.querySelector(':scope > .fold-head');
+        if (head) head.setAttribute('aria-expanded', String(open));
+      };
+      if (animate && !REDUCED_MOTION) {
+        // 1.8.6: the cards below glide to their new place, and an opened card's contents fade in
+        // (both on the GPU). They used to jump.
+        glideSiblingsAfter(card, change);
+        if (open) {
+          [...card.children].slice(1).forEach((el) => {
+            if (el.animate) el.animate([{ opacity: 0, transform: 'translate3d(0,-8px,0)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(0.05, 0.7, 0.1, 1)' });
+          });
+        }
+      } else {
+        change();
+      }
       foldState.set(card.dataset.fold, open);
+    }
+    /**
+     * Runs `change` (which moves the elements after `el` up or down), then slides those that are on screen
+     * from where they were to where they are now ("FLIP"), so they glide instead of jumping.
+     */
+    function glideSiblingsAfter(el, change) {
+      const after = [];
+      for (let n = el.nextElementSibling; n; n = n.nextElementSibling) after.push(n);
+      const h = window.innerHeight;
+      const before = after.map((n) => n.getBoundingClientRect().top);
+      change();
+      after.forEach((n, i) => {
+        const top = n.getBoundingClientRect().top;
+        const dy = before[i] - top;
+        // Only what's on screen before or after (and not hidden).
+        if (!dy || !n.animate || (Math.min(before[i], top) > h) || n.offsetParent === null) return;
+        n.animate([{ transform: `translate3d(0,${dy}px,0)` }, { transform: 'none' }], { duration: 280, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
+      });
     }
     function initFolds() {
       document.querySelectorAll('[data-fold]').forEach((card) => {
@@ -3896,7 +3958,7 @@
           // Controls inside the heading (Reset Alerts' switch) keep working without folding.
           if (e.target.closest && e.target.closest('input, select, button, a, label') && e.target.closest('.fold-head') === head
             && !e.target.closest('.fold-chev')) return;
-          setFold(card, !card.classList.contains('fold-open'));
+          setFold(card, !card.classList.contains('fold-open'), true);
           haptic('tick');
         };
         head.addEventListener('click', toggle);
@@ -4371,6 +4433,10 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.6': [
+        ['✨', 'Smoother everywhere', 'Folding "Done today" and the Settings and Achievements sections now glides instead of jumping, paging Score History and the calendar starts at once, and saving no longer interrupts an animation.'],
+        ['↩️', 'Quicker back from a game', 'Coming back to the hub from a game only redraws what changed.']
+      ],
       '1.8.5': [
         ['🔄', 'Game pages checked for changes', 'Turn on Settings → Check Game Pages for Changes, and each week Dailies reads your games\' pages again on Wi-Fi. When something changed (a name, description, icon, reset time or a new address), it shows you what and asks first.'],
         ['🧭', 'See-through bottom bar', 'The bottom bar is more see-through, and you can set exactly how much in Settings → Bottom Bar See-Through.'],
@@ -6136,7 +6202,15 @@
       renderRecap();
       // Folded sections: drawn when there's a spare moment (or when opened), so the tab appears at once.
       renderWhenShown('achievements', renderAchievements);
+      renderHistoryList();
+    }
 
+    /**
+     * Score History: the filters, pager and the current page of results. On its own (1.8.6), so paging
+     * and filtering redraw only the list (they used to redraw the whole page, calendar and recap included,
+     * which held up the slide-in of the next page).
+     */
+    function renderHistoryList() {
       const tbody = document.getElementById('historyTableBody');
       renderHistoryFilterOptions();
       const shown = filteredHistoryLogs();
@@ -6538,6 +6612,23 @@
       updateLiveTimers();
     }
 
+    /** Brings the page on screen up to date, redrawing only what changed (the calendar stays on its month). */
+    function refreshVisibleTab() {
+      renderKPIs();
+      if (activeTab === 'dashboard') {
+        if (dashboardRenderKey() !== dashboardRenderedKey) renderGamesGrid();
+      } else if (activeTab === 'stats') {
+        if (statsRenderKey() !== statsRenderedKey) renderStatsAndCharts();
+      } else if (activeTab === 'settings') {
+        if (settingsRenderKey() !== settingsRenderedKey) {
+          renderSettingsControls();
+          renderNotificationsView();
+          settingsRenderedKey = settingsRenderKey();
+        }
+      }
+      updateLiveTimers();
+    }
+
     function renderFilterTabs() {
       document.querySelectorAll('.filter-tab').forEach((t) => {
         const active = t.getAttribute('data-filter') === state.activeFilter;
@@ -6841,9 +6932,16 @@
             views[k].classList.remove('parked'); views[k].__parkToken = (views[k].__parkToken || 0) + 1;
           }
           // Pages off screen are only clipped (they stay laid out for smooth swipes): keep them out of
-          // reach of taps, the keyboard and screen readers.
-          if (views[k].inert !== off) views[k].inert = off;
-          views[k].setAttribute('aria-hidden', off ? 'true' : 'false');
+          // reach of taps, the keyboard and screen readers. The page just left is clipped out of reach of
+          // taps at once and made inert a moment later (1.8.6): that restyles the whole page, and doing it
+          // for both pages as the slide landed was most of the work in that frame.
+          const el = views[k];
+          if (!off) { el.__inertToken = (el.__inertToken || 0) + 1; if (el.inert) el.inert = false; el.setAttribute('aria-hidden', 'false'); }
+          else if (!el.inert) {
+            const token = (el.__inertToken = (el.__inertToken || 0) + 1);
+            if (document.activeElement && el.contains(document.activeElement)) document.activeElement.blur();
+            setTimeout(() => whenIdle(() => { if (el.__inertToken === token && el.classList.contains('hidden')) { el.inert = true; el.setAttribute('aria-hidden', 'true'); } }, 1500), 350);
+          } else el.setAttribute('aria-hidden', 'true');
         }
       });
 
@@ -7749,6 +7847,8 @@
       if (liveTickIntervalId !== null) return;
       liveTickIntervalId = setInterval(() => {
         if (document.hidden) return;
+        // Not while a page slides (1.8.6): the next tick catches up.
+        if (tabAnimating || Pager.neighbour) return;
         checkDailyRollovers({ silent: false });
         updateLiveTimers();
       }, 1000);
@@ -7831,7 +7931,8 @@
         const next = Math.min(Math.max(0, historyPage + delta), pageCount - 1);
         if (next === historyPage) return false;
         historyPage = next;
-        renderStatsAndCharts();
+        renderHistoryList();
+        statsRenderedKey = statsRenderKey();
         if (REDUCED_MOTION) return true;
         const from = delta > 0 ? 1 : -1;
         const ease = 'cubic-bezier(0.2, 0, 0, 1)';
@@ -7926,7 +8027,9 @@
           if (syncDebounceTimer) flushSyncNativeNow();
         } else {
           checkDailyRollovers({ silent: true });
-          renderVisibleTab();
+          // Back from a game (or another app): redrawn only if something changed meanwhile (1.8.6). This
+          // runs while Android's closing animation shows the hub, and redrawing it always made that stutter.
+          refreshVisibleTab();
           startLiveTickTimer();
           renderNotificationButton();
         }
@@ -8074,8 +8177,34 @@
       // The bar follows the slider as it moves; the value is saved when it's let go.
       const navRange = document.getElementById('settingNavTransparency');
       if (navRange) {
-        navRange.addEventListener('input', () => { applyNavTransparency(navRange.value); setNavTransparencyControl(navRange.value); });
+        // A slider jumps to where a finger lands: a scroll that starts on it puts the value back (1.8.6).
+        let rt = null;
+        const putBack = () => {
+          if (!rt || rt.back) return;
+          rt.back = true;
+          navRange.value = String(rt.v);
+          applyNavTransparency(rt.v); setNavTransparencyControl(rt.v);
+        };
+        navRange.addEventListener('touchstart', (e) => {
+          const t = e.touches && e.touches[0];
+          rt = t ? { x: t.clientX, y: t.clientY, v: navTransparencyValue(state.settings && state.settings.navTransparency), back: false, dragging: false } : null;
+        }, { passive: true });
+        navRange.addEventListener('touchmove', (e) => {
+          const t = e.touches && e.touches[0];
+          if (!rt || !t || rt.dragging || rt.back) return;
+          const dx = Math.abs(t.clientX - rt.x);
+          const dy = Math.abs(t.clientY - rt.y);
+          if (dy > 8 && dy > dx) putBack();
+          else if (dx > 8) rt.dragging = true;
+        }, { passive: true });
+        navRange.addEventListener('touchcancel', putBack, { passive: true });
+        navRange.addEventListener('input', () => {
+          if (rt && rt.back) { navRange.value = String(rt.v); return; }
+          applyNavTransparency(navRange.value); setNavTransparencyControl(navRange.value);
+        });
         navRange.addEventListener('change', () => {
+          if (rt && rt.back) { navRange.value = String(rt.v); rt = null; return; }
+          rt = null;
           if (!state.settings) state.settings = getDefaultSettings();
           state.settings.navTransparency = navTransparencyValue(navRange.value);
           saveState({ sync: false, keeps: ['dashboard'] });
@@ -8609,19 +8738,22 @@
         historySearchTimer = setTimeout(() => {
           historyFilter.query = String(e.target.value || '').slice(0, 100);
           historyPage = 0;
-          renderStatsAndCharts();
+          renderHistoryList();
+          statsRenderedKey = statsRenderKey();
         }, 150);
       });
       document.getElementById('historyFilterGame').addEventListener('change', (e) => {
         historyFilter.game = e.target.value;
         historyPage = 0;
-        renderStatsAndCharts();
+        renderHistoryList();
+        statsRenderedKey = statsRenderKey();
       });
       document.querySelectorAll('[data-hist-outcome]').forEach((b) => b.addEventListener('click', () => {
         historyFilter.outcome = b.getAttribute('data-hist-outcome');
         historyPage = 0;
         haptic('tick');
-        renderStatsAndCharts();
+        renderHistoryList();
+        statsRenderedKey = statsRenderKey();
       }));
       document.getElementById('historyTableBody').addEventListener('click', (e) => {
         const b = e.target && e.target.closest ? e.target.closest('.hist-copy') : null;
