@@ -1,3 +1,20 @@
+# Dailies 1.8.2
+
+Reset alerts work again, the app opens straight to your hub, and swiping between tabs is smooth. It installs over 1.8.1 and keeps everything. If you're on 1.8.1, you can install it from **Settings → About → Check now**.
+
+## Changes
+- **Reset alerts**: when several games reset at the same time, the single "games are ready" alert was cleared the moment it was posted, so you got no alert at all. It now stays until you open it. (Alerts for a single game weren't affected.)
+- **Opening the app**: no more blank screen. The launch screen stays up until the hub has drawn your games, so the first thing you see is the finished hub.
+- **Swiping between tabs**: no more stutter as your finger starts moving. The page you're swiping to is kept ready instead of being built at that moment.
+- **Streaks & Log**: the calendar no longer slides in too high and drops into place after the swipe.
+- **Daily challenge**: removed, with its banner, its setting and the Challenger secret. Ruby now unlocks with the other five secrets, and if you've already unlocked it, you keep it.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.1
 
 A faster, smoother hub and a tidier Score History. It installs over 1.8.0 and keeps everything. If you're on 1.8.0, you can install it from **Settings → About → Check now**.

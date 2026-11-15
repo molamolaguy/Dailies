@@ -1346,7 +1346,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.1';
+    const APP_VERSION = '1.8.2';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4225,6 +4225,12 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.2': [
+        ['🔔', 'Reset alerts are back', 'When several games reset together you get one "games are ready" alert again; it was being cleared the moment it appeared.'],
+        ['🚀', 'Opens straight to your hub', 'No more blank screen at launch: the hub appears with your games already on it.'],
+        ['👆', 'Smoother swipes', 'Swiping between Daily Hub, Streaks & Log and Settings no longer stutters, and the calendar no longer drops into place.'],
+        ['🎯', 'Daily challenge removed', 'The challenge banner is gone. Ruby now unlocks with the other five secrets.']
+      ],
       '1.8.1': [
         ['📜', 'A tidier Score History', 'Results are grouped by day, one short row each with a preview of the result. Tap a row for the full result and Copy.'],
         ['⚡', 'Faster and smoother', 'The hub opens sooner, and sliding between Daily Hub, Streaks & Log and Settings no longer jumps.']
