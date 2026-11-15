@@ -68,14 +68,12 @@ object Notifier {
     private const val EXTRA_READY_NAMES = "dailes_ready_names"
 
     /**
-     * Notifications look like the app icon chosen in Settings: the status-bar icon (which Android
-     * always shows as a one-colour silhouette) is tinted with that icon's colour, and the icon itself
-     * is the notification's picture.
+     * Notifications take the accent colour of the app icon chosen in Settings (Android always shows the
+     * status-bar icon as a one-colour silhouette, tinted with it). No large picture of the icon as well
+     * (removed in 1.8.3): Android already shows the app's icon, so it appeared twice.
      */
     fun withAppIcon(ctx: Context, b: NotificationCompat.Builder): NotificationCompat.Builder {
         AppIcon.accentColor(ctx)?.let { b.setColor(it) }
-        val size = (64 * ctx.resources.displayMetrics.density).toInt().coerceIn(64, 256)
-        AppIcon.chosenIconBitmap(ctx, size)?.let { b.setLargeIcon(it) }
         return b
     }
 

@@ -1511,39 +1511,25 @@ html[data-gold="true"][data-theme="light"] .tsel-item.on { color: #726542; }
 .hub-sort.tsel-btn .tsel-label, .hub-sort.tsel-btn .tsel-chev { display: none; }
 .hub-sort.tsel-btn::before { content: '⇅'; font-size: 16px; font-weight: 700; line-height: 1; }
 .hub-sort.tsel-btn.sorted { color: var(--md-on-primary-container); background: var(--md-primary-container); border-color: transparent; }
-.play-next .pn-all {
-  flex-shrink: 0; min-height: 36px; padding: 0 12px; border-radius: 9999px; font-size: 12.5px; font-weight: 700; white-space: nowrap;
-  color: var(--md-on-primary-container); background: color-mix(in srgb, var(--md-on-primary-container) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--md-on-primary-container) 30%, transparent);
-}
-.play-next .pn-all.hidden { display: none; }
-@media (max-width: 400px) { .play-next .pn-left { display: none; } }
+/* Play all (1.8.3): one full-width button where "Play next" used to be. */
+.play-all-bar { width: 100%; min-height: 48px; justify-content: center; gap: 10px; padding: 10px 16px; font-size: 14.5px; font-weight: 800; border: 0; }
+.play-all-bar.hidden { display: none; }
+.play-all-bar .pa-ico { font-size: 13px; }
+.play-all-bar .pa-left { font-size: 12px; font-weight: 600; opacity: 0.8; }
+.play-all-bar:active { filter: brightness(1.08); }
 
 .gc-pb { display: inline-flex; align-items: center; gap: 2px; margin-inline-start: 6px; padding: 1px 7px; border-radius: 9999px; font-size: 11px; font-weight: 800; white-space: nowrap;
   color: #FDE68A; background: rgba(245, 158, 11, 0.16); border: 1px solid rgba(245, 158, 11, 0.35); }
 html[data-theme="light"] .gc-pb { color: #8a5a00; background: rgba(245, 158, 11, 0.14); }
 
-.tough-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: transparent; border: 2px dashed #F59E0B; vertical-align: -1px; margin-inline-end: 4px; }
-.cal-cell.tough { position: relative; }
-.cal-cell.tough::after { content: ''; position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%; background: #F59E0B; box-shadow: 0 0 0 2px var(--md-container); }
-.tough-line { font-size: 11.5px; color: #c7cddb; margin-top: 2px; line-height: 1.45; }
-html[data-theme="light"] .tough-line { color: var(--lt-variant); }
 .hist-flag { display: inline-block; margin-inline-start: 6px; padding: 0 7px; border-radius: 8px; font-size: 11px; font-weight: 700; white-space: nowrap; vertical-align: 1px; }
 .hist-flag.pb { color: #FDE68A; background: rgba(245, 158, 11, 0.16); }
-.hist-flag.tough { color: #FCD9A8; background: rgba(245, 158, 11, 0.10); border: 1px dashed rgba(245, 158, 11, 0.5); }
-html[data-theme="light"] .hist-flag.pb, html[data-theme="light"] .hist-flag.tough { color: #8a5a00; }
+html[data-theme="light"] .hist-flag.pb { color: #8a5a00; }
 
-.bests-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
-.best-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 10px; border-radius: 16px; background: var(--md-container-low); border: 1px solid var(--md-outline); }
-.best-icon { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: var(--md-container-high); }
-.best-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
-.best-name { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.best-sub { font-size: 11px; color: #8f97a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.best-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; max-width: 56%; }
-.best-chips .pb-chip { font-size: 10.5px; padding: 2px 7px; }
-html[data-theme="light"] .best-name { color: var(--lt-on-surface); }
-html[data-theme="light"] .best-sub { color: var(--lt-muted); }
 
+/* Recap boxes swipe like the calendar (1.8.3); an empty period keeps a swipeable area too. */
+.recap-swipe { touch-action: pan-y; }
+.recap-empty { padding: 18px 0; }
 .recap-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .recap-segs { display: flex; padding: 2px; border-radius: 12px; background: var(--md-container-low); border: 1px solid var(--md-outline); flex-shrink: 0; }
 .recap-seg { padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: 600; color: #a9b1c2; }
@@ -1638,15 +1624,15 @@ html:not(.web) .web-only { display: none !important; }
 .theme-choices.locked .theme-choice { opacity: 0.38; filter: grayscale(0.85); cursor: not-allowed; }
 .theme-choices.locked .theme-choice.on { border-color: var(--md-outline); background: var(--md-container-low); }
 
-/* Bottom navigation (1.6.1, 1.6.2 more see-through): with a light blur so its labels stay readable. */
+/* Bottom navigation (1.6.1, 1.6.2 and 1.8.3 more see-through): with a light blur so its labels stay readable. */
 .m4-floating-dock {
-  background: color-mix(in srgb, var(--md-container-low) 63%, transparent) !important;
+  background: color-mix(in srgb, var(--md-container-low) 40%, transparent) !important;
   -webkit-backdrop-filter: blur(6px) saturate(1.2); backdrop-filter: blur(6px) saturate(1.2);
 }
-[data-amoled="true"] .m4-floating-dock { background: rgba(0, 0, 0, 0.63) !important; }
-html[data-theme="light"] .m4-floating-dock { background: color-mix(in srgb, var(--md-container) 65%, transparent) !important; }
+[data-amoled="true"] .m4-floating-dock { background: rgba(0, 0, 0, 0.4) !important; }
+html[data-theme="light"] .m4-floating-dock { background: color-mix(in srgb, var(--md-container) 42%, transparent) !important; }
 html[data-gold="true"] .m4-floating-dock {
-  background: linear-gradient(color-mix(in srgb, var(--gold-card) 63%, transparent), color-mix(in srgb, var(--gold-card) 63%, transparent)) padding-box, var(--gold-edge) border-box !important;
+  background: linear-gradient(color-mix(in srgb, var(--gold-card) 40%, transparent), color-mix(in srgb, var(--gold-card) 40%, transparent)) padding-box, var(--gold-edge) border-box !important;
 }
 
 /* Hub header (1.6.2): the title row and the All / Ready / Done, sort, Select and Add Game row stay at the
@@ -1682,17 +1668,26 @@ html[data-theme="light"] #viewDashboard > .hub-sticky { box-shadow: 0 8px 12px -
 html[data-cdfont="sans"] .gc-countdown .time, html[data-cdfont="sans"] .live-clock { font-family: 'Google Sans Flex', system-ui, sans-serif; font-weight: 650; letter-spacing: 0.01em; }
 html[data-cdfont="serif"] .gc-countdown .time, html[data-cdfont="serif"] .live-clock { font-family: Georgia, 'Noto Serif', 'Times New Roman', serif; font-weight: 600; }
 
-/* Card styles: Filled (default), Glass (see-through with a light edge) or Outline. Dialogs stay filled. */
+/* Card styles: Filled (default), Glass or Outline. Dialogs stay filled. (1.8.3: Glass and Outline were
+   so close to Filled on the dark surface that the setting looked like it did nothing.)
+   Glass: a frosted sheen with a bright edge (a gradient, not a backdrop blur, which would slow scrolling).
+   Outline: no fill, a clear accent-coloured edge. */
 html[data-cards="glass"] .glass-card:not(.modal-panel) {
-  background: color-mix(in srgb, var(--md-container) 55%, transparent);
-  border-color: color-mix(in srgb, #FFFFFF 13%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 8px 22px -10px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.03) 55%, rgba(255, 255, 255, 0.06)),
+    color-mix(in srgb, var(--md-container) 35%, transparent);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 10px 24px -12px rgba(0, 0, 0, 0.6);
 }
-html[data-theme="light"][data-cards="glass"] .glass-card:not(.modal-panel) { background: color-mix(in srgb, #FFFFFF 55%, transparent); border-color: rgba(0, 0, 0, 0.08); }
+html[data-theme="light"][data-cards="glass"] .glass-card:not(.modal-panel) {
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.5));
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: inset 0 1px 0 #fff, 0 8px 20px -10px rgba(0, 0, 0, 0.22);
+}
 html[data-cards="outline"] .glass-card:not(.modal-panel) {
   background: transparent; box-shadow: none;
-  border: 1.5px solid color-mix(in srgb, var(--md-primary) 32%, var(--md-outline));
+  border: 1.5px solid color-mix(in srgb, var(--md-primary) 58%, transparent) !important;
 }
+html[data-theme="light"][data-cards="outline"] .glass-card:not(.modal-panel) { border-color: color-mix(in srgb, var(--md-primary) 50%, transparent) !important; }
 html[data-cards="glass"] { --gold-card: color-mix(in srgb, var(--md-container) 55%, var(--md-surface)); }
 html[data-cards="outline"] { --gold-card: var(--md-surface); }
 
@@ -1700,7 +1695,7 @@ html[data-cards="outline"] { --gold-card: var(--md-surface); }
 html[data-contrast="high"] { --md-outline: rgba(255, 255, 255, 0.42); }
 html[data-contrast="high"] .text-slate-300, html[data-contrast="high"] .text-slate-200 { color: #FFFFFF !important; }
 html[data-contrast="high"] .text-slate-400, html[data-contrast="high"] .text-slate-500,
-html[data-contrast="high"] .gc-countdown .label, html[data-contrast="high"] .hist-date, html[data-contrast="high"] .best-sub,
+html[data-contrast="high"] .gc-countdown .label, html[data-contrast="high"] .hist-date,
 html[data-contrast="high"] .chg-sub, html[data-contrast="high"] .stat-tile .k, html[data-contrast="high"] .stat-tile .s { color: #E8EAF0 !important; }
 html[data-contrast="high"] .glass-card { border-width: 1.5px; }
 html[data-contrast="high"] .border-slate-800, html[data-contrast="high"] .border-slate-700 { border-color: rgba(255, 255, 255, 0.35) !important; }
@@ -1712,7 +1707,7 @@ html[data-theme="light"][data-contrast="high"] .stat-tile .k, html[data-theme="l
 html[data-theme="light"][data-contrast="high"] .border-slate-800, html[data-theme="light"][data-contrast="high"] .border-slate-700 { border-color: rgba(0, 0, 0, 0.4) !important; }
 
 /* Secret achievements. */
-.ach-secret-head { grid-column: 1 / -1; margin: 10px 0 0; font-size: 12px; font-weight: 800; color: #c9cfdb; letter-spacing: 0.02em; }
+.ach-secret-head { margin: 14px 0 8px; font-size: 12px; font-weight: 800; color: #c9cfdb; letter-spacing: 0.02em; }
 .ach.secret:not(.on) { opacity: 0.7; border-style: dashed; }
 .ach.secret.on { border-color: rgba(242, 92, 122, 0.55); background: linear-gradient(160deg, rgba(200, 22, 63, 0.18), transparent 70%), var(--md-container-low); }
 html[data-theme="light"] .ach-secret-head { color: var(--lt-strong); }
@@ -1748,6 +1743,9 @@ html[data-theme="light"] .ie-label { color: var(--lt-strong); }
 .hub-search-ico { display: inline-flex; color: var(--md-on-surface-variant, #94a3b8); flex-shrink: 0; }
 .hub-search-row input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: inherit; font-size: 14px; padding: 6px 0; }
 .hub-search-row input::-webkit-search-cancel-button { display: none; }
+/* No focus ring around the search box (1.8.3): a text box counts as keyboard-focused even when tapped,
+   so the app-wide :focus-visible ring always showed. The row itself already marks where you type. */
+.hub-search-row input:focus, .hub-search-row input:focus-visible { outline: none !important; box-shadow: none !important; }
 .hub-search-close { width: 34px; height: 34px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--md-on-surface-variant, #94a3b8); }
 .modal-search { display: flex; align-items: center; gap: 8px; padding: 2px 12px; border-radius: 14px; background: var(--md-container-low); border: 1px solid var(--md-outline); color: var(--md-on-surface-variant, #94a3b8); }
 .modal-search input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--md-on-surface, #fff); font-size: 13px; padding: 8px 0; }
@@ -1895,7 +1893,7 @@ html[data-ruby="true"] .app-toast .toast-msg { color: color-mix(in srgb, #EE5370
 html[data-ruby="true"][data-theme="light"] .app-toast .toast-msg { color: #55011A; }
 html[data-ruby="true"] .app-toast .toast-close { color: #DD2857; background: rgba(221, 40, 87, 0.14); }
 html[data-ruby="true"] .m4-floating-dock {
-  background: linear-gradient(color-mix(in srgb, var(--gold-card) 63%, transparent), color-mix(in srgb, var(--gold-card) 63%, transparent)) padding-box, var(--gold-edge) border-box !important;
+  background: linear-gradient(color-mix(in srgb, var(--gold-card) 40%, transparent), color-mix(in srgb, var(--gold-card) 40%, transparent)) padding-box, var(--gold-edge) border-box !important;
 }
 html[data-ruby="true"] .cel-title, html[data-ruby="true"] .cel-title { background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
 html[data-ruby="true"] .hub-logo-wrap.all-done::after { background: #FFF7DC; filter: drop-shadow(0 0 3px #EF516F); }

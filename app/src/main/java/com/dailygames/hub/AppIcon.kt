@@ -4,7 +4,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.edit
-import androidx.core.graphics.scale
 
 /**
  * Picks which launcher entry (activity-alias in the manifest) is enabled, so the home-screen icon is
@@ -26,15 +25,6 @@ object AppIcon {
     val ALL = listOf(
         DEFAULT, ".IconAuto", ".IconLight", ".IconDark", ".IconLightClassic", ".IconDarkClassic", ".IconAutoClassic",
         ".IconMidnight", ".IconSunset", ".IconOcean", ".IconMono", ".IconGold", ".IconRuby"
-    )
-    /** Each launcher entry's icon (the activity-alias icons in the manifest). */
-    private val ICON_RES = mapOf(
-        DEFAULT to R.mipmap.ic_launcher, ".IconAuto" to R.mipmap.ic_launcher_auto, ".IconLight" to R.mipmap.ic_launcher_light,
-        ".IconDark" to R.mipmap.ic_launcher_dark, ".IconLightClassic" to R.mipmap.ic_launcher_lightc,
-        ".IconDarkClassic" to R.mipmap.ic_launcher_darkc, ".IconAutoClassic" to R.mipmap.ic_launcher_autoc,
-        ".IconMidnight" to R.mipmap.ic_launcher_midnight, ".IconSunset" to R.mipmap.ic_launcher_sunset,
-        ".IconOcean" to R.mipmap.ic_launcher_ocean, ".IconMono" to R.mipmap.ic_launcher_mono, ".IconGold" to R.mipmap.ic_launcher_gold,
-        ".IconRuby" to R.mipmap.ic_launcher_ruby
     )
     private const val PREFS = "dailes_theme_prefs"
     private const val KEY_FOLLOW = "icon_follows_theme"
@@ -87,28 +77,8 @@ object AppIcon {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putInt(KEY_CUSTOM_STAR, starColor) }
     }
 
-    fun customBitmap(ctx: Context): android.graphics.Bitmap? = runCatching {
-        android.graphics.BitmapFactory.decodeFile(java.io.File(ctx.filesDir, CUSTOM_FILE).path)
-    }.getOrNull()
-
     private fun customStar(ctx: Context): Int? =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_CUSTOM_STAR, 0).takeIf { it != 0 }
-
-    /** The chosen launcher icon as a bitmap (the notification's large icon), or null if it can't be drawn. */
-    fun chosenIconBitmap(ctx: Context, sizePx: Int): android.graphics.Bitmap? = runCatching {
-        if (style(ctx) == "custom") {
-            customBitmap(ctx)?.let { return it.scale(sizePx, sizePx) }
-        }
-        // The icon image itself: the chosen launcher entry is often still switched off (it changes
-        // when the app is left), and Android doesn't hand out a disabled entry's icon.
-        val res = ICON_RES[chosenEntry(ctx)] ?: R.mipmap.ic_launcher
-        val d = androidx.core.content.ContextCompat.getDrawable(ctx, res) ?: return null
-        val bmp = androidx.core.graphics.createBitmap(sizePx, sizePx)
-        val canvas = android.graphics.Canvas(bmp)
-        d.setBounds(0, 0, sizePx, sizePx)
-        d.draw(canvas)
-        bmp
-    }.getOrNull()
 
     /** Enables the wanted entry first, then disables the rest (so there's always one). Call when leaving the app. */
     fun apply(ctx: Context) {
