@@ -82,8 +82,10 @@ class HubActivity : ComponentActivity() {
             val arr = runCatching { org.json.JSONArray(earlier) }.getOrNull()
             if (arr != null) runJs("window.onReturnFromEarlierGames && window.onReturnFromEarlierGames(${arr})")
         }
+        // A result the player confirmed (read off the end screen) skips the hub's strict check (1.8.3).
+        val confirmed = data.getBooleanExtra(GameActivity.EXTRA_SHARE_CONFIRMED, false)
         if (id.isNotBlank()) {
-            runJs("window.onReturnFromGame(${JSONObject.quote(id)}, $openLog, $elapsedMs, ${JSONObject.quote(shareText)}, $openedAt)")
+            runJs("window.onReturnFromGame(${JSONObject.quote(id)}, $openLog, $elapsedMs, ${JSONObject.quote(shareText)}, $openedAt, { confirmed: $confirmed })")
         }
     }
 

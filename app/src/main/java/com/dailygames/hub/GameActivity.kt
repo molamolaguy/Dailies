@@ -140,6 +140,11 @@ class GameActivity : ComponentActivity() {
     private val openMenus = ArrayList<android.widget.PopupMenu>()
     private var zoomDialog: android.app.AlertDialog? = null
     private var capturedShare: String? = null
+    /** The captured result was confirmed by the player (an on-screen result they chose to log, 1.8.3). */
+    private var capturedConfirmed = false
+    /** An on-screen result was offered on this page already (once per page). */
+    private var screenOfferedThisPage = false
+    private var screenPrompt: View? = null
     private var capturedAt = 0L
     private var autoLogEnabled = true
     private var clipboardManager: ClipboardManager? = null
@@ -442,6 +447,8 @@ class GameActivity : ComponentActivity() {
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val uri = request?.url ?: return true
+                // A share link (X, WhatsApp, a text message…) carries the result itself (1.8.3).
+                captureShareLink(uri.toString(), request.hasGesture())
                 val scheme = uri.scheme?.lowercase(Locale.US)
                 if (scheme == "http" || scheme == "https") {
                     // A Share button the hook pressed doesn't get to take the game page elsewhere.
@@ -482,7 +489,7 @@ class GameActivity : ComponentActivity() {
                 // A new document: every frame asks for its page CSS again, and old frames are gone.
                 helloAnswered.clear()
                 blobFrames.clear()
-                if (view === webView) { probeResultsThisPage = 0; probeAcceptUntil = 0L }
+                if (view === webView) { probeResultsThisPage = 0; probeAcceptUntil = 0L; screenOfferedThisPage = false }
                 if (!documentStartScriptsSupported) injectPageScriptsFallback()
             }
 
@@ -677,6 +684,8 @@ class GameActivity : ComponentActivity() {
         fun decide(uri: Uri): Boolean {
             if (decided) return true
             val scheme = uri.scheme?.lowercase(Locale.US)
+            // A share window the game opened (1.8.3): the result is in its address.
+            if (scheme != "about" && scheme != "javascript" && scheme != null) captureShareLink(uri.toString(), userGesture)
             // window.open('') / about:blank first, the real address follows.
             if (scheme == "about" || scheme == "javascript" || scheme == null) return true
             decided = true
@@ -695,6 +704,7 @@ class GameActivity : ComponentActivity() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val uri = request?.url ?: return true
                 if (!decided) return !decide(uri)
+                captureShareLink(uri.toString(), request.hasGesture())
                 val scheme = uri.scheme?.lowercase(Locale.US)
                 if (scheme == "http" || scheme == "https" || scheme == "about" || scheme == "blob" ||
                     scheme == "data" || scheme == "javascript") return false
@@ -833,6 +843,11 @@ class GameActivity : ComponentActivity() {
                         if (!findResults) return@addWebMessageListener
                         probeGuardUntil = now + PROBE_GUARD_MS
                         probeAcceptUntil = now + PROBE_ACCEPT_MS
+                        return@addWebMessageListener
+                    }
+                    // A result read off the end screen (no Share button): offered, never logged by itself.
+                    if (msg.optString("via") == "screen") {
+                        if (findResults) offerScreenResult(msg.optString("text"))
                         return@addWebMessageListener
                     }
                     // ...and only right after the player was really tapped, or right after the hook
@@ -976,9 +991,16 @@ class GameActivity : ComponentActivity() {
         val clean = text.replace("\r\n", "\n").trim()
         if (clean == capturedShare) return
         if (!ShareResultDetector.isStrictShareResult(clean, gameName, gameUrl)) return
+        acceptShare(clean, via, confirmed = false)
+    }
+
+    /** Keeps [clean] as this game's result and shows the "result saved" card. */
+    private fun acceptShare(clean: String, via: String, confirmed: Boolean) {
+        hideScreenPrompt()
         val entry = lineup.firstOrNull { it.id == gameId }
         val wasDone = entry?.done == true
         capturedShare = clean
+        capturedConfirmed = confirmed
         capturedAt = System.currentTimeMillis()
         entry?.done = true
         setResultWithLog(openLogOnReturn)
@@ -989,6 +1011,87 @@ class GameActivity : ComponentActivity() {
         if (donePrompt != null && now - lastPromptAt < PROMPT_MIN_GAP_MS) return
         lastPromptAt = now
         showDonePrompt(clean)
+    }
+
+    /**
+     * A link the game opens to share its result (1.8.3): X, WhatsApp, a text message… The result is in
+     * the link, so it's read without opening anything. Taken like a copy: after the player's own tap,
+     * or right after the hook pressed the game's Share button (once per page).
+     */
+    private fun captureShareLink(link: String, gesture: Boolean) {
+        if (!autoLogEnabled) return
+        val text = ShareLinkText.extract(link) ?: return
+        val now = SystemClock.elapsedRealtime()
+        if (gesture || userActedWithin(SHARE_GESTURE_WINDOW_MS)) {
+            offerShare(text, "link")
+        } else if (findResults && now <= probeAcceptUntil && probeResultsThisPage < 1) {
+            probeResultsThisPage += 1
+            offerShare(text, "probe")
+        }
+    }
+
+    /**
+     * A result the end screen shows when the game has no Share / Copy button (1.8.3), e.g. "Solved in
+     * 4 guesses". Never logged by itself: a card asks, and only "Log it" keeps it. Once per page, and
+     * not when a result was already found.
+     */
+    private fun offerScreenResult(raw: String?) {
+        val line = raw?.replace(Regex("\\s+"), " ")?.trim()?.take(80).orEmpty()
+        if (line.length < 3 || switching || capturedShare != null || screenOfferedThisPage || donePrompt != null) return
+        if (lineup.firstOrNull { it.id == gameId }?.done == true) return
+        if (!::container.isInitialized || isFinishing) return
+        screenOfferedThisPage = true
+        hideScreenPrompt()
+        val (containerColor, tonalBg, tonalFg) = Triple(barColors[0], barColors[1], barColors[2])
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(14), dp(12), dp(14))
+            background = GradientDrawable().apply { cornerRadius = dp(28).toFloat(); setColor(containerColor) }
+            elevation = dp(10).toFloat()
+            isClickable = true
+        }
+        card.addView(TextView(this).apply {
+            text = getString(R.string.screen_result_title, gameName)
+            setTextColor(titleColor)
+            textSize = 15f
+            typeface = googleSansBold
+            includeFontPadding = false
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+        })
+        card.addView(TextView(this).apply {
+            text = line
+            setTextColor(titleColor)
+            alpha = 0.8f
+            textSize = 13.5f
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+            setPadding(0, dp(4), 0, 0)
+        })
+        val buttons = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            setPadding(0, dp(10), 0, 0)
+        }
+        buttons.addView(pill(getString(R.string.not_now), getString(R.string.not_now), tonalBg, tonalFg, R.drawable.ic_bar_close) { hideScreenPrompt() })
+        buttons.addView(pill(getString(R.string.log_it), getString(R.string.log_it), accentColors[0], accentColors[1]) {
+            hideScreenPrompt()
+            // The game's name in front, so the hub knows whose result it is.
+            acceptShare(if (line.contains(gameName, ignoreCase = true)) line else "$gameName: $line", "screen", confirmed = true)
+        })
+        card.addView(buttons)
+        container.addView(card, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+            Gravity.BOTTOM).apply { marginStart = dp(12); marginEnd = dp(12); bottomMargin = dp(20) + root.paddingBottom })
+        card.translationY = dp(40).toFloat()
+        card.alpha = 0f
+        card.animate().translationY(0f).alpha(1f).setDuration(220).start()
+        card.announceForAccessibility(getString(R.string.screen_result_title, gameName))
+        screenPrompt = card
+    }
+
+    private fun hideScreenPrompt() {
+        screenPrompt?.let { v -> (v.parent as? ViewGroup)?.removeView(v) }
+        screenPrompt = null
     }
 
     /**
@@ -1375,6 +1478,7 @@ class GameActivity : ComponentActivity() {
         val data = Intent().putExtra(EXTRA_ID, gameId).putExtra(EXTRA_LOG, openLog).putExtra(EXTRA_ELAPSED_MS, played)
             .putExtra(EXTRA_OPENED_AT, openedAt)
         capturedShare?.let { data.putExtra(EXTRA_SHARE_TEXT, it) }
+        if (capturedShare != null && capturedConfirmed) data.putExtra(EXTRA_SHARE_CONFIRMED, true)
         if (earlierResults.length() > 0) data.putExtra(EXTRA_EARLIER, earlierResults.toString())
         setResult(RESULT_OK, data)
     }
@@ -1464,7 +1568,7 @@ class GameActivity : ComponentActivity() {
     }
 
     /** One entry per game in [earlierResults]: play time added up, the latest result kept. */
-    private fun addEarlierResult(id: String, playedMs: Long, opened: Long, share: String?) {
+    private fun addEarlierResult(id: String, playedMs: Long, opened: Long, share: String?, confirmed: Boolean = false) {
         val merged = JSONArray()
         var found = false
         for (i in 0 until earlierResults.length()) {
@@ -1474,11 +1578,11 @@ class GameActivity : ComponentActivity() {
                 o.put("elapsedMs", o.optLong("elapsedMs") + playedMs)
                 // The earliest opening tells the hub whether the game reset while it was being played.
                 if (opened in 1 until o.optLong("openedAt", Long.MAX_VALUE)) o.put("openedAt", opened)
-                if (!share.isNullOrEmpty()) o.put("share", share)
+                if (!share.isNullOrEmpty()) { o.put("share", share); o.put("confirmed", confirmed) }
             }
             merged.put(o)
         }
-        if (!found) merged.put(JSONObject().put("id", id).put("elapsedMs", playedMs).put("openedAt", opened).put("share", share ?: ""))
+        if (!found) merged.put(JSONObject().put("id", id).put("elapsedMs", playedMs).put("openedAt", opened).put("share", share ?: "").put("confirmed", confirmed && !share.isNullOrEmpty()))
         earlierResults = merged
     }
 
@@ -1492,7 +1596,7 @@ class GameActivity : ComponentActivity() {
         checkClipboardSinceOpen()
         val now = SystemClock.elapsedRealtime()
         val played = foregroundMs + if (resumedAt > 0) now - resumedAt else 0L
-        addEarlierResult(gameId, played, openedAt, capturedShare)
+        addEarlierResult(gameId, played, openedAt, capturedShare, capturedConfirmed)
         // Whatever is on the clipboard now was there before the new game opened.
         currentClipStamp()?.let { lastClipStampChecked = it }
         // The old page stays live until the new one is on screen; nothing it reports counts.
@@ -1504,6 +1608,8 @@ class GameActivity : ComponentActivity() {
         probeGuardUntil = 0L
         probeAcceptUntil = 0L
         probeResultsThisPage = 0
+        screenOfferedThisPage = false
+        hideScreenPrompt()
         closePopup()
         exitFullscreen()
         gameId = target.id
@@ -1518,6 +1624,7 @@ class GameActivity : ComponentActivity() {
         foregroundMs = 0L
         if (resumedAt > 0) resumedAt = now
         capturedShare = null
+        capturedConfirmed = false
         capturedAt = 0L
         openLogOnReturn = false
         lastPageUrl = null
@@ -1830,6 +1937,8 @@ class GameActivity : ComponentActivity() {
         const val EXTRA_ELAPSED_MS = "elapsed_ms"
         const val EXTRA_OPENED_AT = "opened_at"
         const val EXTRA_SHARE_TEXT = "share_text"
+        /** The result was confirmed by the player (an on-screen result they chose to log). */
+        const val EXTRA_SHARE_CONFIRMED = "share_confirmed"
         /** Today's games in the hub's order: [{id, name, url, done}]. */
         const val EXTRA_LINEUP = "lineup"
         const val EXTRA_PLAY_ALL = "play_all"

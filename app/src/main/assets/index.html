@@ -7149,7 +7149,7 @@
       const batch = [];
       (Array.isArray(list) ? list : []).forEach((r) => {
         if (!r || typeof r !== 'object') return;
-        window.onReturnFromGame(String(r.id || ''), false, Number(r.elapsedMs) || 0, typeof r.share === 'string' ? r.share : '', Number(r.openedAt) || 0, { background: true, batch });
+        window.onReturnFromGame(String(r.id || ''), false, Number(r.elapsedMs) || 0, typeof r.share === 'string' ? r.share : '', Number(r.openedAt) || 0, { background: true, batch, confirmed: r.confirmed === true });
       });
       if (!batch.length) return;
       // One toast with one Undo for all of them (the toast area only holds three).
@@ -7168,7 +7168,9 @@
       const background = Boolean(opts && opts.background);
       if (!background) lastOpenedGameId = game.id;
       switchNavigation('dashboard');
-      const captured = (typeof shareText === 'string' && HubCore.isStrictShareResult(shareText, game))
+      // A result the player confirmed in the player (read off the end screen, 1.8.3) is taken as is.
+      const confirmed = Boolean(opts && opts.confirmed) && typeof shareText === 'string' && shareText.trim().length >= 3;
+      const captured = (typeof shareText === 'string' && (confirmed || HubCore.isStrictShareResult(shareText, game)))
         ? shareText.replace(/\r\n/g, '\n').trim() : '';
       const autoLog = !state.settings || state.settings.autoLogFromShare !== false;
       const currentKey = getCycleDateKey(game.resetTime, game.resetZone);
