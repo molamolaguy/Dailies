@@ -93,7 +93,7 @@ class HubSmokeTest {
     }
 
     @Test
-    fun resetAlertsLookLikeTheChosenAppIcon() {
+    fun resetAlertsTakeTheIconsColourWithoutASecondIcon() {
         if (Build.VERSION.SDK_INT >= 33) {
             InstrumentationRegistry.getInstrumentation().uiAutomation
                 .grantRuntimePermission(ctx.packageName, android.Manifest.permission.POST_NOTIFICATIONS)
@@ -113,7 +113,8 @@ class HubSmokeTest {
             }
             assertNotNull("alert posted", posted)
             assertEquals("tinted with the Sunset icon's color", AppIcon.accentColor(ctx), posted!!.color)
-            assertNotNull("the chosen icon is the alert's picture", posted.getLargeIcon())
+            // 1.8.3: no large picture of the icon as well; Android already shows the app's icon.
+            assertNull("no second copy of the app icon on the alert", posted.getLargeIcon())
         } finally {
             nm.cancelAll()
             AppIcon.setStyle(ctx, "default")
