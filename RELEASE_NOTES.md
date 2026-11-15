@@ -1,3 +1,31 @@
+# Dailies 1.8.3
+
+Smarter game adding, more results found automatically, and a tidier, smoother hub. It installs over 1.8.2 and keeps everything. If you're on 1.8.2, you can install it from **Settings → About → Check now**.
+
+## Adding a game
+- **Reads the page as it really looks**: most daily games build their page in JavaScript, so Dailies now also opens the link out of sight for a few seconds and reads what the game shows, including its "How to play". You get the game's real name, a short description of how to play, and its reset time and time zone more often (from the page, its app info, or its own code).
+- **Score type**: only set when the page says so. After a few results, a game's format is set from what you've logged ("6 guesses", "Fastest time", "Most points"), with Undo.
+- **More built-in games**: Blossom, Keyword, WhenTaken, Sedecordle, Duotrigordle, Spotle, Chronophoto and Globle: Capitals.
+
+## Finding results in a game
+- **"See results" first**: when a finished game keeps its Share button behind "See results" or "Stats", Dailies opens that once and finds the result.
+- **Results shared by link**: games that share by opening X, WhatsApp, Telegram, a text message or email: the result is read from the link.
+- **More games**: buttons inside web components, and end screens in Spanish, French, German, Portuguese, Italian and Dutch.
+- **Result on screen**: a game with no Share button at all: Dailies offers the result it shows ("Solved in 4 guesses"). Tap **Log it** to keep it; it's never logged on its own.
+
+## Hub, Streaks & Log and Settings
+- Reset alerts no longer show a second copy of the app icon.
+- Every list (Add Game, Settings) opens the app's own menu instead of Android's.
+- Daily Hub: only **Play all** above your games (Play next and Select are gone), no highlight around the search box, and a more see-through bottom bar.
+- Streaks & Log: no "Tough day" tags, no Personal Bests card, no duplicate fastest time in the score stats; swipe the recap's three boxes to change week or month; no gap above the secret achievements.
+- Settings: swipes in without stutter; Card Style's Glass and Outline now look clearly different; the Gameplay & Time clock follows Show Seconds; Recent changes moved out of Data & Backup (it's still on Score History).
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.2
 
 Reset alerts work again, the app opens straight to your hub, and swiping between tabs is smooth. It installs over 1.8.1 and keeps everything. If you're on 1.8.1, you can install it from **Settings → About → Check now**.

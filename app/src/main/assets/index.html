@@ -1327,7 +1327,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.2';
+    const APP_VERSION = '1.8.3';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4247,6 +4247,13 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.3': [
+        ['🔎', 'Smarter game adding', 'Pasting a link now reads the game\'s page as it really looks, for a better name, a short how-to-play description and its reset time.'],
+        ['🎯', 'Finds more results', 'Dailies now opens a game\'s "See results" screen to find its Share button, reads results shared by link, and offers a result shown on screen.'],
+        ['📏', 'Learns the score type', 'After a few results, a game\'s score format (guesses, time or points) is set for you, with Undo.'],
+        ['🧭', 'Smoother Settings and Streaks', 'Swipe the recap boxes to change week or month, and Settings swipes in without stutter.'],
+        ['✨', 'Tidier everywhere', 'Only Play all on the hub, the app\'s own menus for every list, clearer card styles and a more see-through bar.']
+      ],
       '1.8.2': [
         ['🔔', 'Reset alerts are back', 'When several games reset together you get one "games are ready" alert again; it was being cleared the moment it appeared.'],
         ['🚀', 'Opens straight to your hub', 'No more blank screen at launch: the hub appears with your games already on it.'],
