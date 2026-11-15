@@ -1655,6 +1655,11 @@ html[data-theme="light"] #viewDashboard > .hub-sticky { box-shadow: 0 8px 12px -
    aria-hidden while off screen (see switchNavigation). The scaffold clips sideways for good, so a page
    slid off to the side never widens the document. */
 #m3Scaffold { position: relative; overflow-x: clip; }
+/* Parked pages (1.8.4): laid out at full size beside the screen, already drawn. The scaffold clips
+   them below as well as sideways, and is at least a screen tall, so a page sliding in is never cut off
+   and a parked page never makes the current one longer. */
+#m3Scaffold { overflow: clip; min-height: 100vh; }
+.tab-page.hidden.parked { height: auto; overflow: visible; }
 .tab-page.hidden {
   display: block !important; position: absolute !important; top: 0;
   left: max(1rem, env(safe-area-inset-left, 0px)); right: max(1rem, env(safe-area-inset-right, 0px));
@@ -1672,16 +1677,17 @@ html[data-cdfont="serif"] .gc-countdown .time, html[data-cdfont="serif"] .live-c
    so close to Filled on the dark surface that the setting looked like it did nothing.)
    Glass: a frosted sheen with a bright edge (a gradient, not a backdrop blur, which would slow scrolling).
    Outline: no fill, a clear accent-coloured edge. */
+/* 1.8.4: one flat see-through tint, no gradient and no large soft shadow. On every card those made
+   Settings about 3x as much work to draw as it slid in (a stutter); the bright edge keeps the look. */
 html[data-cards="glass"] .glass-card:not(.modal-panel) {
-  background: linear-gradient(155deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.03) 55%, rgba(255, 255, 255, 0.06)),
-    color-mix(in srgb, var(--md-container) 35%, transparent);
+  background: color-mix(in srgb, #FFFFFF 7%, color-mix(in srgb, var(--md-container) 35%, transparent));
   border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 10px 24px -12px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 html[data-theme="light"][data-cards="glass"] .glass-card:not(.modal-panel) {
-  background: linear-gradient(155deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.5));
+  background: rgba(255, 255, 255, 0.72);
   border-color: rgba(255, 255, 255, 0.95);
-  box-shadow: inset 0 1px 0 #fff, 0 8px 20px -10px rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 1px 0 #fff;
 }
 html[data-cards="outline"] .glass-card:not(.modal-panel) {
   background: transparent; box-shadow: none;
