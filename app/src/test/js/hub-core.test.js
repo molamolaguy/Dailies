@@ -544,3 +544,22 @@ test('secret achievements: what each measures', () => {
   assert.deepStrictEqual(H.migrateAchievementKeys(['secret:clutch', 'roll#1', 'bogus']), ['secret:clutch', 'roll#1']);
 });
 
+
+// ---- 1.8.3 ----
+test('learnScoreFormat: guesses with their maximum, times, points, counts; unsure is null', () => {
+  const rows = (scores) => scores.map((score, i) => ({ score, loggedAt: 1000 + i }));
+  assert.deepStrictEqual(H.learnScoreFormat(rows(['Wordle 1,234 3/6', 'Wordle 1,235 X/6', 'Wordle 1,236 5/6'])), { kind: 'guesses', label: '6 guesses' });
+  assert.deepStrictEqual(H.learnScoreFormat(rows(['Mini 0:42', 'Mini 1:05', 'Solved in 0:58'])), { kind: 'time', label: 'Fastest time' });
+  assert.deepStrictEqual(H.learnScoreFormat(rows(['Score 4,250 pts', '3,900 points', '5,100 pts'])), { kind: 'points', label: 'Most points' });
+  assert.deepStrictEqual(H.learnScoreFormat(rows(['Solved in 14 moves', '12 moves', '19 moves'])), { kind: 'count', label: 'Fewest moves' });
+  // Too few, or mixed.
+  assert.strictEqual(H.learnScoreFormat(rows(['3/6', '4/6'])), null);
+  assert.strictEqual(H.learnScoreFormat(rows(['3/6', '1:05', '400 pts', '12 moves'])), null);
+  // Unreadable results don't count.
+  assert.strictEqual(H.learnScoreFormat(rows(['', 'Auto-marked missed', 'nice'])), null);
+});
+
+test('isGenericScoreFormat: what the app filled in, not what the user typed', () => {
+  ['', 'Daily Puzzle', '6 guesses', '60s target', '100 pts', 'Fastest time', 'Fewest moves'].forEach((t) => assert.ok(H.isGenericScoreFormat(t), t));
+  ['4 mistakes', 'Find all theme words', 'Under 2 minutes', 'Fewest guesses please'].forEach((t) => assert.ok(!H.isGenericScoreFormat(t), t));
+});

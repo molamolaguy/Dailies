@@ -1461,6 +1461,8 @@
         resetTime,
         resetZone,
         maxTries: String(g.maxTries || 'Daily Puzzle'),
+        // A learned score format the user undid (1.8.3), so it isn't set again.
+        scoreFormatDeclined: typeof g.scoreFormatDeclined === 'string' ? g.scoreFormatDeclined.slice(0, 40) : '',
         desc: String(g.desc || ''),
         notifyEnabled: g.notifyEnabled !== false,
         // Streak reminder lead for this game: -1 = the app-wide setting, 0 = never, else minutes.
@@ -3528,6 +3530,31 @@
     let resetSuggestion = null; // { gameId, resetTime, resetZone }
     const gameLogRows = (g) => state.historyLogs.filter((l) => l && (l.gameId ? l.gameId === g.id : l.gameName === g.name));
     /** Looks at a game's numbered results; offers a better reset time when they don't fit the current one. */
+    /**
+     * Score format learned from a game's results (1.8.3): once a few results show it's timed, scored in
+     * points or out of N guesses, a format the app filled in by itself is set to match, with Undo.
+     * Never for a game from the built-in list, nor over a format the user typed.
+     */
+    function checkScoreFormat(game) {
+      if (!game || game.archived || !HubCore.isGenericScoreFormat(game.maxTries)) return;
+      if (typeof KnownGames !== 'undefined' && KnownGames.find(game.url)) return;
+      const learned = HubCore.learnScoreFormat(gameLogRows(game));
+      if (!learned || learned.label === game.maxTries || game.scoreFormatDeclined === learned.label) return;
+      const before = game.maxTries;
+      game.maxTries = learned.label;
+      saveState({ sync: false });
+      setTimeout(() => showToast(`${game.name}: ${learned.label}`, 'Score format set from your results.', 'indigo', null, {
+        actionLabel: 'Undo',
+        onAction: () => {
+          const g = state.games.find((x) => x.id === game.id);
+          if (!g) return;
+          g.maxTries = before;
+          g.scoreFormatDeclined = learned.label;
+          saveState({ sync: false });
+        }
+      }), 1200);
+    }
+
     function checkResetSuggestion(game) {
       if (!game || game.archived) return;
       const sug = HubCore.suggestResetTime(gameLogRows(game), { resetTime: game.resetTime, resetZone: HubCore.normalizeZone(game.resetZone) });
@@ -4873,6 +4900,7 @@
       historyPage = 0;
       saveState();
       checkResetSuggestion(game);
+      checkScoreFormat(game);
       checkNewAchievements();
       updateSingleGameCardOrGrid(game.id);
       if (activeTab === 'stats') renderStatsAndCharts();
