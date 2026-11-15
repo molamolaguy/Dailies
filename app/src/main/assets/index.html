@@ -1327,7 +1327,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.3';
+    const APP_VERSION = '1.8.4';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4277,6 +4277,9 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.4': [
+        ['👆', 'Smoother swipes', 'Swiping to Settings no longer stutters with Glass cards, and the first swipe to a page after opening the app is smooth too.']
+      ],
       '1.8.3': [
         ['🔎', 'Smarter game adding', 'Pasting a link now reads the game\'s page as it really looks, for a better name, a short how-to-play description and its reset time.'],
         ['🎯', 'Finds more results', 'Dailies now opens a game\'s "See results" screen to find its Share button, reads results shared by link, and offers a result shown on screen.'],

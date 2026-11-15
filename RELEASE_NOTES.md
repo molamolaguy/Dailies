@@ -1,3 +1,18 @@
+# Dailies 1.8.4
+
+Smoother swipes between pages. It installs over 1.8.3 and keeps everything. If you're on 1.8.3, you can install it from **Settings → About → Check now**.
+
+## Changes
+- **Swiping to Settings with Glass cards**: no more stutter. Glass cards are now a flat see-through tint with a bright edge, which looks almost the same and is about a third of the work to draw.
+- **The first swipe to a page**: no more small stutter the first time after opening the app. The pages next to the one you're on are now drawn ahead and kept ready just off screen.
+- Work that can wait no longer runs while you're swiping.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.3
 
 Smarter game adding, more results found automatically, and a tidier, smoother hub. It installs over 1.8.2 and keeps everything. If you're on 1.8.2, you can install it from **Settings → About → Check now**.
