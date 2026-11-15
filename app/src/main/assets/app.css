@@ -1701,23 +1701,6 @@ html[data-theme="light"][data-contrast="high"] .gc-countdown .label, html[data-t
 html[data-theme="light"][data-contrast="high"] .stat-tile .k, html[data-theme="light"][data-contrast="high"] .stat-tile .s { color: #111014 !important; }
 html[data-theme="light"][data-contrast="high"] .border-slate-800, html[data-theme="light"][data-contrast="high"] .border-slate-700 { border-color: rgba(0, 0, 0, 0.4) !important; }
 
-/* Daily challenge card on the hub. */
-.challenge-card { padding: 12px 14px; border-radius: 20px; background: var(--md-container); border: 1px solid var(--md-outline); }
-.challenge-card.hidden { display: none; }
-.challenge-card .ch-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.challenge-card .ch-title { font-size: 13.5px; font-weight: 800; color: #fff; }
-.challenge-card .ch-sub { font-size: 11.5px; font-weight: 600; color: #a9b1c2; white-space: nowrap; }
-.challenge-card .ch-games { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
-.challenge-card .ch-game { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 5px 10px 5px 6px; border-radius: 9999px; font-size: 12px; font-weight: 700;
-  color: var(--md-on-primary-container); background: var(--md-container-high); border: 1px solid var(--md-outline); }
-.challenge-card .ch-game .ch-ic { width: 20px; height: 20px; border-radius: 6px; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; background: var(--md-container-highest); flex-shrink: 0; }
-.challenge-card .ch-game .ch-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
-.challenge-card .ch-game.done { background: var(--md-primary-container); border-color: transparent; }
-.challenge-card .ch-game.done .ch-name { text-decoration: line-through; text-decoration-thickness: 1.5px; opacity: 0.85; }
-.challenge-card.complete { border-color: color-mix(in srgb, var(--md-primary) 55%, transparent); }
-html[data-theme="light"] .challenge-card .ch-title { color: var(--lt-on-surface); }
-html[data-theme="light"] .challenge-card .ch-sub { color: var(--lt-muted); }
-
 /* Secret achievements. */
 .ach-secret-head { grid-column: 1 / -1; margin: 10px 0 0; font-size: 12px; font-weight: 800; color: #c9cfdb; letter-spacing: 0.02em; }
 .ach.secret:not(.on) { opacity: 0.7; border-style: dashed; }
