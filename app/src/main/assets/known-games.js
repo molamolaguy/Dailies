@@ -203,7 +203,32 @@
       desc: 'A 3x3 grid of baseball players who fit both clues.' },
     { host: 'n-puzzle.com', path: '/en/nintendoku', name: 'Nintendoku', category: 'Gaming & RPG',
       resetTime: '06:00', resetZone: 'Europe/Paris', maxTries: '9 guesses', verified: false,
-      desc: 'A 3x3 grid of Nintendo games that fit both categories.' }
+      desc: 'A 3x3 grid of Nintendo games that fit both categories.' },
+    // ---- 1.8.3 ----
+    { host: 'whentaken.com', name: 'WhenTaken', category: 'Geography & Maps',
+      resetTime: '00:00', resetZone: 'local', maxTries: 'Most points', verified: true,
+      desc: 'Guess where and when each mystery photo was taken.' },
+    { host: 'merriam-webster.com', path: '/games/blossom-word-game', name: 'Blossom', category: 'Word & Association',
+      resetTime: '00:00', resetZone: 'America/New_York', maxTries: 'Most points', verified: false,
+      desc: 'Make words from seven letters, always using the center one.' },
+    { host: 'washingtonpost.com', path: '/games/keyword', name: 'Keyword', category: 'Word & Association',
+      resetTime: '00:00', resetZone: 'local', maxTries: '6 guesses', verified: false,
+      desc: 'Find the six-letter keyword that completes six words.' },
+    { host: 'sedecordle.com', name: 'Sedecordle', category: 'Word & Association',
+      resetTime: '00:00', resetZone: 'local', maxTries: '21 guesses', verified: false,
+      desc: 'Solve sixteen Wordles at once in 21 guesses.' },
+    { host: 'duotrigordle.com', name: 'Duotrigordle', category: 'Word & Association',
+      resetTime: '00:00', resetZone: 'local', maxTries: '37 guesses', verified: false,
+      desc: 'Solve thirty-two Wordles at once in 37 guesses.' },
+    { host: 'spotle.io', name: 'Spotle', category: 'Movies & Media',
+      resetTime: '00:00', resetZone: 'local', maxTries: '10 guesses', verified: false,
+      desc: 'Guess the music artist from their debut year, genre and more.' },
+    { host: 'chronophoto.app', name: 'Chronophoto', category: 'Movies & Media',
+      resetTime: '00:00', resetZone: 'local', maxTries: 'Most points', verified: false,
+      desc: 'Guess the year each photo was taken.' },
+    { host: 'globle-capitals.com', name: 'Globle: Capitals', category: 'Geography & Maps',
+      resetTime: '00:00', resetZone: 'local', maxTries: 'Fewest guesses', verified: false,
+      desc: 'Find the mystery capital city using proximity hints.' }
   ];
 
   function parse(url) {

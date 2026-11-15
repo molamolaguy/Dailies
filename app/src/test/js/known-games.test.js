@@ -54,3 +54,13 @@ test('1.4.0 review: moved sites and sibling games', () => {
   const names = new Set();
   for (const e of known.CATALOG) { assert.ok(!names.has(e.name), `duplicate name ${e.name}`); names.add(e.name); }
 });
+
+test('1.8.3: more popular games', () => {
+  assert.ok(known.CATALOG.length >= 67);
+  assert.equal(known.find('https://www.merriam-webster.com/games/blossom-word-game').name, 'Blossom');
+  assert.equal(known.find('https://www.merriam-webster.com/games/blossom-word-game').resetZone, 'America/New_York');
+  assert.equal(known.find('https://www.washingtonpost.com/games/keyword/').name, 'Keyword');
+  assert.equal(known.find('https://whentaken.com/').verified, true);
+  assert.equal(known.find('https://www.sedecordle.com/').maxTries, '21 guesses');
+  assert.equal(known.find('https://www.merriam-webster.com/dictionary/game'), null);
+});
