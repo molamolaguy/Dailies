@@ -6377,7 +6377,13 @@
         // lays the page out once here instead of after each style change.
         const frac = scrollFraction();
         const docH = document.documentElement.scrollHeight;
-        const box = { left: cur.offsetLeft, top: cur.offsetTop, width: cur.offsetWidth, height: cur.offsetHeight };
+        // The hub's sticky header pulls itself up over the scaffold's top padding with a negative margin,
+        // which collapses through the hub section: its offsetTop reads 0 although its content starts
+        // below the padding. Undo that collapse so the new page comes in exactly where it will stay
+        // (it used to arrive one status bar + 18px too high and drop into place when the slide ended).
+        const firstChild = cur.firstElementChild;
+        const collapsed = firstChild ? parseFloat(getComputedStyle(firstChild).marginTop) || 0 : 0;
+        const box = { left: cur.offsetLeft, top: cur.offsetTop - collapsed, width: cur.offsetWidth, height: cur.offsetHeight };
         const scrollY = Math.max(0, window.scrollY);
         const w = this.width();
         el.classList.remove('hidden');
