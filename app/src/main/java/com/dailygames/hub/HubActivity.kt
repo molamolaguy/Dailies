@@ -17,7 +17,9 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
+import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.WindowInsets
 import android.webkit.JavascriptInterface
 import android.webkit.RenderProcessGoneDetail
@@ -46,6 +48,17 @@ class HubActivity : ComponentActivity() {
     private lateinit var stateStore: HubStateStore
     private var pageReady = false
     private val pendingJs = mutableListOf<String>()
+
+    /**
+     * Launch (1.8.2): the first frame the user sees is the finished hub, not a blank page. The system
+     * launch screen (the app icon on Android 12+, the plain surface colour before) stays up until the
+     * hub page has drawn its cards ([holdLaunchScreen]); then a cover in the hub's own background colour
+     * stays over the WebView until its first frame with that content is ready ([revealHub]).
+     */
+    private var launchHeld = false
+    private var launchCover: View? = null
+    /** For LaunchDeviceTest: whether the launch screen or its cover is still in front of the hub. */
+    internal val launchScreenShown: Boolean get() = launchHeld || launchCover != null
 
     // Read from the JS bridge thread by getInitialLaunchThemeJson(), written on the main thread.
     @Volatile private var lastTopInsetDp = 0
@@ -206,6 +219,7 @@ class HubActivity : ComponentActivity() {
         }
 
         setContentView(scaffoldRoot)
+        holdLaunchScreen()
         onBackPressedDispatcher.addCallback(this, backCallback)
 
         // Only act on the launching intent the first time; a system-restored activity must not re-run it.
@@ -321,6 +335,55 @@ class HubActivity : ComponentActivity() {
         val queued = pendingJs.toList()
         pendingJs.clear()
         queued.forEach { webView.evaluateJavascript(it, null) }
+        revealHub()
+    }
+
+    /**
+     * Keeps the launch screen up (no frame of this activity is drawn) until [revealHub]. The page loads
+     * and runs meanwhile; only drawing waits. A cover in the surface colour goes over the WebView for the
+     * moment between allowing drawing and the WebView's first frame of the hub.
+     */
+    private fun holdLaunchScreen() {
+        launchHeld = true
+        launchCover = View(this).apply { setBackgroundColor(surfaceColor); isClickable = true }
+        scaffoldRoot.addView(launchCover, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        val content = findViewById<View>(android.R.id.content)
+        content.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                if (launchHeld) return false
+                content.viewTreeObserver.removeOnPreDrawListener(this)
+                return true
+            }
+        })
+        // Never more than this on the launch screen, whatever the page does.
+        content.postDelayed({ releaseLaunchScreen(); removeLaunchCover() }, MAX_LAUNCH_HOLD_MS)
+    }
+
+    private fun releaseLaunchScreen() {
+        if (!launchHeld) return
+        launchHeld = false
+        findViewById<View>(android.R.id.content)?.invalidate()
+    }
+
+    /** The hub has drawn its cards (onHubReady): let the activity draw, and lift the cover once the WebView's frame is ready. */
+    private fun revealHub() {
+        if (!launchHeld && launchCover == null) return
+        releaseLaunchScreen()
+        val cover = launchCover ?: return
+        val done = { removeLaunchCover() }
+        if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.VISUAL_STATE_CALLBACK)) {
+            runCatching { androidx.webkit.WebViewCompat.postVisualStateCallback(webView, 1) { done() } }.onFailure { done() }
+            // In case the callback never comes (e.g. the renderer restarted).
+            cover.postDelayed(done, 600)
+        } else {
+            cover.postDelayed(done, 120)
+        }
+    }
+
+    private fun removeLaunchCover() {
+        val cover = launchCover ?: return
+        launchCover = null
+        (cover.parent as? ViewGroup)?.removeView(cover)
     }
 
     private fun setBackIntercept(enabled: Boolean) {
@@ -1251,6 +1314,8 @@ class HubActivity : ComponentActivity() {
         }
 
         private const val ASSET_PREFIX = "file:///android_asset/"
+        /** Longest the launch screen waits for the hub to draw before showing it anyway. */
+        private const val MAX_LAUNCH_HOLD_MS = 3000L
         private const val MAX_IMPORT_BYTES = 50 * 1024 * 1024
         private const val BACKUP_TEMP_FILE = "pending_backup_export.json"
         private const val CSV_TEMP_FILE = "pending_history_export.csv"

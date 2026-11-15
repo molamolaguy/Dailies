@@ -143,7 +143,7 @@
   <main id="m3Scaffold" class="m3-scaffold max-w-3xl mx-auto space-y-4">
 
     <!-- View 1: MINIMALISTIC DAILY HUB -->
-    <section id="viewDashboard" class="space-y-4">
+    <section id="viewDashboard" class="tab-page space-y-4" aria-hidden="false">
       <!-- Minimal Status & Filter / Add Bar -->
       <div class="hub-sticky flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="hub-header-row flex items-center gap-2.5 text-xs text-slate-400">
@@ -238,7 +238,6 @@
 
       <!-- Clean Minimal Games List -->
       <!-- Play next: the next unplayed game, once today's run has started -->
-      <div id="challengeCard" class="challenge-card hidden" role="region" aria-label="Daily challenge"></div>
       <div id="playNextBar" class="play-next hidden" role="region" aria-label="Play next">
         <div class="pn-icon" id="playNextIcon" aria-hidden="true"></div>
         <div class="pn-text">
@@ -253,7 +252,7 @@
     </section>
 
     <!-- View 2: STREAKS & LOG (MONTHLY CALENDAR + DAILY COMPLETION & SCORE HISTORY) -->
-    <section id="viewStats" class="hidden space-y-4">
+    <section id="viewStats" class="tab-page hidden space-y-4" aria-hidden="true" inert>
       <!-- Monthly Game Completion & Missed Calendar -->
       <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-4">
         <div class="space-y-2.5 border-b border-slate-800 pb-3.5">
@@ -364,7 +363,7 @@
     </section>
 
     <!-- View 3: SETTINGS & REFRESH ALERTS TAB -->
-    <section id="viewSettings" class="hidden space-y-4">
+    <section id="viewSettings" class="tab-page hidden space-y-4" aria-hidden="true" inert>
       <!-- 1. Display Settings -->
       <div data-fold="display" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
@@ -539,14 +538,6 @@
               <p class="text-[11px] text-slate-400">Prompt when you come back from a game</p>
             </div>
             <input id="settingAskOnReturn" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Daily Challenge</p>
-              <p class="text-[11px] text-slate-400">Each day, 2 or 3 of your games to finish for a challenge streak</p>
-            </div>
-            <input id="settingDailyChallenge" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
           <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
@@ -1355,7 +1346,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.1';
+    const APP_VERSION = '1.8.2';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -1426,7 +1417,6 @@
         hubSort: 'custom',
         preloadGames: true,
         rubyAccents: false,
-        dailyChallenge: true,
         countdownFont: 'mono',
         cardStyle: 'filled',
         textSize: 'normal',
@@ -1722,9 +1712,6 @@
         goldUnlocked: parsed.goldUnlocked === true,
         goldAccentsUnlocked: parsed.goldAccentsUnlocked === true,
         rubyUnlocked: parsed.rubyUnlocked === true,
-        challenge: parsed.challenge && typeof parsed.challenge === 'object' && Array.isArray(parsed.challenge.ids)
-          ? { date: String(parsed.challenge.date || ''), ids: parsed.challenge.ids.map(String).slice(0, 3) } : null,
-        challengeDays: Array.isArray(parsed.challengeDays) ? parsed.challengeDays.filter((d) => HubCore.DATE_KEY_RE.test(String(d))).slice(-400) : [],
         // Recent changes (undo history) stay on this phone: never in a backup.
         recentChanges: Array.isArray(parsed.recentChanges)
           ? parsed.recentChanges.filter((c) => c && typeof c === 'object' && typeof c.id === 'string').slice(0, CHANGES_MAX) : [],
@@ -3731,6 +3718,8 @@
         if (Pager.neighbour) return;
         // Switching to Streaks & Log shows the current month anyway, which is what this draws.
         if (activeTab !== 'stats' && statsRenderKey() !== statsRenderedKey) prepareTab('stats');
+        // The hub's cards too, so swiping back to it never redraws them as the finger starts moving.
+        if (activeTab !== 'dashboard' && dashboardRenderKey() !== dashboardRenderedKey) renderGamesGrid();
       }, 1500), 400);
     }
 
@@ -4236,6 +4225,12 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.2': [
+        ['🔔', 'Reset alerts are back', 'When several games reset together you get one "games are ready" alert again; it was being cleared the moment it appeared.'],
+        ['🚀', 'Opens straight to your hub', 'No more blank screen at launch: the hub appears with your games already on it.'],
+        ['👆', 'Smoother swipes', 'Swiping between Daily Hub, Streaks & Log and Settings no longer stutters, and the calendar no longer drops into place.'],
+        ['🎯', 'Daily challenge removed', 'The challenge banner is gone. Ruby now unlocks with the other five secrets.']
+      ],
       '1.8.1': [
         ['📜', 'A tidier Score History', 'Results are grouped by day, one short row each with a preview of the result. Tap a row for the full result and Copy.'],
         ['⚡', 'Faster and smoother', 'The hub opens sooner, and sliding between Daily Hub, Streaks & Log and Settings no longer jumps.']
@@ -4705,63 +4700,7 @@
       return true;
     }
 
-    // ---- Daily challenge (1.7.0): 2–3 of your games each day; finish them all for a challenge streak ----
-    function challengeStats() {
-      return HubCore.challengeStreaks(state.challengeDays || [], localTodayKey());
-    }
-    /** Days since each game was last solved (for picking ones you haven't played lately). */
-    function daysSinceSolved() {
-      const today = HubCore.cycleKeyToDay(localTodayKey());
-      const last = {};
-      state.historyLogs.forEach((l) => {
-        if (!l || l.outcome !== 'Completed' || !l.gameId || !HubCore.DATE_KEY_RE.test(String(l.date))) return;
-        const d = today - HubCore.cycleKeyToDay(l.date);
-        if (!(l.gameId in last) || d < last[l.gameId]) last[l.gameId] = Math.max(0, d);
-      });
-      return last;
-    }
-    /** Today's challenge: picked once per day (kept for the day even if games are added). */
-    function currentChallenge() {
-      if (state.settings && state.settings.dailyChallenge === false) return null;
-      const today = localTodayKey();
-      const visible = visibleGames();
-      const ids = new Set(visible.map((g) => g.id));
-      if (!state.challenge || state.challenge.date !== today) {
-        const picks = HubCore.pickChallenge(today, visible.map((g) => g.id), daysSinceSolved());
-        state.challenge = picks.length ? { date: today, ids: picks } : null;
-        if (state.challenge) saveState({ sync: false });
-      }
-      if (!state.challenge) return null;
-      const games = state.challenge.ids.filter((id) => ids.has(id)).map((id) => visible.find((g) => g.id === id));
-      if (games.length < 2) return null;
-      const done = games.filter((g) => g.dayHistory && g.dayHistory[getCycleDateKey(g.resetTime, g.resetZone)] === 'completed');
-      return { date: today, games, done: new Set(done.map((g) => g.id)) };
-    }
-    function renderChallenge() {
-      const el = document.getElementById('challengeCard');
-      if (!el) return;
-      const ch = currentChallenge();
-      if (!ch || selectMode) { el.classList.add('hidden'); return; }
-      const complete = ch.done.size === ch.games.length;
-      if (complete && !(state.challengeDays || []).includes(ch.date)) {
-        state.challengeDays = [...(state.challengeDays || []), ch.date].slice(-400);
-        saveState({ sync: false });
-        const st = challengeStats();
-        showToast('🎯 Daily challenge complete!', st.current > 1 ? `${st.current}-day challenge streak.` : 'Come back tomorrow for a new one.', 'emerald');
-        haptic('drop');
-        checkNewAchievements();
-      }
-      const st = challengeStats();
-      el.classList.remove('hidden');
-      el.classList.toggle('complete', complete);
-      el.innerHTML = `<div class="ch-head"><p class="ch-title"><span aria-hidden="true">🎯</span> Daily challenge${complete ? ' · done!' : ''}</p>`
-        + `<p class="ch-sub">${ch.done.size}/${ch.games.length}${st.current ? ` · 🔥 ${st.current}d` : ''}</p></div>`
-        + '<div class="ch-games">' + ch.games.map((g) => `<button type="button" class="ch-game${ch.done.has(g.id) ? ' done' : ''}" data-challenge-play="${escapeHtml(g.id)}" aria-label="${escapeHtml(g.name)}${ch.done.has(g.id) ? ', done' : ', play'}">`
-          + `<span class="ch-ic">${ch.done.has(g.id) ? '✓' : renderGameIconHtml(g.icon, g.name, 'w-4 h-4')}</span><span class="ch-name" dir="auto">${escapeHtml(g.name)}</span></button>`).join('') + '</div>';
-    }
-
     function renderPlayNext() {
-      renderChallenge();
       checkAllDoneCelebration();
       const copyBtn = document.getElementById('btnCopyToday');
       if (copyBtn) copyBtn.classList.toggle('hidden', !todaysResultEntries().length);
@@ -5233,7 +5172,7 @@
 
     function checkNewAchievements(silent) {
       const all = currentAchievements();
-      const secrets = HubCore.computeSecrets(state.games, state.historyLogs, { challengeBest: challengeStats().best });
+      const secrets = HubCore.computeSecrets(state.games, state.historyLogs);
       const known = earnedTierKeys();
       const freshKeys = HubCore.earnedAchievementKeys(all).concat(secrets.filter((x) => x.earned).map((x) => x.key)).filter((k) => !known.has(k));
       if (!freshKeys.length) return;
@@ -5657,7 +5596,7 @@
       const all = currentAchievements();
       // Secrets count once found (they're kept even if the data later changes).
       const have = earnedTierKeys();
-      const secrets = HubCore.computeSecrets(state.games, state.historyLogs, { challengeBest: challengeStats().best })
+      const secrets = HubCore.computeSecrets(state.games, state.historyLogs)
         .map((x) => Object.assign(x, { earned: x.earned || have.has(x.key), secret: true }));
       achievementsShown = all.concat(secrets);
       const total = all.reduce((n, a) => n + a.tiers, 0);
@@ -6156,7 +6095,6 @@
       setVal('settingCountdownFont', ['sans', 'serif'].includes(s.countdownFont) ? s.countdownFont : 'mono');
       setVal('settingTextSize', ['large', 'larger'].includes(s.textSize) ? s.textSize : 'normal');
       setChk('settingHighContrast', Boolean(s.highContrast));
-      setChk('settingDailyChallenge', s.dailyChallenge !== false);
       setChk('settingAutoFixReset', Boolean(s.autoFixReset));
       setChk('settingHideCookies', s.hideCookieBanners !== false);
       setChk('settingPullRefresh', s.pullToRefresh !== false);
@@ -6438,24 +6376,31 @@
         if (this.neighbour && this.neighbour.tab === tab) { this.neighbour.dir = dir; return this.neighbour; }
         this.detach();
         prepareTab(tab);
-        const scaffold = document.getElementById('m3Scaffold');
-        // Pages slid off to the side mustn't widen the page (WebView would zoom out to fit them).
-        if (scaffold) { scaffold.style.position = 'relative'; scaffold.style.overflowX = 'clip'; }
+        // (#m3Scaffold is position: relative with overflow-x: clip in app.css, so pages slid off to the
+        // side never widen the page. It used to be switched on here and off after each slide, and each
+        // switch laid all three pages out again: a long frame as the finger started moving.)
         // The new page keeps the same relative scroll position (e.g. 80% of the way down), so it
         // comes in already at the spot it will stay at once it's the current page.
         // Every measurement of the current page is read before the new one is shown, so the browser
         // lays the page out once here instead of after each style change.
         const frac = scrollFraction();
         const docH = document.documentElement.scrollHeight;
-        const box = { left: cur.offsetLeft, top: cur.offsetTop, width: cur.offsetWidth, height: cur.offsetHeight };
+        // The hub's sticky header pulls itself up over the scaffold's top padding with a negative margin,
+        // which collapses through the hub section: its offsetTop reads 0 although its content starts
+        // below the padding. Undo that collapse so the new page comes in exactly where it will stay
+        // (it used to arrive one status bar + 18px too high and drop into place when the slide ended).
+        const firstChild = cur.firstElementChild;
+        const collapsed = firstChild ? parseFloat(getComputedStyle(firstChild).marginTop) || 0 : 0;
+        const box = { left: cur.offsetLeft, top: cur.offsetTop - collapsed, width: cur.offsetWidth, height: cur.offsetHeight };
         const scrollY = Math.max(0, window.scrollY);
         const w = this.width();
-        el.classList.remove('hidden');
-        el.style.cssText = `position:absolute;left:${box.left}px;top:0;width:${box.width}px;margin:0;visibility:hidden;transition:none`;
-        const newMax = Math.max(0, docH - box.height + el.offsetHeight - window.innerHeight);
+        // Pages off screen stay laid out (clipped to no height, see .tab-page in app.css), so the new
+        // page's height is known without showing it first.
+        const newMax = Math.max(0, docH - box.height + el.scrollHeight - window.innerHeight);
         const scroll = Math.round(frac * newMax);
         const top = box.top + scrollY - scroll;
         el.style.cssText = `position:absolute;left:${box.left}px;top:${top}px;width:${box.width}px;margin:0;will-change:transform;pointer-events:none;transition:none;transform:translate3d(${dir * w}px,0,0)`;
+        el.classList.remove('hidden');
         cur.style.willChange = 'transform';
         this.neighbour = { tab, el, dir, scroll };
         return this.neighbour;
@@ -6504,8 +6449,6 @@
           } else {
             this.detach();
           }
-          const scaffold = document.getElementById('m3Scaffold');
-          if (scaffold) { scaffold.style.position = ''; scaffold.style.overflowX = ''; }
           tabAnimating = false;
         };
         setTimeout(finish, ms + 30);
@@ -6576,7 +6519,12 @@
       };
       Object.keys(views).forEach((k) => {
         if (views[k]) {
-          views[k].classList.toggle('hidden', k !== normalized);
+          const off = k !== normalized;
+          views[k].classList.toggle('hidden', off);
+          // Pages off screen are only clipped (they stay laid out for smooth swipes): keep them out of
+          // reach of taps, the keyboard and screen readers.
+          if (views[k].inert !== off) views[k].inert = off;
+          views[k].setAttribute('aria-hidden', off ? 'true' : 'false');
         }
       });
 
@@ -6593,6 +6541,8 @@
 
       NavIndicator.place(normalized);
       if (!(anim && anim.prepared)) prepareTab(normalized);
+      // Bring the page just left up to date while idle (e.g. the hub's cards after an hour ticks over).
+      if (previous !== normalized) queueTabPrerender();
       if (previous !== normalized) {
         if (anim && typeof anim.scroll === 'number') jumpScroll(anim.scroll);
         else jumpScroll(frac * Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
@@ -7337,7 +7287,6 @@
         let rawRetained = null;
         let rawAchievements = null;
         let rawRuby = false;
-        let rawChallengeDays = null;
         let rawGold = false;
         let rawAccents = false;
 
@@ -7352,7 +7301,6 @@
           if (parsed.goldUnlocked === true) rawGold = true;
           if (parsed.goldAccentsUnlocked === true) rawAccents = true;
           if (parsed.rubyUnlocked === true) rawRuby = true;
-          if (Array.isArray(parsed.challengeDays)) rawChallengeDays = parsed.challengeDays.filter((d) => HubCore.DATE_KEY_RE.test(String(d)));
         } else {
           throw new Error('Invalid backup root');
         }
@@ -7413,7 +7361,6 @@
           if (rawGold) state.goldUnlocked = true;
           if (rawAccents) state.goldAccentsUnlocked = true;
           if (rawRuby) state.rubyUnlocked = true;
-          if (rawChallengeDays) state.challengeDays = [...new Set([...(state.challengeDays || []), ...rawChallengeDays])].sort().slice(-400);
           dropped.forEach((g) => {
             const snap = normalizeRetained(Object.assign({}, g, { dayHistory: Object.assign({}, g.dayHistory || {}), removedAt: Date.now() }));
             if (!snap) return;
@@ -7785,7 +7732,6 @@
       bindSetting('settingCountdownFont', 'countdownFont', false);
       bindSetting('settingTextSize', 'textSize', false);
       bindSetting('settingHighContrast', 'highContrast', true);
-      bindSetting('settingDailyChallenge', 'dailyChallenge', true);
       bindSetting('settingAutoFixReset', 'autoFixReset', true);
       bindSetting('settingHideCookies', 'hideCookieBanners', true);
       bindSetting('settingPullRefresh', 'pullToRefresh', true);
@@ -7798,7 +7744,6 @@
       document.getElementById('settingGoldAccents').addEventListener('change', (e) => {
         if (e.target.checked && state.settings.rubyAccents) { state.settings.rubyAccents = false; renderRubyAccentsSetting(); saveState({ sync: false }); applyThemeAndSettings(); }
       });
-      document.getElementById('settingDailyChallenge').addEventListener('change', () => renderChallenge());
       bindSetting('settingDarkPages', 'darkGamePages', true);
       document.getElementById('iconChoices').addEventListener('click', (e) => {
         const b = e.target && e.target.closest ? e.target.closest('[data-icon-style]') : null;
@@ -7898,8 +7843,7 @@
           achievements: Array.isArray(state.achievements) ? state.achievements : [],
           goldUnlocked: goldIconUnlocked(),
           goldAccentsUnlocked: goldAccentsUnlocked(),
-          rubyUnlocked: rubyUnlocked(),
-          challengeDays: Array.isArray(state.challengeDays) ? state.challengeDays : []
+          rubyUnlocked: rubyUnlocked()
         };
         const jsonStr = JSON.stringify(backupPayload, null, 2);
 
@@ -8170,10 +8114,6 @@
       document.getElementById('btnTodayResultsCopy').addEventListener('click', () => copyText(todaysCombinedText(), "Today's results copied."));
       document.getElementById('btnTodayResultsShare').addEventListener('click', () => shareText(todaysCombinedText(), "Today's Dailies"));
       document.getElementById('btnPlayAll').addEventListener('click', playAll);
-      document.getElementById('challengeCard').addEventListener('click', (e) => {
-        const b = e.target.closest('[data-challenge-play]');
-        if (b) openGameInPlayer(b.getAttribute('data-challenge-play'));
-      });
       document.getElementById('btnRestoreOneGame').addEventListener('click', startRestoreOneGame);
       document.getElementById('restoreGameList').addEventListener('click', (e) => {
         const b = e.target.closest('[data-restore-index]');

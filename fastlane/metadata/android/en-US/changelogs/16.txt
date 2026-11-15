@@ -1,0 +1,4 @@
+• Reset alerts for several games at once work again.
+• Opens straight to your hub, no blank screen.
+• Smooth swipes between tabs; the calendar no longer drops into place.
+• Daily challenge removed.

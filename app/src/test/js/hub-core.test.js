@@ -528,28 +528,19 @@ test('secret achievements: what each measures', () => {
     row('c', '2026-11-14', at(2026, 11, 14, 3, 10), 'C 4/4', 3700000),
     row('w', '2026-11-13', at(2026, 11, 13, 12, 0), 'Wordle 3/6', 1000)
   ];
-  const m = H.secretMetrics(games, logs, { challengeBest: 7 });
+  const m = H.secretMetrics(games, logs);
   assert.strictEqual(m.firstInLine, 1);
   assert.strictEqual(m.nightShift, 1);
   assert.strictEqual(m.clutch, 2);
   assert.strictEqual(m.dawnPatrol, 2);
   assert.strictEqual(m.deepDive, 7300000);
-  const s = H.computeSecrets(games, logs, { challengeBest: 7 });
-  assert.deepStrictEqual(s.filter((x) => x.earned).map((x) => x.id).sort(), ['challenger', 'deepDive', 'firstInLine', 'nightShift'].sort());
-  assert.strictEqual(H.SECRET_KEYS.length, 6);
+  const s = H.computeSecrets(games, logs);
+  assert.deepStrictEqual(s.filter((x) => x.earned).map((x) => x.id).sort(), ['deepDive', 'firstInLine', 'nightShift'].sort());
+  // Five secrets since the daily challenge (and its "Challenger" secret) was removed in 1.8.2.
+  assert.strictEqual(H.SECRET_KEYS.length, 5);
+  assert.ok(!H.SECRET_KEYS.includes('secret:challenger'));
+  assert.strictEqual(H.pickChallenge, undefined);
   // Secret keys survive the achievement-key migration (backups).
   assert.deepStrictEqual(H.migrateAchievementKeys(['secret:clutch', 'roll#1', 'bogus']), ['secret:clutch', 'roll#1']);
 });
 
-test('daily challenge: same picks all day, least-played first, streaks', () => {
-  const ids = ['a', 'b', 'c', 'd', 'e'];
-  const a = H.pickChallenge('2026-11-14', ids, { a: 0, b: 0, c: 0, d: 20, e: 25 });
-  assert.deepStrictEqual(a, H.pickChallenge('2026-11-14', ids, { a: 0, b: 0, c: 0, d: 20, e: 25 }));
-  assert.strictEqual(a.length, 3);
-  assert.ok(a.includes('d') && a.includes('e'));
-  assert.deepStrictEqual(H.pickChallenge('2026-11-14', ['a'], {}), []);
-  assert.strictEqual(H.pickChallenge('2026-11-14', ['a', 'b'], {}).length, 2);
-  assert.deepStrictEqual(H.challengeStreaks(['2026-11-12', '2026-11-13', '2026-11-14', '2026-11-01'], '2026-11-14'), { current: 3, best: 3 });
-  assert.deepStrictEqual(H.challengeStreaks(['2026-11-12', '2026-11-13'], '2026-11-14'), { current: 2, best: 2 });
-  assert.deepStrictEqual(H.challengeStreaks(['2026-11-10'], '2026-11-14'), { current: 0, best: 1 });
-});

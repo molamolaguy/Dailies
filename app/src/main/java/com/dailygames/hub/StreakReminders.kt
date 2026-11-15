@@ -138,7 +138,8 @@ object StreakReminders {
     private const val KEY_LEAD = "lead_minutes"
     private const val REMINDED_PREFIX = "reminded_"
     private const val REQUEST_CODE = 4102
-    private const val NOTIFICATION_ID = 0x0DA1E6
+    /** Its own id: 0x0DA1E6 is the combined reset alert ([Notifier.COMBINED_ID]), which [schedule] used to clear. */
+    const val NOTIFICATION_ID = 0x0DA1E8
     const val ACTION = "com.dailygames.hub.action.STREAK_REMINDER"
 
     fun leadMinutes(ctx: Context): Int = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_LEAD, 0)
