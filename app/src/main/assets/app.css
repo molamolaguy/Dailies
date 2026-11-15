@@ -1663,7 +1663,17 @@ html[data-theme="light"] #viewDashboard > .hub-sticky { box-shadow: 0 8px 12px -
 .app-toast { touch-action: none; will-change: transform; }
 /* Smoothness (1.6.2): cards off screen aren't laid out or painted until they scroll into view
    (their last size is remembered, so the page height and scroll position stay put). */
-#viewStats > .glass-card, #viewSettings > .glass-card { content-visibility: auto; contain-intrinsic-size: auto 520px; }
+/* Tab pages (1.8.2). The pages off screen stay laid out, clipped to no height, instead of display: none,
+   so a swipe never has to style and lay a whole page out as the finger starts moving (that, and the
+   cards' old content-visibility: auto rendering them mid-slide, was the stutter). They are inert and
+   aria-hidden while off screen (see switchNavigation). The scaffold clips sideways for good, so a page
+   slid off to the side never widens the document. */
+#m3Scaffold { position: relative; overflow-x: clip; }
+.tab-page.hidden {
+  display: block !important; position: absolute !important; top: 0;
+  left: max(1rem, env(safe-area-inset-left, 0px)); right: max(1rem, env(safe-area-inset-right, 0px));
+  margin: 0 !important; height: 0; overflow: clip; pointer-events: none;
+}
 
 
 /* ==========================================================================

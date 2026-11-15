@@ -143,7 +143,7 @@
   <main id="m3Scaffold" class="m3-scaffold max-w-3xl mx-auto space-y-4">
 
     <!-- View 1: MINIMALISTIC DAILY HUB -->
-    <section id="viewDashboard" class="space-y-4">
+    <section id="viewDashboard" class="tab-page space-y-4" aria-hidden="false">
       <!-- Minimal Status & Filter / Add Bar -->
       <div class="hub-sticky flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="hub-header-row flex items-center gap-2.5 text-xs text-slate-400">
@@ -252,7 +252,7 @@
     </section>
 
     <!-- View 2: STREAKS & LOG (MONTHLY CALENDAR + DAILY COMPLETION & SCORE HISTORY) -->
-    <section id="viewStats" class="hidden space-y-4">
+    <section id="viewStats" class="tab-page hidden space-y-4" aria-hidden="true" inert>
       <!-- Monthly Game Completion & Missed Calendar -->
       <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-4">
         <div class="space-y-2.5 border-b border-slate-800 pb-3.5">
@@ -363,7 +363,7 @@
     </section>
 
     <!-- View 3: SETTINGS & REFRESH ALERTS TAB -->
-    <section id="viewSettings" class="hidden space-y-4">
+    <section id="viewSettings" class="tab-page hidden space-y-4" aria-hidden="true" inert>
       <!-- 1. Display Settings -->
       <div data-fold="display" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
@@ -3718,6 +3718,8 @@
         if (Pager.neighbour) return;
         // Switching to Streaks & Log shows the current month anyway, which is what this draws.
         if (activeTab !== 'stats' && statsRenderKey() !== statsRenderedKey) prepareTab('stats');
+        // The hub's cards too, so swiping back to it never redraws them as the finger starts moving.
+        if (activeTab !== 'dashboard' && dashboardRenderKey() !== dashboardRenderedKey) renderGamesGrid();
       }, 1500), 400);
     }
 
@@ -6368,9 +6370,9 @@
         if (this.neighbour && this.neighbour.tab === tab) { this.neighbour.dir = dir; return this.neighbour; }
         this.detach();
         prepareTab(tab);
-        const scaffold = document.getElementById('m3Scaffold');
-        // Pages slid off to the side mustn't widen the page (WebView would zoom out to fit them).
-        if (scaffold) { scaffold.style.position = 'relative'; scaffold.style.overflowX = 'clip'; }
+        // (#m3Scaffold is position: relative with overflow-x: clip in app.css, so pages slid off to the
+        // side never widen the page. It used to be switched on here and off after each slide, and each
+        // switch laid all three pages out again: a long frame as the finger started moving.)
         // The new page keeps the same relative scroll position (e.g. 80% of the way down), so it
         // comes in already at the spot it will stay at once it's the current page.
         // Every measurement of the current page is read before the new one is shown, so the browser
@@ -6386,12 +6388,13 @@
         const box = { left: cur.offsetLeft, top: cur.offsetTop - collapsed, width: cur.offsetWidth, height: cur.offsetHeight };
         const scrollY = Math.max(0, window.scrollY);
         const w = this.width();
-        el.classList.remove('hidden');
-        el.style.cssText = `position:absolute;left:${box.left}px;top:0;width:${box.width}px;margin:0;visibility:hidden;transition:none`;
-        const newMax = Math.max(0, docH - box.height + el.offsetHeight - window.innerHeight);
+        // Pages off screen stay laid out (clipped to no height, see .tab-page in app.css), so the new
+        // page's height is known without showing it first.
+        const newMax = Math.max(0, docH - box.height + el.scrollHeight - window.innerHeight);
         const scroll = Math.round(frac * newMax);
         const top = box.top + scrollY - scroll;
         el.style.cssText = `position:absolute;left:${box.left}px;top:${top}px;width:${box.width}px;margin:0;will-change:transform;pointer-events:none;transition:none;transform:translate3d(${dir * w}px,0,0)`;
+        el.classList.remove('hidden');
         cur.style.willChange = 'transform';
         this.neighbour = { tab, el, dir, scroll };
         return this.neighbour;
@@ -6440,8 +6443,6 @@
           } else {
             this.detach();
           }
-          const scaffold = document.getElementById('m3Scaffold');
-          if (scaffold) { scaffold.style.position = ''; scaffold.style.overflowX = ''; }
           tabAnimating = false;
         };
         setTimeout(finish, ms + 30);
@@ -6512,7 +6513,12 @@
       };
       Object.keys(views).forEach((k) => {
         if (views[k]) {
-          views[k].classList.toggle('hidden', k !== normalized);
+          const off = k !== normalized;
+          views[k].classList.toggle('hidden', off);
+          // Pages off screen are only clipped (they stay laid out for smooth swipes): keep them out of
+          // reach of taps, the keyboard and screen readers.
+          if (views[k].inert !== off) views[k].inert = off;
+          views[k].setAttribute('aria-hidden', off ? 'true' : 'false');
         }
       });
 
@@ -6529,6 +6535,8 @@
 
       NavIndicator.place(normalized);
       if (!(anim && anim.prepared)) prepareTab(normalized);
+      // Bring the page just left up to date while idle (e.g. the hub's cards after an hour ticks over).
+      if (previous !== normalized) queueTabPrerender();
       if (previous !== normalized) {
         if (anim && typeof anim.scroll === 'number') jumpScroll(anim.scroll);
         else jumpScroll(frac * Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
