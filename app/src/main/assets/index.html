@@ -1327,7 +1327,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.3';
+    const APP_VERSION = '1.8.4';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -3716,8 +3716,18 @@
     // start open (data-fold-default="open"), Achievements folded; a choice lasts until the app closes.
     const foldState = new Map();
     // ---- Smoothness (1.6.2): work that can wait runs when the phone is idle ----
-    const whenIdle = (fn, timeout) => (window.requestIdleCallback
-      ? window.requestIdleCallback(fn, { timeout: timeout || 800 }) : setTimeout(fn, 60));
+    // 1.8.4: work that can wait never runs while a finger is on the screen or a page is sliding. The
+    // gaps between touch moves count as "idle", so startup jobs used to land in the first swipe.
+    let touchActiveUntil = 0;
+    const interactionBusy = () => performance.now() < touchActiveUntil || tabAnimating || Boolean(Pager.neighbour);
+    const whenIdle = (fn, timeout) => {
+      const run = (deadline) => {
+        if (interactionBusy()) { setTimeout(() => whenIdle(fn, timeout), 250); return; }
+        fn(deadline);
+      };
+      return window.requestIdleCallback ? window.requestIdleCallback(run, { timeout: timeout || 800 }) : setTimeout(run, 60);
+    };
+    ['touchstart', 'touchmove', 'pointerdown'].forEach((t) => window.addEventListener(t, () => { touchActiveUntil = performance.now() + 450; }, { passive: true, capture: true }));
     const foldDirty = new Map();
     /** Renders a folded card's contents now if it's open, else when idle (and again when it opens). */
     function renderWhenShown(fold, fn) {
@@ -3729,6 +3739,23 @@
     }
     /** After a change, redraws the tabs that aren't on screen while idle, so switching to them is instant. */
     let prerenderQueued = false;
+    /** Parks the current page's neighbours (drawing those not drawn yet or changed since) and un-parks the rest. */
+    function parkNeighbours() {
+      if (REDUCED_MOTION || Pager.neighbour || tabAnimating) return;
+      const at = TAB_ORDER.indexOf(activeTab);
+      TAB_ORDER.forEach((tab, i) => {
+        const el = document.getElementById(TAB_VIEW_IDS[tab]);
+        if (!el || tab === activeTab) return;
+        if (Math.abs(i - at) === 1) {
+          const draw = !el.classList.contains('parked') || el.dataset.redraw === '1';
+          el.dataset.redraw = '';
+          Pager.park(tab, draw);
+        } else if (el.classList.contains('parked')) {
+          Pager.unpark(el);
+        }
+      });
+    }
+
     function queueTabPrerender() {
       if (prerenderQueued) return;
       prerenderQueued = true;
@@ -3737,11 +3764,14 @@
         // Not during a swipe between tabs (the neighbouring page is already drawn then).
         if (Pager.neighbour) return;
         // Switching to Streaks & Log shows the current month anyway, which is what this draws.
-        if (activeTab !== 'stats' && statsRenderKey() !== statsRenderedKey) prepareTab('stats');
+        const redraw = (tab) => { const el = document.getElementById(TAB_VIEW_IDS[tab]); if (el) el.dataset.redraw = '1'; };
+        if (activeTab !== 'stats' && statsRenderKey() !== statsRenderedKey) { prepareTab('stats'); redraw('stats'); }
         // The hub's cards too, so swiping back to it never redraws them as the finger starts moving.
-        if (activeTab !== 'dashboard' && dashboardRenderKey() !== dashboardRenderedKey) renderGamesGrid();
+        if (activeTab !== 'dashboard' && dashboardRenderKey() !== dashboardRenderedKey) { renderGamesGrid(); redraw('dashboard'); }
         // And Settings.
-        if (activeTab !== 'settings' && settingsRenderKey() !== settingsRenderedKey) prepareTab('settings');
+        if (activeTab !== 'settings' && settingsRenderKey() !== settingsRenderedKey) { prepareTab('settings'); redraw('settings'); }
+        // Then get the neighbouring pages drawn and waiting beside the screen (1.8.4).
+        parkNeighbours();
       }, 1500), 400);
     }
 
@@ -4247,6 +4277,9 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.4': [
+        ['👆', 'Smoother swipes', 'Swiping to Settings no longer stutters with Glass cards, and the first swipe to a page after opening the app is smooth too.']
+      ],
       '1.8.3': [
         ['🔎', 'Smarter game adding', 'Pasting a link now reads the game\'s page as it really looks, for a better name, a short how-to-play description and its reset time.'],
         ['🎯', 'Finds more results', 'Dailies now opens a game\'s "See results" screen to find its Share button, reads results shared by link, and offers a result shown on screen.'],
@@ -6326,7 +6359,12 @@
       },
       place(tab) { this.set(tab, tab, 0); }
     };
-    window.addEventListener('resize', () => NavIndicator.place(activeTab));
+    window.addEventListener('resize', () => {
+      NavIndicator.place(activeTab);
+      // Parked pages sit at the old width: park them again at the new one.
+      document.querySelectorAll('.tab-page.parked').forEach((el) => { el.dataset.redraw = '1'; });
+      if (typeof parkNeighbours === 'function') whenIdle(parkNeighbours, 1500);
+    });
 
     const Pager = {
       neighbour: null, // { tab, el, dir }
@@ -6371,7 +6409,42 @@
       detach() {
         const n = this.neighbour;
         this.neighbour = null;
-        if (n && n.tab !== activeTab) { n.el.classList.add('hidden'); n.el.style.cssText = ''; }
+        if (!n || n.tab === activeTab) return;
+        // A cancelled swipe: a parked page goes back beside the screen (keeping what's drawn).
+        if (n.el.classList.contains('parked')) { this.park(n.tab, false); return; }
+        n.el.classList.add('hidden'); n.el.style.cssText = '';
+      },
+      /**
+       * Parking (1.8.4): the pages next to the current one wait beside the screen, laid out and already
+       * drawn, so a swipe to them has nothing left to draw (the first swipe to a page used to stutter
+       * while it was drawn for the first time). #m3Scaffold clips them, so they never lengthen or widen
+       * the page. With `draw`, the page is first shown for a moment at 0.4% opacity, so the browser
+       * draws it (it doesn't draw what's off screen), then moved aside.
+       */
+      park(tab, draw) {
+        const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
+        const el = document.getElementById(TAB_VIEW_IDS[tab]);
+        if (!cur || !el || el === cur || REDUCED_MOTION) return;
+        const firstChild = cur.firstElementChild;
+        const collapsed = firstChild ? parseFloat(getComputedStyle(firstChild).marginTop) || 0 : 0;
+        const top = cur.offsetTop - collapsed;
+        const base = `position:absolute;left:${cur.offsetLeft}px;width:${cur.offsetWidth}px;margin:0;will-change:transform;pointer-events:none;transition:none;`;
+        const dir = TAB_ORDER.indexOf(tab) > TAB_ORDER.indexOf(activeTab) ? 1 : -1;
+        const aside = `${base}top:${top}px;transform:translate3d(${dir * this.width()}px,0,0)`;
+        el.classList.add('parked');
+        if (!draw) { el.style.cssText = aside; return; }
+        // On screen where it would be at this scroll position, nearly invisible, for a few frames.
+        el.style.cssText = `${base}top:${top + Math.max(0, window.scrollY)}px;opacity:0.004;transform:translate3d(0,0,0)`;
+        const token = (el.__parkToken = (el.__parkToken || 0) + 1);
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => {
+          if (el.__parkToken !== token || !el.classList.contains('parked') || (this.neighbour && this.neighbour.el === el)) return;
+          el.style.cssText = aside;
+        }, 250)));
+      },
+      unpark(el) {
+        el.__parkToken = (el.__parkToken || 0) + 1;
+        el.classList.remove('parked');
+        el.style.cssText = '';
       },
       /** Places both pages for a finger offset of `dx` px (no animation). */
       follow(dx) {
@@ -6498,6 +6571,7 @@
         if (views[k]) {
           const off = k !== normalized;
           views[k].classList.toggle('hidden', off);
+          if (!off && views[k].classList.contains('parked')) { views[k].classList.remove('parked'); views[k].__parkToken = (views[k].__parkToken || 0) + 1; }
           // Pages off screen are only clipped (they stay laid out for smooth swipes): keep them out of
           // reach of taps, the keyboard and screen readers.
           if (views[k].inert !== off) views[k].inert = off;
@@ -6518,6 +6592,9 @@
 
       NavIndicator.place(normalized);
       if (!(anim && anim.prepared)) prepareTab(normalized);
+      // The page just left is drawn already: if it's next to the new one, it waits beside the screen.
+      if (previous !== normalized && views[previous] && Math.abs(TAB_ORDER.indexOf(previous) - TAB_ORDER.indexOf(normalized)) === 1) Pager.park(previous, false);
+      whenIdle(parkNeighbours, 1500);
       // Bring the page just left up to date while idle (e.g. the hub's cards after an hour ticks over).
       if (previous !== normalized) queueTabPrerender();
       if (previous !== normalized) {
@@ -7448,6 +7525,8 @@
       whenIdle(() => checkNewAchievements(true), 2000);
       if (pruneTrash()) saveState({ sync: false });
       maybeShowWhatsNew();
+      // Draw Streaks & Log and Settings ahead while idle, so the first swipe to them doesn't (1.8.4).
+      queueTabPrerender();
       setTimeout(() => whenIdle(checkAllResetSuggestions, 3000), 2500);
       // Opt-in daily update check (Settings → About).
       if (state.settings && state.settings.updateCheck && Date.now() - (Number(state.settings.lastUpdateCheckAt) || 0) > 20 * 3600 * 1000) {

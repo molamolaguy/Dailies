@@ -1,0 +1,2 @@
+• No stutter swiping to Settings with Glass cards.
+• Smooth first swipe to each page after opening the app.
