@@ -2635,7 +2635,7 @@
       const statusBadge = document.getElementById('scrapeStatusBadge');
       const btn = document.getElementById('btnAutoDetectMeta');
       if (statusBadge) {
-        statusBadge.textContent = 'Scraping website…';
+        statusBadge.textContent = 'Reading the game\'s page…';
         statusBadge.classList.remove('hidden');
       }
       if (btn) {
@@ -2651,12 +2651,13 @@
           const res = await new Promise((resolve) => {
             pendingScrapeResolvers.set(reqId, resolve);
             window.AndroidBridge.scrapeWebsite(reqId, cleaned);
+            // The page is also rendered with its scripts run (1.8.3), which can take a few seconds more.
             setTimeout(() => {
               if (pendingScrapeResolvers.has(reqId)) {
                 pendingScrapeResolvers.delete(reqId);
                 resolve({ ok: false, requestId: reqId });
               }
-            }, 12000);
+            }, 24000);
           });
 
           if (res && res.parsed) {

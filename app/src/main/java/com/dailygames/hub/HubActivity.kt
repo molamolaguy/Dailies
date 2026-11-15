@@ -1287,7 +1287,29 @@ class HubActivity : ComponentActivity() {
         fun scrapeWebsite(requestId: Int, rawUrl: String) {
             try {
                 scrapeExecutor.execute {
-                    val res = WebsiteScraper.fetchAndScrape(rawUrl)
+                    // 1.8.3: also render the page with its scripts run (single-page apps carry almost
+                    // nothing in their plain HTML), in parallel with the plain fetch. Only for a public
+                    // host, the same check the plain fetch makes.
+                    val url = WebsiteScraper.normalizeUrl(rawUrl)
+                    val target = runCatching { java.net.URI(url) }.getOrNull()
+                    val web = target?.scheme?.lowercase(Locale.US).let { it == "http" || it == "https" }
+                    val renderDone = java.util.concurrent.CountDownLatch(1)
+                    var renderedJson: JSONObject? = null
+                    if (web && SafeHttp.isPublicHost(target?.host)) {
+                        runOnUiThread {
+                            if (isFinishing || isDestroyed) { renderDone.countDown(); return@runOnUiThread }
+                            PageRenderer(scaffoldRoot).render(url, RENDER_TIMEOUT_MS) { json ->
+                                renderedJson = json
+                                renderDone.countDown()
+                            }
+                        }
+                    } else {
+                        renderDone.countDown()
+                    }
+                    val res = WebsiteScraper.fetchAndScrape(rawUrl) {
+                        runCatching { renderDone.await(RENDER_TIMEOUT_MS + 2_500, java.util.concurrent.TimeUnit.MILLISECONDS) }
+                        renderedJson
+                    }
                     res.put("requestId", requestId)
                     val payload = res.toString()
                     runOnUiThread {
@@ -1314,6 +1336,8 @@ class HubActivity : ComponentActivity() {
         }
 
         private const val ASSET_PREFIX = "file:///android_asset/"
+        /** Longest a pasted link's page is rendered for (PageRenderer). */
+        private const val RENDER_TIMEOUT_MS = 8_000L
         /** Longest the launch screen waits for the hub to draw before showing it anyway. */
         private const val MAX_LAUNCH_HOLD_MS = 3000L
         private const val MAX_IMPORT_BYTES = 50 * 1024 * 1024
