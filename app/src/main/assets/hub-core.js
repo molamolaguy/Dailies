@@ -1383,6 +1383,80 @@
       || /^(fastest time|most points|fewest [a-z]+)$/i.test(t);
   }
 
+  /**
+   * Checking game pages for changes (1.8.5): what a background pass found, compared with the games.
+   * results: [{ id, url, finalUrl, parsed: { name, description, faviconUrl, resetTime, resetZone, timeFound,
+   * zoneFound, metricType, par, category } }]. Only changes worth asking about are returned, and nothing
+   * the user already said no to (declined: { [gameId]: { [field]: value } }):
+   *  - name and description when the page's differ (ignoring case and spacing);
+   *  - the icon when the game uses its site's icon (not an emoji or one of its own) and the site's changed;
+   *  - the reset time / time zone only when the page states them;
+   *  - the score type only while the game still has the "Daily Puzzle" placeholder (not one learned or typed);
+   *  - the category only while the game is "Custom Daily";
+   *  - the link when the site moved to another address (a different host).
+   * Games in the built-in list are left alone (their details are checked by hand).
+   * opts: { isKnown(url), category(nativeCategory) }. Returns [{ id, name, changes: [{ field, from, to }] }].
+   */
+  /** How a suggested value is remembered once declined (so the same suggestion isn't made again). */
+  function recheckKey(value) {
+    return value && typeof value === 'object' ? JSON.stringify(value) : String(value == null ? '' : value).replace(/\s+/g, ' ').trim();
+  }
+  function recheckChanges(games, results, opts) {
+    const o = opts || {};
+    const declined = o.declined || {};
+    const byId = new Map((Array.isArray(games) ? games : []).filter((g) => g && g.id).map((g) => [g.id, g]));
+    const norm = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+    const same = (a, b) => norm(a).toLowerCase() === norm(b).toLowerCase();
+    const isWeb = (u) => /^https?:\/\//i.test(String(u || ''));
+    const host = (u) => { try { return new URL(u).hostname.replace(/^www\./i, '').toLowerCase(); } catch (e) { return ''; } };
+    const hostName = (u) => host(u).split('.')[0].split(/[-_]/).filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+    const out = [];
+    const seen = new Set();
+    (Array.isArray(results) ? results : []).forEach((r) => {
+      const g = r && byId.get(r.id);
+      const p = r && r.parsed;
+      if (!g || !p || seen.has(g.id) || g.archived) return;
+      // The page must still be the game's (the link wasn't changed since the pass).
+      if (r.url && norm(r.url) !== norm(g.url)) return;
+      if (typeof o.isKnown === 'function' && o.isKnown(g.url)) return;
+      seen.add(g.id);
+      const no = declined[g.id] || {};
+      const changes = [];
+      const add = (field, from, to) => {
+        if (no[field] === recheckKey(to)) return;
+        changes.push({ field, from, to });
+      };
+      // A name made up from the address (the page had no title) is no news.
+      const name = norm(p.name);
+      if (name && name.length <= 60 && !same(name, g.name) && !same(name, hostName(r.finalUrl || g.url))) add('name', g.name || '', name);
+      const desc = norm(p.description);
+      if (desc && desc.length >= 12 && !same(desc, g.desc)) add('desc', g.desc || '', desc);
+      const icon = String(p.faviconUrl || '').trim();
+      if (isWeb(icon) && isWeb(g.icon) && icon !== g.icon && !/^https?:\/\/(www\.)?google\.com\/s2\/favicons/i.test(icon)) add('icon', g.icon, icon);
+      if (p.timeFound) {
+        const time = sanitizeResetTime(p.resetTime);
+        const zone = p.zoneFound ? normalizeZone(p.resetZone) : normalizeZone(g.resetZone);
+        if (time !== sanitizeResetTime(g.resetTime) || zone !== normalizeZone(g.resetZone)) {
+          add('reset', { time: sanitizeResetTime(g.resetTime), zone: normalizeZone(g.resetZone) }, { time, zone });
+        }
+      }
+      // Only over the placeholder: a format learned from results (1.8.3) or typed in knows better.
+      if (p.metricType && Number(p.par) > 0 && (!norm(g.maxTries) || /^daily puzzle$/i.test(norm(g.maxTries)))) {
+        const par = Number(p.par);
+        const fmt = p.metricType === 'tries' ? `${par} guesses` : (p.metricType === 'time' ? `${par}s target` : `${par} pts`);
+        if (!same(fmt, g.maxTries)) add('maxTries', g.maxTries || '', fmt);
+      }
+      if (p.category && typeof o.category === 'function' && (g.category || 'Custom Daily') === 'Custom Daily') {
+        const cat = o.category(p.category);
+        if (cat && cat !== 'Custom Daily') add('category', g.category || 'Custom Daily', cat);
+      }
+      const moved = String(r.finalUrl || '').trim();
+      if (isWeb(moved) && host(moved) && host(g.url) && host(moved) !== host(g.url)) add('url', g.url, moved);
+      if (changes.length) out.push({ id: g.id, name: g.name || hostName(g.url) || 'Game', changes });
+    });
+    return out;
+  }
+
   function toughDays(rows) {
     const out = new Map();
     const vals = (Array.isArray(rows) ? rows : [])
@@ -1446,7 +1520,7 @@
 
   /**
    * Today's results as one message: a heading ("Dailies · Fri 13 Nov — 5/7 solved"), then each game's
-   * result (its name added when the text doesn't say it), then missed games. entries:
+   * result (its name added when the text doesn't say it), then missed games, with a spacer line between them. entries:
    * [{ name, url, outcome: 'completed'|'missed', text }]. opts: { dateLabel, total, grids (default true) }.
    */
   function combinedShareText(entries, opts) {
@@ -1476,8 +1550,10 @@
       blocks.push(text);
     });
     if (missedNames.length) blocks.push(`❌ ${missedNames.join(', ')}`);
-    return [head].concat(blocks).join('\n\n');
+    // 1.8.5: a spacer line between games, so where one result ends and the next starts is clear.
+    return head + '\n\n' + blocks.join(`\n\n${RESULTS_SPACER}\n\n`);
   }
+  const RESULTS_SPACER = '───────────';
 
   // ---- Colour themes: Material-style tones from one seed colour (OKLCH, kept inside sRGB) ----
   const THEME_PRESETS = { ocean: '#1E88C8', forest: '#2E8B57', sunset: '#F06A3C', rose: '#D9467A' };
@@ -1572,6 +1648,8 @@
     toughDays,
     learnScoreFormat,
     isGenericScoreFormat,
+    recheckChanges,
+    recheckKey,
     sortGames,
     isGridLine,
     combinedShareText,

@@ -434,6 +434,18 @@
             </select>
           </div>
 
+          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <p class="font-bold text-white">Bottom Bar See-Through</p>
+                <p class="text-[11px] text-slate-400">How much of the page shows through the navigation bar</p>
+              </div>
+              <span id="settingNavTransparencyValue" class="range-value" aria-hidden="true">75%</span>
+            </div>
+            <input id="settingNavTransparency" type="range" min="0" max="100" step="5" value="75" class="set-range" aria-label="Bottom bar see-through, percent" />
+            <div class="range-ends" aria-hidden="true"><span>Solid</span><span>Clear</span></div>
+          </div>
+
           <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
             <div>
               <p class="font-bold text-white">Countdown Font</p>
@@ -537,6 +549,20 @@
             </div>
             <input id="settingAutoScrape" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
+
+          <div class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+            <label class="flex items-center justify-between gap-3 cursor-pointer">
+              <div>
+                <p class="font-bold text-white">Check Game Pages for Changes</p>
+                <p class="text-[11px] text-slate-400">Once a week on Wi-Fi, each game's page is read again. Nothing changes until you say so: the next time you open Dailies, it shows what's new.</p>
+              </div>
+              <input id="settingRecheckGames" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+            <div class="flex items-center gap-2">
+              <button id="btnRecheckNow" type="button" class="recap-btn">Check now</button>
+              <span id="recheckStatus" class="text-[11px] text-slate-400" aria-live="polite"></span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -997,6 +1023,25 @@
   </div>
 
   <!-- 1.8.0: what's new, shown once after an update -->
+  <!-- 1.8.5: changes found on the games' pages, to accept or skip -->
+  <div id="modalRecheck" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="recheckTitle">
+    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="recheckTitle" class="text-base font-bold text-white">Updates from game pages</h3>
+          <p id="recheckSub" class="text-xs text-slate-400"></p>
+        </div>
+        <button type="button" data-close-modal="modalRecheck" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div id="recheckList" class="recheck-list"></div>
+      <p class="text-[11px] text-slate-500">Untick anything you'd rather keep. What you skip isn't suggested again.</p>
+      <div class="flex justify-end gap-2">
+        <button id="btnRecheckSkip" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Keep mine</button>
+        <button id="btnRecheckApply" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg">Update</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modalWhatsNew" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="whatsNewTitle">
     <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
       <div class="flex items-center justify-between gap-3">
@@ -1327,7 +1372,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.4';
+    const APP_VERSION = '1.8.5';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -1374,6 +1419,22 @@
       document.documentElement.style.zoom = pct === 100 ? '' : String(pct / 100);
     }
 
+    /** 0-100: how see-through the bottom bar is (1.8.5; 75 by default, it used to be a fixed 60). */
+    function navTransparencyValue(v) {
+      const n = Math.round(Number(v));
+      return Number.isFinite(n) && v !== '' && v !== null && v !== undefined ? Math.max(0, Math.min(100, n)) : 75;
+    }
+    function applyNavTransparency(v) {
+      document.documentElement.style.setProperty('--nav-alpha', `${100 - navTransparencyValue(v)}%`);
+    }
+    function setNavTransparencyControl(v) {
+      const n = navTransparencyValue(v);
+      const el = document.getElementById('settingNavTransparency');
+      if (el && Number(el.value) !== n) el.value = String(n);
+      if (el) el.style.setProperty('--fill', `${n}%`);
+      const out = document.getElementById('settingNavTransparencyValue');
+      if (out) out.textContent = `${n}%`;
+    }
     function getDefaultSettings() {
       return {
         dynamicWallpaper: true,
@@ -1402,6 +1463,8 @@
         rubyAccents: false,
         countdownFont: 'mono',
         cardStyle: 'filled',
+        navTransparency: 75,
+        recheckGames: false,
         textSize: 'normal',
         highContrast: false,
         customIcon: { star: '#F2C94C', bg: '#1E1B4B' },
@@ -1703,8 +1766,23 @@
         // Trash (1.8.0): removed games and forgotten history for 30 days. Also only on this phone.
         trash: Array.isArray(parsed.trash) ? parsed.trash.filter((t) => t && typeof t === 'object' && typeof t.id === 'string' && Number(t.at) > 0).slice(0, 100) : [],
         lastSeenVersion: typeof parsed.lastSeenVersion === 'string' ? parsed.lastSeenVersion.slice(0, 20) : '',
+        // Updates from game pages the user said no to (1.8.5): { gameId: { field: value } }. On this phone only.
+        recheckDeclined: normalizeRecheckDeclined(parsed.recheckDeclined),
         __loadedFrom: source
       };
+    }
+
+    function normalizeRecheckDeclined(v) {
+      const out = {};
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return out;
+      Object.keys(v).slice(0, 500).forEach((id) => {
+        const f = v[id];
+        if (!f || typeof f !== 'object' || Array.isArray(f)) return;
+        const keep = {};
+        ['name', 'desc', 'icon', 'reset', 'maxTries', 'category', 'url'].forEach((k) => { if (typeof f[k] === 'string') keep[k] = f[k].slice(0, 2000); });
+        if (Object.keys(keep).length) out[id] = keep;
+      });
+      return out;
     }
 
     function loadState() {
@@ -1775,6 +1853,7 @@
           const s = state.settings || {};
           window.AndroidBridge.setGamePrefs(s.blockAdsInGames !== false, s.autoLogFromShare !== false);
           if (typeof window.AndroidBridge.setPreloadGames === 'function') window.AndroidBridge.setPreloadGames(s.preloadGames !== false);
+          if (typeof window.AndroidBridge.setRecheckGames === 'function') window.AndroidBridge.setRecheckGames(s.recheckGames === true);
           if (typeof window.AndroidBridge.setPlayerPrefs === 'function') window.AndroidBridge.setPlayerPrefs(s.hideCookieBanners !== false, s.pullToRefresh !== false);
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setFindResults === 'function') {
@@ -1789,7 +1868,12 @@
     // Bumped on every change to the saved state, so a tab knows when its render is out of date.
     let stateRev = 0;
     function saveState(opts) {
+      // `keeps: ['dashboard']`: a change the hub doesn't show (an achievement, the last version seen), so
+      // its drawing stays up to date. (1.8.5: the startup saves made the first swipe away from the hub
+      // redraw it, and draw it again beside the screen, just as Streaks & Log landed.)
+      const hubWasCurrent = opts && opts.keeps && opts.keeps.includes('dashboard') && typeof dashboardRenderKey === 'function' && dashboardRenderedKey === dashboardRenderKey();
       stateRev += 1;
+      if (hubWasCurrent) dashboardRenderedKey = dashboardRenderKey();
       queueTabPrerender();
       if (!opts || opts.sync !== false) syncWanted = true;
       if (opts && opts.syncNow) syncWanted = 'now';
@@ -2075,6 +2159,7 @@
       root.setAttribute('data-cards', ['glass', 'outline'].includes(s.cardStyle) ? s.cardStyle : 'filled');
       root.setAttribute('data-cdfont', ['sans', 'serif'].includes(s.countdownFont) ? s.countdownFont : 'mono');
       root.setAttribute('data-contrast', s.highContrast ? 'high' : 'normal');
+      applyNavTransparency(s.navTransparency);
       applyTextSize(s.textSize);
       if (ruby) {
         const r = light
@@ -3728,6 +3813,10 @@
       return window.requestIdleCallback ? window.requestIdleCallback(run, { timeout: timeout || 800 }) : setTimeout(run, 60);
     };
     ['touchstart', 'touchmove', 'pointerdown'].forEach((t) => window.addEventListener(t, () => { touchActiveUntil = performance.now() + 450; }, { passive: true, capture: true }));
+    // 1.8.5: a page being drawn ahead (shown at 0.4% opacity for a moment) is moved aside the moment a
+    // finger lands. The screen's next frames waited for that drawing, so a swipe or the hub's stretch
+    // right after the app opened looked choppy for a second or two. It's drawn again when idle.
+    window.addEventListener('touchstart', () => { if (typeof Pager !== 'undefined') Pager.stopDrawing(); }, { passive: true, capture: true });
     const foldDirty = new Map();
     /** Renders a folded card's contents now if it's open, else when idle (and again when it opens). */
     function renderWhenShown(fold, fn) {
@@ -3739,22 +3828,27 @@
     }
     /** After a change, redraws the tabs that aren't on screen while idle, so switching to them is instant. */
     let prerenderQueued = false;
-    /** Parks the current page's neighbours (drawing those not drawn yet or changed since) and un-parks the rest. */
+    /**
+     * Parks every page but the current one beside the screen, drawing those not drawn yet or changed since.
+     * 1.8.5: all of them, not only the neighbours. Settings used to be drawn for the first time right after
+     * landing on Streaks & Log, just when the next swipe (to Settings) was likely to start.
+     * One page is drawn at a time, the neighbours first.
+     */
     function parkNeighbours() {
       if (REDUCED_MOTION || Pager.neighbour || tabAnimating) return;
       const at = TAB_ORDER.indexOf(activeTab);
-      TAB_ORDER.forEach((tab, i) => {
+      const others = TAB_ORDER.filter((tab) => tab !== activeTab).sort((a, b) => Math.abs(TAB_ORDER.indexOf(a) - at) - Math.abs(TAB_ORDER.indexOf(b) - at));
+      for (const tab of others) {
         const el = document.getElementById(TAB_VIEW_IDS[tab]);
-        if (!el || tab === activeTab) return;
-        if (Math.abs(i - at) === 1) {
-          const draw = !el.classList.contains('parked') || el.dataset.redraw === '1';
-          el.dataset.redraw = '';
-          Pager.park(tab, draw);
-        } else if (el.classList.contains('parked')) {
-          Pager.unpark(el);
-        }
-      });
+        if (!el) continue;
+        const draw = !el.classList.contains('parked') || el.dataset.redraw === '1';
+        if (draw && Pager.drawing) { whenIdle(parkNeighbours, 1500); return; } // after the one being drawn
+        el.dataset.redraw = '';
+        Pager.park(tab, draw);
+      }
     }
+    /** Parks the pages after a page change, once the landing has settled (not in the frames right after). */
+    function parkSoon() { setTimeout(() => whenIdle(parkNeighbours, 1500), 700); }
 
     function queueTabPrerender() {
       if (prerenderQueued) return;
@@ -4277,6 +4371,12 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.5': [
+        ['🔄', 'Game pages checked for changes', 'Turn on Settings → Check Game Pages for Changes, and each week Dailies reads your games\' pages again on Wi-Fi. When something changed (a name, description, icon, reset time or a new address), it shows you what and asks first.'],
+        ['🧭', 'See-through bottom bar', 'The bottom bar is more see-through, and you can set exactly how much in Settings → Bottom Bar See-Through.'],
+        ['📋', 'Tidier copied results', 'Copying or sharing all of today\'s results puts a line between each game.'],
+        ['👆', 'Smoother still', 'No more stutter the first time you swipe to Settings, or when stretching the hub sideways right after opening the app. The recaps have more room, and the gold and ruby glow sits evenly around buttons.']
+      ],
       '1.8.4': [
         ['👆', 'Smoother swipes', 'Swiping to Settings no longer stutters with Glass cards, and the first swipe to a page after opening the app is smooth too.']
       ],
@@ -4329,7 +4429,7 @@
       // A brand-new install has nothing to compare against; someone updating from 1.7.x has games or history.
       const updating = seen ? versionBefore(seen, APP_VERSION) : (state.games.length > 0 || state.historyLogs.length > 0);
       state.lastSeenVersion = APP_VERSION;
-      saveState({ sync: false });
+      saveState({ sync: false, keeps: ['dashboard'] });
       if (!updating || !WHATS_NEW[APP_VERSION]) return;
       setTimeout(() => { if (!isAnyModalOpen()) openWhatsNew(); }, 1200);
     }
@@ -5221,6 +5321,149 @@
       return all;
     }
 
+    // ---- Checking game pages for changes (1.8.5, Android) ----
+    // A weekly background pass (GameRecheck.kt) reads each game's page again and keeps what it found.
+    // Here it's compared with the games, and anything worth changing is shown to accept or skip.
+    let recheckShown = [];
+    const RECHECK_LABELS = { name: 'Name', desc: 'Description', icon: 'Icon', reset: 'Resets', maxTries: 'Score type', category: 'Category', url: 'Link' };
+    function recheckBridge() {
+      const b = window.AndroidBridge;
+      return b && typeof b.getRecheckResults === 'function' ? b : null;
+    }
+    function recheckFound() {
+      const b = recheckBridge();
+      if (!b) return null;
+      try {
+        const raw = b.getRecheckResults();
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        return data && Array.isArray(data.results) ? data : null;
+      } catch (e) { return null; }
+    }
+    function recheckDone() {
+      const b = recheckBridge();
+      try { if (b && typeof b.clearRecheckResults === 'function') b.clearRecheckResults(); } catch (e) {}
+    }
+    /** Shows what a pass found, if anything. `manual`: the user pressed Check now (always says how it went). */
+    function maybeShowRecheck(manual) {
+      if (!manual && !(state.settings && state.settings.recheckGames)) return;
+      const data = recheckFound();
+      if (!data) { if (manual) setRecheckStatus("Couldn't check the pages. Try again on Wi-Fi."); return; }
+      const found = HubCore.recheckChanges(state.games, data.results, {
+        isKnown: (u) => Boolean(KnownGames.find(u)),
+        category: mapNativeCategoryToUiCategory,
+        declined: state.recheckDeclined || {}
+      });
+      if (!found.length) {
+        recheckDone();
+        if (manual) setRecheckStatus(data.results.length ? `Checked ${plural(data.results.length, 'page')}: nothing new.` : "Couldn't read any of the pages. Try again later.");
+        return;
+      }
+      if (manual) setRecheckStatus('');
+      // Not over another dialog: try again once it's closed.
+      if (isAnyModalOpen()) { setTimeout(() => maybeShowRecheck(manual), 4000); return; }
+      recheckShown = found;
+      renderRecheck();
+      openModal('modalRecheck');
+    }
+    function setRecheckStatus(text) {
+      const el = document.getElementById('recheckStatus');
+      if (el) el.textContent = text;
+    }
+    function recheckValueHtml(c, value) {
+      if (c.field === 'reset') {
+        const v = value || {};
+        return escapeHtml(`${formatLocalResetTime(v.time, v.zone)}${v.zone && v.zone !== 'local' ? ` (${HubCore.zoneLabel(v.zone)})` : ''}`);
+      }
+      if (c.field === 'icon') return value ? `<img class="recheck-icon" src="${escapeHtml(value)}" alt="" referrerpolicy="no-referrer" />` : '—';
+      const t = String(value || '').trim();
+      return t ? escapeHtml(t.length > 140 ? `${t.slice(0, 139)}…` : t) : '<span class="recheck-none">none</span>';
+    }
+    function renderRecheck() {
+      const n = recheckShown.reduce((k, g) => k + g.changes.length, 0);
+      document.getElementById('recheckSub').textContent = `${plural(recheckShown.length, 'game')} changed on ${recheckShown.length === 1 ? 'its' : 'their'} website${recheckShown.length === 1 ? '' : 's'}: ${plural(n, 'update')} to look at.`;
+      document.getElementById('recheckList').innerHTML = recheckShown.map((g, gi) => `<div class="recheck-game"><p class="recheck-name" dir="auto">${escapeHtml(g.name)}</p>`
+        + g.changes.map((c, ci) => `<label class="recheck-row"><input type="checkbox" checked data-recheck="${gi}:${ci}" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />`
+          + `<span class="recheck-what"><span class="recheck-field">${RECHECK_LABELS[c.field] || c.field}</span>`
+          + `<span class="recheck-vals"><span class="recheck-from" dir="auto">${recheckValueHtml(c, c.from)}</span><span class="recheck-arrow" aria-label="to">→</span><span class="recheck-to" dir="auto">${recheckValueHtml(c, c.to)}</span></span></span></label>`).join('')
+        + '</div>').join('');
+      updateRecheckButton();
+    }
+    function updateRecheckButton() {
+      const on = document.querySelectorAll('#recheckList input[data-recheck]:checked').length;
+      const btn = document.getElementById('btnRecheckApply');
+      btn.textContent = on ? `Update (${on})` : 'Update';
+      btn.disabled = !on;
+    }
+    /** Makes one accepted change to a game (a new reset time moves its history like an edit would). */
+    function applyRecheckChange(g, c) {
+      if (c.field === 'name') g.name = String(c.to).slice(0, 80);
+      else if (c.field === 'desc') g.desc = String(c.to);
+      else if (c.field === 'icon') { if (isImageIcon(c.to)) g.icon = c.to; }
+      else if (c.field === 'maxTries') g.maxTries = String(c.to);
+      else if (c.field === 'category') g.category = String(c.to);
+      else if (c.field === 'url') {
+        const url = cleanGameUrl(c.to);
+        const clash = url && findGameByUrl(url);
+        if (!url || (clash && clash.id !== g.id)) return false;
+        g.url = url;
+      } else if (c.field === 'reset') {
+        const resetTime = HubCore.sanitizeResetTime(c.to.time);
+        const resetZone = HubCore.normalizeZone(c.to.zone);
+        const prev = { resetTime: g.resetTime, resetZone: HubCore.normalizeZone(g.resetZone) };
+        if (prev.resetTime === resetTime && prev.resetZone === resetZone) return false;
+        applyScheduleChange(g, prev, { resetTime, resetZone }, state.historyLogs);
+        g.resetTime = resetTime;
+        g.resetZone = resetZone;
+        const key = getCycleDateKey(resetTime, resetZone);
+        g.lastCycleKey = key;
+        g.status = (g.dayHistory && g.dayHistory[key]) || 'ready';
+        recomputeGameStatsFromHistory(g);
+      } else return false;
+      return true;
+    }
+    /**
+     * `apply`: makes the ticked changes and remembers the unticked ones as declined. Otherwise ("Keep mine")
+     * every change shown is declined. (Closing the dialog decides nothing: it's shown again next time.)
+     */
+    function finishRecheck(apply) {
+      let made = 0;
+      const games = new Set();
+      {
+        if (!state.recheckDeclined || typeof state.recheckDeclined !== 'object') state.recheckDeclined = {};
+        document.querySelectorAll('#recheckList input[data-recheck]').forEach((box) => {
+          const [gi, ci] = box.getAttribute('data-recheck').split(':').map(Number);
+          const entry = recheckShown[gi];
+          const c = entry && entry.changes[ci];
+          const g = entry && state.games.find((x) => x.id === entry.id);
+          if (!c || !g) return;
+          if (apply && box.checked) {
+            if (applyRecheckChange(g, c)) { made += 1; games.add(g.id); }
+          } else {
+            (state.recheckDeclined[g.id] = state.recheckDeclined[g.id] || {})[c.field] = HubCore.recheckKey(c.to);
+          }
+        });
+        // Only games still in the list keep their "no thanks".
+        Object.keys(state.recheckDeclined).forEach((id) => { if (!state.games.some((g) => g.id === id)) delete state.recheckDeclined[id]; });
+      }
+      recheckShown = [];
+      recheckDone();
+      closeModal('modalRecheck');
+      saveState({ syncNow: Boolean(made), keeps: made ? [] : ['dashboard'] });
+      if (made) {
+        renderAll();
+        showToast(`Updated ${plural(games.size, 'game')}`, `${plural(made, 'change')} from the games' pages.`, 'emerald');
+      } else if (!apply) {
+        showToast('Kept yours', "These won't be suggested again.", 'indigo');
+      }
+    }
+    window.onRecheckDone = function (count) {
+      const btn = document.getElementById('btnRecheckNow');
+      if (btn) btn.disabled = false;
+      if (count < 0) { setRecheckStatus("Couldn't check the pages. Try again later."); return; }
+      maybeShowRecheck(true);
+    };
+
     function checkNewAchievements(silent) {
       const all = currentAchievements();
       const secrets = HubCore.computeSecrets(state.games, state.historyLogs);
@@ -5236,7 +5479,7 @@
       const gold = goldIconUnlocked();
       const accents = goldAccentsUnlocked();
       const ruby = rubyUnlocked();
-      saveState({ sync: false });
+      saveState({ sync: false, keeps: ['dashboard'] });
       renderIconChoices();
       renderGoldAccentsSetting();
       renderRubyAccentsSetting();
@@ -5531,13 +5774,13 @@
       }
       const delta = (n, unit) => n === null || n === undefined ? '' : `<span class="recap-delta ${n > 0 ? 'up' : n < 0 ? 'down' : ''}">${escapeHtml(signed(n, unit))}</span>`;
       const tile = (k, v, sub) => `<div class="stat-tile"><p class="k">${k}</p><p class="v">${v}</p><p class="s">${sub}</p></div>`;
-      el.innerHTML = head + `<div class="stat-tiles recap-swipe">`
+      el.innerHTML = head + `<div class="stat-tiles recap-tiles recap-swipe">`
         + tile('Solved', String(r.solved), change ? `${delta(change.solved)} vs ${prev.solved}` : `of ${r.results}`)
         + tile('Win rate', `${r.winRate}%`, change && change.winRate !== null ? `${delta(change.winRate, ' pts')}` : `${r.solved}/${r.results}`)
         + tile('Best streak', `${r.bestStreak}d`, r.bestResult ? `Best ${escapeHtml(r.bestResult.score)}` : plural(r.days, 'day'))
         + '</div>'
-        + `<p class="score-head mt-2.5">${r.bestGame ? `<span>⭐ Best game <strong>${escapeHtml(r.bestGame.name)}</strong> (${r.bestGame.solved}/${r.bestGame.results})</span>` : ''}${r.topGame && (!r.bestGame || r.topGame.name !== r.bestGame.name) ? `<span aria-hidden="true">·</span><span>Most played <strong>${escapeHtml(r.topGame.name)}</strong></span>` : ''}${r.timeMs ? `<span aria-hidden="true">·</span><span>⏱ <strong>${HubCore.formatDuration(r.timeMs)}</strong> puzzling</span>` : ''}</p>`
-        + `<p class="text-[11px] text-slate-500 mt-1.5">${change ? `Compared with ${vs}.` : `Nothing logged ${vs} to compare with.`}</p>`
+        + `<p class="score-head recap-highlights">${r.bestGame ? `<span>⭐ Best game <strong>${escapeHtml(r.bestGame.name)}</strong> (${r.bestGame.solved}/${r.bestGame.results})</span>` : ''}${r.topGame && (!r.bestGame || r.topGame.name !== r.bestGame.name) ? `<span aria-hidden="true">·</span><span>Most played <strong>${escapeHtml(r.topGame.name)}</strong></span>` : ''}${r.timeMs ? `<span aria-hidden="true">·</span><span>⏱ <strong>${HubCore.formatDuration(r.timeMs)}</strong> puzzling</span>` : ''}</p>`
+        + `<p class="recap-vs text-[11px] text-slate-500">${change ? `Compared with ${vs}.` : `Nothing logged ${vs} to compare with.`}</p>`
         + `<div class="recap-actions"><button type="button" id="btnShareRecapText" class="recap-btn">Share text</button><button type="button" id="btnShareRecap" class="recap-btn primary">Share card</button></div>`;
     }
 
@@ -5596,11 +5839,13 @@
         [[0, '#D6C38F'], [0.3, '#BAA465'], [0.6, '#8B7D54'], [1, '#CEBA81']].forEach(([o, col]) => g.addColorStop(o, col));
         return g;
       };
+      // 1.8.5: more room between lines and a little between letters (the text was packed together).
+      const spacing = (px) => { if ('letterSpacing' in x) x.letterSpacing = `${px}px`; };
       // Header
       x.textBaseline = 'alphabetic';
-      x.fillStyle = accent(80, 90, 400, 60); x.font = F(700, 40); x.fillText('✦ Dailies', 80, 140);
-      x.fillStyle = ink; x.font = F(800, 92); x.fillText(title, 80, 270);
-      x.fillStyle = muted; x.font = F(500, 40); x.fillText(range, 80, 330);
+      spacing(1.5); x.fillStyle = accent(80, 90, 400, 60); x.font = F(700, 40); x.fillText('✦ Dailies', 80, 140);
+      spacing(0); x.fillStyle = ink; x.font = F(800, 88); x.fillText(title, 80, 268);
+      spacing(1); x.fillStyle = muted; x.font = F(500, 38); x.fillText(range, 80, 344);
       // Tiles
       const tiles = [
         ['Solved', String(r.solved), change ? `${signed(change.solved)} vs ${vs}` : `of ${r.results} results`],
@@ -5609,27 +5854,30 @@
         ['Games', String(r.games), r.timeMs ? `⏱ ${HubCore.formatDuration(r.timeMs)}` : 'played']
       ];
       tiles.forEach(([k, v, sub], i) => {
-        const X = 80 + (i % 2) * 470, Y = 400 + Math.floor(i / 2) * 300, w = 440, h = 270;
+        const X = 80 + (i % 2) * 470, Y = 420 + Math.floor(i / 2) * 304, w = 440, h = 274;
         rr(X, Y, w, h, 44); x.fillStyle = i === 0 ? pc : cont; x.fill();
-        x.fillStyle = i === 0 ? onPc : muted; x.font = F(600, 36); x.fillText(k, X + 40, Y + 70);
-        x.fillStyle = i === 0 ? onPc : (i === 1 ? accent(X, Y, w, h) : ink); x.font = F(800, 104); x.fillText(v, X + 40, Y + 180);
-        x.fillStyle = i === 0 ? onPc : muted; x.font = F(500, 30);
-        let t = sub; while (x.measureText(t).width > w - 80 && t.length > 4) t = t.slice(0, -2) + '…';
-        x.fillText(t, X + 40, Y + 232);
+        spacing(1); x.fillStyle = i === 0 ? onPc : muted; x.font = F(600, 34); x.fillText(k, X + 44, Y + 68);
+        spacing(0); x.fillStyle = i === 0 ? onPc : (i === 1 ? accent(X, Y, w, h) : ink); x.font = F(800, 100); x.fillText(v, X + 44, Y + 178);
+        spacing(1); x.fillStyle = i === 0 ? onPc : muted; x.font = F(500, 30);
+        let t = sub; while (x.measureText(t).width > w - 88 && t.length > 4) t = t.slice(0, -2) + '…';
+        x.fillText(t, X + 44, Y + 236);
       });
       // Highlights
-      rr(80, 1020, 910, 220, 44); x.fillStyle = low; x.fill();
+      rr(80, 1052, 910, 196, 44); x.fillStyle = low; x.fill();
       const lines = [];
       if (r.bestGame) lines.push(`⭐  Best game: ${r.bestGame.name} (${r.bestGame.solved}/${r.bestGame.results})`);
       if (r.bestResult) lines.push(`🏆  Best result: ${r.bestResult.game} ${r.bestResult.score}`);
       if (r.topGame && lines.length < 2) lines.push(`🎯  Most played: ${r.topGame.name}`);
       if (!lines.length) lines.push(`🧩  ${plural(r.results, 'result')} logged`);
-      x.font = F(600, 38); x.fillStyle = ink;
-      lines.slice(0, 2).forEach((l, i) => {
+      spacing(0.5); x.font = F(600, 36); x.fillStyle = ink;
+      const shown = lines.slice(0, 2);
+      const y0 = shown.length === 1 ? 1163 : 1130;
+      shown.forEach((l, i) => {
         let t = l; while (x.measureText(t).width > 830 && t.length > 4) t = t.slice(0, -2) + '…';
-        x.fillText(t, 120, 1105 + i * 80);
+        x.fillText(t, 124, y0 + i * 68);
       });
-      x.fillStyle = muted; x.font = F(500, 28); x.fillText('Tracked with Dailies', 80, 1300);
+      spacing(1); x.fillStyle = muted; x.font = F(500, 28); x.fillText('Tracked with Dailies', 80, 1306);
+      spacing(0);
       return c.toDataURL('image/png');
     }
 
@@ -6080,6 +6328,7 @@
       setVal('settingTimeFormat', s.timeFormat || '12h');
       setChk('settingShowSeconds', s.showSeconds !== false);
       setChk('settingAutoScrape', s.autoScrape !== false);
+      setChk('settingRecheckGames', s.recheckGames === true);
       setChk('settingAskOnReturn', s.askToLogOnReturn !== false);
       setChk('settingAutoLogShare', s.autoLogFromShare !== false);
       setChk('settingFindResults', s.findResults !== false);
@@ -6088,6 +6337,7 @@
       setVal('settingThemeMode', s.themeMode || 'dark');
       setChk('settingGroupDone', s.groupDone !== false);
       setVal('settingCardStyle', ['glass', 'outline'].includes(s.cardStyle) ? s.cardStyle : 'filled');
+      setNavTransparencyControl(s.navTransparency);
       setVal('settingCountdownFont', ['sans', 'serif'].includes(s.countdownFont) ? s.countdownFont : 'mono');
       setVal('settingTextSize', ['large', 'larger'].includes(s.textSize) ? s.textSize : 'normal');
       setChk('settingHighContrast', Boolean(s.highContrast));
@@ -6363,7 +6613,7 @@
       NavIndicator.place(activeTab);
       // Parked pages sit at the old width: park them again at the new one.
       document.querySelectorAll('.tab-page.parked').forEach((el) => { el.dataset.redraw = '1'; });
-      if (typeof parkNeighbours === 'function') whenIdle(parkNeighbours, 1500);
+      if (typeof parkSoon === 'function') parkSoon();
     });
 
     const Pager = {
@@ -6436,12 +6686,26 @@
         // On screen where it would be at this scroll position, nearly invisible, for a few frames.
         el.style.cssText = `${base}top:${top + Math.max(0, window.scrollY)}px;opacity:0.004;transform:translate3d(0,0,0)`;
         const token = (el.__parkToken = (el.__parkToken || 0) + 1);
-        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => {
+        const done = () => {
+          if (this.drawing && this.drawing.el === el) this.drawing = null;
           if (el.__parkToken !== token || !el.classList.contains('parked') || (this.neighbour && this.neighbour.el === el)) return;
           el.style.cssText = aside;
-        }, 250)));
+        };
+        this.drawing = { el, done, tab };
+        requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(done, 250)));
+      },
+      drawing: null, // { el, done, tab }: the page being drawn ahead right now
+      /** A finger landed: the page being drawn ahead goes aside now, to be drawn again when idle. */
+      stopDrawing() {
+        const d = this.drawing;
+        if (!d) return;
+        this.drawing = null;
+        d.el.dataset.redraw = '1';
+        d.done();
+        parkSoon();
       },
       unpark(el) {
+        if (this.drawing && this.drawing.el === el) this.drawing = null;
         el.__parkToken = (el.__parkToken || 0) + 1;
         el.classList.remove('parked');
         el.style.cssText = '';
@@ -6555,8 +6819,9 @@
           return;
         }
       }
-      // A tap without the slide keeps the same relative scroll position too.
-      const frac = scrollFraction();
+      // A tap without the slide keeps the same relative scroll position too. (After a slide the scroll
+      // position is known already: reading it here made the browser work out the styles twice as it landed.)
+      const frac = anim && typeof anim.scroll === 'number' ? 0 : scrollFraction();
       activeTab = normalized;
       if (normalized !== 'dashboard') hideReturnPrompt();
       if (normalized !== 'dashboard' && selectMode) setSelectMode(false);
@@ -6571,7 +6836,10 @@
         if (views[k]) {
           const off = k !== normalized;
           views[k].classList.toggle('hidden', off);
-          if (!off && views[k].classList.contains('parked')) { views[k].classList.remove('parked'); views[k].__parkToken = (views[k].__parkToken || 0) + 1; }
+          if (!off && views[k].classList.contains('parked')) {
+            if (Pager.drawing && Pager.drawing.el === views[k]) Pager.drawing = null;
+            views[k].classList.remove('parked'); views[k].__parkToken = (views[k].__parkToken || 0) + 1;
+          }
           // Pages off screen are only clipped (they stay laid out for smooth swipes): keep them out of
           // reach of taps, the keyboard and screen readers.
           if (views[k].inert !== off) views[k].inert = off;
@@ -6594,7 +6862,7 @@
       if (!(anim && anim.prepared)) prepareTab(normalized);
       // The page just left is drawn already: if it's next to the new one, it waits beside the screen.
       if (previous !== normalized && views[previous] && Math.abs(TAB_ORDER.indexOf(previous) - TAB_ORDER.indexOf(normalized)) === 1) Pager.park(previous, false);
-      whenIdle(parkNeighbours, 1500);
+      parkSoon();
       // Bring the page just left up to date while idle (e.g. the hub's cards after an hour ticks over).
       if (previous !== normalized) queueTabPrerender();
       if (previous !== normalized) {
@@ -6621,7 +6889,7 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalIconEditor', 'modalRestoreGame', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalIconEditor', 'modalRestoreGame', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -7525,6 +7793,8 @@
       whenIdle(() => checkNewAchievements(true), 2000);
       if (pruneTrash()) saveState({ sync: false });
       maybeShowWhatsNew();
+      // What the weekly check of the game pages found, once the hub has settled (1.8.5).
+      setTimeout(() => whenIdle(() => maybeShowRecheck(false), 3000), 3500);
       // Draw Streaks & Log and Settings ahead while idle, so the first swipe to them doesn't (1.8.4).
       queueTabPrerender();
       setTimeout(() => whenIdle(checkAllResetSuggestions, 3000), 2500);
@@ -7764,7 +8034,7 @@
             state.settings.streakReminderMinutes = Number(el.value) || 0;
             try { window.AndroidBridge && window.AndroidBridge.setStreakReminder && window.AndroidBridge.setStreakReminder(state.settings.streakReminderMinutes); } catch (e) {}
           }
-          if (key === 'themeMode' || key === 'darkGamePages' || key === 'dynamicWallpaper' || key === 'preloadGames' || key === 'blockAdsInGames'
+          if (key === 'themeMode' || key === 'darkGamePages' || key === 'dynamicWallpaper' || key === 'preloadGames' || key === 'recheckGames' || key === 'blockAdsInGames'
             || key === 'hideCookieBanners' || key === 'pullToRefresh') saveLaunchPrefs();
           if (key === 'autoFixReset' && el.checked) checkAllResetSuggestions();
           if (key === 'updateCheck' && el.checked) runUpdateCheck(true);
@@ -7782,6 +8052,17 @@
       bindSetting('settingTimeFormat', 'timeFormat', false);
       bindSetting('settingShowSeconds', 'showSeconds', true);
       bindSetting('settingAutoScrape', 'autoScrape', true);
+      bindSetting('settingRecheckGames', 'recheckGames', true);
+      document.getElementById('btnRecheckNow').addEventListener('click', (e) => {
+        const b = window.AndroidBridge;
+        if (!b || typeof b.recheckGamesNow !== 'function') return;
+        e.currentTarget.disabled = true;
+        setRecheckStatus(`Reading ${plural(state.games.length, 'page')}… this can take a minute.`);
+        try { b.recheckGamesNow(); } catch (err) { window.onRecheckDone(-1); }
+      });
+      document.getElementById('recheckList').addEventListener('change', updateRecheckButton);
+      document.getElementById('btnRecheckApply').addEventListener('click', () => finishRecheck(true));
+      document.getElementById('btnRecheckSkip').addEventListener('click', () => finishRecheck(false));
       bindSetting('settingAskOnReturn', 'askToLogOnReturn', true);
       bindSetting('settingAutoLogShare', 'autoLogFromShare', true);
       bindSetting('settingFindResults', 'findResults', true);
@@ -7790,6 +8071,17 @@
       bindSetting('settingThemeMode', 'themeMode', false);
       bindSetting('settingGroupDone', 'groupDone', true);
       bindSetting('settingCardStyle', 'cardStyle', false);
+      // The bar follows the slider as it moves; the value is saved when it's let go.
+      const navRange = document.getElementById('settingNavTransparency');
+      if (navRange) {
+        navRange.addEventListener('input', () => { applyNavTransparency(navRange.value); setNavTransparencyControl(navRange.value); });
+        navRange.addEventListener('change', () => {
+          if (!state.settings) state.settings = getDefaultSettings();
+          state.settings.navTransparency = navTransparencyValue(navRange.value);
+          saveState({ sync: false, keeps: ['dashboard'] });
+          applyNavTransparency(state.settings.navTransparency);
+        });
+      }
       bindSetting('settingCountdownFont', 'countdownFont', false);
       bindSetting('settingTextSize', 'textSize', false);
       bindSetting('settingHighContrast', 'highContrast', true);

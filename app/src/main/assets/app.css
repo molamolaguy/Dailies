@@ -1379,14 +1379,14 @@ html[data-gold="true"] {
   --gold-text: linear-gradient(100deg, #F2E6BC 0%, #D3C087 28%, #A99764 55%, #E6D6A2 82%, #C9B67D 100%);
   --gold-edge: linear-gradient(135deg, rgba(242, 230, 188, 0.95), rgba(182, 162, 103, 0.4) 30%, rgba(106, 96, 68, 0.3) 60%, rgba(232, 217, 166, 0.85));
   --gold-ink: #1B160A;
-  --gold-glow: 0 4px 18px -4px rgba(214, 195, 138, 0.5);
+  --gold-glow: 0 0 16px -3px rgba(214, 195, 138, 0.5);
   --gold-card: var(--md-container);
 }
 html[data-gold="true"][data-amoled="true"] { --gold-card: #000; }
 html[data-gold="true"][data-theme="light"] {
   --gold-text: linear-gradient(100deg, #6E6447 0%, #9C8C5E 30%, #5C5236 55%, #8F8159 80%, #6E6447 100%);
   --gold-edge: linear-gradient(135deg, rgba(162, 143, 87, 0.95), rgba(186, 164, 101, 0.45) 35%, rgba(162, 143, 87, 0.30) 65%, rgba(139, 125, 84, 0.85));
-  --gold-glow: 0 4px 14px -4px rgba(139, 125, 84, 0.45);
+  --gold-glow: 0 0 12px -3px rgba(139, 125, 84, 0.45);
 }
 /* Filled buttons: Play, Add Game, Play next, Save, Log … */
 html[data-gold="true"] .m4-primary-fab,
@@ -1543,7 +1543,15 @@ html[data-theme="light"] .hist-flag.pb { color: #8a5a00; }
 .recap-delta.down { color: #FDA4AF; }
 html[data-theme="light"] .recap-delta.up { color: var(--lt-good); }
 html[data-theme="light"] .recap-delta.down { color: var(--lt-bad); }
-.recap-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.recap-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+/* 1.8.5: more room between the recap's lines (it was packed together). */
+.recap-sub { margin: 4px 0 12px; }
+.recap-tiles .stat-tile { padding: 12px 12px 11px; }
+.recap-tiles .stat-tile .k { margin-bottom: 3px; letter-spacing: 0.01em; }
+.recap-tiles .stat-tile .v { margin-bottom: 3px; }
+.recap-tiles .stat-tile .s { line-height: 1.4; }
+.recap-highlights { margin: 14px 0 0; row-gap: 6px; column-gap: 10px; line-height: 1.45; }
+.recap-vs { margin-top: 8px; line-height: 1.45; }
 .recap-btn { padding: 7px 14px; border-radius: 12px; font-size: 12px; font-weight: 700; color: var(--md-on-primary-container); background: var(--md-container-high); border: 1px solid var(--md-outline); }
 .recap-btn.primary { color: var(--md-on-primary); background: var(--md-primary); border-color: transparent; }
 html[data-theme="light"] .recap-seg { color: var(--lt-muted); }
@@ -1624,16 +1632,39 @@ html:not(.web) .web-only { display: none !important; }
 .theme-choices.locked .theme-choice { opacity: 0.38; filter: grayscale(0.85); cursor: not-allowed; }
 .theme-choices.locked .theme-choice.on { border-color: var(--md-outline); background: var(--md-container-low); }
 
-/* Bottom navigation (1.6.1, 1.6.2 and 1.8.3 more see-through): with a light blur so its labels stay readable. */
+/* Bottom navigation (1.6.1, 1.6.2, 1.8.3 and 1.8.5 more see-through): with a light blur so its labels stay
+   readable. --nav-alpha is how solid it is, from Settings → Bottom Bar See-Through (25% by default). */
+:root { --nav-alpha: 25%; }
 .m4-floating-dock {
-  background: color-mix(in srgb, var(--md-container-low) 40%, transparent) !important;
+  background: color-mix(in srgb, var(--md-container-low) var(--nav-alpha), transparent) !important;
   -webkit-backdrop-filter: blur(6px) saturate(1.2); backdrop-filter: blur(6px) saturate(1.2);
 }
-[data-amoled="true"] .m4-floating-dock { background: rgba(0, 0, 0, 0.4) !important; }
-html[data-theme="light"] .m4-floating-dock { background: color-mix(in srgb, var(--md-container) 42%, transparent) !important; }
+[data-amoled="true"] .m4-floating-dock { background: color-mix(in srgb, #000 var(--nav-alpha), transparent) !important; }
+html[data-theme="light"] .m4-floating-dock { background: color-mix(in srgb, var(--md-container) var(--nav-alpha), transparent) !important; }
 html[data-gold="true"] .m4-floating-dock {
-  background: linear-gradient(color-mix(in srgb, var(--gold-card) 40%, transparent), color-mix(in srgb, var(--gold-card) 40%, transparent)) padding-box, var(--gold-edge) border-box !important;
+  background: linear-gradient(color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent), color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent)) padding-box, var(--gold-edge) border-box !important;
 }
+/* Sliders in Settings (1.8.5). */
+.set-range { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 28px; margin: 8px 0 0; background: transparent; touch-action: pan-y; --fill: 75%; }
+.set-range::-webkit-slider-runnable-track { height: 6px; border-radius: 999px; background: linear-gradient(to right, var(--md-primary) var(--fill), var(--md-container-highest, #3a3646) var(--fill)); }
+.set-range::-moz-range-track { height: 6px; border-radius: 999px; background: var(--md-container-highest, #3a3646); }
+.set-range::-moz-range-progress { height: 6px; border-radius: 999px; background: var(--md-primary); }
+.set-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%; background: var(--md-primary); border: 3px solid var(--md-surface); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45); }
+.set-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--md-primary); border: 3px solid var(--md-surface); }
+.set-range:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 2px; border-radius: 8px; }
+.range-value { flex-shrink: 0; min-width: 3.2em; text-align: right; font-size: 13px; font-weight: 700; color: var(--md-primary); font-variant-numeric: tabular-nums; }
+.range-ends { display: flex; justify-content: space-between; font-size: 11px; color: #8f97a8; margin-top: 2px; }
+html[data-theme="light"] .range-ends { color: var(--lt-muted); }
+html[data-gold="true"] .set-range::-webkit-slider-runnable-track { background: linear-gradient(to right, #BAA465 var(--fill), var(--md-container-highest, #3a3646) var(--fill)); }
+html[data-gold="true"] .set-range::-webkit-slider-thumb { background: #BAA465; }
+html[data-gold="true"] .set-range::-moz-range-thumb { background: #BAA465; }
+html[data-gold="true"] .set-range::-moz-range-progress { background: #BAA465; }
+html[data-gold="true"] .range-value { color: #D6C38F; }
+html[data-ruby="true"] .set-range::-webkit-slider-runnable-track { background: linear-gradient(to right, #CF1D4F var(--fill), var(--md-container-highest, #3a3646) var(--fill)); }
+html[data-ruby="true"] .set-range::-webkit-slider-thumb { background: #CF1D4F; }
+html[data-ruby="true"] .set-range::-moz-range-thumb { background: #CF1D4F; }
+html[data-ruby="true"] .set-range::-moz-range-progress { background: #CF1D4F; }
+html[data-ruby="true"] .range-value { color: #F25C7A; }
 
 /* Hub header (1.6.2): the title row and the All / Ready / Done, sort, Select and Add Game row stay at the
    top while the game list scrolls. It covers the status-bar area too, so cards slide under it. */
@@ -1821,14 +1852,14 @@ html[data-ruby="true"] {
   --gold-text: linear-gradient(100deg, #FE9AA5 0%, #EB4D6C 28%, #B82148 55%, #FE7388 82%, #DF4062 100%);
   --gold-edge: linear-gradient(135deg, rgba(254, 154, 165, 0.95), rgba(202, 34, 79, 0.4) 30%, rgba(119, 8, 41, 0.3) 60%, rgba(254, 123, 142, 0.85));
   --gold-ink: #29060C;
-  --gold-glow: 0 4px 18px -4px rgba(239, 81, 111, 0.5);
+  --gold-glow: 0 0 16px -3px rgba(239, 81, 111, 0.5);
   --gold-card: var(--md-container);
 }
 html[data-ruby="true"][data-amoled="true"] { --gold-card: #000; }
 html[data-ruby="true"][data-theme="light"] {
   --gold-text: linear-gradient(100deg, #7A0B2B 0%, #AA1B41 30%, #6A0022 55%, #9B183B 80%, #7A0B2B 100%);
   --gold-edge: linear-gradient(135deg, rgba(180, 2, 64, 0.95), rgba(207, 29, 79, 0.45) 35%, rgba(180, 2, 64, 0.30) 65%, rgba(152, 16, 55, 0.85));
-  --gold-glow: 0 4px 14px -4px rgba(152, 16, 55, 0.45);
+  --gold-glow: 0 0 12px -3px rgba(152, 16, 55, 0.45);
 }
 html[data-ruby="true"] .m4-primary-fab,
 html[data-ruby="true"] .bg-indigo-600,
@@ -1899,7 +1930,7 @@ html[data-ruby="true"] .app-toast .toast-msg { color: color-mix(in srgb, #EE5370
 html[data-ruby="true"][data-theme="light"] .app-toast .toast-msg { color: #55011A; }
 html[data-ruby="true"] .app-toast .toast-close { color: #DD2857; background: rgba(221, 40, 87, 0.14); }
 html[data-ruby="true"] .m4-floating-dock {
-  background: linear-gradient(color-mix(in srgb, var(--gold-card) 40%, transparent), color-mix(in srgb, var(--gold-card) 40%, transparent)) padding-box, var(--gold-edge) border-box !important;
+  background: linear-gradient(color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent), color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent)) padding-box, var(--gold-edge) border-box !important;
 }
 html[data-ruby="true"] .cel-title, html[data-ruby="true"] .cel-title { background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
 html[data-ruby="true"] .hub-logo-wrap.all-done::after { background: #FFF7DC; filter: drop-shadow(0 0 3px #EF516F); }
@@ -1909,12 +1940,12 @@ html[data-ruby="true"] {
   --gold-text: linear-gradient(100deg, #FF9AB0 0%, #FF4D73 35%, #E0244F 60%, #FF7593 100%);
   --gold-edge: linear-gradient(135deg, rgba(255, 176, 194, 0.95), rgba(224, 36, 79, 0.55) 30%, rgba(120, 8, 36, 0.5) 60%, rgba(255, 120, 150, 0.9));
   --gold-ink: #FFFFFF;
-  --gold-glow: 0 4px 18px -4px rgba(232, 38, 84, 0.55);
+  --gold-glow: 0 0 16px -3px rgba(232, 38, 84, 0.55);
 }
 html[data-ruby="true"][data-theme="light"] {
   --gold-text: linear-gradient(100deg, #A3123A 0%, #D81E4A 40%, #7E0B24 70%, #B8102F 100%);
   --gold-edge: linear-gradient(135deg, rgba(200, 22, 63, 0.95), rgba(240, 70, 107, 0.5) 35%, rgba(126, 11, 36, 0.4) 65%, rgba(200, 22, 63, 0.85));
-  --gold-glow: 0 4px 14px -4px rgba(163, 18, 58, 0.45);
+  --gold-glow: 0 0 12px -3px rgba(163, 18, 58, 0.45);
 }
 html[data-ruby="true"] .m4-primary-fab,
 html[data-ruby="true"] .bg-indigo-600,
@@ -1935,3 +1966,21 @@ html[data-ruby="true"] .status-pill.status-completed .dot-star { color: #FFE3EA;
 html[data-ruby="true"] .status-pill.status-completed .dot { background: #FFE3EA; }
 html[data-ruby="true"] .nav-btn.nav-on { color: #FFFFFF !important; }
 /* ==== end ruby accents ==== */
+
+/* Updates from game pages (1.8.5): one block per game, each change with its old and new value. */
+.recheck-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+.recheck-game { padding: 10px 12px; border-radius: 16px; background: var(--md-container-low); border: 1px solid var(--md-outline); }
+.recheck-name { font-size: 13.5px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.recheck-row { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; cursor: pointer; }
+.recheck-row + .recheck-row { border-top: 1px solid var(--md-outline); }
+.recheck-row input { margin-top: 2px; }
+.recheck-what { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.recheck-field { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; color: #8f97a8; text-transform: uppercase; }
+.recheck-vals { display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; row-gap: 2px; font-size: 12.5px; line-height: 1.4; overflow-wrap: anywhere; }
+.recheck-from { color: #8f97a8; text-decoration: line-through; text-decoration-color: rgba(143, 151, 168, 0.6); }
+.recheck-to { color: #fff; font-weight: 600; }
+.recheck-arrow { color: var(--md-primary); font-weight: 700; }
+.recheck-none { font-style: italic; text-decoration: none; }
+.recheck-icon { width: 24px; height: 24px; border-radius: 6px; object-fit: contain; background: rgba(255, 255, 255, 0.06); vertical-align: middle; }
+html[data-theme="light"] .recheck-name, html[data-theme="light"] .recheck-to { color: var(--lt-on-surface); }
+html[data-theme="light"] .recheck-from, html[data-theme="light"] .recheck-field { color: var(--lt-muted); }
