@@ -540,6 +540,18 @@ The hub also runs as an installable web app on GitHub Pages; see `web/README.md`
 - **Finding results** (`share-hook.js`): `RESULTS_OPEN_RE` (press "See results" / "Stats" once on a finished game, then rescan), `shareLinkText` (window.open and `<a>` share links), `deepQueryAll` / `deepText` (open shadow roots), `FINISHED_INTL_RE` and the multilingual `BUTTON_RE`, `screenResultLine` → `via: "screen"`. `GameActivity.captureShareLink` (`ShareLinkText`, also for navigations and popups), `offerScreenResult` (a Log it / Not now card; `EXTRA_SHARE_CONFIRMED` makes the hub skip its strict check).
 - **UI**: every `<select>` uses `themeSelect`; `#btnPlayAll` is the only bar above the games; no Select button, Personal Bests, tough days or Settings → Recent changes; recap boxes swipe (`.recap-swipe`); achievements and secrets in two grids; `settingsRenderKey` so Settings isn't rebuilt on each swipe; card styles restyled; `formatLocalNowTime` follows Show Seconds; alerts have no large icon.
 
+## 27. New in 1.8.7
+
+- **Background glow**: `body::before` (fixed, `z-index: -1`, explicit radial-gradient radii) instead of `background-image` on `body`. The body background is drawn on the canvas, sized to the document, so each tab's length changed the glow: a brightness step when a tab landed.
+- **Theme changes**: `applyThemeAndSettings` adds `html.theme-switch` (`transition: none` on everything) for two frames.
+- **Score History**: rows show the name and the meta (streak, time, status) on one line; the preview line and the PB flag are gone. `btnHistoryChanges` lives in Data & Backup.
+- **Recap**: `#recapCard { overflow: clip }`.
+- **Settings rows**: `.set-row` (no box; a divider between rows) replaces the boxed row classes inside `#viewSettings`.
+- **Card Style**: setting, `data-cards` and its CSS removed.
+- **Bottom bar**: `applyNavTransparency` also sets `--nav-sheen`, `--nav-edge` and `--nav-sat` (clear glass toward 100).
+- **Gold / ruby buttons**: `inset 0 0 0 1px` rim instead of a top highlight and bottom shade. **Toasts**: no `tone-ok::before` bar. **Hub icons**: `.m3-shape-app` (30% radius) for every card.
+- **Game player**: `assets/game/select-menu.js` (document-start, every frame) prevents a single-choice `<select>`'s own picker on `mousedown` and opens a themed menu in a closed shadow root; a choice sets `selectedIndex` and dispatches `input` and `change`. Colours from `GameActivity.selectMenuColors`.
+
 ## 26. New in 1.8.6
 
 Measured with a harness that runs each interaction at 4x CPU slowdown and reports long animation frames and animations that couldn't run on the compositor.

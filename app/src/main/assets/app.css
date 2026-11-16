@@ -58,12 +58,21 @@ body {
   line-height: inherit;
   font-family: 'Google Sans Flex', 'Google Sans', 'Google Sans Text', Roboto, system-ui, sans-serif;
   background-color: var(--md-surface);
-  background-image: radial-gradient(circle at 15% 0%, var(--md-glow), transparent 45%),
-                    radial-gradient(circle at 85% 10%, rgba(255, 183, 134, 0.07), transparent 40%);
   color: #F4EFFA;
   overflow-x: hidden;
   touch-action: pan-y;
 }
+
+/* The background glow (1.8.7) is a fixed layer the size of the screen. It was drawn on the page itself and
+   sized to it, so each tab (a different length) drew it a different size: it changed brightness, a flash,
+   the moment a new tab landed. */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  /* The same size as it was on the hub. */
+  background-image: radial-gradient(circle 1760px at 15% 0%, var(--md-glow), transparent 45%),
+                    radial-gradient(circle 1780px at 85% 170px, rgba(255, 183, 134, 0.07), transparent 40%);
+}
+[data-amoled="true"] body::before { display: none; }
 
 h1, h2, h3, h4, h5, h6, p {
   margin: 0;
@@ -232,6 +241,9 @@ html.app-ready .nav-btn { transition: transform 0.16s var(--m3-spring-effects); 
 .m3-shape-3 { border-radius: 16px; }
 .m3-shape-4 { border-radius: 9999px; }
 .m3-shape-5 { border-radius: 12px 24px 12px 24px; }
+/* 1.8.7: every hub card's icon sits on the same symmetrical shape, a rounded square (they used to cycle
+   through six different shapes). */
+.m3-shape-app { border-radius: 30%; }
 
 .m4-primary-fab {
   background-color: var(--md-primary) !important;
@@ -1066,10 +1078,10 @@ html[data-theme="light"] {
   --lt-streak: #9A5B00;
 }
 html[data-theme="light"] *, html[data-theme="light"] ::before, html[data-theme="light"] ::after { border-color: rgba(0, 0, 0, 0.12); }
-html[data-theme="light"] body {
-  color: var(--lt-on-surface);
-  background-image: radial-gradient(circle at 15% 0%, var(--md-glow), transparent 45%),
-                    radial-gradient(circle at 85% 10%, rgba(255, 140, 70, 0.06), transparent 40%);
+html[data-theme="light"] body { color: var(--lt-on-surface); }
+html[data-theme="light"] body::before {
+  background-image: radial-gradient(circle 1760px at 15% 0%, var(--md-glow), transparent 45%),
+                    radial-gradient(circle 1780px at 85% 170px, rgba(255, 140, 70, 0.06), transparent 40%);
 }
 html[data-theme="light"] .glass-card { box-shadow: 0 2px 10px -4px rgba(0, 0, 0, 0.12); }
 html[data-theme="light"] .m3-shape-avatar { box-shadow: 0 2px 6px -2px rgba(0, 0, 0, 0.18); }
@@ -1398,7 +1410,7 @@ html[data-gold="true"] .return-btn.primary,
 html[data-gold="true"] .next-game-play,
 html[data-gold="true"] .toast-action {
   background-color: #BAA465 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
-  border-color: rgba(220, 201, 147, 0.6) !important; box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 250, 232, 0.7), inset 0 -1px 0 rgba(58, 50, 30, 0.35) !important;
+  border-color: rgba(220, 201, 147, 0.6) !important; box-shadow: var(--gold-glow), inset 0 0 0 1px rgba(255, 250, 232, 0.45) !important;
   text-shadow: 0 1px 0 rgba(220, 201, 147, 0.5);
 }
 /* The selected tab and other tonal pills. */
@@ -1637,13 +1649,22 @@ html:not(.web) .web-only { display: none !important; }
 
 /* Bottom navigation (1.6.1, 1.6.2, 1.8.3 and 1.8.5 more see-through): with a light blur so its labels stay
    readable. --nav-alpha is how solid it is, from Settings → Bottom Bar See-Through (25% by default). */
-:root { --nav-alpha: 25%; }
+:root { --nav-alpha: 25%; --nav-sheen: 0.068; --nav-edge: 0.27; --nav-sat: 1.08; }
 .m4-floating-dock {
-  background: color-mix(in srgb, var(--md-container-low) var(--nav-alpha), transparent) !important;
-  -webkit-backdrop-filter: blur(6px) saturate(1.2); backdrop-filter: blur(6px) saturate(1.2);
+  background: linear-gradient(rgba(255, 255, 255, var(--nav-sheen)), rgba(255, 255, 255, calc(var(--nav-sheen) * 0.35))),
+              color-mix(in srgb, var(--md-container-low) var(--nav-alpha), transparent) !important;
+  border-color: rgba(255, 255, 255, var(--nav-edge)) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(var(--nav-sat)); backdrop-filter: blur(6px) saturate(var(--nav-sat));
 }
-[data-amoled="true"] .m4-floating-dock { background: color-mix(in srgb, #000 var(--nav-alpha), transparent) !important; }
-html[data-theme="light"] .m4-floating-dock { background: color-mix(in srgb, var(--md-container) var(--nav-alpha), transparent) !important; }
+[data-amoled="true"] .m4-floating-dock {
+  background: linear-gradient(rgba(255, 255, 255, var(--nav-sheen)), rgba(255, 255, 255, calc(var(--nav-sheen) * 0.35))),
+              color-mix(in srgb, #000 var(--nav-alpha), transparent) !important;
+}
+html[data-theme="light"] .m4-floating-dock {
+  background: linear-gradient(rgba(255, 255, 255, calc(var(--nav-sheen) * 3)), rgba(255, 255, 255, var(--nav-sheen))),
+              color-mix(in srgb, var(--md-container) var(--nav-alpha), transparent) !important;
+  border-color: rgba(255, 255, 255, calc(0.4 + var(--nav-edge))) !important;
+}
 html[data-gold="true"] .m4-floating-dock {
   background: linear-gradient(color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent), color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent)) padding-box, var(--gold-edge) border-box !important;
 }
@@ -1706,30 +1727,6 @@ html[data-theme="light"] #viewDashboard > .hub-sticky { box-shadow: 0 8px 12px -
    ========================================================================== */
 html[data-cdfont="sans"] .gc-countdown .time, html[data-cdfont="sans"] .live-clock { font-family: 'Google Sans Flex', system-ui, sans-serif; font-weight: 650; letter-spacing: 0.01em; }
 html[data-cdfont="serif"] .gc-countdown .time, html[data-cdfont="serif"] .live-clock { font-family: Georgia, 'Noto Serif', 'Times New Roman', serif; font-weight: 600; }
-
-/* Card styles: Filled (default), Glass or Outline. Dialogs stay filled. (1.8.3: Glass and Outline were
-   so close to Filled on the dark surface that the setting looked like it did nothing.)
-   Glass: a frosted sheen with a bright edge (a gradient, not a backdrop blur, which would slow scrolling).
-   Outline: no fill, a clear accent-coloured edge. */
-/* 1.8.4: one flat see-through tint, no gradient and no large soft shadow. On every card those made
-   Settings about 3x as much work to draw as it slid in (a stutter); the bright edge keeps the look. */
-html[data-cards="glass"] .glass-card:not(.modal-panel) {
-  background: color-mix(in srgb, #FFFFFF 7%, color-mix(in srgb, var(--md-container) 35%, transparent));
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-html[data-theme="light"][data-cards="glass"] .glass-card:not(.modal-panel) {
-  background: rgba(255, 255, 255, 0.72);
-  border-color: rgba(255, 255, 255, 0.95);
-  box-shadow: inset 0 1px 0 #fff;
-}
-html[data-cards="outline"] .glass-card:not(.modal-panel) {
-  background: transparent; box-shadow: none;
-  border: 1.5px solid color-mix(in srgb, var(--md-primary) 58%, transparent) !important;
-}
-html[data-theme="light"][data-cards="outline"] .glass-card:not(.modal-panel) { border-color: color-mix(in srgb, var(--md-primary) 50%, transparent) !important; }
-html[data-cards="glass"] { --gold-card: color-mix(in srgb, var(--md-container) 55%, var(--md-surface)); }
-html[data-cards="outline"] { --gold-card: var(--md-surface); }
 
 /* High contrast: brighter text, stronger outlines. */
 html[data-contrast="high"] { --md-outline: rgba(255, 255, 255, 0.42); }
@@ -1871,7 +1868,7 @@ html[data-ruby="true"] .return-btn.primary,
 html[data-ruby="true"] .next-game-play,
 html[data-ruby="true"] .toast-action {
   background-color: #CF1D4F !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
-  border-color: rgba(245, 92, 119, 0.6) !important; box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 250, 232, 0.7), inset 0 -1px 0 rgba(74, 0, 21, 0.35) !important;
+  border-color: rgba(245, 92, 119, 0.6) !important; box-shadow: var(--gold-glow), inset 0 0 0 1px rgba(255, 250, 232, 0.4) !important;
   text-shadow: 0 1px 0 rgba(245, 92, 119, 0.5);
 }
 html[data-ruby="true"] .m4-tonal-pill { background-color: #CF1D4F !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; box-shadow: var(--gold-glow); }
@@ -1963,7 +1960,7 @@ html[data-ruby="true"] .chg-undo,
 html[data-ruby="true"] .cal-today-btn,
 html[data-ruby="true"] #btnShareRecap {
   color: #FFFFFF !important; border-color: rgba(255, 160, 182, 0.6) !important; text-shadow: 0 1px 1px rgba(80, 0, 20, 0.55);
-  box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 4px rgba(60, 0, 15, 0.35) !important;
+  box-shadow: var(--gold-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.4) !important;
 }
 html[data-ruby="true"] .status-pill.status-completed { color: #FFFFFF; text-shadow: 0 1px 1px rgba(80, 0, 20, 0.5); }
 html[data-ruby="true"] .status-pill.status-completed .dot-star { color: #FFE3EA; }
@@ -1988,3 +1985,24 @@ html[data-ruby="true"] .nav-btn.nav-on { color: #FFFFFF !important; }
 .recheck-icon { width: 24px; height: 24px; border-radius: 6px; object-fit: contain; background: rgba(255, 255, 255, 0.06); vertical-align: middle; }
 html[data-theme="light"] .recheck-name, html[data-theme="light"] .recheck-to { color: var(--lt-on-surface); }
 html[data-theme="light"] .recheck-from, html[data-theme="light"] .recheck-field { color: var(--lt-muted); }
+
+/* Score History (1.8.7): a folded result is one line (the name, then its streak, time and status); the
+   result itself shows when it's opened. The 🔥 sits centred on the number (emoji sit low on the text line). */
+.hist-sum { min-height: 44px; padding-top: 6px; padding-bottom: 6px; }
+.hist-side { flex-direction: row; align-items: center; gap: 8px; }
+.hist-meta { align-items: center; }
+.hist-streak, .hist-time { display: inline-flex; align-items: center; gap: 2px; line-height: 1; }
+.hist-fire { display: inline-block; font-size: 10.5px; line-height: 1; transform: translateY(-0.5px); }
+/* Recap (1.8.7): the boxes swiped sideways stay inside the recap card instead of sliding off it. */
+#recapCard { overflow: clip; }
+.hist-side > .hist-status { order: 2; }
+html.theme-switch *, html.theme-switch *::before, html.theme-switch *::after { transition: none !important; }
+/* Gold and ruby buttons (1.8.7): an even rim all round. A bright line along the top and a dark one along
+   the bottom made the outline and glow look lower than the button. */
+/* In-app notifications (1.8.7): no coloured bar down the left side (its edge was thicker than the rest). */
+.app-toast.tone-ok::before { display: none !important; }
+/* Settings (1.8.7): each setting is a plain row, no box around it, with a thin line between rows. */
+.set-row { padding: 12px 2px; }
+#viewSettings .grid:has(> .set-row) { row-gap: 0; }
+#viewSettings .set-row + .set-row, #viewSettings .set-row + .grid > .set-row:first-child { border-top: 1px solid color-mix(in srgb, var(--md-outline) 75%, transparent); }
+#viewSettings .set-row.hidden + .set-row { border-top: 0; }

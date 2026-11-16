@@ -1,3 +1,35 @@
+# Dailies 1.8.7
+
+A cleaner look, tidier Score History, app menus in games, and no more flashes. It installs over 1.8.6 and keeps everything. If you're on 1.8.6, you can install it from **Settings → About → Check now**.
+
+## Streaks & Log
+- **Score History**: each folded result is one line (the game, its streak, time and ✓/✗); the result itself shows when you open it. No more PB tag, and the 🔥 lines up with its number.
+- **Recent changes** moved from Score History to **Settings → Data & Backup**.
+- **Recaps**: swiping the boxes keeps them inside the recap card.
+- **Score stats** (under the calendar): no longer shows how many results are logged.
+
+## Look
+- **Settings**: no rounded box around each option, just a thin line between them.
+- **Card Style** setting removed (cards use the standard style).
+- **Hub icons**: every game's icon sits on the same rounded-square shape.
+- **Bottom Bar See-Through**: toward Clear the bar also loses its colour and turns to clear glass, with a light sheen and a brighter edge.
+- **In-app notifications**: no thicker bar down the left side.
+- **Gold and ruby buttons** (+ Add, Today, the bottom bar): an even rim all round, so the highlight no longer looks lower than the button.
+- **Data & Backup**: "Restore one game from a backup" removed; Trash no longer has an emoji.
+
+## Game player
+- **Drop-down lists on game pages** open the app's own menu, in the app's colours, instead of Android's picker.
+
+## Fixes
+- **Background flash when changing tabs** (dark and light themes): the glow behind the app is now fixed to the screen. It was sized to the page, so each tab (a different length) drew it differently.
+- **Changing the theme**: everything changes colour at once (buttons used to fade behind the rest, so a box flashed around each app icon choice).
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.6
 
 Smoother animations throughout. It installs over 1.8.5 and keeps everything. If you're on 1.8.5, you can install it from **Settings → About → Check now**.
