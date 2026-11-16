@@ -1,0 +1,4 @@
+• Smoother swipes between the hub, Streaks & Log and Settings.
+• Drop-down lists on game pages open the app's menu.
+• The bottom bar has no colour at its clearest, with gold and ruby too.
+• Gold and ruby buttons have an even outline.

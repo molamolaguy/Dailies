@@ -133,7 +133,33 @@
     return s;
   }
 
-  // The page's own picker opens on mousedown (a tap sends one too): stop that and open ours on the tap.
+  function openFor(s) {
+    if (open && open.select === s) return;
+    try { s.focus({ preventScroll: true }); } catch (err) {}
+    show(s);
+  }
+
+  // A tap (1.8.8): the list is opened when the finger lifts, and the tap is cancelled there, so Android's
+  // in-app browser never gets to open its own picker (blocking only mousedown wasn't enough there). A touch
+  // that moves (a scroll) is left alone.
+  var tap = null;
+  document.addEventListener('touchstart', function (e) {
+    var s = e.touches && e.touches.length === 1 ? menuSelect(e.target) : null;
+    tap = s ? { s: s, x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+  }, { capture: true, passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (!tap || !e.touches || !e.touches[0]) return;
+    if (Math.abs(e.touches[0].clientX - tap.x) > 10 || Math.abs(e.touches[0].clientY - tap.y) > 10) tap = null;
+  }, { capture: true, passive: true });
+  document.addEventListener('touchcancel', function () { tap = null; }, { capture: true, passive: true });
+  document.addEventListener('touchend', function (e) {
+    var t = tap;
+    tap = null;
+    if (!t || !e.cancelable) return;
+    e.preventDefault();
+    openFor(t.s);
+  }, { capture: true, passive: false });
+  // A mouse (or a tap whose touchend couldn't be cancelled): the page's own picker opens on mousedown.
   document.addEventListener('mousedown', function (e) {
     if (e.button !== 0 || !menuSelect(e.target)) return;
     e.preventDefault();
@@ -142,8 +168,7 @@
     var s = menuSelect(e.target);
     if (!s) return;
     e.preventDefault();
-    try { s.focus({ preventScroll: true }); } catch (err) {}
-    show(s);
+    openFor(s);
   }, true);
   // Keyboard (Enter / Space / Alt+Down on a focused list) opens it too.
   document.addEventListener('keydown', function (e) {

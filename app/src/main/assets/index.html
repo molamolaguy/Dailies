@@ -1359,7 +1359,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.7';
+    const APP_VERSION = '1.8.8';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -1421,6 +1421,8 @@
       r.setProperty('--nav-sheen', (0.12 * t * t).toFixed(3));
       r.setProperty('--nav-edge', (0.12 + 0.2 * t).toFixed(3));
       r.setProperty('--nav-sat', (1.3 - 0.3 * t).toFixed(2));
+      // How much of the gold / ruby accent the bar keeps: none at all when fully clear (1.8.8).
+      r.setProperty('--nav-accent', (1 - t).toFixed(3));
     }
     function setNavTransparencyControl(v) {
       const n = navTransparencyValue(v);
@@ -3880,6 +3882,21 @@
     }
     /** Parks the pages after a page change, once the landing has settled (not in the frames right after). */
     function parkSoon() { setTimeout(() => whenIdle(parkNeighbours, 1500), 700); }
+    /**
+     * After a scroll (1.8.8): the parked pages move to where they'd slide in from at the new scroll position,
+     * and are drawn again there when the scroll went more than half a screen from where they were drawn.
+     */
+    let realignTimer = 0;
+    window.addEventListener('scroll', () => {
+      clearTimeout(realignTimer);
+      realignTimer = setTimeout(() => whenIdle(() => {
+        if (REDUCED_MOTION || Pager.neighbour || tabAnimating) return;
+        document.querySelectorAll('.tab-page.parked').forEach((el) => {
+          if (Math.abs((el.__drawnAt ?? 0) - window.scrollY) > window.innerHeight * 0.5) el.dataset.redraw = '1';
+        });
+        parkNeighbours();
+      }, 1500), 300);
+    }, { passive: true });
 
     function queueTabPrerender() {
       if (prerenderQueued) return;
@@ -4434,6 +4451,12 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.8': [
+        ['👆', 'Smoother swipes', 'Pages slide between the hub, Streaks & Log and Settings with less to draw, wherever you\'ve scrolled to.'],
+        ['📋', 'App menus in games', 'Drop-down lists on game pages now open the app\'s own menu on a tap.'],
+        ['🫧', 'Truly clear bar', 'At its clearest, the bottom bar has no colour at all, with gold and ruby too.'],
+        ['🎯', 'Even outlines', 'Gold and ruby buttons have the same edge at the top and the bottom.']
+      ],
       '1.8.7': [
         ['🧾', 'Tidier Score History', 'Each result is one line until you open it, and Recent changes has moved to Settings → Data & Backup.'],
         ['🎨', 'Cleaner look', 'Settings without a box around every option, one icon shape on the hub, and a bottom bar that turns to clear glass as you slide it to Clear.'],
@@ -6730,25 +6753,10 @@
         // comes in already at the spot it will stay at once it's the current page.
         // Every measurement of the current page is read before the new one is shown, so the browser
         // lays the page out once here instead of after each style change.
-        const frac = scrollFraction();
-        const docH = document.documentElement.scrollHeight;
-        // The hub's sticky header pulls itself up over the scaffold's top padding with a negative margin,
-        // which collapses through the hub section: its offsetTop reads 0 although its content starts
-        // below the padding. Undo that collapse so the new page comes in exactly where it will stay
-        // (it used to arrive one status bar + 18px too high and drop into place when the slide ended).
-        const firstChild = cur.firstElementChild;
-        const collapsed = firstChild ? parseFloat(getComputedStyle(firstChild).marginTop) || 0 : 0;
-        const box = { left: cur.offsetLeft, top: cur.offsetTop - collapsed, width: cur.offsetWidth, height: cur.offsetHeight };
-        const scrollY = Math.max(0, window.scrollY);
+        const { box, top, scroll } = this.slideGeometry(cur, el);
         const w = this.width();
-        // Pages off screen stay laid out (clipped to no height, see .tab-page in app.css), so the new
-        // page's height is known without showing it first.
-        const newMax = Math.max(0, docH - box.height + el.scrollHeight - window.innerHeight);
-        const scroll = Math.round(frac * newMax);
-        const top = box.top + scrollY - scroll;
         el.style.cssText = `position:absolute;left:${box.left}px;top:${top}px;width:${box.width}px;margin:0;will-change:transform;pointer-events:none;transition:none;transform:translate3d(${dir * w}px,0,0)`;
         el.classList.remove('hidden');
-        cur.style.willChange = 'transform';
         this.neighbour = { tab, el, dir, scroll };
         return this.neighbour;
       },
@@ -6767,20 +6775,45 @@
        * the page. With `draw`, the page is first shown for a moment at 0.4% opacity, so the browser
        * draws it (it doesn't draw what's off screen), then moved aside.
        */
+      /**
+       * Where `el` goes beside the current page `cur` to slide in: the same relative scroll position (e.g.
+       * 80% of the way down), so it comes in at the spot it will stay at once it's the current page.
+       * Every measurement is read before anything is changed, so the page is laid out once.
+       */
+      slideGeometry(cur, el) {
+        const frac = scrollFraction();
+        const docH = document.documentElement.scrollHeight;
+        // The hub's sticky header pulls itself up over the scaffold's top padding with a negative margin,
+        // which collapses through the hub section: its offsetTop reads 0 although its content starts
+        // below the padding. Undo that collapse so the new page comes in exactly where it will stay
+        // (it used to arrive one status bar + 18px too high and drop into place when the slide ended).
+        const firstChild = cur.firstElementChild;
+        const collapsed = firstChild ? parseFloat(getComputedStyle(firstChild).marginTop) || 0 : 0;
+        const box = { left: cur.offsetLeft, top: cur.offsetTop - collapsed, width: cur.offsetWidth, height: cur.offsetHeight };
+        const scrollY = Math.max(0, window.scrollY);
+        // Pages off screen stay laid out (clipped to no height, see .tab-page in app.css), so the new
+        // page's height is known without showing it first.
+        const newMax = Math.max(0, docH - box.height + el.scrollHeight - window.innerHeight);
+        const scroll = Math.round(frac * newMax);
+        return { box, top: box.top + scrollY - scroll, scroll };
+      },
       park(tab, draw) {
         const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
         const el = document.getElementById(TAB_VIEW_IDS[tab]);
         if (!cur || !el || el === cur || REDUCED_MOTION) return;
-        const firstChild = cur.firstElementChild;
-        const collapsed = firstChild ? parseFloat(getComputedStyle(firstChild).marginTop) || 0 : 0;
-        const top = cur.offsetTop - collapsed;
-        const base = `position:absolute;left:${cur.offsetLeft}px;width:${cur.offsetWidth}px;margin:0;will-change:transform;pointer-events:none;transition:none;`;
+        // 1.8.8: parked (and drawn ahead) where it will slide in from, at this scroll position. It used to
+        // wait as if the page were scrolled to the top, so after scrolling down, the part that slid in
+        // hadn't been drawn yet and was drawn during the slide.
+        const { box, top } = this.slideGeometry(cur, el);
+        const base = `position:absolute;left:${box.left}px;width:${box.width}px;margin:0;will-change:transform;pointer-events:none;transition:none;`;
         const dir = TAB_ORDER.indexOf(tab) > TAB_ORDER.indexOf(activeTab) ? 1 : -1;
         const aside = `${base}top:${top}px;transform:translate3d(${dir * this.width()}px,0,0)`;
         el.classList.add('parked');
+        el.__parkedAt = window.scrollY;
         if (!draw) { el.style.cssText = aside; return; }
-        // On screen where it would be at this scroll position, nearly invisible, for a few frames.
-        el.style.cssText = `${base}top:${top + Math.max(0, window.scrollY)}px;opacity:0.004;transform:translate3d(0,0,0)`;
+        el.__drawnAt = window.scrollY;
+        // On screen exactly where it will slide in, nearly invisible, for a few frames.
+        el.style.cssText = `${base}top:${top}px;opacity:0.004;transform:translate3d(0,0,0)`;
         const token = (el.__parkToken = (el.__parkToken || 0) + 1);
         const done = () => {
           if (this.drawing && this.drawing.el === el) this.drawing = null;
@@ -6837,7 +6870,7 @@
         const finish = () => {
           if (finished) return;
           finished = true;
-          if (cur) { cur.style.transition = ''; cur.style.transform = ''; cur.style.willChange = ''; }
+          if (cur) { cur.style.transition = ''; cur.style.transform = ''; }
           if (go && n) {
             this.neighbour = null;
             n.el.style.cssText = '';

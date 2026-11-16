@@ -540,6 +540,14 @@ The hub also runs as an installable web app on GitHub Pages; see `web/README.md`
 - **Finding results** (`share-hook.js`): `RESULTS_OPEN_RE` (press "See results" / "Stats" once on a finished game, then rescan), `shareLinkText` (window.open and `<a>` share links), `deepQueryAll` / `deepText` (open shadow roots), `FINISHED_INTL_RE` and the multilingual `BUTTON_RE`, `screenResultLine` → `via: "screen"`. `GameActivity.captureShareLink` (`ShareLinkText`, also for navigations and popups), `offerScreenResult` (a Log it / Not now card; `EXTRA_SHARE_CONFIRMED` makes the hub skip its strict check).
 - **UI**: every `<select>` uses `themeSelect`; `#btnPlayAll` is the only bar above the games; no Select button, Personal Bests, tough days or Settings → Recent changes; recap boxes swipe (`.recap-swipe`); achievements and secrets in two grids; `settingsRenderKey` so Settings isn't rebuilt on each swipe; card styles restyled; `formatLocalNowTime` follows Show Seconds; alerts have no large icon.
 
+## 28. New in 1.8.8
+
+- **Pages as layers**: `.tab-page { will-change: transform }` permanently (not with Reduce Motion); `Pager.attach` / `settle` no longer set and clear `will-change` on the current page. Toggling it re-rastered the page leaving at the start of each swipe and the page arriving (into the root layer) as it landed.
+- **Parking at the scroll position**: `Pager.slideGeometry(cur, el)` (shared by `attach` and `park`) gives the top a page slides in at; parked pages wait (and are ghost-drawn) there. A scroll listener re-parks them when idle, redrawing when the scroll moved more than half a screen from where they were drawn (`el.__drawnAt`).
+- **Drop-downs in the player**: `select-menu.js` opens the menu on `touchend` (non-passive, cancelled) for a tap that didn't move, so no compatibility `mousedown` reaches the `<select>` (Android WebView opened its picker before a `mousedown` handler could prevent it). `GamePlayerTest.aDropDownOnAGamePageOpensTheAppsOwnMenu` taps a `<select>` in the real player and checks the menu shows.
+- **Bar at Clear**: `--nav-accent` (1 − see-through). Gold / ruby docks draw their accent edge as a masked `::before` ring at that opacity over the white glass edge, and their glow's alpha is scaled by it.
+- **Even rims**: ruby buttons and the bar's highlight use a gloss that is the same at the top and bottom; gold's shine on them runs at 90°.
+
 ## 27. New in 1.8.7
 
 - **Background glow**: `body::before` (fixed, `z-index: -1`, explicit radial-gradient radii) instead of `background-image` on `body`. The body background is drawn on the canvas, sized to the document, so each tab's length changed the glow: a brightness step when a tab landed.

@@ -1649,7 +1649,7 @@ html:not(.web) .web-only { display: none !important; }
 
 /* Bottom navigation (1.6.1, 1.6.2, 1.8.3 and 1.8.5 more see-through): with a light blur so its labels stay
    readable. --nav-alpha is how solid it is, from Settings → Bottom Bar See-Through (25% by default). */
-:root { --nav-alpha: 25%; --nav-sheen: 0.068; --nav-edge: 0.27; --nav-sat: 1.08; }
+:root { --nav-alpha: 25%; --nav-sheen: 0.068; --nav-edge: 0.27; --nav-sat: 1.08; --nav-accent: 0.25; }
 .m4-floating-dock {
   background: linear-gradient(rgba(255, 255, 255, var(--nav-sheen)), rgba(255, 255, 255, calc(var(--nav-sheen) * 0.35))),
               color-mix(in srgb, var(--md-container-low) var(--nav-alpha), transparent) !important;
@@ -1715,6 +1715,11 @@ html[data-theme="light"] #viewDashboard > .hub-sticky { box-shadow: 0 8px 12px -
    and a parked page never makes the current one longer. */
 #m3Scaffold { overflow: clip; min-height: 100vh; }
 .tab-page.hidden.parked { height: auto; overflow: visible; }
+/* 1.8.8: every page is its own layer for good. A page became one only while it slid: so each swipe drew
+   the page being left again as it started, and the page arriving again (back into the main layer) as it
+   landed, and the page just left again as it was set aside. */
+.tab-page { will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .tab-page { will-change: auto; } }
 .tab-page.hidden {
   display: block !important; position: absolute !important; top: 0;
   left: max(1rem, env(safe-area-inset-left, 0px)); right: max(1rem, env(safe-area-inset-right, 0px));
@@ -2006,3 +2011,39 @@ html.theme-switch *, html.theme-switch *::before, html.theme-switch *::after { t
 #viewSettings .grid:has(> .set-row) { row-gap: 0; }
 #viewSettings .set-row + .set-row, #viewSettings .set-row + .grid > .set-row:first-child { border-top: 1px solid color-mix(in srgb, var(--md-outline) 75%, transparent); }
 #viewSettings .set-row.hidden + .set-row { border-top: 0; }
+/* Bottom bar with gold or ruby accents (1.8.8): the accent edge and glow fade with Bottom Bar See-Through, so
+   fully clear is colourless glass like every other theme (the red / gold edge and glow used to stay). The
+   accent edge is a ring drawn over the bar's white glass edge, at --nav-accent opacity. */
+html[data-gold="true"] .m4-floating-dock, html[data-ruby="true"] .m4-floating-dock {
+  border: 1px solid rgba(255, 255, 255, var(--nav-edge)) !important;
+  background: linear-gradient(rgba(255, 255, 255, var(--nav-sheen)), rgba(255, 255, 255, calc(var(--nav-sheen) * 0.35))),
+              color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent) !important;
+}
+html[data-gold="true"] .m4-floating-dock { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 18px -6px rgba(197, 174, 108, calc(0.45 * var(--nav-accent))) !important; }
+html[data-ruby="true"] .m4-floating-dock { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 18px -6px rgba(221, 40, 87, calc(0.45 * var(--nav-accent))) !important; }
+html[data-gold="true"] .m4-floating-dock::before, html[data-ruby="true"] .m4-floating-dock::before {
+  content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: var(--gold-edge); opacity: var(--nav-accent);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+html[data-theme="light"][data-gold="true"] .m4-floating-dock, html[data-theme="light"][data-ruby="true"] .m4-floating-dock {
+  border-color: rgba(255, 255, 255, calc(0.4 + var(--nav-edge))) !important;
+  background: linear-gradient(rgba(255, 255, 255, calc(var(--nav-sheen) * 3)), rgba(255, 255, 255, var(--nav-sheen))),
+              color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent) !important;
+}
+/* Ruby buttons and the bar's highlight (1.8.8): the gloss is the same at the top and the bottom. Lit only from
+   the top (light at the top, a dark band at the bottom), the rim merged with the light at the top and
+   vanished into the dark at the bottom, so the outline looked higher than the button. The facets stay. */
+html[data-ruby="true"] :is(.m4-primary-fab, .bg-indigo-600, .return-btn.primary, .next-game-play, .toast-action, .m4-tonal-pill,
+  .recap-btn.primary, .recap-seg.on, .chg-undo, .cal-today-btn, #btnShareRecap) {
+  background-image: linear-gradient(180deg, rgba(255, 238, 243, 0.14) 0%, rgba(255, 238, 243, 0.03) 30%, rgba(255, 238, 243, 0) 50%, rgba(255, 238, 243, 0.03) 70%, rgba(255, 238, 243, 0.14) 100%),
+    linear-gradient(118deg, #B8123C 0 28%, #D81E4A 28% 46%, #EE3F66 46% 52%, #C41840 52% 77%, #A30F36 77% 90%, #D6224C 90%) !important;
+  text-shadow: 0 0 2px rgba(80, 0, 20, 0.55) !important;
+}
+/* Gold buttons and the bar's highlight (1.8.8): the shine runs straight across, so the top and bottom of a
+   button are the same shade and its rim looks even (diagonal, the top was lighter and hid the rim there). */
+html[data-gold="true"] :is(.m4-primary-fab, .bg-indigo-600, .return-btn.primary, .next-game-play, .toast-action, .m4-tonal-pill,
+  .recap-btn.primary, .recap-seg.on, .chg-undo, .cal-today-btn, #btnShareRecap) {
+  background-image: linear-gradient(90deg, #A69565 0%, #CDB97F 15%, #F2E6BC 29%, #DBC991 38%, #B6A267 56%, #8C7E57 72%, #C2AF79 87%, #E8D9A6 100%) !important;
+}
