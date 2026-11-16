@@ -1359,7 +1359,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.7';
+    const APP_VERSION = '1.8.8';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4451,6 +4451,12 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.8': [
+        ['👆', 'Smoother swipes', 'Pages slide between the hub, Streaks & Log and Settings with less to draw, wherever you\'ve scrolled to.'],
+        ['📋', 'App menus in games', 'Drop-down lists on game pages now open the app\'s own menu on a tap.'],
+        ['🫧', 'Truly clear bar', 'At its clearest, the bottom bar has no colour at all, with gold and ruby too.'],
+        ['🎯', 'Even outlines', 'Gold and ruby buttons have the same edge at the top and the bottom.']
+      ],
       '1.8.7': [
         ['🧾', 'Tidier Score History', 'Each result is one line until you open it, and Recent changes has moved to Settings → Data & Backup.'],
         ['🎨', 'Cleaner look', 'Settings without a box around every option, one icon shape on the hub, and a bottom bar that turns to clear glass as you slide it to Clear.'],

@@ -1,3 +1,22 @@
+# Dailies 1.8.8
+
+Smoother swipes, app menus in games that really open, a truly clear bottom bar, and even button outlines. It installs over 1.8.7 and keeps everything. If you're on 1.8.7, you can install it from **Settings → About → Check now**.
+
+## Smoother
+- **Swiping between pages**: each page now keeps its own drawing layer all the time. A page used to get one only while it slid, so every swipe drew the page being left again as it started, and the page arriving again as it landed. Drawing during a swipe is a quarter to almost half lower.
+- **After scrolling**: the pages beside the screen wait, already drawn, at the scroll position they'll slide in at (they waited as if scrolled to the top, so after scrolling down, part of the page was drawn during the slide).
+
+## Fixes
+- **Drop-down lists on game pages** open the app's own menu on a tap. Android's player opened its own picker before the app could step in; the tap is now handled as the finger lifts. Checked on an Android 14 emulator with a real tap.
+- **Bottom Bar See-Through** at Clear: no colour left with gold or ruby accents (their coloured edge and glow now fade out as well). Every theme was checked at Solid and Clear.
+- **Gold and ruby buttons** (Today, Share card, + Add, the bottom bar's highlight): the same edge at the top and the bottom. Ruby's shine was lit from the top and gold's ran at an angle, so the rim merged into the lighter part at one edge and stood out at the other, which made the outline look off-centre.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.7
 
 A cleaner look, tidier Score History, app menus in games, and no more flashes. It installs over 1.8.6 and keeps everything. If you're on 1.8.6, you can install it from **Settings → About → Check now**.
