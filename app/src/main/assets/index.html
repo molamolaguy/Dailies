@@ -6725,6 +6725,7 @@
     const TAB_VIEW_IDS = { dashboard: 'viewDashboard', stats: 'viewStats', settings: 'viewSettings' };
     // (Device tests run with the system's animations off, which reads as reduced motion: they can ask for
     // motion with the localStorage flag `dailies_test_motion`.)
+    const PARK_ON_SCREEN = (() => { try { return localStorage.getItem('dailies_test_park') === 'onscreen'; } catch (e) { return false; } })();
     const REDUCED_MOTION = (() => { try { if (localStorage.getItem('dailies_test_motion') === '1') return false; return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
     let tabAnimating = false;
     let tabSlidePending = false;
@@ -6845,6 +6846,7 @@
           // drag animation moves it). Setting its style and taking its `hidden` class off made the browser
           // style it and record its whole drawing again in the drag's first frame: a late first frame,
           // which a quick swipe shows as a jump. It becomes the page on screen when it lands.
+          if (PARK_ON_SCREEN) el.style.opacity = '1';
         } else {
           el.style.cssText = `position:absolute;left:${box.left}px;top:${top}px;width:${box.width}px;margin:0;will-change:transform;pointer-events:none;transition:none;transform:translate3d(${dir * w}px,0,0)`;
           el.classList.remove('hidden');
@@ -6907,7 +6909,9 @@
         const { box, top } = this.slideGeometry(cur, el);
         const base = `position:absolute;left:${box.left}px;width:${box.width}px;margin:0;will-change:transform;pointer-events:none;transition:none;`;
         const dir = TAB_ORDER.indexOf(tab) > TAB_ORDER.indexOf(activeTab) ? 1 : -1;
-        const aside = `${base}top:${top}px;transform:translate3d(${dir * this.width()}px,0,0)`;
+        // (Experiment, device test flag `dailies_test_park=onscreen`: the page waits in place at 0.4% opacity, so
+        // what's drawn of it stays drawn, and only a swipe moves it aside.)
+        const aside = PARK_ON_SCREEN ? `${base}top:${top}px;opacity:0.004;transform:translate3d(0,0,0)` : `${base}top:${top}px;transform:translate3d(${dir * this.width()}px,0,0)`;
         el.classList.add('parked');
         // Where it waits, so a swipe can tell that it needn't be touched (see attach).
         el.__parked = { left: box.left, top, width: box.width, dir, w: this.width() };

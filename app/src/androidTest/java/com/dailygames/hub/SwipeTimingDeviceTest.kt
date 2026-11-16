@@ -104,7 +104,8 @@ class SwipeTimingDeviceTest {
             const xs = r.f.map((f) => f[2]); const moved = r.f.filter((f, i) => i > 0 && f[2] !== r.f[i - 1][2]);
             const long = r.f.filter((f) => f[1] > 24).map((f) => f[0] + ':' + f[1]);
             const pr = (window.__probe || []).filter((x) => x[0] >= r.t0 - 50 && x[0] <= r.t0 + 1800).map((x) => Math.round(x[0] - r.t0) + ' ' + x[1] + 'ms ' + x[2]);
-            return r.from + '->' + activeTab + ' primed=' + r.primed + ' | long frames(t:ms) ' + (long.join(' ') || 'none') + ' | slow tasks: ' + (pr.join('; ') || 'none') +
+            const worst = Math.max(0, ...r.f.slice(1).map((f) => f[1])); const lost = r.f.slice(1).reduce((a, f) => a + Math.max(0, f[1] - 17), 0);
+            return 'WORST ' + worst + 'ms LOST ' + lost + 'ms | ' + r.from + '->' + activeTab + ' primed=' + r.primed + ' | long frames(t:ms) ' + (long.join(' ') || 'none') + ' | slow tasks: ' + (pr.join('; ') || 'none') +
               ' | events(type t delay) ' + r.ev.map((e) => e.join(' ')).join(', ') +
               ' | frames(t interval x scrollY) ' + r.f.filter((f, i) => i === 0 || f[2] !== r.f[i - 1][2] || f[1] > 24).map((f) => f.join(' ')).join(', '); })()"""
         ).trim('"')
@@ -136,31 +137,33 @@ class SwipeTimingDeviceTest {
         ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object')", "\"true\"")
             Log.i("SwipeTiming", "reduced motion at launch: " + s.js("String(matchMedia('(prefers-reduced-motion: reduce)').matches)"))
-            // Animations on, whatever the WebView thinks of the system's setting (see REDUCED_MOTION).
-            s.js("localStorage.setItem('dailies_test_motion', '1'); location.reload(); 'ok'")
-            Thread.sleep(1_500)
-            s.waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object' && !REDUCED_MOTION)", "\"true\"")
-            // A few games and some history, so each page has something on it.
-            s.js(
-                "const mk=(id)=>{const g={id,name:'Game '+id,url:'https://example.com/'+id,resetTime:'00:00',resetZone:'utc',status:'ready'," +
-                    "streak:3,notifyEnabled:false,dayHistory:{}}; g.lastCycleKey=getCycleDateKey(g.resetTime,g.resetZone); return g;};" +
-                    "state.games=['a','b','c','d','e','f','g','h'].map(mk); saveState(); switchNavigation('dashboard', { settled: true }); renderGamesGrid(); 'ok'"
-            )
-            Thread.sleep(4_000) // the pages beside the screen are drawn ahead
-            Log.i("SwipeTiming", "reduced motion: " + s.js("String(REDUCED_MOTION)") + ", page width " + s.js("String(innerWidth)") + ", dpr " + s.js("String(devicePixelRatio)") +
-                ", parked: " + s.js("[...document.querySelectorAll('.tab-page.parked')].map(e => e.id + ' ' + JSON.stringify(e.__parked)).join('; ')"))
-            val quick = 6
-            val slow = 30
-            s.measure("quick left  hub->streaks", 0.85f, 0.15f, quick, 16, "stats"); Thread.sleep(1_500)
-            s.measure("quick left  streaks->settings", 0.85f, 0.15f, quick, 16, "settings"); Thread.sleep(1_500)
-            s.measure("quick right settings->streaks", 0.15f, 0.85f, quick, 16, "stats"); Thread.sleep(1_500)
-            s.measure("quick right streaks->hub", 0.15f, 0.85f, quick, 16, "dashboard"); Thread.sleep(1_500)
-            s.measure("slow  left  hub->streaks", 0.85f, 0.15f, slow, 16, "stats"); Thread.sleep(1_500)
-            s.measure("slow  right streaks->hub", 0.15f, 0.85f, slow, 16, "dashboard"); Thread.sleep(1_500)
-            // Straight after landing (the next swipe often comes at once).
-            s.measure("quick left  hub->streaks, then at once", 0.85f, 0.15f, quick, 16, "stats", after = 600)
-            s.measure("quick right streaks->hub, straight after", 0.15f, 0.85f, quick, 16, "dashboard")
-            s.js("state.games=[]; saveState(); flushSyncNativeNow(); localStorage.removeItem('dailies_test_motion'); 'ok'")
+            // The way pages wait beside the screen now (A), and waiting in place, nearly invisible (B), twice each.
+            for ((round, park) in listOf("A1" to "", "B1" to "onscreen", "A2" to "", "B2" to "onscreen")) s.round(round, park)
+            s.js("state.games=[]; saveState(); flushSyncNativeNow(); localStorage.removeItem('dailies_test_motion'); localStorage.removeItem('dailies_test_park'); 'ok'")
         }
+    }
+
+    private fun ActivityScenario<HubActivity>.round(round: String, park: String) {
+        // Animations on, whatever the WebView thinks of the system's setting (see REDUCED_MOTION), and a fresh page.
+        js("localStorage.setItem('dailies_test_motion', '1'); localStorage.setItem('dailies_test_park', '$park'); location.reload(); 'ok'")
+        Thread.sleep(1_500)
+        waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object' && !REDUCED_MOTION)", "\"true\"")
+        // A few games, so each page has something on it.
+        js(
+            "const mk=(id)=>{const g={id,name:'Game '+id,url:'https://example.com/'+id,resetTime:'00:00',resetZone:'utc',status:'ready'," +
+                "streak:3,notifyEnabled:false,dayHistory:{}}; g.lastCycleKey=getCycleDateKey(g.resetTime,g.resetZone); return g;};" +
+                "state.games=['a','b','c','d','e','f','g','h'].map(mk); saveState(); switchNavigation('dashboard', { settled: true }); renderGamesGrid(); 'ok'"
+        )
+        Thread.sleep(4_000) // the pages beside the screen are drawn ahead
+        Log.i("SwipeTiming", "== round $round park='$park': page width " + js("String(innerWidth)") + ", parked: " +
+            js("[...document.querySelectorAll('.tab-page.parked')].map(e => e.id + ' ' + e.style.transform + ' ' + e.style.opacity).join('; ')"))
+        val quick = 6
+        val slow = 30
+        measure("$round quick left  hub->streaks", 0.85f, 0.15f, quick, 16, "stats"); Thread.sleep(1_500)
+        measure("$round quick left  streaks->settings", 0.85f, 0.15f, quick, 16, "settings"); Thread.sleep(1_500)
+        measure("$round quick right settings->streaks", 0.15f, 0.85f, quick, 16, "stats"); Thread.sleep(1_500)
+        measure("$round quick right streaks->hub", 0.15f, 0.85f, quick, 16, "dashboard"); Thread.sleep(1_500)
+        measure("$round slow  left  hub->streaks", 0.85f, 0.15f, slow, 16, "stats"); Thread.sleep(1_500)
+        measure("$round slow  right streaks->hub", 0.15f, 0.85f, slow, 16, "dashboard"); Thread.sleep(1_500)
     }
 }
