@@ -3,8 +3,11 @@ package com.dailygames.hub
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -17,6 +20,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /** The game player: Next and switching games without going back to the hub (1.4.0). */
 @RunWith(AndroidJUnit4::class)
@@ -209,5 +214,84 @@ class GamePlayerTest {
         assertEquals(GamePrefs.MAX_ZOOM, GamePrefs.siteZoom(ctx, "example.com"), 0.001f)
         GamePrefs.setSiteZoom(ctx, "example.com", 1f)
         assertEquals(1f, GamePrefs.siteZoom(ctx, "example.com"), 0.001f)
+    }
+
+    // ---- Drop-down lists on game pages open the app's own menu (1.8.7 / 1.8.8) ----
+
+    private fun findWebView(v: View): WebView? {
+        if (v is WebView && v.visibility == View.VISIBLE) return v
+        if (v is ViewGroup) for (i in 0 until v.childCount) findWebView(v.getChildAt(i))?.let { return it }
+        return null
+    }
+
+    private fun ActivityScenario<GameActivity>.js(script: String): String {
+        var result: String? = null
+        val latch = CountDownLatch(1)
+        onActivity { a -> findWebView(a.window.decorView)!!.evaluateJavascript(script) { result = it; latch.countDown() } }
+        assertTrue("JS timed out: $script", latch.await(10, TimeUnit.SECONDS))
+        return result ?: "null"
+    }
+
+    private fun ActivityScenario<GameActivity>.waitForJs(script: String, expected: String, timeoutMs: Long = 20_000) {
+        val end = System.currentTimeMillis() + timeoutMs
+        var last = ""
+        while (System.currentTimeMillis() < end) {
+            last = js(script)
+            if (last == expected) return
+            Thread.sleep(250)
+        }
+        throw AssertionError("$script was $last, expected $expected")
+    }
+
+    /** A real tap (finger down and up) on the page element [selector]. */
+    private fun ActivityScenario<GameActivity>.tap(selector: String) {
+        val at = js("(function(){const r=document.querySelector(${JSONObject.quote(selector)}).getBoundingClientRect(); return (r.left+r.width/2)+','+(r.top+r.height/2);})()").trim('"')
+        val (cx, cy) = at.split(',').map { it.toFloat() }
+        var sx = 0f
+        var sy = 0f
+        onActivity { a ->
+            val wv = findWebView(a.window.decorView)!!
+            val loc = IntArray(2)
+            wv.getLocationOnScreen(loc)
+            val scale = wv.width.toFloat() / js0Width(wv, a.resources.displayMetrics.density)
+            sx = loc[0] + cx * scale
+            sy = loc[1] + cy * scale
+        }
+        val inst = InstrumentationRegistry.getInstrumentation()
+        val t = SystemClock.uptimeMillis()
+        inst.sendPointerSync(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, sx, sy, 0))
+        inst.sendPointerSync(MotionEvent.obtain(t, t + 80, MotionEvent.ACTION_UP, sx, sy, 0))
+        inst.waitForIdleSync()
+    }
+
+    /** The page's width in CSS pixels (the player may zoom a page, so it isn't always width / density). */
+    private var pageCssWidth = 0f
+    private fun js0Width(wv: WebView, density: Float): Float = if (pageCssWidth > 0f) pageCssWidth else wv.width / density
+
+    @Test
+    fun aDropDownOnAGamePageOpensTheAppsOwnMenu() {
+        val intent = Intent(ctx, GameActivity::class.java)
+            .putExtra(GameActivity.EXTRA_ID, "a")
+            .putExtra(GameActivity.EXTRA_NAME, "Game A")
+            .putExtra(GameActivity.EXTRA_URL, "https://example.com/a")
+        ActivityScenario.launchActivityForResult<GameActivity>(intent).use { s ->
+            Thread.sleep(1_500)
+            val page = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+                <body style="margin:0;padding:24px;font:16px sans-serif">
+                <select id="diff" style="font-size:18px;padding:10px;width:240px"><option>Easy</option><option selected>Medium</option><option>Hard</option></select>
+                <p id="log">none</p>
+                <script>document.getElementById('diff').addEventListener('change', function (e) { document.getElementById('log').textContent = e.target.value; });</script>
+                </body></html>"""
+            s.onActivity { a -> findWebView(a.window.decorView)!!.loadDataWithBaseURL("https://example.com/a", page, "text/html", "utf-8", null) }
+            s.waitForJs("String(window.__dailiesSelectMenu === true && !!document.getElementById('diff'))", "\"true\"")
+            pageCssWidth = s.js("String(document.documentElement.clientWidth)").trim('"').toFloat()
+            s.tap("#diff")
+            // The app's menu is showing (Android's own picker would have left it hidden).
+            s.waitForJs("String((document.querySelector('dailies-select-menu') || { style: {} }).style.display)", "\"block\"", 5_000)
+            // The page itself is left as it was until something is chosen.
+            assertEquals("\"none\"", s.js("document.getElementById('log').textContent"))
+            assertEquals("\"Medium\"", s.js("document.getElementById('diff').value"))
+            s.onActivity { a -> a.finish() }
+        }
     }
 }
