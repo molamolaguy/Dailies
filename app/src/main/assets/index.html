@@ -1359,7 +1359,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.8';
+    const APP_VERSION = '1.8.9';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -1400,6 +1400,8 @@
       const pct = size === 'larger' ? 130 : size === 'large' ? 115 : 100;
       if (pct === lastTextZoom) return;
       lastTextZoom = pct;
+      // The bar's tabs change size with the text: measure them again once it has been applied.
+      setTimeout(() => { try { NavIndicator.place(activeTab); } catch (e) {} }, 300);
       try {
         if (window.AndroidBridge && typeof window.AndroidBridge.setTextZoom === 'function') { window.AndroidBridge.setTextZoom(pct); return; }
       } catch (e) {}
@@ -3428,6 +3430,7 @@
       const clearPress = () => {
         if (!press) return;
         clearTimeout(press.timer);
+        clearTimeout(press.hold);
         press.card.classList.remove('press-hold');
         press = null;
       };
@@ -3521,7 +3524,9 @@
         lastTouchY = t.clientY;
         clearPress();
         press = { card, x: t.clientX, y: t.clientY, timer: setTimeout(begin, LONG_PRESS_MS) };
-        card.classList.add('press-hold');
+        // The card sinks a little only once the finger rests on it (1.8.9): straight away, every swipe that
+        // started on a card animated it (and drew it again on every frame of the swipe).
+        press.hold = setTimeout(() => { if (press && press.card === card) card.classList.add('press-hold'); }, 150);
       }, { passive: true });
 
       grid.addEventListener('touchmove', (e) => {
@@ -4451,6 +4456,9 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.9': [
+        ['👆', 'Swipes without the hitch', 'A page now carries on at your finger\'s speed when you let go (it used to stop for a moment, then lurch), and follows your finger with about half the work per frame.']
+      ],
       '1.8.8': [
         ['👆', 'Smoother swipes', 'Pages slide between the hub, Streaks & Log and Settings with less to draw, wherever you\'ve scrolled to.'],
         ['📋', 'App menus in games', 'Drop-down lists on game pages now open the app\'s own menu on a tap.'],
@@ -6705,10 +6713,34 @@
      * so it is already under the new tab when the page arrives.
      */
     const NavIndicator = {
-      el() { return document.getElementById('navIndicator'); },
+      el() { return this._el || (this._el = document.getElementById('navIndicator')); },
+      // The tabs' boxes are measured once (and again when the screen size or text size changes), and only
+      // what changed is written (1.8.9): while a finger drags a page this runs every frame, and measuring
+      // and rewriting the highlight's size and place each time was about half of that frame's work.
+      rects: null,
+      measure() {
+        this.rects = {};
+        // Exact (fractional) boxes, relative to the bar: offsetLeft and friends are whole pixels, which put
+        // the highlight up to a third of a pixel off its tab (1.8.9).
+        const ind = this.el();
+        const host = ind && ind.offsetParent;
+        const hr = host ? host.getBoundingClientRect() : { left: 0, top: 0 };
+        const ox = hr.left + (host ? host.clientLeft : 0);
+        const oy = hr.top + (host ? host.clientTop : 0);
+        document.querySelectorAll('.nav-btn[data-nav]').forEach((b) => {
+          const r = b.getBoundingClientRect();
+          this.rects[b.getAttribute('data-nav')] = { x: r.left - ox, y: r.top - oy, w: r.width, h: r.height };
+        });
+      },
       rect(tab) {
-        const b = document.querySelector(`.nav-btn[data-nav="${tab}"]`);
-        return b ? { x: b.offsetLeft, y: b.offsetTop, w: b.offsetWidth, h: b.offsetHeight } : null;
+        if (!this.rects || !this.rects[tab] || !this.rects[tab].w) this.measure();
+        return this.rects[tab] || null;
+      },
+      last: {},
+      put(el, prop, value) {
+        if (this.last[prop] === value) return;
+        this.last[prop] = value;
+        el.style[prop] = value;
       },
       /** Between tab `a` (t = 0) and tab `b` (t = 1); `ms`/`ease` animate, otherwise it moves at once. */
       set(a, b, t, ms, ease) {
@@ -6718,17 +6750,21 @@
         if (!el || !ra) return;
         const k = Math.max(0, Math.min(1, t || 0));
         const x = ra.x + (rb.x - ra.x) * k;
-        const w = ra.w + (rb.w - ra.w) * k;
-        el.style.transition = ms ? `transform ${ms}ms ${ease}, width ${ms}ms ${ease}` : 'none';
-        el.style.width = `${w}px`;
-        el.style.height = `${ra.h}px`;
-        el.style.top = `${ra.y}px`;
-        el.style.transform = `translate3d(${x}px,0,0)`;
-        el.style.opacity = '1';
+        // Tabs within half a pixel of each other's width count as the same width: only the position moves
+        // (a width change can't run on the GPU).
+        const same = Math.abs(ra.w - rb.w) < 0.5;
+        const w = same ? ra.w : ra.w + (rb.w - ra.w) * k;
+        this.put(el, 'transition', ms ? (same ? `transform ${ms}ms ${ease}` : `transform ${ms}ms ${ease}, width ${ms}ms ${ease}`) : 'none');
+        this.put(el, 'width', `${w}px`);
+        this.put(el, 'height', `${ra.h}px`);
+        this.put(el, 'top', `${ra.y}px`);
+        this.put(el, 'transform', `translate3d(${x}px,0,0)`);
+        this.put(el, 'opacity', '1');
       },
-      place(tab) { this.set(tab, tab, 0); }
+      place(tab) { this.measure(); this.set(tab, tab, 0); }
     };
     window.addEventListener('resize', () => {
+      Pager._w = 0;
       NavIndicator.place(activeTab);
       // Parked pages sit at the old width: park them again at the new one.
       document.querySelectorAll('.tab-page.parked').forEach((el) => { el.dataset.redraw = '1'; });
@@ -6737,7 +6773,10 @@
 
     const Pager = {
       neighbour: null, // { tab, el, dir }
-      width() { return (document.documentElement.clientWidth || window.innerWidth || 400) + 24; },
+      // Measured once (and again after a resize, 1.8.9): read while a finger drags a page, the width made the
+      // browser work out the page's styles again on the spot, twice a frame (most of the drag's own work).
+      _w: 0,
+      width() { return this._w || (this._w = (document.documentElement.clientWidth || window.innerWidth || 400) + 24); },
       /** Puts `tab`'s page beside the current one, rendered and ready to slide in from `dir`. */
       attach(tab, dir) {
         const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
@@ -6761,6 +6800,7 @@
         return this.neighbour;
       },
       detach() {
+        this.stopDrag();
         const n = this.neighbour;
         this.neighbour = null;
         if (!n || n.tab === activeTab) return;
@@ -6789,8 +6829,12 @@
         // (it used to arrive one status bar + 18px too high and drop into place when the slide ended).
         const firstChild = cur.firstElementChild;
         const collapsed = firstChild ? parseFloat(getComputedStyle(firstChild).marginTop) || 0 : 0;
-        const box = { left: cur.offsetLeft, top: cur.offsetTop - collapsed, width: cur.offsetWidth, height: cur.offsetHeight };
+        // Exact (fractional) positions: offsetTop / offsetLeft are rounded to whole pixels, so a page could
+        // land a quarter of a pixel from where it slid in (a tiny jump as the slide ended, 1.8.9).
         const scrollY = Math.max(0, window.scrollY);
+        const cr = cur.getBoundingClientRect();
+        const sr = (cur.offsetParent || document.body).getBoundingClientRect();
+        const box = { left: cr.left - sr.left, top: cr.top - sr.top - collapsed, width: cr.width, height: cr.height };
         // Pages off screen stay laid out (clipped to no height, see .tab-page in app.css), so the new
         // page's height is known without showing it first.
         const newMax = Math.max(0, docH - box.height + el.scrollHeight - window.innerHeight);
@@ -6842,12 +6886,91 @@
       /** Places both pages for a finger offset of `dx` px (no animation). */
       follow(dx) {
         const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
-        if (cur) { cur.style.transition = 'none'; cur.style.transform = `translate3d(${dx}px,0,0)`; }
         const n = this.neighbour;
-        if (n) n.el.style.transform = `translate3d(${dx + n.dir * this.width()}px,0,0)`;
+        const w = this.width();
+        if (n && cur && this.dragWith(cur, n, w)) {
+          // 1.8.9: the pages and the bar's highlight are paused animations set to the finger's position.
+          // Moving them by rewriting their style every frame made the browser rebuild its layers each
+          // time: that, not drawing, was most of each frame's work while a finger dragged a page.
+          const t = Math.max(0, Math.min(1, -dx * n.dir / w)) * 1000;
+          for (const a of this.drag.anims) a.currentTime = t;
+          // Tabs of different widths (larger text, longer labels): the highlight follows the usual way.
+          if (!this.drag.ind) NavIndicator.set(activeTab, n.tab, Math.abs(dx) / w);
+          return;
+        }
+        this.stopDrag();
+        if (cur) { cur.style.transition = 'none'; cur.style.transform = `translate3d(${dx}px,0,0)`; }
+        if (n) n.el.style.transform = `translate3d(${dx + n.dir * w}px,0,0)`;
         // The bar's highlight slides the same fraction of the way to the neighbouring tab.
-        if (n) NavIndicator.set(activeTab, n.tab, Math.abs(dx) / this.width());
-        else NavIndicator.place(activeTab);
+        if (n) NavIndicator.set(activeTab, n.tab, Math.abs(dx) / w);
+        else NavIndicator.set(activeTab, activeTab, 0);
+      },
+      drag: null, // { n, anims }: the paused animations a finger is moving
+      /** Sets up the drag's animations for neighbour `n` (once per neighbour). False where they can't run. */
+      dragWith(cur, n, w) {
+        if (this.drag && this.drag.n === n) return true;
+        this.stopDrag();
+        if (typeof cur.animate !== 'function') return false;
+        const ind = NavIndicator.el();
+        const ra = NavIndicator.rect(activeTab);
+        const rb = NavIndicator.rect(n.tab);
+        const move = (el, from, to) => {
+          const a = el.animate([{ transform: `translate3d(${from}px,0,0)` }, { transform: `translate3d(${to}px,0,0)` }], { duration: 1000, fill: 'both', easing: 'linear' });
+          a.pause();
+          return a;
+        };
+        const anims = [move(cur, 0, -n.dir * w), move(n.el, n.dir * w, 0)];
+        // The highlight too, when the two tabs are the same width (they are: three equal columns).
+        if (ind && ra && rb && Math.abs(ra.w - rb.w) < 0.5) {
+          NavIndicator.set(activeTab, activeTab, 0);
+          anims.push(move(ind, ra.x, rb.x));
+        }
+        this.drag = { n, anims, ind: anims.length > 2 };
+        return true;
+      },
+      /** Ends the drag's animations, leaving everything exactly where the finger had put it (`dx`). */
+      stopDrag(dx) {
+        const d = this.drag;
+        if (!d) return;
+        this.drag = null;
+        if (typeof dx === 'number') {
+          const w = this.width();
+          const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
+          if (cur) { cur.style.transition = 'none'; cur.style.transform = `translate3d(${dx}px,0,0)`; }
+          d.n.el.style.transition = 'none';
+          d.n.el.style.transform = `translate3d(${dx + d.n.dir * w}px,0,0)`;
+          if (d.ind) NavIndicator.set(activeTab, d.n.tab, Math.max(0, Math.min(1, -dx * d.n.dir / w)));
+        }
+        d.anims.forEach((a) => a.cancel());
+        // Settle those positions now: a transition set next would otherwise start from where each one was
+        // before the drag (the animations' positions don't count as a starting point), a jump.
+        const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
+        if (cur) getComputedStyle(cur).transform;
+        getComputedStyle(d.n.el).transform;
+        if (d.ind) getComputedStyle(NavIndicator.el()).transform;
+      },
+      /**
+       * The glide after the finger lifts (1.8.9): from `dx` to `target` with the page moving at `v` px/ms.
+       * The curve's starting speed is the finger's, then it eases out, so there's no change of pace at the
+       * moment of release. It starts a frame's travel ahead, where the finger would have taken the page by
+       * the time the glide's first frame is shown. From (nearly) rest, or moving away from the target (a
+       * cancelled swipe), it starts from rest.
+       */
+      settleCurve(dx, target, v, w) {
+        const d = target - dx;
+        const dist = Math.abs(d);
+        if (dist < 1) return { ms: 120, ease: 'linear', start: dx };
+        const toward = v * Math.sign(d); // px/ms towards the target
+        if (toward <= 0.05) {
+          return { ms: Math.round(Math.max(220, Math.min(360, 180 + dist / w * 200))), ease: 'cubic-bezier(0.2, 0, 0, 1)', start: dx };
+        }
+        const ahead = Math.min(dist * 0.2, toward * 12);
+        const left = dist - ahead;
+        const ms = Math.round(Math.max(200, Math.min(420, 2.2 * left / toward)));
+        // A cubic with evenly spaced time handles (1/3, 2/3) is exact in time: it starts at `slope` (the
+        // finger's speed, in progress per progress) and slows steadily to a stop. Above 3 it would overshoot.
+        const slope = Math.min(3, toward * ms / left);
+        return { ms, ease: `cubic-bezier(0.333, ${(slope / 3).toFixed(3)}, 0.667, 1)`, start: dx + Math.sign(d) * ahead };
       },
       /** Glides to the neighbour (go) or back (stay), starting at `dx` with release velocity `v` px/ms. */
       settle(dx, v, go, onDone) {
@@ -6855,12 +6978,19 @@
         const n = this.neighbour;
         const w = this.width();
         const target = go && n ? -n.dir * w : 0;
-        const remaining = Math.abs(target - dx);
-        const speed = Math.abs(v || 0);
-        // Duration from the remaining distance and the flick speed, within Material's 200-380 ms.
-        const ms = Math.round(Math.max(200, Math.min(380, speed > 0.3 ? remaining / speed * 1.6 : 160 + remaining / w * 220)));
-        const ease = speed > 0.3 ? 'cubic-bezier(0.25, 1, 0.5, 1)' : 'cubic-bezier(0.2, 0, 0, 1)';
+        // The drag's animations hand over to the glide exactly where the finger left the pages.
+        this.stopDrag(dx);
+        // The page moved at a fifth of the finger's speed while it stretched at the first or last page.
+        const { ms, ease, start } = this.settleCurve(dx, target, n ? (v || 0) : (v || 0) * 0.2, w);
         tabAnimating = true;
+        // 1.8.9: the glide starts where the page would be a frame after the finger lifts (it used to wait a
+        // frame in place) and at the finger's speed (it used to set off at up to 3.6x that, or from a stop).
+        if (start !== dx) {
+          if (cur) { cur.style.transition = 'none'; cur.style.transform = `translate3d(${start}px,0,0)`; }
+          if (n) { n.el.style.transition = 'none'; n.el.style.transform = `translate3d(${start + n.dir * w}px,0,0)`; }
+          if (cur) getComputedStyle(cur).transform; // the glide starts from here
+          if (n) getComputedStyle(n.el).transform;
+        }
         const tr = `transform ${ms}ms ${ease}`;
         if (cur) { cur.style.transition = tr; cur.style.transform = `translate3d(${target}px,0,0)`; }
         if (n) { n.el.style.transition = tr; n.el.style.transform = `translate3d(${target + n.dir * w}px,0,0)`; }

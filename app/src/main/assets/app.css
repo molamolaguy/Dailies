@@ -2047,3 +2047,7 @@ html[data-gold="true"] :is(.m4-primary-fab, .bg-indigo-600, .return-btn.primary,
   .recap-btn.primary, .recap-seg.on, .chg-undo, .cal-today-btn, #btnShareRecap) {
   background-image: linear-gradient(90deg, #A69565 0%, #CDB97F 15%, #F2E6BC 29%, #DBC991 38%, #B6A267 56%, #8C7E57 72%, #C2AF79 87%, #E8D9A6 100%) !important;
 }
+/* What follows a finger sideways inside a page (1.8.9): the calendar's days, the Score History list and the
+   recap boxes are their own layers, so moving them doesn't draw them again on every frame. */
+#calendarDaysGrid, #historyTableBody, .recap-swipe { will-change: transform, opacity; }
+@media (prefers-reduced-motion: reduce) { #calendarDaysGrid, #historyTableBody, .recap-swipe { will-change: auto; } }

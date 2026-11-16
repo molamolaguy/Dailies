@@ -1,0 +1,3 @@
+• Swipes carry on at your finger's speed when you let go, with no pause.
+• About half the work per frame while a finger moves a page.
+• Pages and the bar's highlight land exactly in place.

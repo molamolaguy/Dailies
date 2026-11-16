@@ -181,6 +181,67 @@ class HubSmokeTest {
         Thread.sleep(600)
     }
 
+    /** A real finger swipe across the hub page, from fraction [fromX] to [toX] of its width, at height [atY]. */
+    private fun ActivityScenario<HubActivity>.swipe(fromX: Float, toX: Float, atY: Float, steps: Int = 14) {
+        var x0 = 0f
+        var x1 = 0f
+        var y = 0f
+        onActivity { a ->
+            val wv = findWebView(a.window.decorView)!!
+            val loc = IntArray(2)
+            wv.getLocationOnScreen(loc)
+            x0 = loc[0] + wv.width * fromX
+            x1 = loc[0] + wv.width * toX
+            y = loc[1] + wv.height * atY
+        }
+        val inst = InstrumentationRegistry.getInstrumentation()
+        val t = SystemClock.uptimeMillis()
+        inst.sendPointerSync(MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, x0, y, 0))
+        for (i in 1..steps) {
+            inst.sendPointerSync(MotionEvent.obtain(t, t + i * 16L, MotionEvent.ACTION_MOVE, x0 + (x1 - x0) * i / steps, y, 0))
+            Thread.sleep(16)
+        }
+        inst.sendPointerSync(MotionEvent.obtain(t, t + (steps + 1) * 16L, MotionEvent.ACTION_UP, x1, y, 0))
+        inst.waitForIdleSync()
+    }
+
+    /** True once a slide has finished: no page or the bar's highlight still moving, and every page at rest. */
+    private val settledJs = "String(!tabAnimating && !Pager.neighbour && !Pager.drag && document.getAnimations().every(a => !a.effect || !a.effect.target || " +
+        "!(a.effect.target.classList.contains('tab-page') || a.effect.target.id === 'navIndicator')) && " +
+        "getComputedStyle(document.getElementById(TAB_VIEW_IDS[activeTab])).transform === 'none')"
+
+    /** How far the bar's highlight is from the current tab's button (CSS px), the larger of x and width. */
+    private val highlightOffJs = "(function(){const i=document.getElementById('navIndicator').getBoundingClientRect();" +
+        "const b=document.querySelector('.nav-btn[data-nav=\"'+activeTab+'\"]').getBoundingClientRect();" +
+        "return String(Math.round(Math.max(Math.abs(i.left-b.left),Math.abs(i.width-b.width),Math.abs(i.top-b.top))*100)/100);})()"
+
+    @Test
+    fun swipingBetweenPagesWithAFingerMovesTabAndSettles() {
+        ActivityScenario.launch(HubActivity::class.java).use { s ->
+            s.waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object')", "\"true\"")
+            s.js("window.__errs=[]; window.addEventListener('error', e => window.__errs.push(String(e.message))); switchNavigation('dashboard', { settled: true }); 'ok'")
+            Thread.sleep(2_500) // the pages beside the screen are drawn ahead
+            // Left: hub -> Streaks & Log, then Settings.
+            s.swipe(0.85f, 0.1f, 0.12f)
+            s.waitForJs("activeTab", "\"stats\"", 5_000)
+            s.waitForJs(settledJs, "\"true\"", 5_000)
+            // A short swipe springs back.
+            s.swipe(0.6f, 0.5f, 0.12f)
+            s.waitForJs(settledJs, "\"true\"", 5_000)
+            assertEquals("\"stats\"", s.js("activeTab"))
+            s.swipe(0.85f, 0.1f, 0.12f)
+            s.waitForJs("activeTab", "\"settings\"", 5_000)
+            s.waitForJs(settledJs, "\"true\"", 5_000)
+            // Right: back to Streaks & Log.
+            s.swipe(0.15f, 0.9f, 0.12f)
+            s.waitForJs("activeTab", "\"stats\"", 5_000)
+            s.waitForJs(settledJs, "\"true\"", 5_000)
+            val off = s.js(highlightOffJs).trim('"').toFloat()
+            assertTrue("the bar's highlight is $off px from its tab", off < 1f)
+            assertEquals("no page errors", "\"[]\"", s.js("JSON.stringify(window.__errs)"))
+        }
+    }
+
     @Test
     fun doneTodaySectionFoldsWithARealTap() {
         ActivityScenario.launch(HubActivity::class.java).use { s ->
