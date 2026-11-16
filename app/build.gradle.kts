@@ -28,8 +28,8 @@ android {
         applicationId = "com.dailygames.hub"
         minSdk = 24
         targetSdk = 37
-        versionCode = 19
-        versionName = "1.8.5"
+        versionCode = 20
+        versionName = "1.8.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

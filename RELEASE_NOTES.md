@@ -1,3 +1,26 @@
+# Dailies 1.8.6
+
+Smoother animations throughout. It installs over 1.8.5 and keeps everything. If you're on 1.8.5, you can install it from **Settings → About → Check now**.
+
+## Smoother
+- **"Done today"**: folds and unfolds with a fade and slide instead of shrinking, and only its own cards are added or removed (the whole list used to be rebuilt).
+- **Settings and Achievements sections**: opening one fades its contents in, and the sections below glide to their new place instead of jumping.
+- **Score History**: changing page, searching or filtering redraws only the list, so the next page slides in at once (the whole page, calendar included, used to be redrawn).
+- **Saving**: changes are written at the next quiet moment (straight away when you leave the app or open a game), not in the middle of the animation they started. Device settings are only passed to Android when one changes.
+- **Page swipes**: the page you left is set aside a moment later instead of in the same frame the new one lands, and countdowns don't tick while a page slides.
+- **Countdowns**: only redrawn when the time shown changes (with seconds hidden, once a minute).
+- **Back from a game**: the hub only redraws what changed while you played.
+- **Celebration**: no full-screen blur behind it (it was worked out again on every frame).
+
+## Fixes
+- **Bottom Bar See-Through**: a scroll that starts on the slider no longer changes it.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.5
 
 Game pages checked for changes, a more see-through bottom bar you can adjust, and smoother swipes. It installs over 1.8.4 and keeps everything. If you're on 1.8.4, you can install it from **Settings → About → Check now**.

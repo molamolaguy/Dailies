@@ -522,6 +522,8 @@ class HubActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
+        // The hub writes its state at a quiet moment (1.8.6): leaving the app writes what's waiting now.
+        if (::webView.isInitialized) runCatching { webView.evaluateJavascript("window.__flushPendingSave && window.__flushPendingSave()", null) }
         if (::webView.isInitialized) webView.onPause()
         // Make sure the latest hub state reaches disk before the process can be killed.
         stateStore.flushAsync()

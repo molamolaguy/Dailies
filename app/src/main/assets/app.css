@@ -182,6 +182,9 @@ html.app-ready button {
 button:active {
   transform: scale(0.95);
 }
+/* The bar's labels change colour at once (1.8.6): the highlight behind them already slides across, and a
+   colour fade ran on the main thread just as the new page landed, its busiest moment. */
+html.app-ready .nav-btn { transition: transform 0.16s var(--m3-spring-effects); }
 
 /* Transparent Outline Floating Navigation Icon (No Encircling Oval) */
 .m3-floating-icon {
@@ -1814,7 +1817,8 @@ html[data-theme="light"] .ga-btn.danger { color: #be123c; }
 .error-log-text { font-size: 11px; line-height: 1.45; max-height: 40vh; overflow: auto; white-space: pre; }
 .error-log-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 /* All done: the app icon sparkles */
-.celebrate { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: color-mix(in srgb, var(--md-surface, #0b0b0f) 72%, transparent); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); animation: cel-in 260ms ease-out both; --cel-a: var(--md-primary); --cel-b: #fff; }
+/* 1.8.6: no blur behind the celebration (a full-screen blur, worked out again on every frame of its animation). */
+.celebrate { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: color-mix(in srgb, var(--md-surface, #0b0b0f) 86%, transparent); animation: cel-in 260ms ease-out both; --cel-a: var(--md-primary); --cel-b: #fff; }
 .celebrate.hidden { display: none; }
 .celebrate.cel-out { animation: cel-out 300ms ease-in both; }
 .celebrate.cel-gold { --cel-a: #E8D9A6; --cel-b: #FFF7DC; }

@@ -1,0 +1,5 @@
+• Smoother folding of Done today, Settings and Achievements sections.
+• Score History and calendar pages slide in at once.
+• Saving never interrupts an animation.
+• Quicker, smoother return from a game.
+• A scroll starting on the bottom bar slider no longer changes it.
