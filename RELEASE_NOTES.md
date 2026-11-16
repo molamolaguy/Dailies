@@ -1,3 +1,26 @@
+# Dailies 1.8.9
+
+Swiping between pages without the hitch. It installs over 1.8.8 and keeps everything. If you're on 1.8.8, you can install it from **Settings → About → Check now**.
+
+## Swipes
+- **Letting go**: the page now carries on at the speed your finger was moving and eases to a stop. It used to stand still for a frame or two after you lifted your finger and then set off at up to several times that speed, a small hitch on every swipe, however fast the phone.
+- **While your finger moves the page**: about half the work per frame (measured with the processor slowed 6×, roughly a mid-range phone, a drag frame went from about 16 ms to about 7 ms):
+  - the pages and the bar's highlight follow your finger as animations set to its position, instead of rewriting their style every frame (which made the browser rebuild its layers each time);
+  - the screen width is measured once instead of twice a frame (each time made the browser work the page's styles out again on the spot);
+  - the bar's tabs are measured once, and only what changed about the highlight is updated;
+  - a game card only sinks under your finger after a moment, so a swipe that starts on a card no longer animates it.
+- **Landing**: pages come to rest exactly where they slid in (they could be a fraction of a pixel off), and the bar's highlight sits exactly on its tab (it could be a third of a pixel off).
+- **Calendar, Score History and recap swipes**: what moves is its own layer, so it isn't drawn again on every frame.
+
+## Checks
+- An emulator test now swipes between pages with a real finger: hub → Streaks & Log → Settings and back, plus a short swipe that springs back, checking each lands, nothing is left moving and the highlight is on its tab.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.8
 
 Smoother swipes, app menus in games that really open, a truly clear bottom bar, and even button outlines. It installs over 1.8.7 and keeps everything. If you're on 1.8.7, you can install it from **Settings → About → Check now**.

@@ -540,6 +540,17 @@ The hub also runs as an installable web app on GitHub Pages; see `web/README.md`
 - **Finding results** (`share-hook.js`): `RESULTS_OPEN_RE` (press "See results" / "Stats" once on a finished game, then rescan), `shareLinkText` (window.open and `<a>` share links), `deepQueryAll` / `deepText` (open shadow roots), `FINISHED_INTL_RE` and the multilingual `BUTTON_RE`, `screenResultLine` → `via: "screen"`. `GameActivity.captureShareLink` (`ShareLinkText`, also for navigations and popups), `offerScreenResult` (a Log it / Not now card; `EXTRA_SHARE_CONFIRMED` makes the hub skip its strict check).
 - **UI**: every `<select>` uses `themeSelect`; `#btnPlayAll` is the only bar above the games; no Select button, Personal Bests, tough days or Settings → Recent changes; recap boxes swipe (`.recap-swipe`); achievements and secrets in two grids; `settingsRenderKey` so Settings isn't rebuilt on each swipe; card styles restyled; `formatLocalNowTime` follows Show Seconds; alerts have no large icon.
 
+## 29. New in 1.8.9
+
+Measured frame by frame: page velocity across release, main-thread work per drag frame by stage (at 6x CPU), invalidation tracking and a JS profile of the drag.
+- **Release**: `Pager.settleCurve(dx, target, v, w)` — a `cubic-bezier(0.333, s/3, 0.667, 1)` (time-exact) whose starting slope `s` is the finger's speed (`toward * ms / left`, at most 3), duration `2.2 * left / speed` within 200-420 ms, starting a frame's travel ahead. From rest or moving away: `cubic-bezier(0.2, 0, 0, 1)`. Rubber band uses a fifth of the finger's speed. The old curve paused a frame and set off at up to 3.6x.
+- **Drag**: `Pager.dragWith` makes paused WAAPI animations (cur page, neighbour, highlight; `fill: both`, linear over 1000 ms) and `follow` sets their `currentTime`; `stopDrag(dx)` writes the same positions inline, cancels them and flushes styles (a transition's start is the pre-drag inline value otherwise). Layerize per frame went from ~3 ms to ~0.25 ms at 6x.
+- `Pager.width()` cached (`_w`, cleared on resize); `NavIndicator` measures tabs once (fractional, relative to the bar), writes only changed properties (`put`), equal widths within 0.5 px move by transform only.
+- **Card press**: `press-hold` added after 150 ms of resting, not on touchstart.
+- `slideGeometry` uses fractional rects (offsetTop/Left are rounded).
+- `#calendarDaysGrid, #historyTableBody, .recap-swipe { will-change: transform, opacity }`.
+- Device test `HubSmokeTest.swipingBetweenPagesWithAFingerMovesTabAndSettles`.
+
 ## 28. New in 1.8.8
 
 - **Pages as layers**: `.tab-page { will-change: transform }` permanently (not with Reduce Motion); `Pager.attach` / `settle` no longer set and clear `will-change` on the current page. Toggling it re-rastered the page leaving at the start of each swipe and the page arriving (into the root layer) as it landed.
