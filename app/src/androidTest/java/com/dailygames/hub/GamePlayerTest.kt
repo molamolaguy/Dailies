@@ -294,4 +294,74 @@ class GamePlayerTest {
             s.onActivity { a -> a.finish() }
         }
     }
+
+    /** The page's text views, joined, to look for the "result on screen" card. */
+    private fun allText(v: View): String = when (v) {
+        is TextView -> v.text?.toString().orEmpty() + "\n"
+        is ViewGroup -> (0 until v.childCount).joinToString("") { allText(v.getChildAt(it)) }
+        else -> ""
+    }
+
+    private fun launchWithPage(page: String, block: (ActivityScenario<GameActivity>) -> Unit) {
+        val intent = Intent(ctx, GameActivity::class.java)
+            .putExtra(GameActivity.EXTRA_ID, "a")
+            .putExtra(GameActivity.EXTRA_NAME, "Game A")
+            .putExtra(GameActivity.EXTRA_URL, "https://example.com/a")
+        ActivityScenario.launchActivityForResult<GameActivity>(intent).use { s ->
+            Thread.sleep(1_500)
+            s.onActivity { a -> findWebView(a.window.decorView)!!.loadDataWithBaseURL("https://example.com/a", page, "text/html", "utf-8", null) }
+            block(s)
+            s.onActivity { a -> a.finish() }
+        }
+    }
+
+    /**
+     * 1.8.12: a countdown to the next puzzle and the game's own running clock (noillirk.com has both at
+     * the bottom of its page) are never offered as the result of a game that hasn't been played.
+     */
+    @Test
+    fun aCountdownAndARunningClockAreNotOfferedAsAResult() {
+        val page = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;padding:24px;font:16px sans-serif"><h1>Game A</h1><div id="grid">grid</div>
+            <footer><div>Time</div><div id="tm">0:00</div><div id="cd">Next puzzle in 05:12:44</div></footer>
+            <script>var t=0,c=18764;setInterval(function(){t++;c--;document.getElementById('tm').textContent=Math.floor(t/60)+':'+('0'+t%60).slice(-2);
+            document.getElementById('cd').textContent='Next puzzle in 05:12:'+('0'+c%60).slice(-2);},1000);</script></body></html>"""
+        launchWithPage(page) { s ->
+            Thread.sleep(14_000)
+            s.onActivity { a ->
+                val shown = allText(a.window.decorView)
+                assertTrue("no result card for an unplayed game; shown: $shown", !shown.contains("result on screen"))
+            }
+        }
+    }
+
+    /**
+     * 1.8.12: an end screen that comes up a while after the last move (here 11 s, after the checks that
+     * follow a move) is still found. The page watcher used to fail to start (it ran before the page had
+     * an <html> element), so only the checks at 1.5, 4 and 8 s after a move could see one.
+     */
+    @Test
+    fun aLateEndScreenOffersItsResult() {
+        val page = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;padding:24px;font:16px sans-serif"><h1>Game A</h1>
+            <button id="go" style="font-size:18px;padding:12px 24px">Guess</button>
+            <div>Time <span id="tm">0:00</span></div>
+            <script>var t=0,iv=setInterval(function(){t++;document.getElementById('tm').textContent='0:'+('0'+t).slice(-2);},1000);
+            document.getElementById('go').addEventListener('click',function(){setTimeout(function(){clearInterval(iv);
+            var d=document.createElement('div');d.innerHTML='<p>You solved it!</p><p>Solved in 3 guesses</p>';document.body.appendChild(d);},11000);});</script></body></html>"""
+        launchWithPage(page) { s ->
+            s.waitForJs("String(!!document.getElementById('go'))", "\"true\"")
+            pageCssWidth = s.js("String(document.documentElement.clientWidth)").trim('"').toFloat()
+            s.tap("#go")
+            val end = System.currentTimeMillis() + 25_000
+            var shown = ""
+            while (System.currentTimeMillis() < end) {
+                s.onActivity { a -> shown = allText(a.window.decorView) }
+                if (shown.contains("result on screen")) break
+                Thread.sleep(500)
+            }
+            assertTrue("the result card is shown; shown: $shown", shown.contains("Game A result on screen"))
+            assertTrue("it offers the solve, not the clock; shown: $shown", shown.contains("Solved in 3 guesses"))
+        }
+    }
 }

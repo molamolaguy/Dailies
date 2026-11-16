@@ -1,3 +1,33 @@
+# Dailies 1.8.12
+
+Better result finding, and quicker with a long history. It installs over 1.8.11 and keeps everything. If you're on 1.8.11, you can install it from **Settings → About → Check now**.
+
+## Finding results
+- **Timers aren't scores.** On a game with no Share button, Dailies offers the result its end screen shows. A countdown to the next puzzle ("Next puzzle in 05:12:44") counted as an end screen, and a line with a time in it as the result, so opening a game such as noillirk.com could offer its countdown or its own running clock as your score. Now:
+  - an end screen needs its own words ("Solved", "You won", "Well done"…), not only a countdown;
+  - a countdown or a line about the next puzzle is never the result;
+  - a line that changes from one second to the next (a clock still running) is never the result;
+  - a time only counts as yours with a label ("Time 1:23", "Solved in 2:05"), and 0:00 never does.
+- **End screens that come up late** are found. The part that watches the page for an end screen appearing after your last move never started: it ran before the page existed. Only the checks 1.5, 4 and 8 seconds after a move could see one.
+- **The best line** is offered: "Solved in 3 guesses" before a count, and a count before a time.
+- **Less work while you play.** A game's ticking clock no longer makes Dailies read the whole page every second after each move.
+
+## Quicker
+With a long history (tested with 40 games and two years of results):
+- Working out achievements takes less than half the time, and they aren't worked out again just because the list of earned ones was saved. The Streaks page did that after every save.
+- Dates and reset times are worked out once and remembered, instead of again for every result.
+- The quiet achievements check at start waits a few seconds, so it never lands in your first swipes.
+
+## Checks
+- Two new emulator tests load test games into the real game player: one checks that a countdown and a running clock aren't offered, the other that an end screen coming up 11 seconds after a move offers its result.
+- Also checked: no page or dialog runs anything hidden in a game's name, link, notes or results, and the Android lint check finds no issues.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.11
 
 Smooth from the first swipe. It installs over 1.8.10 and keeps everything. If you're on 1.8.10, you can install it from **Settings → About → Check now**.

@@ -1389,7 +1389,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.11';
+    const APP_VERSION = '1.8.12';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4522,6 +4522,11 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.12': [
+        ['⏱️', 'Timers aren\'t scores', 'A countdown to the next puzzle or a game\'s own clock is no longer offered as your result when you open a game.'],
+        ['🔎', 'Late end screens', 'A result that appears a while after your last move is found too.'],
+        ['⚡', 'Quicker with a long history', 'Achievements and stats take about half the work, and the first check waits until after your first swipes.']
+      ],
       '1.8.11': [
         ['👆', 'Smooth from the first swipe', 'The first swipes after opening the app no longer catch. The app now does them once itself, out of sight, while it opens.']
       ],
@@ -5489,13 +5494,29 @@
      * through saveState() (stateRev) or by replacing the arrays (import), so reuse the last answer.
      */
     let achievementsCache = null;
+    const achievementsKey = () => [stateRev, state.games, state.historyLogs, state.games.length, state.historyLogs.length];
     function currentAchievements() {
-      const key = [stateRev, state.games, state.historyLogs, state.games.length, state.historyLogs.length];
+      const key = achievementsKey();
       if (achievementsCache && achievementsCache.key.every((v, i) => v === key[i])) return achievementsCache.all;
       const all = HubCore.computeAchievements(state.games, state.historyLogs);
-      achievementsCache = { key, all };
+      const secrets = HubCore.computeSecrets(state.games, state.historyLogs);
+      achievementsCache = { key, all, secrets };
       return all;
     }
+    /** The secret achievements, from the same cache. */
+    function currentSecrets() {
+      currentAchievements();
+      return achievementsCache.secrets;
+    }
+    /**
+     * A save that changes neither the games nor the results (the earned list itself, a setting) leaves
+     * the achievements as they were (1.8.12: saving the earned list made the Streaks page work them all
+     * out again, half a second on a phone with a long history).
+     */
+    function keepAchievementsCurrent(wasCurrent) {
+      if (wasCurrent && achievementsCache) achievementsCache.key = achievementsKey();
+    }
+    const achievementsCurrent = () => Boolean(achievementsCache && achievementsCache.key.every((v, i) => v === achievementsKey()[i]));
 
     // ---- Checking game pages for changes (1.8.5, Android) ----
     // A weekly background pass (GameRecheck.kt) reads each game's page again and keeps what it found.
@@ -5642,7 +5663,7 @@
 
     function checkNewAchievements(silent) {
       const all = currentAchievements();
-      const secrets = HubCore.computeSecrets(state.games, state.historyLogs);
+      const secrets = currentSecrets();
       const known = earnedTierKeys();
       const freshKeys = HubCore.earnedAchievementKeys(all).concat(secrets.filter((x) => x.earned).map((x) => x.key)).filter((k) => !known.has(k));
       if (!freshKeys.length) return;
@@ -5655,7 +5676,9 @@
       const gold = goldIconUnlocked();
       const accents = goldAccentsUnlocked();
       const ruby = rubyUnlocked();
+      const wasCurrent = achievementsCurrent();
       saveState({ sync: false, keeps: ['dashboard'] });
+      keepAchievementsCurrent(wasCurrent);
       renderIconChoices();
       renderGoldAccentsSetting();
       renderRubyAccentsSetting();
@@ -6064,8 +6087,8 @@
       const all = currentAchievements();
       // Secrets count once found (they're kept even if the data later changes).
       const have = earnedTierKeys();
-      const secrets = HubCore.computeSecrets(state.games, state.historyLogs)
-        .map((x) => Object.assign(x, { earned: x.earned || have.has(x.key), secret: true }));
+      const secrets = currentSecrets()
+        .map((x) => Object.assign({}, x, { earned: x.earned || have.has(x.key), secret: true }));
       achievementsShown = all.concat(secrets);
       const total = all.reduce((n, a) => n + a.tiers, 0);
       const n = all.reduce((x, a) => x + a.tier, 0);
@@ -8242,7 +8265,9 @@
       startLiveTickTimer();
       // Badges already earned before this version arrive quietly. Not part of the first frame: it
       // reads the whole result log, and nothing on the hub page depends on it.
-      whenIdle(() => checkNewAchievements(true), 2000);
+      // A while after start (1.8.12): with a long history it's one long piece of work (a tenth of a second
+      // on a phone), which used to land around the first swipe. It's silent anyway.
+      setTimeout(() => whenIdle(() => checkNewAchievements(true), 3000), 8000);
       if (pruneTrash()) saveState({ sync: false });
       maybeShowWhatsNew();
       // What the weekly check of the game pages found, once the hub has settled (1.8.5).

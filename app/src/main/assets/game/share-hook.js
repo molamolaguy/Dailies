@@ -344,36 +344,74 @@
       return FINISHED_RE.test(head) || FINISHED_INTL_RE.test(head) || COUNTDOWN_RE.test(head);
     } catch (e) { return false; }
   }
+  // End-screen words, not only a countdown: some games show "Next puzzle in 05:12:44" all the time,
+  // also before the player has started (1.8.12).
+  var NEXT_LINE_RE = /(next|new|nächste[sr]?|próxim[oa]|prochaine?|prossim[oa]|volgende?)\b[^\n]{0,30}\b(in|at|en|em|dans|tra|over)\b/i;
+  function saysFinished() {
+    try {
+      // Without the countdown's own line ("Next puzzle in …" is in FINISHED_RE for the Share button).
+      var head = deepText(20000).split('\n').filter(function (l) { return !NEXT_LINE_RE.test(l) && !COUNTDOWN_RE.test(l); }).join('\n');
+      return FINISHED_RE.test(head) || FINISHED_INTL_RE.test(head);
+    } catch (e) { return false; }
+  }
 
   // ---- A result shown on the end screen, for a game with no Share / Copy button (1.8.3) ----
   // A line that holds a score: N/M, a count of guesses / moves…, a time, or points. The app only
   // offers it (the player decides), never logs it by itself.
-  var SCREEN_SCORE_RE = /(^|[^0-9a-z/])([0-9]{1,2}|x)\s*\/\s*[0-9]{1,2}([^0-9/:]|$)|\b[0-9]{1,3}\s+(guesses|guess|tries|try|attempts?|moves?|mistakes?|hints?|strokes?|clicks?|steps?|lives)\b|\b(time|in|took)\b[^\n]{0,12}?\b[0-9]{1,2}:[0-5][0-9](:[0-5][0-9])?\b|\b[0-9][0-9,.]{0,8}\s*(points|pts)\b|\bscore[:\s]+[0-9][0-9,.]{0,8}\b/i;
+  // A time counts only as the player's own ("Time 1:23", "Solved in 2:05"), not "… in 05:12:44" on
+  // a countdown to the next puzzle (1.8.12: noillirk.com's countdown was offered as the score).
+  var SCREEN_SCORE_RE = /(^|[^0-9a-z/])([0-9]{1,2}|x)\s*\/\s*[0-9]{1,2}([^0-9/:]|$)|\b[0-9]{1,3}\s+(guesses|guess|tries|try|attempts?|moves?|mistakes?|hints?|strokes?|clicks?|steps?|lives)\b|\b(time|took|(solved|completed|finished|done|cleared|did it|got it) in)\b[^\n]{0,12}?\b[0-9]{1,2}:[0-5][0-9](:[0-5][0-9])?\b|\b[0-9][0-9,.]{0,8}\s*(points|pts)\b|\bscore[:\s]+[0-9][0-9,.]{0,8}\b/i;
   var SCREEN_CONTEXT_RE = /(solved|completed|finished|got it|found it|you won|your (score|time|result)|result|score|time|took|guessed|in \d)/i;
-  function screenResultLine() {
+  // Never a result: a countdown to the next puzzle, or a line about when it comes / resets.
+  var NOT_RESULT_RE = /(next|new|until|tomorrow|available|refresh|resets?|countdown|remaining|left)\b/i;
+  function screenResultLines() {
+    var out = [];
     try {
       var lines = deepText(20000).split('\n');
-      for (var i = 0; i < lines.length; i++) {
+      for (var i = 0; i < lines.length && out.length < 6; i++) {
         var l = lines[i].replace(/\s+/g, ' ').trim();
-        if (l.length < 3 || l.length > 80 || !SCREEN_SCORE_RE.test(l)) continue;
+        if (l.length < 3 || l.length > 80 || NOT_RESULT_RE.test(l) || COUNTDOWN_RE.test(l)) continue;
+        if (/(^|[^0-9])0?0:00(:00)?([^0-9]|$)/.test(l)) continue; // a clock that hasn't started
+        var bareTime = /^[0-9]{1,2}:[0-5][0-9](:[0-5][0-9])?$/.test(l);
+        if (!SCREEN_SCORE_RE.test(l) && !bareTime) continue;
         // A bare "3/6" or "1:23" takes its label from the line before ("Your time" / "1:23").
         if (!SCREEN_CONTEXT_RE.test(l) && i > 0) {
           var prev = lines[i - 1].replace(/\s+/g, ' ').trim();
-          if (prev && prev.length <= 40 && SCREEN_CONTEXT_RE.test(prev)) return prev.replace(/[:\s]+$/, '') + ': ' + l;
+          // (Not a line that is a score itself, such as the game's clock just above.)
+          if (prev && prev.length <= 40 && SCREEN_CONTEXT_RE.test(prev) && !NOT_RESULT_RE.test(prev) && !SCREEN_SCORE_RE.test(prev)) { out.push(prev.replace(/[:\s]+$/, '') + ': ' + l); continue; }
           if (!/^([0-9x]{1,2}\s*\/\s*[0-9]{1,2})$/i.test(l)) continue;
         }
-        return l;
+        if (bareTime) continue; // a time with nothing saying whose it is
+        out.push(l);
       }
     } catch (e) {}
-    return '';
+    return out;
   }
   var screenSent = false;
   function offerScreenResult() {
-    if (sentAny || screenSent || document.hidden || !looksFinished()) return;
-    var line = screenResultLine();
-    if (!line) return;
-    screenSent = true;
-    try { post('{"via":"screen","n":' + quote(NONCE) + ',"text":' + quote(line.slice(0, 120)) + '}'); } catch (e) {}
+    // Only on a real end screen (its words, not only a countdown), and only once.
+    if (sentAny || screenSent || document.hidden || !saysFinished()) return;
+    var first = screenResultLines();
+    if (!first.length) return;
+    // A line that changes from one second to the next is a clock still running (the game's own timer
+    // or a countdown), never the result: read again a moment later and keep a line that stayed put.
+    setTimeout(function () {
+      if (sentAny || screenSent || document.hidden) return;
+      var again = screenResultLines();
+      // Of the lines that stayed put, the one that says what the player did ("Solved in 3 guesses")
+      // before a count, and a count before a bare clock ("Time 0:11").
+      var rank = function (l) {
+        if (/(solved|completed|finished|got it|found it|you won|guessed|your (score|result))/i.test(l)) return 0;
+        if (/[0-9x]\s*\/\s*[0-9]|[0-9]\s+(guess|tr(y|ies)|attempt|move|mistake|hint|stroke|click|step|point|pts)/i.test(l)) return 1;
+        return 2;
+      };
+      var stable = first.filter(function (l) { return again.indexOf(l) >= 0; });
+      stable.sort(function (a, b) { return rank(a) - rank(b); }); // (a stable sort keeps the page's order otherwise)
+      var line = stable[0] || '';
+      if (!line) return;
+      screenSent = true;
+      try { post('{"via":"screen","n":' + quote(NONCE) + ',"text":' + quote(line.slice(0, 120)) + '}'); } catch (e) {}
+    }, 1600);
   }
   function press(el) {
     if (tried) tried.add(el);
@@ -442,9 +480,19 @@
   // Late-appearing end screens (only shortly after the player did something).
   try {
     var pending = null;
-    new MutationObserver(function () {
+    new MutationObserver(function (records) {
       if (sentAny || Date.now() - lastInputAt > 20000 || pending) return;
+      // An end screen adds elements; a clock ticking only swaps its text (1.8.12: a game's timer made
+      // this read the whole page every second while the player played).
+      var added = false;
+      for (var i = 0; i < records.length && !added; i++) {
+        var nodes = records[i].addedNodes;
+        for (var j = 0; j < nodes.length; j++) if (nodes[j].nodeType === 1) { added = true; break; }
+      }
+      if (!added) return;
       pending = setTimeout(function () { pending = null; scan(); }, 900);
-    }).observe(document.documentElement, { childList: true, subtree: true });
+      // The document itself: this runs before the page's <html> element exists, and observing that
+      // (null) threw, so late end screens were never seen (1.8.12).
+    }).observe(document, { childList: true, subtree: true });
   } catch (e) {}
 })();
