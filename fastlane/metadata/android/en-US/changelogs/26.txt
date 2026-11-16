@@ -1,0 +1,3 @@
+• Countdowns and game clocks are no longer offered as your score.
+• End screens that come up late are found.
+• Quicker achievements and stats with a long history.

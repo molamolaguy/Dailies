@@ -57,8 +57,25 @@
   }
 
   /** Canonical zone value: 'local', 'utc', or a valid IANA id (anything else falls back to 'local'). */
+  // 1.8.12: small pure helpers below are called for every logged result (achievements, stats), tens
+  // of thousands of times with a long history, mostly with the same few inputs: their answers are kept.
+  function memo(fn, max) {
+    const cache = new Map();
+    return function (key) {
+      let v = cache.get(key);
+      if (v === undefined && !cache.has(key)) {
+        v = fn(key);
+        if (cache.size >= (max || 20000)) cache.clear();
+        cache.set(key, v);
+      }
+      return v;
+    };
+  }
+  const normalizeZoneMemo = memo((raw) => normalizeZoneUncached(raw), 500);
   function normalizeZone(zone) {
-    const raw = String(zone || '').trim();
+    return normalizeZoneMemo(String(zone || '').trim());
+  }
+  function normalizeZoneUncached(raw) {
     if (!raw) return 'local';
     if (raw.toLowerCase() === 'local') return 'local';
     if (UTC_ALIASES.has(raw.toLowerCase())) return 'utc';
@@ -132,11 +149,14 @@
     return `${city} time`;
   }
 
-  function parseHHMM(resetTime) {
-    const parts = String(resetTime || '00:00').split(':');
+  const parseHHMMMemo = memo((text) => {
+    const parts = text.split(':');
     const h = Math.min(23, Math.max(0, parseInt(parts[0] || '0', 10) || 0));
     const m = Math.min(59, Math.max(0, parseInt(parts[1] || '0', 10) || 0));
-    return { h, m };
+    return Object.freeze({ h, m });
+  }, 500);
+  function parseHHMM(resetTime) {
+    return parseHHMMMemo(String(resetTime || '00:00'));
   }
 
   function sanitizeResetTime(resetTime) {
@@ -154,7 +174,32 @@
    * The day is chosen first and the wall time set on it afterwards, so a DST-adjusted time on one
    * day (02:30 -> 03:30 on spring-forward day) never leaks into the following days.
    */
+  const resetOnDayMemo = memo((k) => {
+    const [resetTime, zone, y, mo, d, dayOffset] = k.split('|'); // (a local key ends with the phone's zone)
+    const ref = zone === 'utc' ? new Date(Date.UTC(+y, +mo, +d, 12)) : new Date(+y, +mo, +d, 12);
+    return resetOnDayUncached(resetTime, zone, ref, +dayOffset).getTime();
+  });
+  // The phone's own time zone, looked at no more than once a second: a local reset depends on it (the
+  // phone may travel while the hub is open).
+  let localZoneSig = '';
+  let localZoneAt = 0;
+  function localZone() {
+    const now = Date.now();
+    if (now - localZoneAt > 1000 || now < localZoneAt) {
+      localZoneAt = now;
+      try { localZoneSig = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { localZoneSig = ''; }
+      localZoneSig += `@${new Date().getTimezoneOffset()}`;
+    }
+    return localZoneSig;
+  }
   function resetOnDay(resetTime, zone, ref, dayOffset) {
+    const z = normalizeZone(zone) === 'utc' ? 'utc' : 'local';
+    const key = z === 'utc'
+      ? `${resetTime}|utc|${ref.getUTCFullYear()}|${ref.getUTCMonth()}|${ref.getUTCDate()}|${dayOffset}`
+      : `${resetTime}|local|${ref.getFullYear()}|${ref.getMonth()}|${ref.getDate()}|${dayOffset}|${localZone()}`;
+    return new Date(resetOnDayMemo(key));
+  }
+  function resetOnDayUncached(resetTime, zone, ref, dayOffset) {
     const { h, m } = parseHHMM(resetTime);
     if (normalizeZone(zone) === 'utc') {
       return new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), ref.getUTCDate() + dayOffset, h, m, 0, 0));
@@ -218,13 +263,23 @@
     return { hour: next.getHours(), minute: next.getMinutes() };
   }
 
-  function cycleKeyToDay(key) {
-    const p = String(key || '').split('-').map((n) => parseInt(n, 10));
+  const cycleKeyToDayMemo = memo((key) => {
+    const p = key.split('-').map((n) => parseInt(n, 10));
     if (p.length !== 3 || p.some((n) => isNaN(n))) return null;
     return Math.round(Date.UTC(p[0], p[1] - 1, p[2]) / 86400000);
+  });
+  function cycleKeyToDay(key) {
+    return cycleKeyToDayMemo(String(key || ''));
   }
 
+  const addDaysMemo = memo((k) => {
+    const at = k.lastIndexOf('|');
+    return addDaysToCycleKeyUncached(k.slice(0, at), Number(k.slice(at + 1)));
+  });
   function addDaysToCycleKey(key, deltaDays) {
+    return addDaysMemo(`${String(key || '')}|${Number(deltaDays) || 0}`);
+  }
+  function addDaysToCycleKeyUncached(key, deltaDays) {
     const p = String(key || '').split('-').map((n) => parseInt(n, 10));
     if (p.length !== 3 || p.some((n) => isNaN(n))) return key;
     const dt = new Date(Date.UTC(p[0], p[1] - 1, p[2] + deltaDays));
@@ -995,11 +1050,11 @@
   }
 
   /** Longest run of consecutive dates on which every eligible game was solved. */
-  function perfectRun(games) {
+  function perfectRun(games, days) {
     let best = 0;
     let run = 0;
     let prev = null;
-    trackedDays(games).forEach(({ day, ok }) => {
+    (days || trackedDays(games)).forEach(({ day, ok }) => {
       run = ok ? (prev !== null && day === prev + 1 && run > 0 ? run + 1 : 1) : 0;
       prev = day;
       if (run > best) best = run;
@@ -1066,11 +1121,12 @@
       if (new Date(Date.UTC(y, m - 1, d)).getUTCDay() === 6 && solvedDays.has(addDaysToCycleKey(k, 1))) weekends += 1;
     });
     const active = gs.filter((g) => !g.archived);
+    const activeDays = trackedDays(active);
     return {
       solves: solvedRows.length,
       gamesSolved: new Set(solvedRows.map(gameKey)).size,
       streak: Math.max(0, ...gs.map((g) => Math.max(Number(g.bestStreak) || 0, Number(g.streak) || 0)), ...rows.map((r) => Number(r.streak) || 0)),
-      perfectDays: perfectRun(active),
+      perfectDays: perfectRun(active, activeDays),
       variety: Math.max(0, ...[...byDay.values()].map((set) => set.size)),
       lucky: guess.filter((p) => p.max >= 5 && p.n <= 2).length,
       holeInOne: guess.filter((p) => p.max >= 3 && p.n === 1).length,
@@ -1079,7 +1135,7 @@
       early,
       late,
       records,
-      sweeps: trackedDays(active).filter((d) => d.ok && d.eligible >= 3).length,
+      sweeps: activeDays.filter((d) => d.ok && d.eligible >= 3).length,
       bounces,
       days: solvedDays.size,
       playMs: times.reduce((a, b) => a + b, 0),
