@@ -103,7 +103,8 @@ class SwipeTimingDeviceTest {
             """(function(){ const r = window.__rec; window.__rec = null;
             const xs = r.f.map((f) => f[2]); const moved = r.f.filter((f, i) => i > 0 && f[2] !== r.f[i - 1][2]);
             const long = r.f.filter((f) => f[1] > 24).map((f) => f[0] + ':' + f[1]);
-            return r.from + '->' + activeTab + ' primed=' + r.primed + ' | long frames(t:ms) ' + (long.join(' ') || 'none') +
+            const pr = (window.__probe || []).filter((x) => x[0] >= r.t0 - 50 && x[0] <= r.t0 + 1800).map((x) => Math.round(x[0] - r.t0) + ' ' + x[1] + 'ms ' + x[2]);
+            return r.from + '->' + activeTab + ' primed=' + r.primed + ' | long frames(t:ms) ' + (long.join(' ') || 'none') + ' | slow tasks: ' + (pr.join('; ') || 'none') +
               ' | events(type t delay) ' + r.ev.map((e) => e.join(' ')).join(', ') +
               ' | frames(t interval x scrollY) ' + r.f.filter((f, i) => i === 0 || f[2] !== r.f[i - 1][2] || f[1] > 24).map((f) => f.join(' ')).join(', '); })()"""
         ).trim('"')

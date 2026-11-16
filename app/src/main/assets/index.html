@@ -6,6 +6,36 @@
   <title>Dailies</title>
   <link rel="stylesheet" href="app.css" />
   <script>
+    // Timing probe for device tests (only with the localStorage flag `dailies_test_motion`): every timer, idle
+    // task, frame callback, event listener and native call that takes over 8 ms, in window.__probe.
+    (function () {
+      try { if (localStorage.getItem('dailies_test_motion') !== '1') return; } catch (e) { return; }
+      const P = (window.__probe = []);
+      const name = (fn) => (fn && (fn.name || String(fn).replace(/\s+/g, ' ').slice(0, 70))) || '?';
+      const timed = (label, fn) => function () {
+        const s = performance.now();
+        try { return fn.apply(this, arguments); } finally { const d = performance.now() - s; if (d > 8) P.push([Math.round(s), Math.round(d), label]); }
+      };
+      for (const k of ['setTimeout', 'setInterval', 'requestIdleCallback', 'requestAnimationFrame']) {
+        const o = window[k]; if (!o) continue;
+        window[k] = function (fn) { const a = Array.from(arguments); if (typeof fn === 'function') a[0] = timed(k + ' ' + name(fn), fn); return o.apply(window, a); };
+      }
+      const oAdd = EventTarget.prototype.addEventListener;
+      const map = new WeakMap();
+      EventTarget.prototype.addEventListener = function (type, fn, opt) {
+        if (typeof fn !== 'function') return oAdd.call(this, type, fn, opt);
+        let w = map.get(fn); if (!w) { w = timed('on' + type + ' ' + name(fn), fn); map.set(fn, w); }
+        return oAdd.call(this, type, w, opt);
+      };
+      const oRem = EventTarget.prototype.removeEventListener;
+      EventTarget.prototype.removeEventListener = function (type, fn, opt) { return oRem.call(this, type, (fn && map.get(fn)) || fn, opt); };
+      // Native calls (synchronous: the page waits for them), and the app's callbacks into the page.
+      window.addEventListener('load', () => {
+        const b = window.AndroidBridge;
+        if (b) for (const k in b) { if (typeof b[k] === 'function') { const f = b[k].bind(b); try { b[k] = timed('native ' + k, f); } catch (e) {} } }
+        for (const k of Object.keys(window)) if (/^on[A-Z]/.test(k) && typeof window[k] === 'function') window[k] = timed('from app ' + k, window[k]);
+      });
+    })();
     // Error log (1.8.0): page errors are kept on this device (the last 40) for Settings → About → Report a problem.
     (function () {
       const KEY = 'dailies_error_log_v1';
