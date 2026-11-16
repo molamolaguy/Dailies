@@ -94,8 +94,6 @@ alamelsyarat.net	.adscenter
 alle-lkw.de	#gwd-ad
 alliancex.org	.ad-spot
 allindiabullion.com	.ad-unit:not(.textads)
-alliptvlinks.com	ins.adsbygoogle[data-ad-client]
-alliptvlinks.com	ins.adsbygoogle[data-ad-slot]
 allmusic.com	#show_ads
 alltutorialsworld.com	#adSense
 alluc.org	.adsbottombox

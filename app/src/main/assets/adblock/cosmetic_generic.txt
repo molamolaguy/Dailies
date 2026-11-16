@@ -13859,6 +13859,7 @@ ins.adsbygoogle[data-ad-client]
 ins.adsbygoogle[data-ad-slot]
 ps-connatix-module
 section[data-e2e="advertisement"]
+sellwild-widget
 span[data-ez-ph-id]
 span[id^="ezoic-pub-ad-placeholder-"]
 topadblock
