@@ -1389,7 +1389,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.10';
+    const APP_VERSION = '1.8.11';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4522,6 +4522,9 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.11': [
+        ['👆', 'Smooth from the first swipe', 'The first swipes after opening the app no longer catch. The app now does them once itself, out of sight, while it opens.']
+      ],
       '1.8.10': [
         ['⚡', 'Quick swipes, no jump', 'A fast flick between pages now moves from its very first frame. The page used to be got ready as your finger started moving, so a quick swipe jumped ahead once it caught up.']
       ],
