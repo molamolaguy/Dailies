@@ -1,0 +1,5 @@
+• Score History: one line per result; Recent changes moved to Settings.
+• Cleaner Settings, one icon shape on the hub, clear-glass bottom bar.
+• Drop-down lists in games use the app's menu.
+• No background flash when changing tabs or themes.
+• Card Style and Restore one game removed.

@@ -269,6 +269,7 @@ class GameActivity : ComponentActivity() {
         barColors = intArrayOf(containerColor, primaryContainerColor, onPrimaryContainerColor)
         accentColor = if (light) primaryColor else primaryContainerColor
         accentColors = intArrayOf(primaryColor, onPrimaryColor)
+        menuColors = selectMenuColors(light, containerColor, titleColor, primaryColor, primaryContainerColor, onPrimaryContainerColor)
 
         // ---- Top app bar (Material 3 Expressive tonal pills + Google Sans) ----
         // At 360 dp: 4 icon pills of 48 dp + "Log" + gaps leave about 55 dp for the title, which ellipsizes.
@@ -868,6 +869,7 @@ class GameActivity : ComponentActivity() {
                 if (autoLogEnabled) WebViewCompat.addDocumentStartJavaScript(webView, shareHookScript(), anyOrigin)
                 if (blockAdsSetting) WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/cosmetic.js"), anyOrigin)
                 WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/download-hook.js"), anyOrigin)
+                WebViewCompat.addDocumentStartJavaScript(webView, selectMenuScript(), anyOrigin)
                 if (GamePrefs.hideCookies(this)) WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/cookie-hide.js"), anyOrigin)
                 if (GamePrefs.pullRefresh(this)) WebViewCompat.addDocumentStartJavaScript(webView, pullRefreshScript(), anyOrigin)
                 documentStartScriptsSupported = true
@@ -915,9 +917,31 @@ class GameActivity : ComponentActivity() {
         if (autoLogEnabled) webView.evaluateJavascript(shareHookScript(), null)
         if (blockAdsSetting && adBlockActive) webView.evaluateJavascript(pageScript("game/cosmetic.js"), null)
         webView.evaluateJavascript(pageScript("game/download-hook.js"), null)
+        webView.evaluateJavascript(selectMenuScript(), null)
         if (GamePrefs.hideCookies(this)) webView.evaluateJavascript(pageScript("game/cookie-hide.js"), null)
         if (GamePrefs.pullRefresh(this)) webView.evaluateJavascript(pullRefreshScript(), null)
     }
+
+    /** The colours of the in-page drop-down menu (select-menu.js), as a JS object literal. */
+    private var menuColors = "{}"
+
+    private fun selectMenuColors(light: Boolean, bg: Int, fg: Int, accent: Int, sel: Int, selFg: Int): String {
+        fun hex(c: Int) = String.format(Locale.US, "#%06X", 0xFFFFFF and c)
+        fun rgba(c: Int, a: Double) = String.format(Locale.US, "rgba(%d,%d,%d,%.2f)", Color.red(c), Color.green(c), Color.blue(c), a)
+        return JSONObject()
+            .put("light", light)
+            .put("bg", hex(bg))
+            .put("fg", hex(fg))
+            .put("accent", hex(accent))
+            .put("sel", hex(sel))
+            .put("selFg", hex(selFg))
+            .put("outline", rgba(fg, 0.14))
+            .put("press", rgba(fg, 0.08))
+            .toString()
+    }
+
+    /** select-menu.js with the player's colours filled in. */
+    private fun selectMenuScript(): String = pageScript("game/select-menu.js").replace("__DAILIES_MENU_COLORS__", menuColors)
 
     /** pull-refresh.js in the player's accent color. */
     private fun pullRefreshScript(): String =

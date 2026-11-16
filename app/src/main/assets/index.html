@@ -318,7 +318,6 @@
             <h3 class="text-base font-bold text-white">Score History</h3>
             <p class="text-xs text-slate-400 mt-0.5">Every result you've logged, newest first.</p>
           </div>
-          <button id="btnHistoryChanges" type="button" class="changes-btn shrink-0" aria-label="Recent changes (undo)"><span aria-hidden="true">↶</span> Changes</button>
         </div>
         <div id="historyFilters" class="hist-filters">
           <input id="historySearch" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search results (e.g. 2/6, #117, Krillion)" aria-label="Search results" class="hist-search px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500" />
@@ -355,7 +354,7 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+          <div class="set-row flex items-center justify-between gap-3">
             <div>
               <p class="font-bold text-white">Theme</p>
               <p class="text-[11px] text-slate-400">Dark, light, or follow your phone</p>
@@ -367,7 +366,7 @@
             </select>
           </div>
 
-          <label class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="android-only set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Match Device Wallpaper Colors</p>
               <p class="text-[11px] text-slate-400">Use phone wallpaper colors</p>
@@ -375,7 +374,7 @@
             <input id="settingDynamicWallpaper" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 sm:col-span-3">
+          <div class="set-row sm:col-span-3">
             <p class="font-bold text-white">Color Theme</p>
             <p class="text-[11px] text-slate-400">A preset, or pick your own accent</p>
             <div id="themeChoices" class="theme-choices" role="radiogroup" aria-label="Color theme"></div>
@@ -383,7 +382,7 @@
             <input id="customAccentInput" type="color" value="#1E88C8" class="sr-only" tabindex="-1" aria-hidden="true" />
           </div>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">AMOLED Pitch-Black Surface</p>
               <p class="text-[11px] text-slate-400">Pure black background in dark theme</p>
@@ -391,7 +390,7 @@
             <input id="settingAmoledDark" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Compact Game Cards</p>
               <p class="text-[11px] text-slate-400">Hide reset times &amp; shrink cards</p>
@@ -399,14 +398,14 @@
             <input id="settingCompactCards" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <div class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 sm:col-span-3">
+          <div class="android-only set-row sm:col-span-3">
             <p class="font-bold text-white">App Icon</p>
             <p class="text-[11px] text-slate-400">Changes when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
             <div id="iconChoices" class="icon-choices" role="radiogroup" aria-label="App icon"></div>
             <p id="iconGoldHint" class="text-[11px] text-amber-300/90 mt-1"></p>
           </div>
 
-          <label id="goldAccentsRow" class="hidden p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
+          <label id="goldAccentsRow" class="hidden set-row flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
             <div>
               <p class="font-bold text-white">👑 Gold Accents</p>
               <p id="goldAccentsHint" class="text-[11px] text-slate-400">Gold highlights across the app</p>
@@ -414,7 +413,7 @@
             <input id="settingGoldAccents" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <label id="rubyAccentsRow" class="hidden p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
+          <label id="rubyAccentsRow" class="hidden set-row flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
             <div>
               <p class="font-bold text-white">💎 Ruby Accents</p>
               <p class="text-[11px] text-slate-400">Ruby highlights across the app (instead of gold)</p>
@@ -422,19 +421,7 @@
             <input id="settingRubyAccents" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
-            <div>
-              <p class="font-bold text-white">Card Style</p>
-              <p class="text-[11px] text-slate-400">How game cards and sections look</p>
-            </div>
-            <select id="settingCardStyle" aria-label="Card style" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
-              <option value="filled">Filled</option>
-              <option value="glass">Glass</option>
-              <option value="outline">Outline</option>
-            </select>
-          </div>
-
-          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
+          <div class="set-row">
             <div class="flex items-center justify-between gap-3">
               <div>
                 <p class="font-bold text-white">Bottom Bar See-Through</p>
@@ -446,7 +433,7 @@
             <div class="range-ends" aria-hidden="true"><span>Solid</span><span>Clear</span></div>
           </div>
 
-          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+          <div class="set-row flex items-center justify-between gap-3">
             <div>
               <p class="font-bold text-white">Countdown Font</p>
               <p class="text-[11px] text-slate-400">For timers and the clock</p>
@@ -458,7 +445,7 @@
             </select>
           </div>
 
-          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+          <div class="set-row flex items-center justify-between gap-3">
             <div>
               <p class="font-bold text-white">Text Size</p>
               <p class="text-[11px] text-slate-400">Make everything easier to read</p>
@@ -470,14 +457,14 @@
             </select>
           </div>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">High Contrast</p>
               <p class="text-[11px] text-slate-400">Brighter text and stronger outlines</p>
             </div>
             <input id="settingHighContrast" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Celebrate When All Done</p>
               <p class="text-[11px] text-slate-400">Your app icon sparkles when you finish every game for the day</p>
@@ -485,7 +472,7 @@
             <input id="settingCelebrate" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Group Finished Games</p>
               <p class="text-[11px] text-slate-400">Move today's done games into a section you can fold away</p>
@@ -507,7 +494,7 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3">
+          <div class="set-row flex items-center justify-between gap-3">
             <div>
               <p class="font-bold text-white">Local Time Display Format</p>
               <p class="text-[11px] text-slate-400">12-hour or 24-hour clock</p>
@@ -518,7 +505,7 @@
             </select>
           </div>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Show Seconds in Countdowns</p>
               <p class="text-[11px] text-slate-400">Show seconds on timers</p>
@@ -526,7 +513,7 @@
             <input id="settingShowSeconds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Ask to Log After Playing</p>
               <p class="text-[11px] text-slate-400">Prompt when you come back from a game</p>
@@ -534,7 +521,7 @@
             <input id="settingAskOnReturn" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Fix Reset Times Automatically</p>
               <p class="text-[11px] text-slate-400">When a game's puzzle numbers show it now resets at a different time, update it for you (with Undo) instead of asking</p>
@@ -542,7 +529,7 @@
             <input id="settingAutoFixReset" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Auto-Scrape URL on Paste</p>
               <p class="text-[11px] text-slate-400">Auto-fill game info from link</p>
@@ -550,7 +537,7 @@
             <input id="settingAutoScrape" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <div class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2.5">
+          <div class="android-only set-row space-y-2.5">
             <label class="flex items-center justify-between gap-3 cursor-pointer">
               <div>
                 <p class="font-bold text-white">Check Game Pages for Changes</p>
@@ -574,49 +561,49 @@
           </h3>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Auto-Log Shared Results</p>
               <p class="text-[11px] text-slate-400">When a game's Share / Copy button gives your result, log it for you (with Undo)</p>
             </div>
             <input id="settingAutoLogShare" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Find Results Automatically</p>
               <p class="text-[11px] text-slate-400">When a game shows its end screen, quietly read the result from its Share button. Nothing is copied or shared.</p>
             </div>
             <input id="settingFindResults" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Dark Game Pages</p>
               <p class="text-[11px] text-slate-400">In the dark theme, darken game sites that don't have a dark mode</p>
             </div>
             <input id="settingDarkPages" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Block Ads in Games</p>
               <p id="adBlockInfo" class="text-[11px] text-slate-400">Blocks ads, trackers and pop-ups. Tap the shield in a game to allow ads there.</p>
             </div>
             <input id="settingBlockAds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Preload Games After Reset</p>
               <p class="text-[11px] text-slate-400">On Wi-Fi, a game's page files are saved when its new puzzle comes out, so it opens faster. Deleted once you log it</p>
             </div>
             <input id="settingPreloadGames" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Hide Cookie Banners</p>
               <p class="text-[11px] text-slate-400">Hides cookie and consent pop-ups on game sites, and lets the page scroll again. Nothing is accepted for you</p>
             </div>
             <input id="settingHideCookies" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
-          <label class="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer">
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Pull Down to Refresh</p>
               <p class="text-[11px] text-slate-400">At the top of a game page, pull down to reload it</p>
@@ -640,7 +627,7 @@
           </div>
         </div>
 
-        <div class="mt-3.5 p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 text-xs">
+        <div class="mt-3.5 set-row flex items-center justify-between gap-3 text-xs">
           <div>
             <p class="font-bold text-white">Streak Reminder</p>
             <p class="text-[11px] text-slate-400">If you haven't logged a game you have a streak in</p>
@@ -673,12 +660,12 @@
         <div class="grid grid-cols-2 gap-2.5">
           <button id="btnExportCsv" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Export history (.csv)</button>
           <button id="btnShareGameList" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
-          <button id="btnRestoreOneGame" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Restore one game from a backup…</button>
-          <button id="btnOpenTrash" type="button" class="col-span-2 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">🗑 Trash</button>
+          <button id="btnHistoryChanges" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold" aria-label="Recent changes (undo)">Recent changes</button>
+          <button id="btnOpenTrash" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Trash</button>
           <button id="btnGameHealth" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Check links &amp; icons</button>
           <button id="btnStorage" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Storage</button>
         </div>
-        <div id="autoBackupBlock" class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs space-y-2.5">
+        <div id="autoBackupBlock" class="android-only set-row text-xs space-y-2.5">
           <div>
             <p class="font-bold text-white">Weekly Automatic Backup</p>
             <p id="autoBackupStatus" class="text-[11px] text-slate-400 mt-0.5">Off. Choose a folder and Dailies saves a backup there every week (the last 5 are kept).</p>
@@ -706,7 +693,7 @@
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-info section-icon" aria-hidden="true"></span>About</h3>
           <p id="aboutVersion" class="text-xs text-slate-400">Dailies</p>
         </div>
-        <label class="android-only p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between gap-3 cursor-pointer text-xs">
+        <label class="android-only set-row flex items-center justify-between gap-3 cursor-pointer text-xs">
           <div>
             <p class="font-bold text-white">Check for Updates</p>
             <p class="text-[11px] text-slate-400">Once a day, ask GitHub if a newer version is out. Nothing about you is sent.</p>
@@ -1372,7 +1359,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.6';
+    const APP_VERSION = '1.8.7';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -1425,7 +1412,15 @@
       return Number.isFinite(n) && v !== '' && v !== null && v !== undefined ? Math.max(0, Math.min(100, n)) : 75;
     }
     function applyNavTransparency(v) {
-      document.documentElement.style.setProperty('--nav-alpha', `${100 - navTransparencyValue(v)}%`);
+      const n = navTransparencyValue(v);
+      const t = n / 100;
+      const r = document.documentElement.style;
+      r.setProperty('--nav-alpha', `${100 - n}%`);
+      // Toward Clear it turns into clear glass (1.8.7): less of the theme's colour, a faint white sheen,
+      // a brighter edge and less colour boost behind it.
+      r.setProperty('--nav-sheen', (0.12 * t * t).toFixed(3));
+      r.setProperty('--nav-edge', (0.12 + 0.2 * t).toFixed(3));
+      r.setProperty('--nav-sat', (1.3 - 0.3 * t).toFixed(2));
     }
     function setNavTransparencyControl(v) {
       const n = navTransparencyValue(v);
@@ -1462,7 +1457,6 @@
         preloadGames: true,
         rubyAccents: false,
         countdownFont: 'mono',
-        cardStyle: 'filled',
         navTransparency: 75,
         recheckGames: false,
         textSize: 'normal',
@@ -2119,10 +2113,16 @@
       saveLaunchPrefs();
     }
 
+    let themeSwitchTimer = 0;
     function applyThemeAndSettings() {
       if (!state.settings) state.settings = getDefaultSettings();
       const root = document.documentElement;
       const s = state.settings;
+      // Colours change at once, everywhere (1.8.7): buttons fade their background, so on a theme change
+      // they lagged behind everything else for a moment (a box flashing around each app icon choice).
+      root.classList.add('theme-switch');
+      clearTimeout(themeSwitchTimer);
+      themeSwitchTimer = setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switch'))), 0);
 
       const light = isLightTheme();
       root.setAttribute('data-theme', light ? 'light' : 'dark');
@@ -2184,7 +2184,8 @@
       root.setAttribute('data-gold', gold ? 'true' : 'false');
       root.setAttribute('data-ruby', ruby ? 'true' : 'false');
       // 1.7.0 display options.
-      root.setAttribute('data-cards', ['glass', 'outline'].includes(s.cardStyle) ? s.cardStyle : 'filled');
+      // (1.8.7: the Card Style setting was removed; cards are always the filled style.)
+      root.removeAttribute('data-cards');
       root.setAttribute('data-cdfont', ['sans', 'serif'].includes(s.countdownFont) ? s.countdownFont : 'mono');
       root.setAttribute('data-contrast', s.highContrast ? 'high' : 'normal');
       applyNavTransparency(s.navTransparency);
@@ -2910,7 +2911,7 @@
       if (isCompact) {
         return `
           <article data-card-game-id="${id}" class="glass-card game-card compact">
-            <div class="m3-shape-avatar-compact m3-shape-${idx % 6} shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-4 h-4')}</div>
+            <div class="m3-shape-avatar-compact m3-shape-app shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-4 h-4')}</div>
             <h3 class="gc-title" dir="auto" title="Edit ${escapeHtml(g.name)}" aria-label="Edit ${escapeHtml(g.name)}" data-action="edit" data-id="${id}" role="button" tabindex="0">${escapeHtml(g.name)}</h3>
             <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>${pb}
             <span data-role="card-status-pill" class="status-dot status-${status}" role="img" aria-label="${statusLabel}" title="${statusLabel}"></span>
@@ -2923,7 +2924,7 @@
       return `
         <article data-card-game-id="${id}" class="glass-card game-card">
           <div class="gc-top">
-            <div class="m3-shape-avatar m3-shape-${idx % 6} shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-6 h-6')}</div>
+            <div class="m3-shape-avatar m3-shape-app shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-6 h-6')}</div>
             <div class="gc-main">
               <h3 class="gc-title" dir="auto" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</h3>
               <div class="gc-meta">
@@ -4342,7 +4343,7 @@
     }
     function updateTrashButton() {
       const b = document.getElementById('btnOpenTrash');
-      if (b) b.textContent = `🗑 Trash${(state.trash || []).length ? ` (${state.trash.length})` : ''}`;
+      if (b) b.textContent = `Trash${(state.trash || []).length ? ` (${state.trash.length})` : ''}`;
     }
     function openTrash() {
       if (pruneTrash()) saveState({ sync: false });
@@ -4433,6 +4434,12 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.7': [
+        ['🧾', 'Tidier Score History', 'Each result is one line until you open it, and Recent changes has moved to Settings → Data & Backup.'],
+        ['🎨', 'Cleaner look', 'Settings without a box around every option, one icon shape on the hub, and a bottom bar that turns to clear glass as you slide it to Clear.'],
+        ['📋', 'App menus in games', 'Drop-down lists on game pages open the app\'s own menu.'],
+        ['✨', 'No more flashes', 'The background no longer flashes when you change tabs, and changing the theme updates everything at once.']
+      ],
       '1.8.6': [
         ['✨', 'Smoother everywhere', 'Folding "Done today" and the Settings and Achievements sections now glides instead of jumping, paging Score History and the calendar starts at once, and saving no longer interrupts an animation.'],
         ['↩️', 'Quicker back from a game', 'Coming back to the hub from a game only redraws what changed.']
@@ -6090,7 +6097,7 @@
         el.innerHTML = '<p class="text-xs text-slate-400">Log a few results to see your win rate and personal bests here.</p>';
         return;
       }
-      const head = [`<span><strong>${st.winRate}%</strong> win rate</span>`, `<span>${plural(st.played, 'logged result')}</span>`];
+      const head = [`<span><strong>${st.winRate}%</strong> win rate</span>`];
       if (st.avg !== null) head.splice(1, 0, `<span><strong>${st.avg}</strong> average (of ${st.max})</span>`);
       else if (st.avgText) head.splice(1, 0, `<span><strong>${escapeHtml(st.avgText)}</strong> ${st.scoreKind === 'time' ? 'average time' : 'average'}</span>`);
       // The fastest time is the ⚡ chip below; only the average is listed here (1.8.3).
@@ -6286,7 +6293,6 @@
     /** One Score History result: a compact row that opens to the full result text. */
     function historyRowHtml(item, qWords) {
       const ok = item.outcome === 'Completed';
-      const flags = Array.isArray(item.records) && item.records.length && ok ? '<span class="hist-flag pb">🏆 PB</span>' : '';
       const rawScore = String(item.score || '').trim();
       const autoMissed = !ok && /^Auto-marked missed/i.test(rawScore);
       const score = autoMissed ? '' : rawScore;
@@ -6298,15 +6304,15 @@
       const time = normalizeLogTimeLabel(item.localTime);
       const streak = Number(item.streak) || 0;
       const meta = [
-        streak > 0 ? `<span class="hist-streak" title="Streak after this result"><span aria-hidden="true">🔥</span>${escapeHtml(streak)}</span>` : '',
+        streak > 0 ? `<span class="hist-streak" title="Streak after this result"><span class="hist-fire" aria-hidden="true">🔥</span><span>${escapeHtml(streak)}</span></span>` : '',
         Number(item.timeMs) > 0 ? `<span class="hist-time" title="Time played">${escapeHtml(HubCore.formatDuration(item.timeMs))}</span>` : ''
       ].filter(Boolean).join('');
       const label = `${item.gameName}, ${ok ? 'solved' : 'missed'}${streak > 0 ? `, streak ${plural(streak, 'day')}` : ''}`;
       const head = `
         <span class="hist-icon">${renderGameIconHtml(item.icon, item.gameName, 'w-4 h-4')}</span>
         <span class="hist-main">
-          <span class="hist-top"><span class="hist-name" dir="auto">${escapeHtml(item.gameName)}</span>${flags}</span>
-          <span class="hist-line${score ? '' : ' plain'}" dir="auto">${highlightHistoryText(preview, qWords)}</span>
+          <span class="hist-top"><span class="hist-name" dir="auto">${escapeHtml(item.gameName)}</span></span>
+          ${autoMissed ? `<span class="sr-only">${escapeHtml(preview)}</span>` : ''}
         </span>
         <span class="hist-side">
           <span class="hist-status ${ok ? 'ok' : 'bad'}"><span class="ico ${ok ? 'ico-check' : 'ico-close'}" aria-hidden="true"></span><span class="sr-only">${ok ? 'Solved' : 'Missed'}</span></span>
@@ -6410,7 +6416,6 @@
       setChk('settingPreloadGames', s.preloadGames !== false);
       setVal('settingThemeMode', s.themeMode || 'dark');
       setChk('settingGroupDone', s.groupDone !== false);
-      setVal('settingCardStyle', ['glass', 'outline'].includes(s.cardStyle) ? s.cardStyle : 'filled');
       setNavTransparencyControl(s.navTransparency);
       setVal('settingCountdownFont', ['sans', 'serif'].includes(s.countdownFont) ? s.countdownFont : 'mono');
       setVal('settingTextSize', ['large', 'larger'].includes(s.textSize) ? s.textSize : 'normal');
@@ -8173,7 +8178,6 @@
       bindSetting('settingPreloadGames', 'preloadGames', true);
       bindSetting('settingThemeMode', 'themeMode', false);
       bindSetting('settingGroupDone', 'groupDone', true);
-      bindSetting('settingCardStyle', 'cardStyle', false);
       // The bar follows the slider as it moves; the value is saved when it's let go.
       const navRange = document.getElementById('settingNavTransparency');
       if (navRange) {
@@ -8652,7 +8656,7 @@
       document.getElementById('btnTodayResultsCopy').addEventListener('click', () => copyText(todaysCombinedText(), "Today's results copied."));
       document.getElementById('btnTodayResultsShare').addEventListener('click', () => shareText(todaysCombinedText(), "Today's Dailies"));
       document.getElementById('btnPlayAll').addEventListener('click', playAll);
-      document.getElementById('btnRestoreOneGame').addEventListener('click', startRestoreOneGame);
+      // (1.8.7: "Restore one game from a backup" was removed from Data & Backup.)
       document.getElementById('restoreGameList').addEventListener('click', (e) => {
         const b = e.target.closest('[data-restore-index]');
         if (b) chooseRestoreGame(Number(b.getAttribute('data-restore-index')));
