@@ -134,6 +134,11 @@ class SwipeTimingDeviceTest {
     private fun measureAll() {
         ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object')", "\"true\"")
+            Log.i("SwipeTiming", "reduced motion at launch: " + s.js("String(matchMedia('(prefers-reduced-motion: reduce)').matches)"))
+            // Animations on, whatever the WebView thinks of the system's setting (see REDUCED_MOTION).
+            s.js("localStorage.setItem('dailies_test_motion', '1'); location.reload(); 'ok'")
+            Thread.sleep(1_500)
+            s.waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object' && !REDUCED_MOTION)", "\"true\"")
             // A few games and some history, so each page has something on it.
             s.js(
                 "const mk=(id)=>{const g={id,name:'Game '+id,url:'https://example.com/'+id,resetTime:'00:00',resetZone:'utc',status:'ready'," +
@@ -154,7 +159,7 @@ class SwipeTimingDeviceTest {
             // Straight after landing (the next swipe often comes at once).
             s.measure("quick left  hub->streaks, then at once", 0.85f, 0.15f, quick, 16, "stats", after = 600)
             s.measure("quick right streaks->hub, straight after", 0.15f, 0.85f, quick, 16, "dashboard")
-            s.js("state.games=[]; saveState(); flushSyncNativeNow(); 'ok'")
+            s.js("state.games=[]; saveState(); flushSyncNativeNow(); localStorage.removeItem('dailies_test_motion'); 'ok'")
         }
     }
 }

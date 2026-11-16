@@ -6693,7 +6693,9 @@
     // NAVIGATION, SWIPE GESTURES & MODAL CONTROLLERS
     // =========================================================================
     const TAB_VIEW_IDS = { dashboard: 'viewDashboard', stats: 'viewStats', settings: 'viewSettings' };
-    const REDUCED_MOTION = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+    // (Device tests run with the system's animations off, which reads as reduced motion: they can ask for
+    // motion with the localStorage flag `dailies_test_motion`.)
+    const REDUCED_MOTION = (() => { try { if (localStorage.getItem('dailies_test_motion') === '1') return false; return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
     let tabAnimating = false;
     let tabSlidePending = false;
 
