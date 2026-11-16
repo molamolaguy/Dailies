@@ -3917,6 +3917,12 @@
     }
     /** Parks the pages after a page change, once the landing has settled (not in the frames right after). */
     function parkSoon() { setTimeout(() => whenIdle(parkNeighbours, 1500), 700); }
+    // The dress rehearsal (see Pager.rehearse), once the pages beside the screen are drawn.
+    if ((() => { try { return localStorage.getItem('dailies_test_warm') === '1'; } catch (e) { return false; } })()) {
+      let tries = 0;
+      const tryRehearse = () => { if (Pager.rehearse() || ++tries > 20) return; setTimeout(() => whenIdle(tryRehearse, 1000), 500); };
+      window.addEventListener('load', () => setTimeout(() => whenIdle(tryRehearse, 1000), 1500));
+    }
     /**
      * After a scroll (1.8.8): the parked pages move to where they'd slide in from at the new scroll position,
      * and are drawn again there when the scroll went more than half a screen from where they were drawn.
@@ -7052,6 +7058,42 @@
           if (n) getComputedStyle(n.el).transform;
           getComputedStyle(NavIndicator.el()).transform;
         }
+      },
+      /**
+       * A dress rehearsal (experiment, device test flag `dailies_test_warm`): once after the app starts, the
+       * pages beside the screen slide across it once at 0.4% opacity (nothing visible), so whatever a slide
+       * costs the first time (drawing the page where it comes in, the bar's blur over moving content, the
+       * code that moves it) is done before the first real swipe. A touch stops it at once.
+       */
+      rehearsed: false,
+      rehearse() {
+        if (this.rehearsed || REDUCED_MOTION || this.primed || this.drag || this.neighbour || tabAnimating || this.drawing) return false;
+        const w = this.width();
+        const at = TAB_ORDER.indexOf(activeTab);
+        const els = [[TAB_ORDER[at - 1], -1], [TAB_ORDER[at + 1], 1]].map(([t, d]) => {
+          const el = t && document.getElementById(TAB_VIEW_IDS[t]);
+          return el && el.classList.contains('parked') && el.__parked && el.__parked.dir === d ? { el, d } : null;
+        }).filter(Boolean);
+        if (!els.length || typeof els[0].el.animate !== 'function') return false;
+        this.rehearsed = true;
+        const anims = els.map(({ el, d }) => {
+          const a = el.animate([{ transform: `translate3d(${d * w}px,0,0)`, opacity: 0.004 }, { transform: 'translate3d(0,0,0)', opacity: 0.004 }], { duration: 2000, fill: 'both', easing: 'linear' });
+          a.pause();
+          return a;
+        });
+        let i = 0;
+        let done = false;
+        const stop = () => { if (done) return; done = true; anims.forEach((a) => a.cancel()); window.removeEventListener('touchstart', stop, true); };
+        window.addEventListener('touchstart', stop, { capture: true, passive: true });
+        const step = () => {
+          if (done) return;
+          i += 1;
+          const t = Math.min(2000, i * 160);
+          anims.forEach((a) => { a.currentTime = t; });
+          requestAnimationFrame(t < 2000 ? step : stop);
+        };
+        requestAnimationFrame(step);
+        return true;
       },
       drag: null, // { n, anims }: the paused animations a finger is moving
       /** Sets up the drag's animations for neighbour `n` (once per neighbour). False where they can't run. */

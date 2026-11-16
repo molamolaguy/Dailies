@@ -137,33 +137,31 @@ class SwipeTimingDeviceTest {
         ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object')", "\"true\"")
             Log.i("SwipeTiming", "reduced motion at launch: " + s.js("String(matchMedia('(prefers-reduced-motion: reduce)').matches)"))
-            // The way pages wait beside the screen now (A), and waiting in place, nearly invisible (B), twice each.
-            for ((round, park) in listOf("A1" to "", "B1" to "onscreen", "A2" to "", "B2" to "onscreen")) s.round(round, park)
-            s.js("state.games=[]; saveState(); flushSyncNativeNow(); localStorage.removeItem('dailies_test_motion'); localStorage.removeItem('dailies_test_park'); 'ok'")
+            // Each round starts a new WebView renderer, as when the app is opened: as now ("plain"), with a dress
+            // rehearsal after start ("warm"), and without the bar's blur ("noblur").
+            for (round in listOf("plain", "warm", "noblur", "plain", "warm", "noblur")) s.round(round)
+            s.js("state.games=[]; saveState(); flushSyncNativeNow(); ['dailies_test_motion','dailies_test_park','dailies_test_warm'].forEach(k => localStorage.removeItem(k)); 'ok'")
         }
     }
 
-    private fun ActivityScenario<HubActivity>.round(round: String, park: String) {
-        // Animations on, whatever the WebView thinks of the system's setting (see REDUCED_MOTION), and a fresh page.
-        js("localStorage.setItem('dailies_test_motion', '1'); localStorage.setItem('dailies_test_park', '$park'); location.reload(); 'ok'")
-        Thread.sleep(1_500)
-        waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object' && !REDUCED_MOTION)", "\"true\"")
-        // A few games, so each page has something on it.
-        js(
+    private fun ActivityScenario<HubActivity>.round(round: String) {
+        js("localStorage.setItem('dailies_test_motion', '1'); localStorage.setItem('dailies_test_warm', '${if (round == "warm") "1" else "0"}'); " +
             "const mk=(id)=>{const g={id,name:'Game '+id,url:'https://example.com/'+id,resetTime:'00:00',resetZone:'utc',status:'ready'," +
-                "streak:3,notifyEnabled:false,dayHistory:{}}; g.lastCycleKey=getCycleDateKey(g.resetTime,g.resetZone); return g;};" +
-                "state.games=['a','b','c','d','e','f','g','h'].map(mk); saveState(); switchNavigation('dashboard', { settled: true }); renderGamesGrid(); 'ok'"
-        )
-        Thread.sleep(4_000) // the pages beside the screen are drawn ahead
-        Log.i("SwipeTiming", "== round $round park='$park': page width " + js("String(innerWidth)") + ", parked: " +
-            js("[...document.querySelectorAll('.tab-page.parked')].map(e => e.id + ' ' + e.style.transform + ' ' + e.style.opacity).join('; ')"))
+            "streak:3,notifyEnabled:false,dayHistory:{}}; g.lastCycleKey=getCycleDateKey(g.resetTime,g.resetZone); return g;};" +
+            "state.games=['a','b','c','d','e','f','g','h'].map(mk); saveState(); flushSyncNativeNow(); 'ok'")
+        Thread.sleep(1_000)
+        // A new renderer process: the app builds a new WebView (onRenderProcessGone), as on a fresh start.
+        if (android.os.Build.VERSION.SDK_INT >= 29) onActivity { a -> findWebView(a.window.decorView)?.webViewRenderProcess?.terminate() }
+        Thread.sleep(2_500)
+        waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object' && !REDUCED_MOTION && state.games.length === 8)", "\"true\"")
+        if (round == "noblur") js("const st=document.createElement('style'); st.textContent='.m4-floating-dock{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'; document.head.appendChild(st); 'ok'")
+        Thread.sleep(5_000) // the pages beside the screen are drawn ahead (and the rehearsal done)
+        Log.i("SwipeTiming", "== round $round: rehearsed " + js("String(Pager.rehearsed)") + ", parked: " +
+            js("[...document.querySelectorAll('.tab-page.parked')].map(e => e.id + ' ' + e.style.transform).join('; ')"))
         val quick = 6
-        val slow = 30
         measure("$round quick left  hub->streaks", 0.85f, 0.15f, quick, 16, "stats"); Thread.sleep(1_500)
         measure("$round quick left  streaks->settings", 0.85f, 0.15f, quick, 16, "settings"); Thread.sleep(1_500)
         measure("$round quick right settings->streaks", 0.15f, 0.85f, quick, 16, "stats"); Thread.sleep(1_500)
         measure("$round quick right streaks->hub", 0.15f, 0.85f, quick, 16, "dashboard"); Thread.sleep(1_500)
-        measure("$round slow  left  hub->streaks", 0.85f, 0.15f, slow, 16, "stats"); Thread.sleep(1_500)
-        measure("$round slow  right streaks->hub", 0.15f, 0.85f, slow, 16, "dashboard"); Thread.sleep(1_500)
     }
 }
