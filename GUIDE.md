@@ -540,6 +540,14 @@ The hub also runs as an installable web app on GitHub Pages; see `web/README.md`
 - **Finding results** (`share-hook.js`): `RESULTS_OPEN_RE` (press "See results" / "Stats" once on a finished game, then rescan), `shareLinkText` (window.open and `<a>` share links), `deepQueryAll` / `deepText` (open shadow roots), `FINISHED_INTL_RE` and the multilingual `BUTTON_RE`, `screenResultLine` → `via: "screen"`. `GameActivity.captureShareLink` (`ShareLinkText`, also for navigations and popups), `offerScreenResult` (a Log it / Not now card; `EXTRA_SHARE_CONFIRMED` makes the hub skip its strict check).
 - **UI**: every `<select>` uses `themeSelect`; `#btnPlayAll` is the only bar above the games; no Select button, Personal Bests, tough days or Settings → Recent changes; recap boxes swipe (`.recap-swipe`); achievements and secrets in two grids; `settingsRenderKey` so Settings isn't rebuilt on each swipe; card styles restyled; `formatLocalNowTime` follows Show Seconds; alerts have no large icon.
 
+## 30. New in 1.8.10
+
+Quick swipes stuttered, slow ones didn't: the first drag frame did all the setup (attach changed the neighbour's class and cssText, repainting it; `dragWith` created the WAAPI animations) and took ~37 ms at 6x, so a fast finger was well ahead by the next frame.
+- **`Pager.prime()`** on touchstart (after `swipe` is made): paused WAAPI animations (2000 ms, `fill: both`, `currentTime` 1000 = rest) for the current page (w → -w), prev (0 → -2w) and next (2w → 0) when both are parked exactly, and the highlight (prev, cur, next x; equal widths only). `follow(dx)` sets `currentTime = 1000 - dx / w * 1000`. `unprime(dx)` writes the inline positions, cancels and flushes; it runs from `stopDrag`, a vertical scroll, a card reorder and an unlocked `endSwipe`.
+- **`attach` fast path**: a parked page whose `el.__parked` (`{left, top, width, dir, w}` from `park`) still matches `slideGeometry` keeps its class and cssText. `unpark` and `switchNavigation` clear it.
+- `NavIndicator.place(tab)` no longer measures; `measure()` runs on resize and after a text-size change.
+- First touchmove handler ~0.6 ms at 6x (setup ~9 ms at touchstart, before motion); per move ~6.5 ms.
+
 ## 29. New in 1.8.9
 
 Measured frame by frame: page velocity across release, main-thread work per drag frame by stage (at 6x CPU), invalidation tracking and a JS profile of the drag.

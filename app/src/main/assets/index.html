@@ -1359,7 +1359,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.9';
+    const APP_VERSION = '1.8.10';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -1401,7 +1401,7 @@
       if (pct === lastTextZoom) return;
       lastTextZoom = pct;
       // The bar's tabs change size with the text: measure them again once it has been applied.
-      setTimeout(() => { try { NavIndicator.place(activeTab); } catch (e) {} }, 300);
+      setTimeout(() => { try { NavIndicator.measure(); NavIndicator.place(activeTab); } catch (e) {} }, 300);
       try {
         if (window.AndroidBridge && typeof window.AndroidBridge.setTextZoom === 'function') { window.AndroidBridge.setTextZoom(pct); return; }
       } catch (e) {}
@@ -4456,6 +4456,9 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.10': [
+        ['⚡', 'Quick swipes, no jump', 'A fast flick between pages now moves from its very first frame. The page used to be got ready as your finger started moving, so a quick swipe jumped ahead once it caught up.']
+      ],
       '1.8.9': [
         ['👆', 'Swipes without the hitch', 'A page now carries on at your finger\'s speed when you let go (it used to stop for a moment, then lurch), and follows your finger with about half the work per frame.']
       ],
@@ -6761,10 +6764,13 @@
         this.put(el, 'transform', `translate3d(${x}px,0,0)`);
         this.put(el, 'opacity', '1');
       },
-      place(tab) { this.measure(); this.set(tab, tab, 0); }
+      // The tabs' boxes are kept (measured on first use, after a resize and a text size change): measuring
+      // here, as a slide lands, made the browser lay the whole page out on the spot (1.8.10).
+      place(tab) { this.set(tab, tab, 0); }
     };
     window.addEventListener('resize', () => {
       Pager._w = 0;
+      NavIndicator.measure();
       NavIndicator.place(activeTab);
       // Parked pages sit at the old width: park them again at the new one.
       document.querySelectorAll('.tab-page.parked').forEach((el) => { el.dataset.redraw = '1'; });
@@ -6783,6 +6789,12 @@
         const el = document.getElementById(TAB_VIEW_IDS[tab]);
         if (!cur || !el || el === cur) return null;
         if (this.neighbour && this.neighbour.tab === tab) { this.neighbour.dir = dir; return this.neighbour; }
+        // Set up when the finger touched down (prime): nothing to do here but say which way.
+        if (this.primed) {
+          const pn = dir > 0 ? this.primed.next : this.primed.prev;
+          if (pn && pn.tab === tab) { this.neighbour = pn; prepareTab(tab); return pn; }
+          this.unprime();
+        }
         this.detach();
         prepareTab(tab);
         // (#m3Scaffold is position: relative with overflow-x: clip in app.css, so pages slid off to the
@@ -6794,12 +6806,24 @@
         // lays the page out once here instead of after each style change.
         const { box, top, scroll } = this.slideGeometry(cur, el);
         const w = this.width();
-        el.style.cssText = `position:absolute;left:${box.left}px;top:${top}px;width:${box.width}px;margin:0;will-change:transform;pointer-events:none;transition:none;transform:translate3d(${dir * w}px,0,0)`;
-        el.classList.remove('hidden');
+        const pk = el.__parked;
+        if (el.classList.contains('parked') && pk && pk.dir === dir && pk.w === w
+          && Math.abs(pk.left - box.left) < 0.01 && Math.abs(pk.top - top) < 0.01 && Math.abs(pk.width - box.width) < 0.01) {
+          // 1.8.10: already waiting exactly where it slides in from, and drawn there: left untouched (its
+          // drag animation moves it). Setting its style and taking its `hidden` class off made the browser
+          // style it and record its whole drawing again in the drag's first frame: a late first frame,
+          // which a quick swipe shows as a jump. It becomes the page on screen when it lands.
+        } else {
+          el.style.cssText = `position:absolute;left:${box.left}px;top:${top}px;width:${box.width}px;margin:0;will-change:transform;pointer-events:none;transition:none;transform:translate3d(${dir * w}px,0,0)`;
+          el.classList.remove('hidden');
+          el.__parked = null;
+        }
         this.neighbour = { tab, el, dir, scroll };
         return this.neighbour;
       },
       detach() {
+        // While primed the neighbours wait where they are (their animations hold them there).
+        if (this.primed) { this.neighbour = null; return; }
         this.stopDrag();
         const n = this.neighbour;
         this.neighbour = null;
@@ -6853,6 +6877,8 @@
         const dir = TAB_ORDER.indexOf(tab) > TAB_ORDER.indexOf(activeTab) ? 1 : -1;
         const aside = `${base}top:${top}px;transform:translate3d(${dir * this.width()}px,0,0)`;
         el.classList.add('parked');
+        // Where it waits, so a swipe can tell that it needn't be touched (see attach).
+        el.__parked = { left: box.left, top, width: box.width, dir, w: this.width() };
         el.__parkedAt = window.scrollY;
         if (!draw) { el.style.cssText = aside; return; }
         el.__drawnAt = window.scrollY;
@@ -6880,6 +6906,7 @@
       unpark(el) {
         if (this.drawing && this.drawing.el === el) this.drawing = null;
         el.__parkToken = (el.__parkToken || 0) + 1;
+        el.__parked = null;
         el.classList.remove('parked');
         el.style.cssText = '';
       },
@@ -6888,6 +6915,13 @@
         const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
         const n = this.neighbour;
         const w = this.width();
+        if (this.primed) {
+          // 1.8.10: everything was set up when the finger touched down, so a frame only moves the
+          // animations to the finger's position, whichever way it goes.
+          const t = Math.max(0, Math.min(2000, 1000 - dx / w * 1000));
+          for (const a of this.primed.anims) a.currentTime = t;
+          return;
+        }
         if (n && cur && this.dragWith(cur, n, w)) {
           // 1.8.9: the pages and the bar's highlight are paused animations set to the finger's position.
           // Moving them by rewriting their style every frame made the browser rebuild its layers each
@@ -6904,6 +6938,84 @@
         // The bar's highlight slides the same fraction of the way to the neighbouring tab.
         if (n) NavIndicator.set(activeTab, n.tab, Math.abs(dx) / w);
         else NavIndicator.set(activeTab, activeTab, 0);
+      },
+      /**
+       * Swipes, 1.8.10: when a finger touches down, the current page, both neighbours (already waiting
+       * beside the screen, drawn) and the bar's highlight get paused animations covering a swipe either
+       * way, set to where they are now (nothing on screen changes). A swipe then only moves them. Setting
+       * them up (and the page beside the screen) in the swipe's first frame made that frame late, which a
+       * quick swipe, having moved far by then, showed as a jump. A tap or a scroll throws them away.
+       * Time 0..2000 ms is the current page at +width .. -width; 1000 is where it rests.
+       */
+      primed: null, // { anims, prev, next }
+      prime() {
+        if (this.primed || this.drag || this.neighbour || tabAnimating || REDUCED_MOTION) return;
+        const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
+        if (!cur || typeof cur.animate !== 'function') return;
+        const w = this.width();
+        const at = TAB_ORDER.indexOf(activeTab);
+        const ready = (tab, dir) => {
+          const el = tab && document.getElementById(TAB_VIEW_IDS[tab]);
+          const pk = el && el.__parked;
+          if (!el || !pk || !el.classList.contains('parked') || pk.dir !== dir || pk.w !== w) return null;
+          const g = this.slideGeometry(cur, el);
+          if (Math.abs(pk.left - g.box.left) > 0.01 || Math.abs(pk.top - g.top) > 0.01 || Math.abs(pk.width - g.box.width) > 0.01) return null;
+          return { tab, el, dir, scroll: g.scroll };
+        };
+        const prev = ready(TAB_ORDER[at - 1], -1);
+        const next = ready(TAB_ORDER[at + 1], 1);
+        // Both neighbours that exist must be ready (otherwise the swipe sets itself up as before).
+        if ((TAB_ORDER[at - 1] && !prev) || (TAB_ORDER[at + 1] && !next)) return;
+        const move = (el, from, to) => {
+          const a = el.animate([{ transform: `translate3d(${from}px,0,0)` }, { transform: `translate3d(${to}px,0,0)` }], { duration: 2000, fill: 'both', easing: 'linear' });
+          a.pause();
+          a.currentTime = 1000;
+          return a;
+        };
+        const anims = [move(cur, w, -w)];
+        if (prev) anims.push(move(prev.el, 0, -2 * w));
+        if (next) anims.push(move(next.el, 2 * w, 0));
+        const ind = NavIndicator.el();
+        const rc = NavIndicator.rect(activeTab);
+        const rp = prev && NavIndicator.rect(prev.tab);
+        const rn = next && NavIndicator.rect(next.tab);
+        const sameW = (r) => !r || Math.abs(r.w - rc.w) < 0.5;
+        let indAnim = false;
+        if (ind && rc && sameW(rp) && sameW(rn)) {
+          NavIndicator.set(activeTab, activeTab, 0);
+          const a = ind.animate([
+            { transform: `translate3d(${rp ? rp.x : rc.x}px,0,0)`, offset: 0 },
+            { transform: `translate3d(${rc.x}px,0,0)`, offset: 0.5 },
+            { transform: `translate3d(${rn ? rn.x : rc.x}px,0,0)`, offset: 1 }
+          ], { duration: 2000, fill: 'both', easing: 'linear' });
+          a.pause();
+          a.currentTime = 1000;
+          anims.push(a);
+          indAnim = true;
+        }
+        if (!indAnim) { anims.forEach((a) => a.cancel()); return; }
+        this.primed = { anims, prev, next };
+      },
+      /** Ends the primed animations; with `dx`, leaves everything where the finger had put it. */
+      unprime(dx) {
+        const pr = this.primed;
+        if (!pr) return;
+        this.primed = null;
+        const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
+        const n = this.neighbour;
+        if (typeof dx === 'number') {
+          const w = this.width();
+          if (cur) { cur.style.transition = 'none'; cur.style.transform = `translate3d(${dx}px,0,0)`; }
+          if (n) { n.el.style.transition = 'none'; n.el.style.transform = `translate3d(${dx + n.dir * w}px,0,0)`; }
+          NavIndicator.set(activeTab, n ? n.tab : activeTab, n ? Math.max(0, Math.min(1, -dx * n.dir / w)) : 0);
+        }
+        pr.anims.forEach((a) => a.cancel());
+        if (typeof dx === 'number') {
+          // Settle those positions now, so a transition set next starts from them.
+          if (cur) getComputedStyle(cur).transform;
+          if (n) getComputedStyle(n.el).transform;
+          getComputedStyle(NavIndicator.el()).transform;
+        }
       },
       drag: null, // { n, anims }: the paused animations a finger is moving
       /** Sets up the drag's animations for neighbour `n` (once per neighbour). False where they can't run. */
@@ -6930,6 +7042,7 @@
       },
       /** Ends the drag's animations, leaving everything exactly where the finger had put it (`dx`). */
       stopDrag(dx) {
+        if (this.primed) { this.unprime(dx); return; }
         const d = this.drag;
         if (!d) return;
         this.drag = null;
@@ -7097,7 +7210,7 @@
           views[k].classList.toggle('hidden', off);
           if (!off && views[k].classList.contains('parked')) {
             if (Pager.drawing && Pager.drawing.el === views[k]) Pager.drawing = null;
-            views[k].classList.remove('parked'); views[k].__parkToken = (views[k].__parkToken || 0) + 1;
+            views[k].classList.remove('parked'); views[k].__parkToken = (views[k].__parkToken || 0) + 1; views[k].__parked = null;
           }
           // Pages off screen are only clipped (they stay laid out for smooth swipes): keep them out of
           // reach of taps, the keyboard and screen readers. The page just left is clipped out of reach of
@@ -8235,6 +8348,7 @@
         const el = e.target;
         if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .recap-swipe, .m4-floating-dock, .return-sheet, .tsel-menu, #toastContainer')) return;
         swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false };
+        Pager.prime();
       }, { passive: true });
 
       document.addEventListener('touchmove', (e) => {
@@ -8242,9 +8356,9 @@
         const dx = e.touches[0].clientX - swipe.x;
         const dy = e.touches[0].clientY - swipe.y;
         if (!swipe.locked) {
-          if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { swipe = null; return; } // a scroll
+          if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { swipe = null; Pager.unprime(); return; } // a scroll
           if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
-          if (document.querySelector('#gamesGrid.drag-active')) { swipe = null; return; }
+          if (document.querySelector('#gamesGrid.drag-active')) { swipe = null; Pager.unprime(); return; }
           swipe.locked = true;
           swipe.x += dx > 0 ? 12 : -12; // start from where the swipe was recognised, no jump
         }
@@ -8265,7 +8379,7 @@
       const endSwipe = (e, cancelled) => {
         const sw = swipe;
         swipe = null;
-        if (!sw || !sw.locked) return;
+        if (!sw || !sw.locked) { Pager.unprime(); return; }
         if (Date.now() - cardDragEndedAt < 400) cancelled = true; // that touch reordered a card
         const w = window.innerWidth || 400;
         const samples = sw.samples || [];

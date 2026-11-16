@@ -1,3 +1,18 @@
+# Dailies 1.8.10
+
+Quick swipes without the jump. It installs over 1.8.9 and keeps everything. If you're on 1.8.9, you can install it from **Settings → About → Check now**.
+
+## Swipes
+- **Quick swipes**: the page now moves from the very first frame of a fast flick. Getting the pages ready to slide used to happen on the first frame your finger moved, which took long enough (about 37 ms with the processor slowed 6×, roughly a mid-range phone) that a quick swipe had already travelled a good way by then, so the page jumped to catch up. A slow swipe hadn't gone far yet, so it didn't show. That preparation now happens the moment your finger touches the screen, before anything moves, and the first moving frame takes under a millisecond of the same work.
+- **The page beside the screen** is no longer restyled and drawn again when a swipe starts; it's already waiting where it needs to be.
+- **Landing**: the bar's highlight no longer measures the tabs again at the end of every swipe, which made the browser work out the whole page's styles on the spot.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.9
 
 Swiping between pages without the hitch. It installs over 1.8.8 and keeps everything. If you're on 1.8.8, you can install it from **Settings → About → Check now**.
