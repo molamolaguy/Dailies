@@ -112,8 +112,26 @@ class SwipeTimingDeviceTest {
         assertEquals("$label: $out", "\"$expectTab\"", js("activeTab"))
     }
 
+    private fun shell(cmd: String) {
+        InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(cmd).close()
+        Thread.sleep(300)
+    }
+
     @Test
     fun swipeTimingsEachWay() {
+        // CI turns animations off, which the WebView reports as prefers-reduced-motion (pages then switch
+        // without sliding): on for this test, off again after.
+        shell("settings put global animator_duration_scale 1")
+        shell("settings put global transition_animation_scale 1")
+        shell("settings put global window_animation_scale 1")
+        try { measureAll() } finally {
+            shell("settings put global animator_duration_scale 0")
+            shell("settings put global transition_animation_scale 0")
+            shell("settings put global window_animation_scale 0")
+        }
+    }
+
+    private fun measureAll() {
         ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object')", "\"true\"")
             // A few games and some history, so each page has something on it.
@@ -123,6 +141,8 @@ class SwipeTimingDeviceTest {
                     "state.games=['a','b','c','d','e','f','g','h'].map(mk); saveState(); switchNavigation('dashboard', { settled: true }); renderGamesGrid(); 'ok'"
             )
             Thread.sleep(4_000) // the pages beside the screen are drawn ahead
+            Log.i("SwipeTiming", "reduced motion: " + s.js("String(REDUCED_MOTION)") + ", page width " + s.js("String(innerWidth)") + ", dpr " + s.js("String(devicePixelRatio)") +
+                ", parked: " + s.js("[...document.querySelectorAll('.tab-page.parked')].map(e => e.id + ' ' + JSON.stringify(e.__parked)).join('; ')"))
             val quick = 6
             val slow = 30
             s.measure("quick left  hub->streaks", 0.85f, 0.15f, quick, 16, "stats"); Thread.sleep(1_500)
