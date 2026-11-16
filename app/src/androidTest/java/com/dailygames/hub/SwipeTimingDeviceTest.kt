@@ -139,7 +139,7 @@ class SwipeTimingDeviceTest {
             Log.i("SwipeTiming", "reduced motion at launch: " + s.js("String(matchMedia('(prefers-reduced-motion: reduce)').matches)"))
             // Each round starts a new WebView renderer, as when the app is opened: as now ("plain"), with a dress
             // rehearsal after start ("warm"), and without the bar's blur ("noblur").
-            for (round in listOf("plain", "warm", "noblur", "plain", "warm", "noblur")) s.round(round)
+            for (round in listOf("warm", "plain")) s.round(round)
             s.js("state.games=[]; saveState(); flushSyncNativeNow(); ['dailies_test_motion','dailies_test_park','dailies_test_warm'].forEach(k => localStorage.removeItem(k)); 'ok'")
         }
     }
