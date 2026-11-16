@@ -137,26 +137,30 @@ class SwipeTimingDeviceTest {
         ActivityScenario.launch(HubActivity::class.java).use { s ->
             s.waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object')", "\"true\"")
             Log.i("SwipeTiming", "reduced motion at launch: " + s.js("String(matchMedia('(prefers-reduced-motion: reduce)').matches)"))
-            // Each round starts a new WebView renderer, as when the app is opened: as now ("plain"), with a dress
-            // rehearsal after start ("warm"), and without the bar's blur ("noblur").
-            for (round in listOf("warm", "plain")) s.round(round)
-            s.js("state.games=[]; saveState(); flushSyncNativeNow(); ['dailies_test_motion','dailies_test_park','dailies_test_warm'].forEach(k => localStorage.removeItem(k)); 'ok'")
+            // "cover": the activity is created again, as when the app is opened, so the page slides to each
+            // page and back under the launch cover first (warmUnderCover). Then "plain": a new WebView
+            // renderer, without that.
+            for (round in listOf("cover", "plain")) s.round(round)
+            s.js("state.games=[]; saveState(); flushSyncNativeNow(); localStorage.removeItem('dailies_test_motion'); 'ok'")
         }
     }
 
     private fun ActivityScenario<HubActivity>.round(round: String) {
-        js("localStorage.setItem('dailies_test_motion', '1'); localStorage.setItem('dailies_test_warm', '${if (round == "warm") "1" else "0"}'); " +
+        js("localStorage.setItem('dailies_test_motion', '1'); " +
             "const mk=(id)=>{const g={id,name:'Game '+id,url:'https://example.com/'+id,resetTime:'00:00',resetZone:'utc',status:'ready'," +
             "streak:3,notifyEnabled:false,dayHistory:{}}; g.lastCycleKey=getCycleDateKey(g.resetTime,g.resetZone); return g;};" +
             "state.games=['a','b','c','d','e','f','g','h'].map(mk); saveState(); flushSyncNativeNow(); 'ok'")
         Thread.sleep(1_000)
-        // A new renderer process: the app builds a new WebView (onRenderProcessGone), as on a fresh start.
-        if (android.os.Build.VERSION.SDK_INT >= 29) onActivity { a -> findWebView(a.window.decorView)?.webViewRenderProcess?.terminate() }
-        Thread.sleep(2_500)
+        if (round == "cover") {
+            onActivity { a -> a.recreate() }
+        } else if (android.os.Build.VERSION.SDK_INT >= 29) {
+            // A new renderer process: the app builds a new WebView (onRenderProcessGone).
+            onActivity { a -> findWebView(a.window.decorView)?.webViewRenderProcess?.terminate() }
+        }
+        Thread.sleep(3_000)
         waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object' && !REDUCED_MOTION && state.games.length === 8)", "\"true\"")
-        if (round == "noblur") js("const st=document.createElement('style'); st.textContent='.m4-floating-dock{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}'; document.head.appendChild(st); 'ok'")
-        Thread.sleep(5_000) // the pages beside the screen are drawn ahead (and the rehearsal done)
-        Log.i("SwipeTiming", "== round $round: rehearsed " + js("String(Pager.rehearsed)") + ", parked: " +
+        Thread.sleep(5_000) // the pages beside the screen are drawn ahead
+        Log.i("SwipeTiming", "== round $round: warmed under the cover " + js("String(!!window.__warmedUnderCover)") + ", parked: " +
             js("[...document.querySelectorAll('.tab-page.parked')].map(e => e.id + ' ' + e.style.transform).join('; ')"))
         val quick = 6
         measure("$round quick left  hub->streaks", 0.85f, 0.15f, quick, 16, "stats"); Thread.sleep(1_500)

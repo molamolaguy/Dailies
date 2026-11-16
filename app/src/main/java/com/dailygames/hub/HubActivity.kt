@@ -368,10 +368,33 @@ class HubActivity : ComponentActivity() {
         findViewById<View>(android.R.id.content)?.invalidate()
     }
 
-    /** The hub has drawn its cards (onHubReady): let the activity draw, and lift the cover once the WebView's frame is ready. */
+    /**
+     * The hub has drawn its cards (onHubReady): let the activity draw, and lift the cover once the WebView's
+     * frame is ready. 1.8.11: first, under the cover, the page slides to each of the other pages and back
+     * once (warmUnderCover in the page). The first slides after the app starts were slow to draw (stalls of
+     * up to half a second on the test emulator, the first swipe after opening the app on a phone); after
+     * that rehearsal, nobody sees them.
+     */
     private fun revealHub() {
         if (!launchHeld && launchCover == null) return
         releaseLaunchScreen()
+        val cover = launchCover ?: return
+        if (!warmupStarted) {
+            warmupStarted = true
+            // Whatever happens, the cover comes off within this.
+            cover.postDelayed({ liftLaunchCover() }, MAX_WARMUP_MS)
+            webView.evaluateJavascript("window.warmUnderCover ? (warmUnderCover(), 'started') : 'no'") { r ->
+                if (r != "\"started\"") liftLaunchCover()
+            }
+            return
+        }
+        liftLaunchCover()
+    }
+
+    private var warmupStarted = false
+
+    /** Lifts the launch cover once the WebView's next frame is ready. */
+    private fun liftLaunchCover() {
         val cover = launchCover ?: return
         val done = { removeLaunchCover() }
         if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.VISUAL_STATE_CALLBACK)) {
@@ -825,6 +848,12 @@ class HubActivity : ComponentActivity() {
         @JavascriptInterface
         fun onHubReady() {
             runOnUiThread { markPageReady() }
+        }
+
+        /** The slides under the launch cover are done (see revealHub). */
+        @JavascriptInterface
+        fun onWarmDone() {
+            runOnUiThread { liftLaunchCover() }
         }
 
         /** Full hub state (games, history, logs). Empty string on first run. */
@@ -1371,6 +1400,7 @@ class HubActivity : ComponentActivity() {
         private const val RENDER_TIMEOUT_MS = 8_000L
         /** Longest the launch screen waits for the hub to draw before showing it anyway. */
         private const val MAX_LAUNCH_HOLD_MS = 3000L
+        private const val MAX_WARMUP_MS = 1500L
         private const val MAX_IMPORT_BYTES = 50 * 1024 * 1024
         private const val BACKUP_TEMP_FILE = "pending_backup_export.json"
         private const val CSV_TEMP_FILE = "pending_history_export.csv"
