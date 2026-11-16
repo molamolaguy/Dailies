@@ -6,6 +6,36 @@
   <title>Dailies</title>
   <link rel="stylesheet" href="app.css" />
   <script>
+    // Timing probe for device tests (only with the localStorage flag `dailies_test_motion`): every timer, idle
+    // task, frame callback, event listener and native call that takes over 8 ms, in window.__probe.
+    (function () {
+      try { if (localStorage.getItem('dailies_test_motion') !== '1') return; } catch (e) { return; }
+      const P = (window.__probe = []);
+      const name = (fn) => (fn && (fn.name || String(fn).replace(/\s+/g, ' ').slice(0, 70))) || '?';
+      const timed = (label, fn) => function () {
+        const s = performance.now();
+        try { return fn.apply(this, arguments); } finally { const d = performance.now() - s; if (d > 8) P.push([Math.round(s), Math.round(d), label]); }
+      };
+      for (const k of ['setTimeout', 'setInterval', 'requestIdleCallback', 'requestAnimationFrame']) {
+        const o = window[k]; if (!o) continue;
+        window[k] = function (fn) { const a = Array.from(arguments); if (typeof fn === 'function') a[0] = timed(k + ' ' + name(fn), fn); return o.apply(window, a); };
+      }
+      const oAdd = EventTarget.prototype.addEventListener;
+      const map = new WeakMap();
+      EventTarget.prototype.addEventListener = function (type, fn, opt) {
+        if (typeof fn !== 'function') return oAdd.call(this, type, fn, opt);
+        let w = map.get(fn); if (!w) { w = timed('on' + type + ' ' + name(fn), fn); map.set(fn, w); }
+        return oAdd.call(this, type, w, opt);
+      };
+      const oRem = EventTarget.prototype.removeEventListener;
+      EventTarget.prototype.removeEventListener = function (type, fn, opt) { return oRem.call(this, type, (fn && map.get(fn)) || fn, opt); };
+      // Native calls (synchronous: the page waits for them), and the app's callbacks into the page.
+      window.addEventListener('load', () => {
+        const b = window.AndroidBridge;
+        if (b) for (const k in b) { if (typeof b[k] === 'function') { const f = b[k].bind(b); try { b[k] = timed('native ' + k, f); } catch (e) {} } }
+        for (const k of Object.keys(window)) if (/^on[A-Z]/.test(k) && typeof window[k] === 'function') window[k] = timed('from app ' + k, window[k]);
+      });
+    })();
     // Error log (1.8.0): page errors are kept on this device (the last 40) for Settings → About → Report a problem.
     (function () {
       const KEY = 'dailies_error_log_v1';
@@ -1359,7 +1389,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.10';
+    const APP_VERSION = '1.8.11';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -3888,6 +3918,42 @@
     /** Parks the pages after a page change, once the landing has settled (not in the frames right after). */
     function parkSoon() { setTimeout(() => whenIdle(parkNeighbours, 1500), 700); }
     /**
+     * 1.8.11: called by the app while its launch cover is still over the page (see HubActivity.revealHub).
+     * The page slides to each of the other pages and back once, at full size and opacity, exactly as a
+     * finger would move it, then tells the app to lift the cover. The first slides after the app starts
+     * were slow to draw (that was the stutter on the first swipe after opening the app); now nobody sees
+     * them. Only the app calls it; the web version has no cover.
+     */
+    window.warmUnderCover = function () {
+      const done = () => {
+        window.__warmedUnderCover = true;
+        try { if (window.AndroidBridge && typeof window.AndroidBridge.onWarmDone === 'function') window.AndroidBridge.onWarmDone(); } catch (e) {}
+      };
+      if (REDUCED_MOTION || tabAnimating || Pager.neighbour || Pager.primed || Pager.drag || isAnyModalOpen()) { done(); return; }
+      const at = TAB_ORDER.indexOf(activeTab);
+      const tabs = TAB_ORDER.filter((t) => t !== activeTab);
+      const w = Pager.width();
+      const path = [0.2, 0.45, 0.7, 0.9, 1, 0.6, 0.25, 0];
+      let ti = 0;
+      let fi = -1;
+      const step = () => {
+        try {
+          if (fi < 0) {
+            if (ti >= tabs.length) { Pager.stopDrag(); NavIndicator.place(activeTab); done(); return; }
+            const tab = tabs[ti];
+            if (!Pager.attach(tab, TAB_ORDER.indexOf(tab) > at ? 1 : -1)) { ti += 1; requestAnimationFrame(step); return; }
+            fi = 0;
+          }
+          const n = Pager.neighbour;
+          Pager.follow(-n.dir * w * path[fi]);
+          fi += 1;
+          if (fi >= path.length) { Pager.stopDrag(0); Pager.detach(); fi = -1; ti += 1; }
+        } catch (e) { try { Pager.stopDrag(0); Pager.detach(); NavIndicator.place(activeTab); } catch (e2) {} done(); return; }
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+    /**
      * After a scroll (1.8.8): the parked pages move to where they'd slide in from at the new scroll position,
      * and are drawn again there when the scroll went more than half a screen from where they were drawn.
      */
@@ -4456,6 +4522,9 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.11': [
+        ['👆', 'Smooth from the first swipe', 'The first swipes after opening the app no longer catch. The app now does them once itself, out of sight, while it opens.']
+      ],
       '1.8.10': [
         ['⚡', 'Quick swipes, no jump', 'A fast flick between pages now moves from its very first frame. The page used to be got ready as your finger started moving, so a quick swipe jumped ahead once it caught up.']
       ],
@@ -6693,7 +6762,9 @@
     // NAVIGATION, SWIPE GESTURES & MODAL CONTROLLERS
     // =========================================================================
     const TAB_VIEW_IDS = { dashboard: 'viewDashboard', stats: 'viewStats', settings: 'viewSettings' };
-    const REDUCED_MOTION = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+    // (Device tests run with the system's animations off, which reads as reduced motion: they can ask for
+    // motion with the localStorage flag `dailies_test_motion`.)
+    const REDUCED_MOTION = (() => { try { if (localStorage.getItem('dailies_test_motion') === '1') return false; return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
     let tabAnimating = false;
     let tabSlidePending = false;
 

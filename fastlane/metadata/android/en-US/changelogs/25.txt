@@ -1,0 +1,2 @@
+• The first swipes after opening the app are smooth (no stutter).
+• The app does them once itself, out of sight, while it opens.

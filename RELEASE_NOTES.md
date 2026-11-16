@@ -1,3 +1,20 @@
+# Dailies 1.8.11
+
+Smooth from the first swipe. It installs over 1.8.10 and keeps everything. If you're on 1.8.10, you can install it from **Settings → About → Check now**.
+
+## Swipes
+- **The first swipes after opening the app** no longer stutter. The first time a page slid onto the screen after the app started, drawing it took far longer than usual: on the test phone emulator the page stood still for up to half a second partway through. Later swipes were fine, so it showed as a stutter on the first swipe (from the hub, always a swipe to the left). Now, while the app opens and its opening screen is still showing, the hub slides to each of the other pages and back once, out of sight. By the time you can touch it, that first-time work is done.
+- Measured on the emulator with real touches, starting the app fresh: the worst frame of the first quick swipe from the hub to Streaks & Log went from 150 ms to 24 ms, and from Settings back to Streaks & Log from up to 500 ms to 40 ms.
+
+## Checks
+- A new emulator test swipes quickly and slowly each way between the pages and records every frame, how late each touch arrived and anything slow that ran meanwhile.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.10
 
 Quick swipes without the jump. It installs over 1.8.9 and keeps everything. If you're on 1.8.9, you can install it from **Settings → About → Check now**.

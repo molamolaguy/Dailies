@@ -540,6 +540,12 @@ The hub also runs as an installable web app on GitHub Pages; see `web/README.md`
 - **Finding results** (`share-hook.js`): `RESULTS_OPEN_RE` (press "See results" / "Stats" once on a finished game, then rescan), `shareLinkText` (window.open and `<a>` share links), `deepQueryAll` / `deepText` (open shadow roots), `FINISHED_INTL_RE` and the multilingual `BUTTON_RE`, `screenResultLine` → `via: "screen"`. `GameActivity.captureShareLink` (`ShareLinkText`, also for navigations and popups), `offerScreenResult` (a Log it / Not now card; `EXTRA_SHARE_CONFIRMED` makes the hub skip its strict check).
 - **UI**: every `<select>` uses `themeSelect`; `#btnPlayAll` is the only bar above the games; no Select button, Personal Bests, tough days or Settings → Recent changes; recap boxes swipe (`.recap-swipe`); achievements and secrets in two grids; `settingsRenderKey` so Settings isn't rebuilt on each swipe; card styles restyled; `formatLocalNowTime` follows Show Seconds; alerts have no large icon.
 
+## 31. New in 1.8.11
+
+Measured in the real WebView on the CI emulator (`SwipeTimingDeviceTest`, logcat tag `SwipeTiming`, printed by ci.yml): only the first slides in a fresh app process stalled (touchmoves 100-500 ms late, no JS task over 8 ms meanwhile, so drawing); later ones were smooth either way, also after a page reload or a new renderer. Neither parking pages in place at 0.4% opacity nor a 0.4% opacity rehearsal helped.
+- **`warmUnderCover()`** (index.html): called by `HubActivity.revealHub` once the launch screen lets the activity draw, while `launchCover` is still over the WebView. Attaches each other tab in turn and moves it with `Pager.follow` over 8 frames (out to a full page and back), then `stopDrag(0)` / `detach()` / `NavIndicator.place`, and calls `AndroidBridge.onWarmDone()`, which lifts the cover (`liftLaunchCover`, after a visual-state callback). The cover comes off after `MAX_WARMUP_MS` (1.5 s) whatever happens. About 300 ms on desktop.
+- Device-test hooks: localStorage `dailies_test_motion=1` turns reduced motion off (CI runs with animations off, which the WebView reports as reduced motion) and turns on `window.__probe` (timers, idle tasks, frame callbacks, listeners and native calls over 8 ms).
+
 ## 30. New in 1.8.10
 
 Quick swipes stuttered, slow ones didn't: the first drag frame did all the setup (attach changed the neighbour's class and cssText, repainting it; `dragWith` created the WAAPI animations) and took ~37 ms at 6x, so a fast finger was well ahead by the next frame.
