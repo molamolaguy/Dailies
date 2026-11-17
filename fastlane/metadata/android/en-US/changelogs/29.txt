@@ -1,0 +1,2 @@
+• Settings is a short list of sections, each opening on its own page.
+• Each setting's explanation shows under its name again (no ⓘ).
