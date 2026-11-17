@@ -1,0 +1,3 @@
+• A shorter Settings page: Theme, App Icon and Accent are one row each.
+• Each setting's explanation is behind the ⓘ by its name.
+• No PB tag on the hub's game cards.
