@@ -168,7 +168,6 @@ innerfidelity.com	all
 instagram.com	generic
 instapundit.com	generic
 instawp.xyz	generic
-intercelestial.com	generic
 inwepo.co	generic
 jetzt.de	generic
 jpopsingles.eu	generic
@@ -179,7 +178,6 @@ komorkomania.pl	generic
 learnmania.org	generic
 leeapk.com	generic
 libero.it	generic
-linegee.net	generic
 linkjust.com	generic
 linkneverdie.com	generic
 linkvertise.com	generic
@@ -231,7 +229,6 @@ onlinemschool.com	generic
 open.spotify.com	generic
 openpoint.com.tw	generic
 outlookindia.com	generic
-pahe.plus	generic
 pandora.com	generic
 paramountplus.com	generic
 parenting.pl	generic
@@ -260,8 +257,6 @@ saabcentral.com	generic
 sc2casts.com	generic
 schemeflood.com	generic
 sciencechannel.com	generic
-sextb.date	generic
-sextb.net	generic
 sh.st	generic
 shinden.pl	generic
 shipstation.com	generic
@@ -322,6 +317,7 @@ up4load.com	generic
 upfilesgo.com	generic
 upload.far7net.com	generic
 uploadcloud.pro	generic
+uploadg.com	generic
 veev.to	generic
 videostar.pl	generic
 vidnest.io	generic

@@ -6963,6 +6963,7 @@ ltd.ua
 611.to
 a2hosted.com
 cpserver.com
+abyme.dev
 activetrail.biz
 myaddr.dev
 myaddr.io
@@ -6981,6 +6982,7 @@ adobeio-static.net
 adobeioruntime.net
 africa.com
 *.auiusercontent.com
+agilevibes.app
 beep.pl
 aiven.app
 *.aivencloud.com
@@ -7909,6 +7911,10 @@ transfer-webapp.cn-northwest-1.on.amazonwebservices.com.cn
 transfer-webapp.eusc-de-east-1.on.amazonwebservices.eu
 eero.online
 eero-stage.online
+app.amba.host
+cdn.amba.host
+fn.amba.host
+go.amba.host
 opentunnel.xyz
 antagonist.cloud
 claude.app
@@ -7916,6 +7922,7 @@ claudeusercontent.com
 frame.claudeusercontent.com
 apigee.io
 panel.dev
+apps.devs.ai
 siiites.com
 int.apple
 *.cloud.int.apple
@@ -7954,6 +7961,8 @@ myasustor.com
 *.atlassian-3p-us-gov-mod.com
 *.atlassian-isolated-3p.com
 cdn.prod.atlassian-dev.net
+space.fast
+view.fast
 myfritz.link
 myfritz.net
 *.awdev.ca
@@ -7973,6 +7982,7 @@ shopselect.net
 base.shop
 beagleboard.io
 bearblog.dev
+bearly.sh
 *.beget.app
 *.begetcdn.cloud
 pages.gay
@@ -8034,6 +8044,7 @@ cdn77-ssl.net
 c.cdn77.org
 rsc.cdn77.org
 ssl.origin.cdn77-secure.org
+ceero.site
 za.bz
 br.com
 cn.com
@@ -8121,6 +8132,7 @@ objects.lpg.cloudscale.ch
 objects.rma.cloudscale.ch
 lpg.objectstorage.ch
 rma.objectstorage.ch
+cloudzyro.app
 wnext.app
 cnpy.gdn
 *.otap.co
@@ -8167,6 +8179,7 @@ knx-server.net
 static-access.net
 craft.me
 realm.cz
+crbts.app
 cfolks.pl
 cyon.link
 cyon.site
@@ -8191,6 +8204,7 @@ dattoweb.com
 mydatto.com
 dattolocal.net
 mydatto.net
+ddns.ge
 ddnss.de
 dyn.ddnss.de
 dyndns.ddnss.de
@@ -8581,7 +8595,12 @@ mywire.org
 roxa.org
 webredirect.org
 myddns.rocks
+dns.army
+v6.army
+dns.navy
+v6.navy
 dynv6.net
+v6.rocks
 e4.cz
 easypanel.app
 easypanel.host
@@ -8810,6 +8829,7 @@ freedesktop.org
 freemyip.com
 *.frusky.de
 wien.funkfeuer.at
+xwx.me
 daemon.asia
 dix.asia
 mydns.bz
@@ -8850,6 +8870,7 @@ gentapps.com
 gentlentapis.com
 cdn-edges.net
 gsj.bz
+ginta.page
 gitbook.io
 github.app
 githubusercontent.com
@@ -8994,6 +9015,7 @@ cloud.run
 ai.studio
 goupile.fr
 pymnt.uk
+gov.de
 gov.nl
 grafana-dev.net
 grayjayleagues.com
@@ -9064,8 +9086,6 @@ gr.com
 iki.fi
 ibxos.it
 iliadboxos.it
-imagine.diy
-imagine-proxy.work
 smushcdn.com
 wphostedmail.com
 wpmucdn.com
@@ -9355,6 +9375,7 @@ barsyonline.co.uk
 luyani.app
 luyani.net
 *.magentosite.cloud
+mymagic.page
 magicpatterns.app
 magicpatternsapp.com
 hb.cldmail.ru
@@ -9371,6 +9392,7 @@ mediatech.by
 mediatech.dev
 hra.health
 medusajs.app
+medusajs.site
 miniserver.com
 memset.net
 messerli.app
@@ -9508,6 +9530,9 @@ mkm.fan
 mocha.app
 mochausercontent.com
 mocha-sandbox.dev
+modelence.app
+cloud.modelence.app
+sandbox.modelence.app
 modx.dev
 bmoattachments.org
 net.ru
@@ -9594,6 +9619,7 @@ ngrok.pro
 torun.pl
 nh-serv.co.uk
 nimsite.uk
+ninjaneer-sites.com
 mmafan.biz
 myftp.biz
 no-ip.biz
@@ -9735,6 +9761,7 @@ nerdpol.ovh
 prvcy.page
 observablehq.cloud
 static.observableusercontent.com
+omgs.page
 omg.lol
 cloudycluster.net
 omniwe.site
@@ -9791,6 +9818,7 @@ ownprovider.com
 own.pm
 *.owo.codes
 ox.rs
+myoxypages.com
 oy.lc
 pagelemon.dev
 pgfog.com
@@ -9878,10 +9906,14 @@ up.railway.app
 ravpage.co.il
 readthedocs-hosted.com
 readthedocs.io
+rwx.run
 rhcloud.com
 instances.spawn.cc
 *.clusters.rdpa.co
 *.srvrless.rdpa.co
+reliantlabs.dev
+sites.reliantlabs.dev
+reliantpreview.dev
 onrender.com
 app.render.com
 replit.app
@@ -9920,6 +9952,7 @@ io.noc.ruhr-uni-bochum.de
 спб.рус
 я.рус
 ras.ru
+sail.box
 nyat.app
 180r.com
 dojin.com
@@ -10085,6 +10118,10 @@ myshopify.com
 shopitsite.com
 shopware.shop
 shopware.store
+co.fo
+com.fo
+wz.io
+wz.org
 mo-siemens.io
 1kapp.com
 appchizi.com
@@ -10240,6 +10277,7 @@ telebit.app
 telebit.io
 *.telebit.xyz
 teleport.sh
+terramind.io
 *.firenet.ch
 *.svc.firenet.ch
 reservd.com
@@ -10320,16 +10358,19 @@ tmp.now
 vercel.run
 now.sh
 2038.io
+vibekit.page
 v-info.info
 vistablog.ir
 deus-canvas.com
 vivenushop.com
 vivenushop.dev
+voati.host
 voorloper.cloud
 *.vultrobjects.com
 wafflecell.com
 wal.app
 wasmer.app
+sm.run
 webflow.io
 webflowtest.io
 *.webhare.dev
@@ -10392,6 +10433,7 @@ website.yandexcloud.net
 sourcecraft.site
 official.academy
 yolasite.com
+loc.cc
 ynh.fr
 nohost.me
 noho.st
