@@ -1393,7 +1393,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.12';
+    const APP_VERSION = '1.8.13';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4534,6 +4534,10 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.8.13': [
+        ['💎', 'Polished ruby', 'Ruby buttons are a smooth polished stone now, with no hard lines, and their outlines sit evenly all the way round.'],
+        ['🔗', 'No double games', 'Adding a link to a game you already have (a menu page of its site, another site showing it, a link that leads to it) is caught, so it isn\'t added twice.']
+      ],
       '1.8.12': [
         ['⏱️', 'Timers aren\'t scores', 'A countdown to the next puzzle or a game\'s own clock is no longer offered as your result when you open a game.'],
         ['🔎', 'Late end screens', 'A result that appears a while after your last move is found too.'],

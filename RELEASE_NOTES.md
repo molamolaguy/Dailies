@@ -1,3 +1,26 @@
+# Dailies 1.8.13
+
+A polished ruby, and no more double games. It installs over 1.8.12 and keeps everything. If you're on 1.8.12, you can install it from **Settings → About → Check now**.
+
+## Ruby
+- **A smooth polished stone.** Ruby buttons, the bar's highlight, the Done badges, calendar days and progress bars had six bands of red with hard edges between them, which showed as sharp lines. They're now a cabochon: a smooth stone, deep crimson in the middle, with a soft gloss near the top and light coming back up from below. Titles and card edges follow it.
+- **Even outlines.** The top and bottom edges of every ruby button are now the same red, and a thin ring inside the rim goes all the way round, so an outline never looks lower or heavier at the bottom than at the top. Card and bar edges are as bright at the bottom as at the top.
+
+## The same game behind another link
+When you add a game, Dailies now checks the link against the games you have:
+- **The same page written differently, or a link that leads to a game you have** (a short link, a redirect): not added, with a Play button for the game you have.
+- **Probably the same game**, asked in the Add form ("Already in your hub?"), with an Open button for it. Save again to add it as a separate game anyway:
+  - a page of the same site above or below a game you have (krillion.io when you have krillion.io/play);
+  - another site that shows one of your games inside its page, or the other way round;
+  - a different site with the same game name ("Wordle - Play Online" when you have Wordle).
+- A game added from now on remembers the link it was added from and the games shown inside its page, to recognise them later.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.12
 
 Better result finding, and quicker with a long history. It installs over 1.8.11 and keeps everything. If you're on 1.8.11, you can install it from **Settings → About → Check now**.
