@@ -1444,7 +1444,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.9.2';
+    const APP_VERSION = '1.9.3';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4649,6 +4649,10 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.9.3': [
+        ['💎', 'A step-cut ruby icon', 'The Ruby app icon is a step-cut gem now: smooth bands that follow the star\'s shape, instead of the wedges that looked like a pinwheel up close.'],
+        ['📅', 'Today stands out', 'Today on the calendar has a brighter ring and a soft glow round it.']
+      ],
       '1.9.2': [
         ['⚙️', 'Settings open in place', 'Tap a section in Settings and its box opens right there, with no separate page. Opening another closes the first, and leaving Settings closes them all.']
       ],
@@ -5511,45 +5515,32 @@
       const flower = 'M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z';
       const mark = 'M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z';
       const sparks = 'M65.5,38.3 C66.17,41.83 66.17,41.83 69.7,42.5 C66.17,43.17 66.17,43.17 65.5,46.7 C64.83,43.17 64.83,43.17 61.3,42.5 C64.83,41.83 64.83,41.83 65.5,38.3Z M43,62.5 C43.48,65.02 43.48,65.02 46,65.5 C43.48,65.98 43.48,65.98 43,68.5 C42.52,65.98 42.52,65.98 40,65.5 C42.52,65.02 42.52,65.02 43,62.5Z';
-      const mix = (a, b, t) => '#' + [0, 2, 4].map((i) => Math.round(parseInt(a.substr(i + 1, 2), 16) * (1 - t) + parseInt(b.substr(i + 1, 2), 16) * t).toString(16).padStart(2, '0')).join('');
-      const shade = (v) => { v = Math.max(0, Math.min(1, v)); return v < 0.5 ? mix('#1A0006', '#BA0C30', v * 2) : mix('#BA0C30', '#FF4E72', (v - 0.5) * 2); };
-      const pt = (r, a) => (54 + r * Math.cos(a)).toFixed(2) + ',' + (54 + r * Math.sin(a)).toFixed(2);
-      const N = 16, R = 34, C = 0.7, T = 10.5, L = -2.36, step = (2 * Math.PI) / N;
-      const inner = 'translate(54 54) scale(' + C + ') translate(-54 -54)';
-      // Outer slope (the bevel down to the edge): lit strongly from the top left, so the stone reads as raised.
-      let slope = '', crown = '', lines = '';
-      for (let i = 0; i < N; i++) {
-        const a0 = i * step - Math.PI / 2, a1 = a0 + step, m = a0 + step / 2;
-        const v = 0.5 + 0.47 * Math.cos(m - L) + (i % 2 ? 0.07 : -0.07);
-        slope += '<path d="M54,54 L' + pt(R, a0) + ' L' + pt(R, a1) + 'Z" fill="' + shade(v) + '"/>';
-        lines += 'M' + pt(R * C, a0) + ' L' + pt(R, a0) + ' ';
-      }
-      // Crown facets on top, seen through the stone, so their light is reversed (refraction) with a bright kite each.
-      for (let i = 0; i < N; i++) {
-        const a0 = i * step - Math.PI / 2 + step / 2, a1 = a0 + step, m = a0 + step / 2;
-        const v = 0.48 - 0.3 * Math.cos(m - L) + (i % 2 ? 0.12 : -0.08);
-        crown += '<path d="M' + pt(T, a0) + ' L' + pt(R * C, a0) + ' L' + pt(R * C, a1) + ' L' + pt(T, a1) + 'Z" fill="' + shade(v) + '"/>'
-          + '<path d="M' + pt(T, a0) + ' L' + pt(T * 1.85, m) + ' L' + pt(T, a1) + 'Z" fill="' + shade(v + 0.2) + '"/>';
-        lines += 'M' + pt(T, a0) + ' L' + pt(R * C, a0) + ' M' + pt(T, a0) + ' L' + pt(T * 1.85, m) + ' L' + pt(T, a1) + ' ';
-      }
-      let table = '';
-      for (let i = 0; i < 8; i++) table += (i ? ' L' : 'M') + pt(T, i * step * 2 - Math.PI / 2 + step / 2);
-      table += 'Z';
+      const sc = (s) => 'translate(54 54) scale(' + s + ') translate(-54 -54)';
+      const stops = (list) => list.map((x) => '<stop offset="' + x[0] + '" stop-color="' + x[1] + '"' + (x[2] === undefined ? '' : ' stop-opacity="' + x[2] + '"') + '/>').join('');
+      const lin = (n, x1, y1, x2, y2, list) => '<linearGradient id="' + id + n + '" gradientUnits="userSpaceOnUse" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '">' + stops(list) + '</linearGradient>';
       const glow = (n, cx, cy, r, c, op) => '<radialGradient id="' + id + n + '" gradientUnits="userSpaceOnUse" cx="' + cx + '" cy="' + cy + '" r="' + r + '"><stop offset="0" stop-color="' + c + '" stop-opacity="' + op + '"/><stop offset="1" stop-color="' + c + '" stop-opacity="0"/></radialGradient>';
+      // Step cut (1.9.3): bands that follow the star's outline, stepping down towards the middle. Each is lit
+      // from the top left; the steps alternate between catching the light and showing it through the stone.
+      const bands = [1, 0.84, 0.68, 0.52];
+      const tones = [['#FF6A88', '#C0103A', '#4A0014'], ['#5A0018', '#B80E36', '#FF4C70'], ['#FF7A94', '#D3164A', '#6A0420'], ['#E8204E', '#A00A30', '#FF5878']];
+      let bandDefs = '', body = '';
+      bands.forEach((b, i) => {
+        bandDefs += lin('g' + i, 54 - 30 * b, 54 - 30 * b, 54 + 30 * b, 54 + 30 * b, [[0, tones[i][0]], [0.5, tones[i][1]], [1, tones[i][2]]]);
+        body += '<path d="' + flower + '" transform="' + sc(b) + '" fill="url(#' + id + 'g' + i + ')"/>';
+        if (i) body += '<path d="' + flower + '" transform="' + sc(b) + '" fill="none" stroke="#FFC2CF" stroke-opacity="0.22" stroke-width="' + (0.5 / b).toFixed(2) + '"/>';
+      });
       const defs = '<defs>'
         + glow('w1', 0, 112, 78, '#7A1028', 0.7) + glow('w2', 112, 112, 66, '#7A1028', 0.55) + glow('w3', -4, -4, 48, '#4A0E1A', 0.35)
-        + '<linearGradient id="' + id + 't" gradientUnits="userSpaceOnUse" x1="46" y1="45" x2="62" y2="63"><stop offset="0" stop-color="#FF5C7E"/><stop offset="0.45" stop-color="#D4143E"/><stop offset="1" stop-color="#6E0620"/></linearGradient>'
-        + '<linearGradient id="' + id + 'rim" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/><stop offset="0.45" stop-color="#FFB8C6" stop-opacity="0.25"/><stop offset="1" stop-color="#3A0010" stop-opacity="0.9"/></linearGradient>'
-        + '<linearGradient id="' + id + 'gl" gradientUnits="userSpaceOnUse" x1="30" y1="30" x2="60" y2="60"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.2"/><stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0.02"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>'
-        + glow('spec', 40, 39, 9, '#FFFFFF', 0.85) + glow('cau', 60, 62, 12, '#FF5A7E', 0.55)
+        + bandDefs
+        + lin('rim', 32, 30, 76, 78, [[0, '#FFFFFF', 0.9], [0.45, '#FFB8C6', 0.2], [1, '#2A000A', 0.9]])
         + '<clipPath id="' + id + 'k"><path d="' + flower + '"/></clipPath>'
-        + '<clipPath id="' + id + 'i"><path d="' + flower + '" transform="' + inner + '"/></clipPath>'
         + '<filter id="' + id + 'd" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4"/></filter>'
         + '<filter id="' + id + 'b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.3"/></filter>'
+        + '<filter id="' + id + 'h" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>'
         + '<filter id="' + id + 's" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="0.9"/></filter>'
         + (o.clip ? '<clipPath id="' + id + 'c">' + o.clip + '</clipPath>' : '')
         + '</defs>';
-      const t = 'translate(54 54) scale(' + k + ') translate(-54 -54)';
+      const t = sc(k);
       const bg = o.bg
         ? '<rect width="108" height="108" fill="#0C090A"/><rect width="108" height="108" fill="url(#' + id + 'w1)"/>'
           + '<rect width="108" height="108" fill="url(#' + id + 'w2)"/><rect width="108" height="108" fill="url(#' + id + 'w3)"/>'
@@ -5559,15 +5550,8 @@
           // A dark drop shadow and red light thrown under the stone.
           + '<path d="' + flower + '" fill="#000" fill-opacity="0.7" transform="translate(1.2 3)" filter="url(#' + id + 'b)"/>'
           + '<path d="' + flower + '" fill="#E0204A" fill-opacity="0.45" transform="translate(0 2)" filter="url(#' + id + 'd)"/>'
-          + '<g clip-path="url(#' + id + 'k)">' + slope
-          + '<g clip-path="url(#' + id + 'i)">' + crown + '<path d="' + table + '" fill="url(#' + id + 't)"/>'
-          + '<circle cx="60" cy="62" r="12" fill="url(#' + id + 'cau)"/></g>'
-          + '<path d="' + lines + table + '" fill="none" stroke="#FFD6DE" stroke-opacity="0.3" stroke-width="0.3" stroke-linejoin="round"/>'
-          // The ridge between slope and crown: a dark line with a bright edge above it.
-          + '<path d="' + flower + '" transform="' + inner + '" fill="none" stroke="#2A0009" stroke-opacity="0.75" stroke-width="1.2"/>'
-          + '<path d="' + flower + '" transform="translate(-0.45 -0.45) ' + inner + '" fill="none" stroke="#FFC9D4" stroke-opacity="0.5" stroke-width="0.5"/>'
-          + '<path d="' + flower + '" fill="url(#' + id + 'gl)"/>'
-          + '<ellipse cx="40" cy="39" rx="9" ry="5" transform="rotate(-40 40 39)" fill="url(#' + id + 'spec)"/></g>'
+          + '<g clip-path="url(#' + id + 'k)">' + body
+          + '<ellipse cx="42" cy="38" rx="11" ry="5" transform="rotate(-38 42 38)" fill="#FFFFFF" fill-opacity="0.35" filter="url(#' + id + 'h)"/></g>'
           // A rim lit at the top left and in shadow at the bottom right.
           + '<path d="' + flower + '" fill="none" stroke="url(#' + id + 'rim)" stroke-width="0.8" stroke-linejoin="round"/>'
           // The Dailies mark and sparks as white glints.

@@ -1,11 +1,10 @@
-# Dailies 1.9.2
+# Dailies 1.9.3
 
-A quick Settings update. It installs over 1.9.1 and keeps everything, every setting included. If you're on 1.9.1, you can install it from **Settings → About → Check now**.
+A small update. It installs over 1.9.2 and keeps everything, every setting included. If you're on 1.9.2, you can install it from **Settings → About → Check now**.
 
-## Settings
-- **Sections open in place.** Each section (Display, Gameplay & Time, Game Player, Alerts, Data & Backup, Archived Games, About) is a box with a line saying what's in it. Tap it and the box opens right there with its options, instead of on a page of its own.
-- **One at a time.** Opening a section closes the one that was open. The heading you tapped stays put on the screen.
-- **Closed when you leave.** Switching to the Daily Hub or Streaks & Log closes the open section, so Settings is back to the short list next time. Back, or tapping Settings again, closes it too.
+## Changes
+- **A step-cut Ruby app icon.** The Ruby icon (Settings → Display → App Icon) is a step-cut gem now: smooth bands that follow the star's shape, each catching the light from the top left. The old wedge facets looked like a pinwheel of reds up close. If you're using the Ruby icon, your home screen picks up the new one after the update (some launchers take a moment or a restart).
+- **Today stands out on the calendar.** Today's day on the Streaks & Log calendar has a brighter ring, a soft glow inside and a halo round it, in every theme (gold and ruby included).
 
 ## Requirements
 - Android 8.0 or newer.
