@@ -963,7 +963,6 @@
     </div>
   </div>
 
-  <div id="celebrate" class="celebrate hidden" aria-hidden="true"></div>
 
   <div id="modalRestoreGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="restoreGameTitle">
     <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
@@ -4536,7 +4535,8 @@
     const WHATS_NEW = {
       '1.8.13': [
         ['💎', 'Polished ruby', 'Ruby buttons are a smooth polished stone now, with no hard lines, and their outlines sit evenly all the way round.'],
-        ['🔗', 'No double games', 'Adding a link to a game you already have (a menu page of its site, another site showing it, a link that leads to it) is caught, so it isn\'t added twice.']
+        ['🔗', 'No double games', 'Adding a link to a game you already have (a menu page of its site, another site showing it, a link that leads to it) is caught, so it isn\'t added twice.'],
+        ['✨', 'A quieter all done', 'Finishing every game no longer plays a full-screen animation. The little sparkle on the app icon stays.']
       ],
       '1.8.12': [
         ['⏱️', 'Timers aren\'t scores', 'A countdown to the next puzzle or a game\'s own clock is no longer offered as your result when you open a game.'],
@@ -4809,41 +4809,16 @@
     }
 
     // ---- All done (1.8.0): the app icon sparkles when every game is finished ----
-    let allDoneBaseline = null; // the hub's state when it first drew, so opening the app doesn't celebrate
+    // 1.8.13: only the small sparkle on the hub's logo, for the rest of the day (the full-screen
+    // "All done for today!" animation is gone). Settings → Celebrate When All Done turns it off.
     function allGamesDone() {
       const list = visibleGames();
       return list.length > 0 && list.every((g) => g.status !== 'ready');
     }
     function checkAllDoneCelebration() {
-      const done = allGamesDone();
+      const on = !(state.settings && state.settings.celebrate === false);
       const logo = document.getElementById('hubLogo');
-      if (logo) logo.classList.toggle('all-done', done);
-      if (allDoneBaseline === null) { allDoneBaseline = done; return; }
-      if (done && !allDoneBaseline) celebrateAllDone();
-      allDoneBaseline = done;
-    }
-    function celebrateAllDone() {
-      if (state.settings && state.settings.celebrate === false) return;
-      const el = document.getElementById('celebrate');
-      if (!el) return;
-      const icon = currentAppIcon();
-      const tone = icon === 'ruby' || rubyAccentsOn() ? 'ruby' : (icon === 'gold' || goldAccentsOn()) ? 'gold' : 'theme';
-      const n = REDUCED_MOTION ? 0 : 22;
-      let sparks = '';
-      for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2 + Math.random() * 0.4;
-        const r = 70 + Math.random() * 70;
-        sparks += `<span class="cel-spark" style="--x:${Math.round(Math.cos(a) * r)}px;--y:${Math.round(Math.sin(a) * r)}px;--d:${Math.round(Math.random() * 380)}ms;--s:${(0.5 + Math.random() * 0.9).toFixed(2)}"></span>`;
-      }
-      el.className = `celebrate cel-${tone}`;
-      el.innerHTML = `<div class="cel-stage"><div class="cel-icon">${appIconSvg(icon, 120, 'cel')}<span class="cel-shine"></span></div>${sparks}</div>`
-        + '<p class="cel-title">All done for today!</p><p class="cel-sub">Every game is finished. See you after the next reset.</p>';
-      el.classList.remove('hidden');
-      haptic('drop');
-      clearTimeout(celebrateAllDone.t);
-      const hide = () => { el.classList.add('cel-out'); setTimeout(() => { el.classList.add('hidden'); el.innerHTML = ''; }, 320); };
-      celebrateAllDone.t = setTimeout(hide, REDUCED_MOTION ? 1800 : 2800);
-      el.onclick = () => { clearTimeout(celebrateAllDone.t); hide(); };
+      if (logo) logo.classList.toggle('all-done', on && allGamesDone());
     }
 
     // ---- Reset times (1.8.0): check every game, and optionally fix them without asking ----
@@ -8565,6 +8540,7 @@
           state.settings.autoMarkMissed = true;
           saveState({ sync: false });
           applyThemeAndSettings();
+          if (key === 'celebrate') checkAllDoneCelebration();
           if (key === 'streakReminderMinutes') {
             state.settings.streakReminderMinutes = Number(el.value) || 0;
             try { window.AndroidBridge && window.AndroidBridge.setStreakReminder && window.AndroidBridge.setStreakReminder(state.settings.streakReminderMinutes); } catch (e) {}

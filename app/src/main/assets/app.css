@@ -1824,28 +1824,7 @@ html[data-theme="light"] .ga-btn.danger { color: #be123c; }
 /* Error log */
 .error-log-text { font-size: 11px; line-height: 1.45; max-height: 40vh; overflow: auto; white-space: pre; }
 .error-log-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-/* All done: the app icon sparkles */
-/* 1.8.6: no blur behind the celebration (a full-screen blur, worked out again on every frame of its animation). */
-.celebrate { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: color-mix(in srgb, var(--md-surface, #0b0b0f) 86%, transparent); animation: cel-in 260ms ease-out both; --cel-a: var(--md-primary); --cel-b: #fff; }
-.celebrate.hidden { display: none; }
-.celebrate.cel-out { animation: cel-out 300ms ease-in both; }
-.celebrate.cel-gold { --cel-a: #E8D9A6; --cel-b: #FFF7DC; }
-.celebrate.cel-ruby { --cel-a: #FF4D73; --cel-b: #FFD3DC; }
-.cel-stage { position: relative; width: 120px; height: 120px; }
-.cel-icon { position: relative; width: 120px; height: 120px; border-radius: 34px; overflow: hidden; animation: cel-pop 900ms cubic-bezier(0.2, 1.4, 0.4, 1) both; box-shadow: 0 0 60px -6px var(--cel-a); }
-.cel-icon svg { display: block; }
-.cel-shine { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.75) 48%, transparent 62%); transform: translateX(-120%); animation: cel-shine 1100ms 350ms ease-in-out both; mix-blend-mode: screen; }
-.cel-spark { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; background: var(--cel-b); clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); filter: drop-shadow(0 0 6px var(--cel-a)); opacity: 0; transform: translate(0, 0) scale(0); animation: cel-spark 1500ms var(--d) cubic-bezier(0.2, 0.8, 0.3, 1) both; }
-.cel-spark:nth-child(3n) { background: var(--cel-a); }
-.cel-title { margin-top: 18px; font-size: 22px; font-weight: 800; color: var(--md-on-surface, #fff); animation: cel-rise 500ms 250ms ease-out both; }
-.cel-sub { font-size: 13px; color: var(--md-on-surface-variant, #94a3b8); animation: cel-rise 500ms 350ms ease-out both; }
-html[data-gold="true"] .cel-title, html[data-ruby="true"] .cel-title { background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
-@keyframes cel-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes cel-out { to { opacity: 0; } }
-@keyframes cel-pop { 0% { transform: scale(0.4) rotate(-12deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; } }
-@keyframes cel-shine { to { transform: translateX(120%); } }
-@keyframes cel-spark { 0% { opacity: 0; transform: translate(0, 0) scale(0) rotate(0); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(var(--s)) rotate(180deg); } }
-@keyframes cel-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* All done: the app icon sparkles (1.8.13: only this; the full-screen animation is gone) */
 /* The hub's logo keeps a soft sparkle for the rest of the day */
 .hub-logo-wrap { position: relative; }
 .hub-logo-wrap.all-done::after { content: ''; position: absolute; top: -5px; right: -6px; width: 10px; height: 10px; background: #fff; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); filter: drop-shadow(0 0 3px var(--md-primary)); animation: logo-twinkle 2.8s ease-in-out infinite; pointer-events: none; }
@@ -1853,8 +1832,6 @@ html[data-gold="true"] .hub-logo-wrap.all-done::after { background: #FFF7DC; fil
 html[data-ruby="true"] .hub-logo-wrap.all-done::after { background: #FFD3DC; filter: drop-shadow(0 0 3px #FF4D73); }
 @keyframes logo-twinkle { 0%, 100% { opacity: 0; transform: scale(0.3) rotate(0); } 15%, 35% { opacity: 1; transform: scale(1) rotate(45deg); } 50% { opacity: 0; transform: scale(0.3) rotate(90deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .celebrate, .cel-icon, .cel-title, .cel-sub, .cel-shine { animation: none !important; }
-  .cel-shine { display: none; }
   .hub-logo-wrap.all-done::after { animation: none; opacity: 1; }
 }
 
@@ -1949,7 +1926,6 @@ html[data-ruby="true"] .set-range::-webkit-slider-thumb { background: #CF1D4F; }
 html[data-ruby="true"] .set-range::-moz-range-thumb { background: #CF1D4F; }
 html[data-ruby="true"] .set-range::-moz-range-progress { background: #CF1D4F; }
 html[data-ruby="true"] .range-value { color: #EC5671; }
-html[data-ruby="true"] .cel-title, html[data-ruby="true"] .cel-title { background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
 html[data-ruby="true"] .hub-logo-wrap.all-done::after { background: #FFF7DC; filter: drop-shadow(0 0 3px #EF516F); }
 /* Gemstone finish */
 html[data-ruby="true"] {

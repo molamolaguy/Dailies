@@ -1,6 +1,6 @@
 # Dailies 1.8.13
 
-A polished ruby, and no more double games. It installs over 1.8.12 and keeps everything. If you're on 1.8.12, you can install it from **Settings → About → Check now**.
+A polished ruby, no more double games, and a quieter all done. It installs over 1.8.12 and keeps everything. If you're on 1.8.12, you can install it from **Settings → About → Check now**.
 
 ## Ruby
 - **A smooth polished stone.** Ruby buttons, the bar's highlight, the Done badges, calendar days and progress bars had six bands of red with hard edges between them, which showed as sharp lines. They're now a cabochon: a smooth stone, deep crimson in the middle, with a soft gloss near the top and light coming back up from below. Titles and card edges follow it.
@@ -14,6 +14,9 @@ When you add a game, Dailies now checks the link against the games you have:
   - another site that shows one of your games inside its page, or the other way round;
   - a different site with the same game name ("Wordle - Play Online" when you have Wordle).
 - A game added from now on remembers the link it was added from and the games shown inside its page, to recognise them later.
+
+## All done
+- **No more full-screen animation** when you finish every game for the day. The little sparkle on the app icon at the top of the hub stays for the rest of the day. **Settings → Celebrate When All Done** turns the sparkle off (and on again at once).
 
 ## Requirements
 - Android 7.0 or newer.
