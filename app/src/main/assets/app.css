@@ -657,7 +657,10 @@ html, body, * { scrollbar-width: none; }
 .cal-cell.empty { background: transparent; border-color: transparent; }
 .cal-cell.done { background: rgba(16, 185, 129, 0.20); border-color: rgba(16, 185, 129, 0.55); color: #bbf7d0; font-weight: 700; }
 .cal-cell.missed { background: rgba(244, 63, 94, 0.18); border-color: rgba(244, 63, 94, 0.50); color: #fecdd3; font-weight: 700; }
-.cal-cell.today { box-shadow: inset 0 0 0 2px var(--md-primary); color: #fff; font-weight: 700; }
+.cal-cell.today { --today-c: var(--md-primary); color: #fff; font-weight: 700; position: relative; z-index: 1;
+  /* 1.9.3: a stronger glow round today (a ring, a soft halo outside, and a light wash inside). */
+  box-shadow: inset 0 0 0 2px var(--today-c), inset 0 0 10px color-mix(in srgb, var(--today-c) 45%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--today-c) 55%, transparent), 0 0 18px 3px color-mix(in srgb, var(--today-c) 70%, transparent); }
 
 /* ---- Stat tiles ---- */
 .stat-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
@@ -1241,7 +1244,7 @@ html[data-theme="light"] .bulk-bar { box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 
 #m3Scaffold > section { margin-top: 0 !important; }
 
 /* Calendar: swipe sideways to change month (vertical scrolling still works). */
-.cal-swipe { overflow-x: clip; touch-action: pan-y; }
+.cal-swipe { overflow-x: clip; overflow-clip-margin: 16px; touch-action: pan-y; }
 
 /* Open dialogs: the page behind stays put, and nothing rubber-bands or stretches. */
 html.modal-open, html.modal-open body { overflow: hidden; overscroll-behavior: none; }
@@ -1461,7 +1464,7 @@ html[data-gold="true"] .cal-today-btn, html[data-gold="true"] #btnShareRecap {
   background-color: #BAA465 !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
   border-color: rgba(220, 201, 147, 0.6) !important; box-shadow: var(--gold-glow);
 }
-html[data-gold="true"] .cal-cell.today { box-shadow: inset 0 0 0 2px #BAA465; }
+html[data-gold="true"] .cal-cell.today { --today-c: #BAA465; }
 /* Switches and checkboxes. */
 html[data-gold="true"] .accent-indigo-500, html[data-gold="true"] input[type="checkbox"] { accent-color: #BAA465; }
 
@@ -1890,7 +1893,7 @@ html[data-ruby="true"] .cal-today-btn, html[data-ruby="true"] #btnShareRecap {
   background-color: #CF1D4F !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
   border-color: rgba(245, 92, 119, 0.6) !important; box-shadow: var(--gold-glow);
 }
-html[data-ruby="true"] .cal-cell.today { box-shadow: inset 0 0 0 2px #CF1D4F; }
+html[data-ruby="true"] .cal-cell.today { --today-c: #CF1D4F; }
 html[data-ruby="true"] .accent-indigo-500, html[data-ruby="true"] input[type="checkbox"] { accent-color: #CF1D4F; }
 html[data-ruby="true"] .nav-btn.nav-on { color: var(--gold-ink) !important; }
 html[data-ruby="true"] .ach-star { background-image: var(--gold-shine); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
