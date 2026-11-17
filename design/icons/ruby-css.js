@@ -1,8 +1,8 @@
 // Ruby accents (1.7.0): generated from the gold accent rules in app.css, so Ruby works exactly like
 // Gold. Every gold rule is copied with data-gold -> data-ruby and its colours moved to ruby (OKLCH:
 // hue 15, more chroma, a little darker so white highlights stay bright and shadows deep).
-// Then a gemstone finish goes on top (GEM below): faceted, glassy fills with hard-edged facets
-// instead of a metal sweep, white text on filled buttons, and a red glow.
+// Then a gemstone finish goes on top (GEM below): 1.8.13, a smooth polished cabochon instead of the
+// metal sweep (and of the hard-edged facets before it), white text on filled buttons, and a red glow.
 // Run from the repo root: node design/icons/ruby-css.js (re-run after changing the gold rules).
 const fs = require('fs');
 const path = require('path');
@@ -29,35 +29,49 @@ function rubyText(t) {
 }
 const BTN = ['.m4-primary-fab', '.bg-indigo-600', '.return-btn.primary', '.next-game-play', '.toast-action', '.m4-tonal-pill', '.recap-btn.primary', '.recap-seg.on', '.chg-undo', '.cal-today-btn', '#btnShareRecap'];
 const GEM = `html[data-ruby="true"] {
-  --gold-shine: linear-gradient(180deg, rgba(255, 238, 243, 0.34) 0%, rgba(255, 238, 243, 0.08) 46%, rgba(255, 238, 243, 0) 50%, rgba(46, 0, 12, 0.2) 100%), linear-gradient(118deg, #B8123C 0 28%, #D81E4A 28% 46%, #EE3F66 46% 52%, #C41840 52% 77%, #A30F36 77% 90%, #D6224C 90%);
-  --gold-text: linear-gradient(100deg, #FF9AB0 0%, #FF4D73 35%, #E0244F 60%, #FF7593 100%);
-  --gold-edge: linear-gradient(135deg, rgba(255, 176, 194, 0.95), rgba(224, 36, 79, 0.55) 30%, rgba(120, 8, 36, 0.5) 60%, rgba(255, 120, 150, 0.9));
+  /* Cabochon (1.8.13): a smooth polished stone, deepest in the middle, with a soft gloss near the top and
+     light coming back up from below. No bands, so no lines; the top and bottom edges are the same red, so
+     the rim sits evenly all round (light reaching an edge read as a second outline). */
+  --gold-shine: radial-gradient(62% 58% at 32% 20%, rgba(255, 228, 235, 0.5) 0%, rgba(255, 228, 235, 0.16) 45%, rgba(255, 228, 235, 0) 72%), radial-gradient(58% 46% at 56% 82%, rgba(255, 104, 140, 0.4) 0%, rgba(255, 104, 140, 0) 78%), radial-gradient(130% 120% at 50% 50%, #9C0B32 0%, #A90E37 45%, #BE1440 100%);
+  --gold-text: linear-gradient(100deg, #FFB3C4 0%, #FF5C80 38%, #E3265A 70%, #FF7C99 100%);
+  /* Edges as bright at the bottom as at the top, so an outline sits evenly round a card or the bar. */
+  --gold-edge: linear-gradient(180deg, rgba(255, 182, 200, 0.85), rgba(214, 30, 76, 0.55) 50%, rgba(255, 150, 178, 0.85));
   --gold-ink: #FFFFFF;
-  --gold-glow: 0 4px 18px -4px rgba(232, 38, 84, 0.55);
+  --gold-glow: 0 0 16px -5px rgba(214, 24, 74, 0.75);
 }
 html[data-ruby="true"][data-theme="light"] {
-  --gold-text: linear-gradient(100deg, #A3123A 0%, #D81E4A 40%, #7E0B24 70%, #B8102F 100%);
-  --gold-edge: linear-gradient(135deg, rgba(200, 22, 63, 0.95), rgba(240, 70, 107, 0.5) 35%, rgba(126, 11, 36, 0.4) 65%, rgba(200, 22, 63, 0.85));
-  --gold-glow: 0 4px 14px -4px rgba(163, 18, 58, 0.45);
+  --gold-text: linear-gradient(100deg, #B0153F 0%, #D81E4A 40%, #860A2B 75%, #C2143F 100%);
+  --gold-edge: linear-gradient(180deg, rgba(200, 22, 63, 0.85), rgba(240, 90, 125, 0.5) 50%, rgba(200, 22, 63, 0.85));
+  --gold-glow: 0 0 12px -4px rgba(163, 18, 58, 0.5);
 }
 ${BTN.map((b) => `html[data-ruby="true"] ${b}`).join(',\n')} {
-  color: #FFFFFF !important; border-color: rgba(255, 160, 182, 0.6) !important; text-shadow: 0 1px 1px rgba(80, 0, 20, 0.55);
-  box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 4px rgba(60, 0, 15, 0.35) !important;
+  /* The rim: a light outline with a thin dark ring just inside it, all the way round, so it reads the
+     same at the top (light) and the bottom (deep red) and never looks higher than the button. */
+  color: #FFFFFF !important; border-color: rgba(255, 182, 200, 0.62) !important; text-shadow: 0 1px 1px rgba(70, 0, 18, 0.5);
+  box-shadow: var(--gold-glow), inset 0 0 0 1px rgba(100, 0, 28, 0.3) !important;
 }
-html[data-ruby="true"] .status-pill.status-completed { color: #FFFFFF; text-shadow: 0 1px 1px rgba(80, 0, 20, 0.5); }
+html[data-ruby="true"] .status-pill.status-completed { color: #FFFFFF; text-shadow: 0 1px 1px rgba(70, 0, 18, 0.5); box-shadow: inset 0 0 0 1px rgba(100, 0, 28, 0.3); }
 html[data-ruby="true"] .status-pill.status-completed .dot-star { color: #FFE3EA; }
 html[data-ruby="true"] .status-pill.status-completed .dot { background: #FFE3EA; }
 html[data-ruby="true"] .nav-btn.nav-on { color: #FFFFFF !important; }`;
 let css = fs.readFileSync(cssPath, 'utf8');
-if (css.includes(START)) css = css.slice(0, css.indexOf(START)) + css.slice(css.indexOf(END) + END.length);
-css = css.replace(/\n+$/, '\n');
+// The block is rewritten where it is (1.8.13): rules after it in app.css adjust it and must stay after it.
+let before = css;
+let after = '';
+if (css.includes(START)) {
+  before = css.slice(0, css.indexOf(START));
+  after = css.slice(css.indexOf(END) + END.length);
+  css = before + after;
+}
 const out = [];
-css.replace(/([^{}]*)\{([^{}]*)\}/g, (m, sel, body) => {
+// From the gold rules before the block (later rules that adjust gold and ruby together aren't copied).
+(after ? before : css).replace(/([^{}]*)\{([^{}]*)\}/g, (m, sel, body) => {
   if (!sel.includes('data-gold')) return m;
   const s = sel.replace(/\/\*[\s\S]*?\*\//g, '').trim().replace(/data-gold/g, 'data-ruby');
   out.push(`${s} {${rubyText(body.replace(/[ \t]*\/\*[\s\S]*?\*\/\n?/g, ''))}}`);
   return m;
 });
-css += `\n${START}\n${out.join('\n')}\n/* Gemstone finish */\n${GEM}\n${END}\n`;
+const block = `${START}\n${out.join('\n')}\n/* Gemstone finish */\n${GEM}\n${END}`;
+css = after ? before + block + after : `${css.replace(/\n+$/, '\n')}\n${block}\n`;
 fs.writeFileSync(cssPath, css);
 console.log(`${out.length} ruby rules`);

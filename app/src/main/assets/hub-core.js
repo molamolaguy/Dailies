@@ -1696,7 +1696,83 @@
     };
   }
 
+  // ---- The same game behind a different link (1.8.13) ----
+  /** A link as { host, path }: host without "www." / "m.", path without index.html or a trailing "/". */
+  function gameLinkKey(rawUrl) {
+    try {
+      let c = String(rawUrl || '').trim();
+      if (!c) return null;
+      if (!/^https?:\/\//i.test(c)) c = 'https://' + c;
+      const u = new URL(c);
+      if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+      const host = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
+      if (!host.includes('.')) return null;
+      const path = decodeURIComponent(u.pathname).toLowerCase().replace(/\/index\.html?$/, '').replace(/\/+$/, '');
+      return { host, path };
+    } catch (e) {
+      return null;
+    }
+  }
+  const sameLink = (a, b) => Boolean(a && b && a.host === b.host && a.path === b.path);
+  /** One link is a page of the other (site.com and site.com/play, /games and /games/wordle). */
+  const nestedLink = (a, b) => Boolean(a && b && a.host === b.host && a.path !== b.path
+    && (a.path === '' || b.path === '' || b.path.startsWith(a.path + '/') || a.path.startsWith(b.path + '/')));
+  /** Same site or one's sub-site (play.site.com, site.com). */
+  const relatedHost = (a, b) => Boolean(a && b && (a.host === b.host || a.host.endsWith('.' + b.host) || b.host.endsWith('.' + a.host)));
+  const GENERIC_NAME = /^(daily|game|games|puzzle|puzzles|play|home|menu|today|daily ?game|daily ?puzzle|word ?game|untitled)$/;
+  /** A name reduced to what identifies the game: "The NYT Wordle - Play Online" -> "wordle". */
+  function gameNameKey(name) {
+    let n = String(name || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    n = n.split(/\s[-–—|:·]\s|\s[|·]|[|·]\s/)[0];
+    n = n.replace(/\b(the|nyt|daily|play|online|free|unlimited|game|puzzle|official)\b/g, ' ');
+    n = n.replace(/[^a-z0-9]+/g, '');
+    return n.length >= 4 && !GENERIC_NAME.test(n) ? n : '';
+  }
+  /** Every link a game is known by: its own, and any it was reached from or found on. */
+  function gameLinks(g) {
+    return [g && g.url].concat(Array.isArray(g && g.altUrls) ? g.altUrls : []).map(gameLinkKey).filter(Boolean);
+  }
+
+  /**
+   * The game in `games` that a new link most likely is, or null. `cand`: { url, typedUrl, finalUrl,
+   * name, embeds: [frame urls on its page] }. `sure` matches are the same page (or a link that leads to
+   * one); the others are a question for the player:
+   *  - 'same'      the same page, or one of the game's other links
+   *  - 'redirect'  the link leads to the game's page
+   *  - 'embedded'  the page shows the game in a frame, or the game's page shows this one
+   *  - 'menu'      a page of the same site above or below the game's (site.com and site.com/play)
+   *  - 'name'      a different site with the same name, on related sites or anywhere
+   */
+  function findSameGame(cand, games) {
+    const list = (Array.isArray(games) ? games : []).filter((g) => g && g.url && !g.archived);
+    const own = gameLinkKey(cand && cand.url);
+    const typed = gameLinkKey(cand && cand.typedUrl);
+    const final = gameLinkKey(cand && cand.finalUrl);
+    const mine = [own, typed, final].filter(Boolean);
+    if (!mine.length) return null;
+    const embeds = (Array.isArray(cand && cand.embeds) ? cand.embeds : []).map(gameLinkKey).filter(Boolean);
+    const pick = (test) => list.find(test);
+    let g = pick((x) => sameLink(gameLinkKey(x.url), own) || sameLink(gameLinkKey(x.url), typed));
+    if (g) return { game: g, reason: 'same', sure: true };
+    g = pick((x) => gameLinks(x).some((k) => mine.some((m) => sameLink(k, m))));
+    if (g) return { game: g, reason: sameLink(gameLinkKey(g.url), final) ? 'redirect' : 'same', sure: true };
+    g = pick((x) => gameLinks(x).some((k) => embeds.some((e) => sameLink(k, e) || nestedLink(k, e)))
+      || (Array.isArray(x.embeds) && x.embeds.map(gameLinkKey).some((e) => mine.some((m) => sameLink(e, m) || nestedLink(e, m)))));
+    if (g) return { game: g, reason: 'embedded', sure: false };
+    g = pick((x) => gameLinks(x).some((k) => mine.some((m) => nestedLink(k, m))));
+    if (g) return { game: g, reason: 'menu', sure: false };
+    const nk = gameNameKey(cand && cand.name);
+    if (nk) {
+      g = pick((x) => gameNameKey(x.name) === nk);
+      if (g) return { game: g, reason: 'name', sure: false, relatedSite: gameLinks(g).some((k) => mine.some((m) => relatedHost(k, m))) };
+    }
+    return null;
+  }
+
   return {
+    gameLinkKey,
+    gameNameKey,
+    findSameGame,
     extractResultText,
     weekBounds,
     periodRecap,

@@ -1368,6 +1368,12 @@ html[data-theme="light"] .ach-num { color: var(--lt-muted, #5b6170); }
 
 /* Add Game → "Add back a removed game" (1.5.0). */
 .removed-games { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+/* 1.8.13: the link in the Add form may be a game already in the hub. */
+.same-game-note { margin-top: 10px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px;
+  background: color-mix(in srgb, var(--md-primary) 12%, transparent); border: 1px solid color-mix(in srgb, var(--md-primary) 35%, transparent); }
+.same-game-note.hidden { display: none; }
+.same-game-note p { margin: 0; flex: 1; min-width: 0; font-size: 12.5px; line-height: 1.4; }
+.same-game-note.asking { border-color: var(--md-primary); background: color-mix(in srgb, var(--md-primary) 20%, transparent); }
 .removed-games.hidden { display: none; }
 .removed-title { font-size: 11px; font-weight: 700; color: #a9b1c1; text-transform: uppercase; letter-spacing: 0.04em; }
 .removed-game { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: 14px; text-align: left; background: var(--md-container-high); border: 1px solid var(--md-outline); color: inherit; }
@@ -1818,28 +1824,7 @@ html[data-theme="light"] .ga-btn.danger { color: #be123c; }
 /* Error log */
 .error-log-text { font-size: 11px; line-height: 1.45; max-height: 40vh; overflow: auto; white-space: pre; }
 .error-log-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
-/* All done: the app icon sparkles */
-/* 1.8.6: no blur behind the celebration (a full-screen blur, worked out again on every frame of its animation). */
-.celebrate { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: color-mix(in srgb, var(--md-surface, #0b0b0f) 86%, transparent); animation: cel-in 260ms ease-out both; --cel-a: var(--md-primary); --cel-b: #fff; }
-.celebrate.hidden { display: none; }
-.celebrate.cel-out { animation: cel-out 300ms ease-in both; }
-.celebrate.cel-gold { --cel-a: #E8D9A6; --cel-b: #FFF7DC; }
-.celebrate.cel-ruby { --cel-a: #FF4D73; --cel-b: #FFD3DC; }
-.cel-stage { position: relative; width: 120px; height: 120px; }
-.cel-icon { position: relative; width: 120px; height: 120px; border-radius: 34px; overflow: hidden; animation: cel-pop 900ms cubic-bezier(0.2, 1.4, 0.4, 1) both; box-shadow: 0 0 60px -6px var(--cel-a); }
-.cel-icon svg { display: block; }
-.cel-shine { position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.75) 48%, transparent 62%); transform: translateX(-120%); animation: cel-shine 1100ms 350ms ease-in-out both; mix-blend-mode: screen; }
-.cel-spark { position: absolute; left: 50%; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; background: var(--cel-b); clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); filter: drop-shadow(0 0 6px var(--cel-a)); opacity: 0; transform: translate(0, 0) scale(0); animation: cel-spark 1500ms var(--d) cubic-bezier(0.2, 0.8, 0.3, 1) both; }
-.cel-spark:nth-child(3n) { background: var(--cel-a); }
-.cel-title { margin-top: 18px; font-size: 22px; font-weight: 800; color: var(--md-on-surface, #fff); animation: cel-rise 500ms 250ms ease-out both; }
-.cel-sub { font-size: 13px; color: var(--md-on-surface-variant, #94a3b8); animation: cel-rise 500ms 350ms ease-out both; }
-html[data-gold="true"] .cel-title, html[data-ruby="true"] .cel-title { background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
-@keyframes cel-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes cel-out { to { opacity: 0; } }
-@keyframes cel-pop { 0% { transform: scale(0.4) rotate(-12deg); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; } }
-@keyframes cel-shine { to { transform: translateX(120%); } }
-@keyframes cel-spark { 0% { opacity: 0; transform: translate(0, 0) scale(0) rotate(0); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(var(--s)) rotate(180deg); } }
-@keyframes cel-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* All done: the app icon sparkles (1.8.13: only this; the full-screen animation is gone) */
 /* The hub's logo keeps a soft sparkle for the rest of the day */
 .hub-logo-wrap { position: relative; }
 .hub-logo-wrap.all-done::after { content: ''; position: absolute; top: -5px; right: -6px; width: 10px; height: 10px; background: #fff; clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%); filter: drop-shadow(0 0 3px var(--md-primary)); animation: logo-twinkle 2.8s ease-in-out infinite; pointer-events: none; }
@@ -1847,8 +1832,6 @@ html[data-gold="true"] .hub-logo-wrap.all-done::after { background: #FFF7DC; fil
 html[data-ruby="true"] .hub-logo-wrap.all-done::after { background: #FFD3DC; filter: drop-shadow(0 0 3px #FF4D73); }
 @keyframes logo-twinkle { 0%, 100% { opacity: 0; transform: scale(0.3) rotate(0); } 15%, 35% { opacity: 1; transform: scale(1) rotate(45deg); } 50% { opacity: 0; transform: scale(0.3) rotate(90deg); } }
 @media (prefers-reduced-motion: reduce) {
-  .celebrate, .cel-icon, .cel-title, .cel-sub, .cel-shine { animation: none !important; }
-  .cel-shine { display: none; }
   .hub-logo-wrap.all-done::after { animation: none; opacity: 1; }
 }
 
@@ -1873,7 +1856,7 @@ html[data-ruby="true"] .return-btn.primary,
 html[data-ruby="true"] .next-game-play,
 html[data-ruby="true"] .toast-action {
   background-color: #CF1D4F !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important;
-  border-color: rgba(245, 92, 119, 0.6) !important; box-shadow: var(--gold-glow), inset 0 0 0 1px rgba(255, 250, 232, 0.4) !important;
+  border-color: rgba(245, 92, 119, 0.6) !important; box-shadow: var(--gold-glow), inset 0 0 0 1px rgba(255, 250, 232, 0.45) !important;
   text-shadow: 0 1px 0 rgba(245, 92, 119, 0.5);
 }
 html[data-ruby="true"] .m4-tonal-pill { background-color: #CF1D4F !important; background-image: var(--gold-shine) !important; color: var(--gold-ink) !important; box-shadow: var(--gold-glow); }
@@ -1938,20 +1921,28 @@ html[data-ruby="true"] .app-toast .toast-close { color: #DD2857; background: rgb
 html[data-ruby="true"] .m4-floating-dock {
   background: linear-gradient(color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent), color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent)) padding-box, var(--gold-edge) border-box !important;
 }
-html[data-ruby="true"] .cel-title, html[data-ruby="true"] .cel-title { background-image: var(--gold-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
+html[data-ruby="true"] .set-range::-webkit-slider-runnable-track { background: linear-gradient(to right, #CF1D4F var(--fill), var(--md-container-highest, #3a3646) var(--fill)); }
+html[data-ruby="true"] .set-range::-webkit-slider-thumb { background: #CF1D4F; }
+html[data-ruby="true"] .set-range::-moz-range-thumb { background: #CF1D4F; }
+html[data-ruby="true"] .set-range::-moz-range-progress { background: #CF1D4F; }
+html[data-ruby="true"] .range-value { color: #EC5671; }
 html[data-ruby="true"] .hub-logo-wrap.all-done::after { background: #FFF7DC; filter: drop-shadow(0 0 3px #EF516F); }
 /* Gemstone finish */
 html[data-ruby="true"] {
-  --gold-shine: linear-gradient(180deg, rgba(255, 238, 243, 0.34) 0%, rgba(255, 238, 243, 0.08) 46%, rgba(255, 238, 243, 0) 50%, rgba(46, 0, 12, 0.2) 100%), linear-gradient(118deg, #B8123C 0 28%, #D81E4A 28% 46%, #EE3F66 46% 52%, #C41840 52% 77%, #A30F36 77% 90%, #D6224C 90%);
-  --gold-text: linear-gradient(100deg, #FF9AB0 0%, #FF4D73 35%, #E0244F 60%, #FF7593 100%);
-  --gold-edge: linear-gradient(135deg, rgba(255, 176, 194, 0.95), rgba(224, 36, 79, 0.55) 30%, rgba(120, 8, 36, 0.5) 60%, rgba(255, 120, 150, 0.9));
+  /* Cabochon (1.8.13): a smooth polished stone, deepest in the middle, with a soft gloss near the top and
+     light coming back up from below. No bands, so no lines; the top and bottom edges are the same red, so
+     the rim sits evenly all round (light reaching an edge read as a second outline). */
+  --gold-shine: radial-gradient(62% 58% at 32% 20%, rgba(255, 228, 235, 0.5) 0%, rgba(255, 228, 235, 0.16) 45%, rgba(255, 228, 235, 0) 72%), radial-gradient(58% 46% at 56% 82%, rgba(255, 104, 140, 0.4) 0%, rgba(255, 104, 140, 0) 78%), radial-gradient(130% 120% at 50% 50%, #9C0B32 0%, #A90E37 45%, #BE1440 100%);
+  --gold-text: linear-gradient(100deg, #FFB3C4 0%, #FF5C80 38%, #E3265A 70%, #FF7C99 100%);
+  /* Edges as bright at the bottom as at the top, so an outline sits evenly round a card or the bar. */
+  --gold-edge: linear-gradient(180deg, rgba(255, 182, 200, 0.85), rgba(214, 30, 76, 0.55) 50%, rgba(255, 150, 178, 0.85));
   --gold-ink: #FFFFFF;
-  --gold-glow: 0 0 16px -3px rgba(232, 38, 84, 0.55);
+  --gold-glow: 0 0 16px -5px rgba(214, 24, 74, 0.75);
 }
 html[data-ruby="true"][data-theme="light"] {
-  --gold-text: linear-gradient(100deg, #A3123A 0%, #D81E4A 40%, #7E0B24 70%, #B8102F 100%);
-  --gold-edge: linear-gradient(135deg, rgba(200, 22, 63, 0.95), rgba(240, 70, 107, 0.5) 35%, rgba(126, 11, 36, 0.4) 65%, rgba(200, 22, 63, 0.85));
-  --gold-glow: 0 0 12px -3px rgba(163, 18, 58, 0.45);
+  --gold-text: linear-gradient(100deg, #B0153F 0%, #D81E4A 40%, #860A2B 75%, #C2143F 100%);
+  --gold-edge: linear-gradient(180deg, rgba(200, 22, 63, 0.85), rgba(240, 90, 125, 0.5) 50%, rgba(200, 22, 63, 0.85));
+  --gold-glow: 0 0 12px -4px rgba(163, 18, 58, 0.5);
 }
 html[data-ruby="true"] .m4-primary-fab,
 html[data-ruby="true"] .bg-indigo-600,
@@ -1964,10 +1955,12 @@ html[data-ruby="true"] .recap-seg.on,
 html[data-ruby="true"] .chg-undo,
 html[data-ruby="true"] .cal-today-btn,
 html[data-ruby="true"] #btnShareRecap {
-  color: #FFFFFF !important; border-color: rgba(255, 160, 182, 0.6) !important; text-shadow: 0 1px 1px rgba(80, 0, 20, 0.55);
-  box-shadow: var(--gold-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.4) !important;
+  /* The rim: a light outline with a thin dark ring just inside it, all the way round, so it reads the
+     same at the top (light) and the bottom (deep red) and never looks higher than the button. */
+  color: #FFFFFF !important; border-color: rgba(255, 182, 200, 0.62) !important; text-shadow: 0 1px 1px rgba(70, 0, 18, 0.5);
+  box-shadow: var(--gold-glow), inset 0 0 0 1px rgba(100, 0, 28, 0.3) !important;
 }
-html[data-ruby="true"] .status-pill.status-completed { color: #FFFFFF; text-shadow: 0 1px 1px rgba(80, 0, 20, 0.5); }
+html[data-ruby="true"] .status-pill.status-completed { color: #FFFFFF; text-shadow: 0 1px 1px rgba(70, 0, 18, 0.5); box-shadow: inset 0 0 0 1px rgba(100, 0, 28, 0.3); }
 html[data-ruby="true"] .status-pill.status-completed .dot-star { color: #FFE3EA; }
 html[data-ruby="true"] .status-pill.status-completed .dot { background: #FFE3EA; }
 html[data-ruby="true"] .nav-btn.nav-on { color: #FFFFFF !important; }
@@ -2032,14 +2025,12 @@ html[data-theme="light"][data-gold="true"] .m4-floating-dock, html[data-theme="l
   background: linear-gradient(rgba(255, 255, 255, calc(var(--nav-sheen) * 3)), rgba(255, 255, 255, var(--nav-sheen))),
               color-mix(in srgb, var(--gold-card) var(--nav-alpha), transparent) !important;
 }
-/* Ruby buttons and the bar's highlight (1.8.8): the gloss is the same at the top and the bottom. Lit only from
-   the top (light at the top, a dark band at the bottom), the rim merged with the light at the top and
-   vanished into the dark at the bottom, so the outline looked higher than the button. The facets stay. */
+/* Ruby buttons and the bar's highlight (1.8.8; cabochon 1.8.13): the stone's own fill (--gold-shine); the
+   thin dark ring inside the rim keeps the outline even at the top and the bottom. */
 html[data-ruby="true"] :is(.m4-primary-fab, .bg-indigo-600, .return-btn.primary, .next-game-play, .toast-action, .m4-tonal-pill,
   .recap-btn.primary, .recap-seg.on, .chg-undo, .cal-today-btn, #btnShareRecap) {
-  background-image: linear-gradient(180deg, rgba(255, 238, 243, 0.14) 0%, rgba(255, 238, 243, 0.03) 30%, rgba(255, 238, 243, 0) 50%, rgba(255, 238, 243, 0.03) 70%, rgba(255, 238, 243, 0.14) 100%),
-    linear-gradient(118deg, #B8123C 0 28%, #D81E4A 28% 46%, #EE3F66 46% 52%, #C41840 52% 77%, #A30F36 77% 90%, #D6224C 90%) !important;
-  text-shadow: 0 0 2px rgba(80, 0, 20, 0.55) !important;
+  background-image: var(--gold-shine) !important;
+  text-shadow: 0 1px 1px rgba(70, 0, 18, 0.5) !important;
 }
 /* Gold buttons and the bar's highlight (1.8.8): the shine runs straight across, so the top and bottom of a
    button are the same shade and its rim looks even (diagonal, the top was lighter and hid the rim there). */
