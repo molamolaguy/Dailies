@@ -376,6 +376,12 @@
     <!-- View 3: SETTINGS & REFRESH ALERTS TAB -->
     <section id="viewSettings" class="tab-page hidden space-y-4" aria-hidden="true" inert>
       <!-- 1. Display Settings -->
+      <!-- 1.9.1: Settings as pages. The list of sections, and the bar at the top of an open section. -->
+      <div id="settingsIndex" class="glass-card settings-index" role="list" aria-label="Settings sections"></div>
+      <div id="settingsSubHead" class="settings-subhead">
+        <button type="button" id="btnSettingsBack" class="settings-back" aria-label="Back to Settings"><span class="settings-back-arrow" aria-hidden="true">‹</span>Settings</button>
+        <span id="settingsSubTitle" class="sr-only"></span>
+      </div>
       <div data-fold="display" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -1443,7 +1449,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.9.0';
+    const APP_VERSION = '1.9.1';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4107,6 +4113,8 @@
           // Controls inside the heading (Reset Alerts' switch) keep working without folding.
           if (e.target.closest && e.target.closest('input, select, button, a, label') && e.target.closest('.fold-head') === head
             && !e.target.closest('.fold-chev')) return;
+          // A Settings section on its own page stays open (1.9.1).
+          if (card.classList.contains('sub-current')) return;
           setFold(card, !card.classList.contains('fold-open'), true);
           haptic('tick');
         };
@@ -4116,10 +4124,73 @@
         setFold(card, foldState.has(name) ? foldState.get(name) : card.dataset.foldDefault === 'open');
       });
     }
-    /** Opens the folded card an element sits in (before scrolling to it). */
+    /** Opens the folded card an element sits in (before scrolling to it); in Settings, its section's page. */
     function revealFold(el) {
       const card = el && el.closest ? el.closest('[data-fold]') : null;
+      if (card && card.parentElement && card.parentElement.id === 'viewSettings') { openSettingsSection(card.dataset.fold); return; }
       if (card && !card.classList.contains('fold-open')) setFold(card, true);
+    }
+
+    // ---- Settings as pages (1.9.1): a list of sections, each opening on a page of its own ----
+    const SETTINGS_SECTION_NOTES = {
+      display: 'Theme, app icon, text and cards',
+      gameplay: 'Time format, logging and reset times',
+      player: 'Finding results, ads and dark pages',
+      alerts: 'Reset alerts and streak reminders',
+      data: 'Backups, import, export and trash',
+      archived: 'Games you put away',
+      about: 'Version, updates and help'
+    };
+    let settingsSection = '';
+    const settingsCards = () => [...document.querySelectorAll('#viewSettings > [data-fold]')];
+    /** The list of sections (one row each; a section hidden in the page, such as Archived Games with none, has no row). */
+    function renderSettingsIndex() {
+      const box = document.getElementById('settingsIndex');
+      if (!box) return;
+      box.innerHTML = settingsCards().map((card) => {
+        const name = card.dataset.fold;
+        const h3 = card.querySelector('h3');
+        const icon = h3 && h3.querySelector('.ico');
+        const title = h3 ? h3.textContent.replace(/\s+/g, ' ').trim() : name;
+        const cls = card.classList.contains('android-only') ? ' android-only' : '';
+        return `<button type="button" class="set-section${cls}${card.classList.contains('hidden') ? ' hidden' : ''}" data-settings-section="${escapeHtml(name)}">`
+          + `<span class="set-section-ico">${icon ? icon.outerHTML : ''}</span>`
+          + `<span class="set-section-text"><span class="set-section-title">${escapeHtml(title)}</span>`
+          + `<span class="set-section-note">${escapeHtml(SETTINGS_SECTION_NOTES[name] || '')}</span></span>`
+          + '<span class="set-chevron" aria-hidden="true">›</span></button>';
+      }).join('');
+    }
+    function openSettingsSection(name) {
+      const view = document.getElementById('viewSettings');
+      const card = settingsCards().find((c) => c.dataset.fold === name);
+      if (!view || !card) return;
+      settingsCards().forEach((c) => c.classList.toggle('sub-current', c === card));
+      view.classList.add('sub-open');
+      settingsSection = name;
+      setFold(card, true);
+      document.getElementById('settingsSubTitle').textContent = (card.querySelector('h3') || {}).textContent ? card.querySelector('h3').textContent.replace(/\s+/g, ' ').trim() : '';
+      if (activeTab === 'settings') window.scrollTo(0, 0);
+      if (!REDUCED_MOTION && card.animate && activeTab === 'settings') {
+        card.animate([{ opacity: 0, transform: 'translate3d(24px,0,0)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'cubic-bezier(0.05, 0.7, 0.1, 1)' });
+      }
+      syncBackInterceptState();
+    }
+    /** Back to the list of sections; true if a section was open. */
+    function closeSettingsSection() {
+      const view = document.getElementById('viewSettings');
+      if (!view || !settingsSection) return false;
+      const was = settingsSection;
+      settingsSection = '';
+      view.classList.remove('sub-open');
+      settingsCards().forEach((c) => c.classList.remove('sub-current'));
+      renderSettingsIndex();
+      if (activeTab === 'settings') {
+        window.scrollTo(0, 0);
+        const row = document.querySelector(`#settingsIndex [data-settings-section="${was}"]`);
+        if (row && row.focus) row.focus({ preventScroll: true });
+      }
+      syncBackInterceptState();
+      return true;
     }
 
     // ---- Copy today's results ----
@@ -4581,6 +4652,9 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.9.1': [
+        ['⚙️', 'Settings in pages', 'Settings is a short list of sections now. Tap one to open it on its own page, and Back (or Settings again) to return to the list. The ⓘ is gone: each setting\'s explanation shows under its name again.']
+      ],
       '1.9.0': [
         ['⚙️', 'A shorter Settings page', 'Theme and App Icon are one row each that opens their choices, Gold and Ruby are one Accent choice, and each setting\'s explanation is behind the ⓘ by its name.'],
         ['🏆', 'No PB tag on the hub', 'Personal bests show on Streaks & Log, under the calendar.']
@@ -8170,6 +8244,7 @@
         setSelectMode(false);
         return true;
       }
+      if (activeTab === 'settings' && closeSettingsSection()) return true;
       if (activeTab !== 'dashboard') {
         switchNavigation('dashboard');
         return true;
@@ -8642,6 +8717,14 @@
       bindSetting('settingDynamicWallpaper', 'dynamicWallpaper', true);
       bindSetting('settingAmoledDark', 'amoledDark', true);
       bindSetting('settingGoldAccents', 'goldAccents', true);
+      renderSettingsIndex();
+      document.getElementById('settingsIndex').addEventListener('click', (e) => {
+        const row = e.target.closest && e.target.closest('[data-settings-section]');
+        if (row) { haptic('tick'); openSettingsSection(row.getAttribute('data-settings-section')); }
+      });
+      document.getElementById('btnSettingsBack').addEventListener('click', () => { haptic('tick'); closeSettingsSection(); });
+      // A section that comes and goes (Archived Games) keeps its row in step.
+      settingsCards().forEach((c) => new MutationObserver(() => { if (!settingsSection) renderSettingsIndex(); }).observe(c, { attributes: true, attributeFilter: ['class'] }));
       document.getElementById('btnOpenTheme').addEventListener('click', () => { renderThemeChoices(); openModal('modalTheme'); });
       document.getElementById('btnOpenAppIcon').addEventListener('click', () => { renderIconChoices(); openModal('modalAppIcon'); });
       document.getElementById('settingAccent').addEventListener('change', (e) => {
@@ -8658,28 +8741,7 @@
         else { flip('settingGoldAccents', false); flip('settingRubyAccents', false); }
         renderDisplaySummaries();
       });
-      // Slimmer settings (1.9.0): each setting's explanation sits behind an ⓘ by its name. Lines that show a
-      // status (a backup's state, what's blocked) have an id and stay as they are.
-      document.querySelectorAll('#viewSettings .set-row, .set-sheet .set-row').forEach((row) => {
-        const title = row.querySelector('p.font-bold');
-        const desc = title && title.nextElementSibling;
-        if (!desc || desc.tagName !== 'P' || desc.id || !/text-\[11px\]/.test(desc.className)) return;
-        desc.classList.add('set-desc');
-        const info = document.createElement('button');
-        info.type = 'button';
-        info.className = 'set-info';
-        info.setAttribute('aria-label', `About ${title.textContent.trim()}`);
-        info.setAttribute('aria-expanded', 'false');
-        info.textContent = 'i';
-        info.addEventListener('click', (ev) => {
-          // Inside a switch's label: only the explanation, never the switch.
-          ev.preventDefault();
-          ev.stopPropagation();
-          const open = row.classList.toggle('show-desc');
-          info.setAttribute('aria-expanded', String(open));
-        });
-        title.appendChild(info);
-      });
+
       bindSetting('settingCompactCards', 'compactCards', true);
       bindSetting('settingTimeFormat', 'timeFormat', false);
       bindSetting('settingShowSeconds', 'showSeconds', true);
@@ -9710,6 +9772,8 @@
       document.querySelectorAll('.nav-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           const target = btn.getAttribute('data-nav') || 'dashboard';
+          // Settings tapped while one of its sections is open: back to the list of sections (1.9.1).
+          if (target === 'settings' && activeTab === 'settings' && closeSettingsSection()) return;
           switchNavigation(target);
         });
       });

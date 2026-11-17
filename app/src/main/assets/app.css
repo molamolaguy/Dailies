@@ -1995,16 +1995,31 @@ html.theme-switch *, html.theme-switch *::before, html.theme-switch *::after { t
    the bottom made the outline and glow look lower than the button. */
 /* In-app notifications (1.8.7): no coloured bar down the left side (its edge was thicker than the rest). */
 .app-toast.tone-ok::before { display: none !important; }
-/* Settings (1.9.0): slimmer. Each explanation sits behind an ⓘ by the setting's name; rows are tighter. */
-.set-desc { display: none; }
-.set-row.show-desc .set-desc { display: block; }
-.set-info { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-inline-start: 6px;
-  border-radius: 9999px; border: 1px solid color-mix(in srgb, currentColor 45%, transparent); font: italic 700 10px/1 Georgia, 'Times New Roman', serif;
-  color: var(--md-on-surface-variant, #94a3b8); vertical-align: 1px; padding: 0; background: transparent; }
-.set-row.show-desc .set-info { color: var(--md-primary); border-color: var(--md-primary); }
-/* Make the ⓘ easy to hit without growing the row. */
-.set-info::after { content: ''; position: absolute; inset: -10px; }
-.set-info { position: relative; }
+/* Settings as pages (1.9.1): the list of sections, and one section at a time with a back bar above it. */
+#viewSettings:not(.sub-open) > [data-fold], #viewSettings:not(.sub-open) > .settings-subhead { display: none !important; }
+#viewSettings.sub-open > [data-fold]:not(.sub-current), #viewSettings.sub-open > .settings-index { display: none !important; }
+#viewSettings.sub-open > .sub-current > .fold-head { cursor: default; }
+#viewSettings.sub-open > .sub-current > .fold-head .fold-chev { display: none; }
+.settings-index { padding: 6px; display: flex; flex-direction: column; }
+.set-section { display: flex; align-items: center; gap: 14px; width: 100%; padding: 12px 10px; border: 0; background: none; color: inherit;
+  font: inherit; text-align: start; border-radius: 16px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.set-section.hidden { display: none; }
+.set-section:active { background: color-mix(in srgb, var(--md-primary) 10%, transparent); }
+.set-section:focus-visible { outline: 2px solid var(--md-primary); outline-offset: -2px; }
+.set-section + .set-section { box-shadow: 0 -1px 0 color-mix(in srgb, var(--md-outline) 60%, transparent); }
+.set-section-ico { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0;
+  background: color-mix(in srgb, var(--md-primary) 14%, transparent); }
+.set-section-ico .section-icon { margin: 0; }
+.set-section-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.set-section-title { font-size: 15px; font-weight: 700; color: var(--md-on-surface, #fff); }
+.set-section-note { font-size: 12px; color: var(--md-on-surface-variant, #94a3b8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-theme="light"] .set-section-title { color: var(--lt-on-surface); }
+html[data-theme="light"] .set-section-note { color: var(--lt-muted); }
+.settings-subhead { display: flex; align-items: center; }
+.settings-back { display: inline-flex; align-items: center; gap: 4px; padding: 8px 14px 8px 8px; border-radius: 9999px; border: 0; cursor: pointer;
+  background: var(--md-container-high, rgba(255, 255, 255, 0.08)); color: var(--md-on-surface, #fff); font: 700 14px/1 inherit; }
+.settings-back-arrow { font-size: 22px; line-height: 0.6; margin-top: -2px; }
+html[data-theme="light"] .settings-back { color: var(--lt-on-surface); }
 /* A row that opens more choices (Theme, App Icon): its current value and a chevron. */
 .set-link { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; background: none; color: inherit; font: inherit; cursor: pointer; border: 0; }
 .set-link > div { flex: 1; }
@@ -2018,7 +2033,7 @@ html[data-theme="light"] .set-value, html[data-theme="light"] .set-chevron { col
 .set-sheet .set-row { padding: 10px 2px; }
 .set-sheet .set-row + .set-row { border-top: 1px solid color-mix(in srgb, var(--md-outline) 75%, transparent); }
 /* Settings (1.8.7): each setting is a plain row, no box around it, with a thin line between rows. */
-.set-row { padding: 9px 2px; }
+.set-row { padding: 12px 2px; }
 #viewSettings .grid:has(> .set-row) { row-gap: 0; }
 /* 1.9.0: a line above every row that has a shown row before it, however many hidden rows lie between them
    (an accent row before unlocking, Android-only rows on the web version). */

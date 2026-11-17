@@ -1,3 +1,20 @@
+# Dailies 1.9.1
+
+Settings in pages. It installs over 1.9.0 and keeps everything, every setting included. If you're on 1.9.0, you can install it from **Settings → About → Check now**.
+
+## Settings
+- **A list of sections**: Display, Gameplay & Time, Game Player, Alerts, Data & Backup, Archived Games (when you have some) and About, each with a line saying what's in it. Tap one to open it on its own page.
+- **Back to the list** with the "‹ Settings" button at the top, your phone's Back, or by tapping Settings in the bottom bar again.
+- **No more ⓘ.** Each setting's explanation shows under its name again, as before 1.9.0.
+- Links into a setting from elsewhere in the app (such as Import after a problem reading your data) open its section.
+- Theme, App Icon and Accent stay one row each.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.9.0
 
 A shorter Settings page. It installs over 1.8.13 and keeps everything, every setting included. If you're on 1.8.13, you can install it from **Settings → About → Check now**.
