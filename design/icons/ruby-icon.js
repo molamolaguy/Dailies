@@ -1,6 +1,6 @@
-// Ruby app icon (1.7.0): the Dailies star cut as a raised, faceted gemstone. An outer slope lit hard from the top
-// left gives it depth; the crown facets and table inside show light refracted the other way, with a specular
-// highlight, a lit/shadowed rim, a drop shadow and red light underneath, and white glints for the mark and sparks.
+// Ruby app icon (1.9.3, step cut): the Dailies star as a step-cut gemstone. Smooth bands follow the star's outline,
+// each lit from the top left (1.7.0's 16 wedge facets looked like a pinwheel up close), with a soft highlight, a
+// lit/shadowed rim, a drop shadow and red light underneath, and white glints for the mark and sparks.
 // Run from the repo root: node design/icons/ruby-icon.js (needs Playwright with Chromium).
 // `node design/icons/ruby-icon.js preview <dir>` writes preview-ruby.png only.
 const fs = require('fs');
@@ -19,45 +19,32 @@ const BUILDER = String.raw`function rubyIconSvg(o) {
       const flower = '${FLOWER}';
       const mark = '${MARK}';
       const sparks = '${SPARKS}';
-      const mix = (a, b, t) => '#' + [0, 2, 4].map((i) => Math.round(parseInt(a.substr(i + 1, 2), 16) * (1 - t) + parseInt(b.substr(i + 1, 2), 16) * t).toString(16).padStart(2, '0')).join('');
-      const shade = (v) => { v = Math.max(0, Math.min(1, v)); return v < 0.5 ? mix('#1A0006', '#BA0C30', v * 2) : mix('#BA0C30', '#FF4E72', (v - 0.5) * 2); };
-      const pt = (r, a) => (54 + r * Math.cos(a)).toFixed(2) + ',' + (54 + r * Math.sin(a)).toFixed(2);
-      const N = 16, R = 34, C = 0.7, T = 10.5, L = -2.36, step = (2 * Math.PI) / N;
-      const inner = 'translate(54 54) scale(' + C + ') translate(-54 -54)';
-      // Outer slope (the bevel down to the edge): lit strongly from the top left, so the stone reads as raised.
-      let slope = '', crown = '', lines = '';
-      for (let i = 0; i < N; i++) {
-        const a0 = i * step - Math.PI / 2, a1 = a0 + step, m = a0 + step / 2;
-        const v = 0.5 + 0.47 * Math.cos(m - L) + (i % 2 ? 0.07 : -0.07);
-        slope += '<path d="M54,54 L' + pt(R, a0) + ' L' + pt(R, a1) + 'Z" fill="' + shade(v) + '"/>';
-        lines += 'M' + pt(R * C, a0) + ' L' + pt(R, a0) + ' ';
-      }
-      // Crown facets on top, seen through the stone, so their light is reversed (refraction) with a bright kite each.
-      for (let i = 0; i < N; i++) {
-        const a0 = i * step - Math.PI / 2 + step / 2, a1 = a0 + step, m = a0 + step / 2;
-        const v = 0.48 - 0.3 * Math.cos(m - L) + (i % 2 ? 0.12 : -0.08);
-        crown += '<path d="M' + pt(T, a0) + ' L' + pt(R * C, a0) + ' L' + pt(R * C, a1) + ' L' + pt(T, a1) + 'Z" fill="' + shade(v) + '"/>'
-          + '<path d="M' + pt(T, a0) + ' L' + pt(T * 1.85, m) + ' L' + pt(T, a1) + 'Z" fill="' + shade(v + 0.2) + '"/>';
-        lines += 'M' + pt(T, a0) + ' L' + pt(R * C, a0) + ' M' + pt(T, a0) + ' L' + pt(T * 1.85, m) + ' L' + pt(T, a1) + ' ';
-      }
-      let table = '';
-      for (let i = 0; i < 8; i++) table += (i ? ' L' : 'M') + pt(T, i * step * 2 - Math.PI / 2 + step / 2);
-      table += 'Z';
+      const sc = (s) => 'translate(54 54) scale(' + s + ') translate(-54 -54)';
+      const stops = (list) => list.map((x) => '<stop offset="' + x[0] + '" stop-color="' + x[1] + '"' + (x[2] === undefined ? '' : ' stop-opacity="' + x[2] + '"') + '/>').join('');
+      const lin = (n, x1, y1, x2, y2, list) => '<linearGradient id="' + id + n + '" gradientUnits="userSpaceOnUse" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '">' + stops(list) + '</linearGradient>';
       const glow = (n, cx, cy, r, c, op) => '<radialGradient id="' + id + n + '" gradientUnits="userSpaceOnUse" cx="' + cx + '" cy="' + cy + '" r="' + r + '"><stop offset="0" stop-color="' + c + '" stop-opacity="' + op + '"/><stop offset="1" stop-color="' + c + '" stop-opacity="0"/></radialGradient>';
+      // Step cut (1.9.3): bands that follow the star's outline, stepping down towards the middle. Each is lit
+      // from the top left; the steps alternate between catching the light and showing it through the stone.
+      const bands = [1, 0.84, 0.68, 0.52];
+      const tones = [['#FF6A88', '#C0103A', '#4A0014'], ['#5A0018', '#B80E36', '#FF4C70'], ['#FF7A94', '#D3164A', '#6A0420'], ['#E8204E', '#A00A30', '#FF5878']];
+      let bandDefs = '', body = '';
+      bands.forEach((b, i) => {
+        bandDefs += lin('g' + i, 54 - 30 * b, 54 - 30 * b, 54 + 30 * b, 54 + 30 * b, [[0, tones[i][0]], [0.5, tones[i][1]], [1, tones[i][2]]]);
+        body += '<path d="' + flower + '" transform="' + sc(b) + '" fill="url(#' + id + 'g' + i + ')"/>';
+        if (i) body += '<path d="' + flower + '" transform="' + sc(b) + '" fill="none" stroke="#FFC2CF" stroke-opacity="0.22" stroke-width="' + (0.5 / b).toFixed(2) + '"/>';
+      });
       const defs = '<defs>'
         + glow('w1', 0, 112, 78, '#7A1028', 0.7) + glow('w2', 112, 112, 66, '#7A1028', 0.55) + glow('w3', -4, -4, 48, '#4A0E1A', 0.35)
-        + '<linearGradient id="' + id + 't" gradientUnits="userSpaceOnUse" x1="46" y1="45" x2="62" y2="63"><stop offset="0" stop-color="#FF5C7E"/><stop offset="0.45" stop-color="#D4143E"/><stop offset="1" stop-color="#6E0620"/></linearGradient>'
-        + '<linearGradient id="' + id + 'rim" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/><stop offset="0.45" stop-color="#FFB8C6" stop-opacity="0.25"/><stop offset="1" stop-color="#3A0010" stop-opacity="0.9"/></linearGradient>'
-        + '<linearGradient id="' + id + 'gl" gradientUnits="userSpaceOnUse" x1="30" y1="30" x2="60" y2="60"><stop offset="0" stop-color="#FFFFFF" stop-opacity="0.2"/><stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0.02"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>'
-        + glow('spec', 40, 39, 9, '#FFFFFF', 0.85) + glow('cau', 60, 62, 12, '#FF5A7E', 0.55)
+        + bandDefs
+        + lin('rim', 32, 30, 76, 78, [[0, '#FFFFFF', 0.9], [0.45, '#FFB8C6', 0.2], [1, '#2A000A', 0.9]])
         + '<clipPath id="' + id + 'k"><path d="' + flower + '"/></clipPath>'
-        + '<clipPath id="' + id + 'i"><path d="' + flower + '" transform="' + inner + '"/></clipPath>'
         + '<filter id="' + id + 'd" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4"/></filter>'
         + '<filter id="' + id + 'b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.3"/></filter>'
+        + '<filter id="' + id + 'h" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>'
         + '<filter id="' + id + 's" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="0.9"/></filter>'
         + (o.clip ? '<clipPath id="' + id + 'c">' + o.clip + '</clipPath>' : '')
         + '</defs>';
-      const t = 'translate(54 54) scale(' + k + ') translate(-54 -54)';
+      const t = sc(k);
       const bg = o.bg
         ? '<rect width="108" height="108" fill="#0C090A"/><rect width="108" height="108" fill="url(#' + id + 'w1)"/>'
           + '<rect width="108" height="108" fill="url(#' + id + 'w2)"/><rect width="108" height="108" fill="url(#' + id + 'w3)"/>'
@@ -67,15 +54,8 @@ const BUILDER = String.raw`function rubyIconSvg(o) {
           // A dark drop shadow and red light thrown under the stone.
           + '<path d="' + flower + '" fill="#000" fill-opacity="0.7" transform="translate(1.2 3)" filter="url(#' + id + 'b)"/>'
           + '<path d="' + flower + '" fill="#E0204A" fill-opacity="0.45" transform="translate(0 2)" filter="url(#' + id + 'd)"/>'
-          + '<g clip-path="url(#' + id + 'k)">' + slope
-          + '<g clip-path="url(#' + id + 'i)">' + crown + '<path d="' + table + '" fill="url(#' + id + 't)"/>'
-          + '<circle cx="60" cy="62" r="12" fill="url(#' + id + 'cau)"/></g>'
-          + '<path d="' + lines + table + '" fill="none" stroke="#FFD6DE" stroke-opacity="0.3" stroke-width="0.3" stroke-linejoin="round"/>'
-          // The ridge between slope and crown: a dark line with a bright edge above it.
-          + '<path d="' + flower + '" transform="' + inner + '" fill="none" stroke="#2A0009" stroke-opacity="0.75" stroke-width="1.2"/>'
-          + '<path d="' + flower + '" transform="translate(-0.45 -0.45) ' + inner + '" fill="none" stroke="#FFC9D4" stroke-opacity="0.5" stroke-width="0.5"/>'
-          + '<path d="' + flower + '" fill="url(#' + id + 'gl)"/>'
-          + '<ellipse cx="40" cy="39" rx="9" ry="5" transform="rotate(-40 40 39)" fill="url(#' + id + 'spec)"/></g>'
+          + '<g clip-path="url(#' + id + 'k)">' + body
+          + '<ellipse cx="42" cy="38" rx="11" ry="5" transform="rotate(-38 42 38)" fill="#FFFFFF" fill-opacity="0.35" filter="url(#' + id + 'h)"/></g>'
           // A rim lit at the top left and in shadow at the bottom right.
           + '<path d="' + flower + '" fill="none" stroke="url(#' + id + 'rim)" stroke-width="0.8" stroke-linejoin="round"/>'
           // The Dailies mark and sparks as white glints.
