@@ -22,6 +22,7 @@ mkdirSync(join(out, 'icons'), { recursive: true });
 
 const copies = [
   [join(assets, 'hub-core.js'), 'hub-core.js'],
+  [join(assets, 'social.js'), 'social.js'],
   [join(assets, 'known-games.js'), 'known-games.js'],
   [join(assets, 'app.css'), 'app.css'],
   [join(web, 'web.js'), 'web.js'],
@@ -57,7 +58,7 @@ const head = [
 const viewport = /(<meta name="viewport"[^>]*>\n)/;
 if (!viewport.test(html)) throw new Error('index.html: viewport meta not found');
 html = html.replace(viewport, `$1${head}\n`);
-for (const name of ['app.css', 'hub-core.js', 'known-games.js']) {
+for (const name of ['app.css', 'hub-core.js', 'known-games.js', 'social.js']) {
   const before = html;
   html = html.replace(new RegExp(`(src|href)="${name.replace('.', '\\.')}"`, 'g'), `$1="${v(name)}"`);
   if (html === before) throw new Error(`index.html: no reference to ${name}`);
@@ -67,7 +68,7 @@ writeFileSync(join(out, 'index.html'), html);
 
 // The URLs the page really requests: versioned where index.html links them, plain where app.css
 // (fonts) or the manifest (icons) does.
-const versioned = ['app.css', 'hub-core.js', 'known-games.js', 'web.js', 'web.css', 'manifest.webmanifest',
+const versioned = ['app.css', 'hub-core.js', 'known-games.js', 'social.js', 'web.js', 'web.css', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-180.png'];
 const plain = copies.map(([, to]) => to).filter((to) => (to.startsWith('fonts/') && to.endsWith('.woff2')) || to.startsWith('icons/'));
 const files = ['./', 'index.html', ...versioned.map(v), ...plain];

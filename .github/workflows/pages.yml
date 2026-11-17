@@ -9,6 +9,7 @@ on:
       - 'app/src/main/assets/index.html'
       - 'app/src/main/assets/app.css'
       - 'app/src/main/assets/hub-core.js'
+      - 'app/src/main/assets/social.js'
       - 'app/src/main/assets/known-games.js'
       - 'app/src/main/assets/fonts/**'
       - 'web/**'
