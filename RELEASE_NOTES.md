@@ -1,3 +1,24 @@
+# Dailies 1.9.0
+
+A shorter Settings page. It installs over 1.8.13 and keeps everything, every setting included. If you're on 1.8.13, you can install it from **Settings → About → Check now**.
+
+## Settings
+- **About a quarter shorter** (Display alone is about half as long):
+  - **Theme** is one row showing what you've chosen ("Dark · Iris"). Tap it for dark, light or match phone, your wallpaper's colors, the color themes and pitch-black.
+  - **App Icon** is one row showing the icon you have. Tap it for the choices.
+  - **Accent**: Gold and Ruby are one choice (None, Gold or Ruby), shown once you've unlocked either, and offering only the ones you have.
+  - **Each setting's explanation** is behind the small ⓘ next to its name. Tap it to read it, again to hide it. Lines that show a status (your backups, the ad blocker) stay as they are.
+  - The rows are a little closer together.
+
+## Daily Hub
+- **No PB tag on game cards.** Your personal bests are on Streaks & Log, under the calendar.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.8.13
 
 A polished ruby, no more double games, and a quieter all done. It installs over 1.8.12 and keeps everything. If you're on 1.8.12, you can install it from **Settings → About → Check now**.

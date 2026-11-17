@@ -384,41 +384,36 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div class="set-row flex items-center justify-between gap-3">
-            <div>
+          <!-- 1.9.0: Theme, wallpaper colours, colour theme and AMOLED in one row that opens them. -->
+          <button type="button" id="btnOpenTheme" class="set-row set-link sm:col-span-3">
+            <div class="min-w-0">
               <p class="font-bold text-white">Theme</p>
-              <p class="text-[11px] text-slate-400">Dark, light, or follow your phone</p>
+              <p class="text-[11px] text-slate-400">Dark or light, colors, and pitch-black</p>
             </div>
-            <select id="settingThemeMode" aria-label="Theme" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-              <option value="system">Match phone</option>
+            <span id="themeSummary" class="set-value"></span><span class="set-chevron" aria-hidden="true">›</span>
+          </button>
+
+          <!-- 1.9.0: the app icon in one row that opens the choices. -->
+          <button type="button" id="btnOpenAppIcon" class="android-only set-row set-link sm:col-span-3">
+            <div class="min-w-0">
+              <p class="font-bold text-white">App Icon</p>
+              <p class="text-[11px] text-slate-400">The icon on your home screen</p>
+            </div>
+            <span id="appIconSummary" class="set-value set-icon-value"></span><span class="set-chevron" aria-hidden="true">›</span>
+          </button>
+
+          <!-- 1.9.0: Gold and Ruby accents as one choice (shown once either is unlocked). -->
+          <div id="accentRow" class="hidden set-row flex items-center justify-between gap-3 sm:col-span-3">
+            <div>
+              <p class="font-bold text-white">Accent</p>
+              <p class="text-[11px] text-slate-400">Gold or ruby highlights across the app</p>
+            </div>
+            <select id="settingAccent" aria-label="Accent" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+              <option value="none">None</option>
+              <option value="gold">👑 Gold</option>
+              <option value="ruby">💎 Ruby</option>
             </select>
           </div>
-
-          <label class="android-only set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Match Device Wallpaper Colors</p>
-              <p class="text-[11px] text-slate-400">Use phone wallpaper colors</p>
-            </div>
-            <input id="settingDynamicWallpaper" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <div class="set-row sm:col-span-3">
-            <p class="font-bold text-white">Color Theme</p>
-            <p class="text-[11px] text-slate-400">A preset, or pick your own accent</p>
-            <div id="themeChoices" class="theme-choices" role="radiogroup" aria-label="Color theme"></div>
-            <p id="themeLockedHint" class="hidden text-[11px] text-slate-400 mt-2">Using your wallpaper's colors. Turn off <strong class="text-slate-200">Match Device Wallpaper Colors</strong> to choose a theme.</p>
-            <input id="customAccentInput" type="color" value="#1E88C8" class="sr-only" tabindex="-1" aria-hidden="true" />
-          </div>
-
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">AMOLED Pitch-Black Surface</p>
-              <p class="text-[11px] text-slate-400">Pure black background in dark theme</p>
-            </div>
-            <input id="settingAmoledDark" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
 
           <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
@@ -428,14 +423,7 @@
             <input id="settingCompactCards" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <div class="android-only set-row sm:col-span-3">
-            <p class="font-bold text-white">App Icon</p>
-            <p class="text-[11px] text-slate-400">Changes when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
-            <div id="iconChoices" class="icon-choices" role="radiogroup" aria-label="App icon"></div>
-            <p id="iconGoldHint" class="text-[11px] text-amber-300/90 mt-1"></p>
-          </div>
-
-          <label id="goldAccentsRow" class="hidden set-row flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
+          <label id="goldAccentsRow" class="hidden accent-switch-row set-row flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
             <div>
               <p class="font-bold text-white">👑 Gold Accents</p>
               <p id="goldAccentsHint" class="text-[11px] text-slate-400">Gold highlights across the app</p>
@@ -443,7 +431,7 @@
             <input id="settingGoldAccents" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
-          <label id="rubyAccentsRow" class="hidden set-row flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
+          <label id="rubyAccentsRow" class="hidden accent-switch-row set-row flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
             <div>
               <p class="font-bold text-white">💎 Ruby Accents</p>
               <p class="text-[11px] text-slate-400">Ruby highlights across the app (instead of gold)</p>
@@ -963,7 +951,6 @@
     </div>
   </div>
 
-
   <div id="modalRestoreGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="restoreGameTitle">
     <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
       <div class="flex items-center justify-between gap-3">
@@ -1116,6 +1103,70 @@
   </div>
 
   <!-- 1.8.0: storage -->
+  <div id="modalTheme" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="modalThemeTitle">
+    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="modalThemeTitle" class="text-base font-bold text-white">Theme</h3>
+          <p class="text-xs text-slate-400">Changes show straight away.</p>
+        </div>
+        <button type="button" data-close-modal="modalTheme" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="set-sheet grid grid-cols-1 text-xs">
+          <div class="set-row flex items-center justify-between gap-3">
+            <div>
+              <p class="font-bold text-white">Theme</p>
+              <p class="text-[11px] text-slate-400">Dark, light, or follow your phone</p>
+            </div>
+            <select id="settingThemeMode" aria-label="Theme" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+              <option value="dark">Dark</option>
+              <option value="light">Light</option>
+              <option value="system">Match phone</option>
+            </select>
+          </div>
+          <label class="android-only set-row flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Match Device Wallpaper Colors</p>
+              <p class="text-[11px] text-slate-400">Use phone wallpaper colors</p>
+            </div>
+            <input id="settingDynamicWallpaper" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+          <div class="set-row sm:col-span-3">
+            <p class="font-bold text-white">Color Theme</p>
+            <p class="text-[11px] text-slate-400">A preset, or pick your own accent</p>
+            <div id="themeChoices" class="theme-choices" role="radiogroup" aria-label="Color theme"></div>
+            <p id="themeLockedHint" class="hidden text-[11px] text-slate-400 mt-2">Using your wallpaper's colors. Turn off <strong class="text-slate-200">Match Device Wallpaper Colors</strong> to choose a theme.</p>
+            <input id="customAccentInput" type="color" value="#1E88C8" class="sr-only" tabindex="-1" aria-hidden="true" />
+          </div>
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">AMOLED Pitch-Black Surface</p>
+              <p class="text-[11px] text-slate-400">Pure black background in dark theme</p>
+            </div>
+            <input id="settingAmoledDark" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalAppIcon" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="modalAppIconTitle">
+    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <h3 id="modalAppIconTitle" class="text-base font-bold text-white">App Icon</h3>
+          <p class="text-xs text-slate-400">Changes when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
+        </div>
+        <button type="button" data-close-modal="modalAppIcon" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="set-sheet grid grid-cols-1 text-xs">
+          <div class="set-row">
+            <div id="iconChoices" class="icon-choices" role="radiogroup" aria-label="App icon"></div>
+            <p id="iconGoldHint" class="text-[11px] text-amber-300/90 mt-1"></p>
+          </div>
+      </div>
+    </div>
+  </div>
+
   <div id="modalStorage" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-labelledby="storageTitle">
     <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
       <div class="flex items-center justify-between gap-3">
@@ -1392,7 +1443,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.8.13';
+    const APP_VERSION = '1.9.0';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -2067,7 +2118,6 @@
       if (state && state.settings && state.settings.themeMode === 'system') applyThemeAndSettings();
     };
 
-
     // ---- Colour themes (1.6.0): wallpaper colours, presets, or a custom accent ----
     const COLOR_THEMES = [
       { id: 'iris', label: 'Iris', seed: '#6750A4' },
@@ -2120,6 +2170,7 @@
           + `<span class="theme-swatch" style="${swatch}">${t.id === 'custom' ? '<span class="theme-edit" aria-hidden="true">✎</span>' : ''}</span>`
           + `<span class="theme-name">${escapeHtml(t.label)}</span></button>`;
       }).join('');
+      renderDisplaySummaries();
     }
     function chooseColorTheme(id) {
       if (!state.settings) state.settings = getDefaultSettings();
@@ -2944,9 +2995,7 @@
       // A finished game with today's entry logged hides ✓; the entry is edited from the game's settings.
       const todayRow = findLogRow(g, getCycleDateKey(g.resetTime, g.resetZone));
       const loggedToday = status === 'completed' && Boolean(todayRow);
-      // Today's result set a personal best.
-      const pb = loggedToday && Array.isArray(todayRow.records) && todayRow.records.length
-        ? `<span class="gc-pb" title="New personal best today"><span aria-hidden="true">🏆</span> PB</span>` : '';
+      // (1.9.0: no personal-best tag on the card; bests show on Streaks & Log, under the calendar.)
       const actions = `
         ${loggedToday ? '' : `<button type="button" data-action="log" data-id="${id}" class="icon-btn" aria-label="Log result" title="Log result">${img('check', '')}</button>`}
         <button type="button" data-action="edit" data-id="${id}" class="icon-btn ghost" aria-label="Edit game" title="Edit game">${img('settings', '')}</button>
@@ -2958,7 +3007,7 @@
           <article data-card-game-id="${id}" class="glass-card game-card compact">
             <div class="m3-shape-avatar-compact m3-shape-app shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-4 h-4')}</div>
             <h3 class="gc-title" dir="auto" title="Edit ${escapeHtml(g.name)}" aria-label="Edit ${escapeHtml(g.name)}" data-action="edit" data-id="${id}" role="button" tabindex="0">${escapeHtml(g.name)}</h3>
-            <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>${pb}
+            <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>
             <span data-role="card-status-pill" class="status-dot status-${status}" role="img" aria-label="${statusLabel}" title="${statusLabel}"></span>
             <div class="gc-actions">${reorder}${actions}</div>
           </article>`;
@@ -2973,7 +3022,7 @@
             <div class="gc-main">
               <h3 class="gc-title" dir="auto" title="${escapeHtml(g.name)}">${escapeHtml(g.name)}</h3>
               <div class="gc-meta">
-                <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>${pb}
+                <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>
                 <span class="gc-sep">·</span>
                 <span data-role="card-reset" class="gc-reset">Resets ${escapeHtml(localResetStr)}</span>
               </div>
@@ -4088,7 +4137,6 @@
       copyText(texts.join(TODAY_RESULTS_DIVIDER), texts.length === 1 ? "Today's result copied, formatting kept." : `${texts.length} results copied, formatting kept.`);
     }
 
-
     // ---- Hub order (1.6.0): Custom (drag to arrange), Next reset, A–Z or Least played ----
     const HUB_SORTS = ['custom', 'reset', 'alpha', 'least'];
     function hubSortMode() {
@@ -4533,6 +4581,10 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.9.0': [
+        ['⚙️', 'A shorter Settings page', 'Theme and App Icon are one row each that opens their choices, Gold and Ruby are one Accent choice, and each setting\'s explanation is behind the ⓘ by its name.'],
+        ['🏆', 'No PB tag on the hub', 'Personal bests show on Streaks & Log, under the calendar.']
+      ],
       '1.8.13': [
         ['💎', 'Polished ruby', 'Ruby buttons are a smooth polished stone now, with no hard lines, and their outlines sit evenly all the way round.'],
         ['🔗', 'No double games', 'Adding a link to a game you already have (a menu page of its site, another site showing it, a link that leads to it) is caught, so it isn\'t added twice.'],
@@ -5284,8 +5336,7 @@
       const unlocked = rubyUnlocked();
       el.disabled = !unlocked;
       el.checked = rubyAccentsOn();
-      const row = document.getElementById('rubyAccentsRow');
-      if (row) row.classList.toggle('hidden', !unlocked);
+      renderDisplaySummaries();
     }
     function renderGoldAccentsSetting() {
       const el = document.getElementById('settingGoldAccents');
@@ -5294,8 +5345,39 @@
       el.disabled = !unlocked;
       el.checked = goldAccentsOn();
       // An easter egg: the switch only appears once it's unlocked, with no hint before then.
-      const row = document.getElementById('goldAccentsRow');
-      if (row) row.classList.toggle('hidden', !unlocked);
+      renderDisplaySummaries();
+    }
+    /**
+     * Settings → Display, 1.9.0: Theme and App Icon are one row each that opens their choices, and Gold
+     * and Ruby accents are one Accent choice. These keep the rows' summaries and that choice up to date.
+     */
+    function renderDisplaySummaries() {
+      const s = state.settings || {};
+      const themeEl = document.getElementById('themeSummary');
+      if (themeEl) {
+        const mode = { dark: 'Dark', light: 'Light', system: 'Match phone' }[s.themeMode] || 'Dark';
+        const colors = themesLocked() ? 'Wallpaper colors' : ((COLOR_THEMES.find((t) => t.id === savedThemeId()) || {}).label || '');
+        themeEl.textContent = [mode, colors, s.amoledDark ? 'Pitch-black' : ''].filter(Boolean).join(' · ');
+      }
+      const iconEl = document.getElementById('appIconSummary');
+      if (iconEl && typeof appIconSvg === 'function') {
+        const cur = currentAppIcon();
+        const st = ICON_STYLES.find((x) => x.id === cur);
+        iconEl.innerHTML = `${appIconSvg(cur, 24, 'sum')}<span>${escapeHtml(st ? st.label : '')}</span>`;
+      }
+      const row = document.getElementById('accentRow');
+      const sel = document.getElementById('settingAccent');
+      if (row && sel) {
+        const gold = goldAccentsUnlocked();
+        const ruby = rubyUnlocked();
+        row.classList.toggle('hidden', !gold && !ruby);
+        [...sel.options].forEach((o) => {
+          const ok = o.value === 'none' || (o.value === 'gold' && gold) || (o.value === 'ruby' && ruby);
+          o.hidden = !ok;
+          o.disabled = !ok;
+        });
+        sel.value = rubyAccentsOn() ? 'ruby' : (goldAccentsOn() ? 'gold' : 'none');
+      }
     }
     /** The chosen style ("" means the 1.2–1.3 switch decides), never a locked one. */
     function currentAppIcon() {
@@ -5459,6 +5541,7 @@
       // How Gold unlocks is an easter egg: the locked tile says nothing more.
       const hint = document.getElementById('iconGoldHint');
       if (hint) hint.textContent = '';
+      renderDisplaySummaries();
     }
     function chooseAppIcon(style) {
       const st = ICON_STYLES.find((x) => x.id === style);
@@ -6227,7 +6310,6 @@
       el.innerHTML = `<p class="text-xs font-bold text-white mb-0.5">Score stats</p><p class="score-head">${head.join('<span aria-hidden="true">·</span>')}</p>`
         + (bests.length ? `<p class="pb-row" aria-label="Personal bests">${bests.join('')}</p>` : '');
     }
-
 
     /** Permanently drops a removed game's kept history and its score-log rows (after confirming). */
     function forgetRemovedGame(id) {
@@ -7353,7 +7435,7 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalIconEditor', 'modalRestoreGame', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalTheme', 'modalAppIcon', 'modalIconEditor', 'modalRestoreGame', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -8540,6 +8622,7 @@
           state.settings.autoMarkMissed = true;
           saveState({ sync: false });
           applyThemeAndSettings();
+          renderDisplaySummaries();
           if (key === 'celebrate') checkAllDoneCelebration();
           if (key === 'streakReminderMinutes') {
             state.settings.streakReminderMinutes = Number(el.value) || 0;
@@ -8559,6 +8642,44 @@
       bindSetting('settingDynamicWallpaper', 'dynamicWallpaper', true);
       bindSetting('settingAmoledDark', 'amoledDark', true);
       bindSetting('settingGoldAccents', 'goldAccents', true);
+      document.getElementById('btnOpenTheme').addEventListener('click', () => { renderThemeChoices(); openModal('modalTheme'); });
+      document.getElementById('btnOpenAppIcon').addEventListener('click', () => { renderIconChoices(); openModal('modalAppIcon'); });
+      document.getElementById('settingAccent').addEventListener('change', (e) => {
+        const want = e.target.value;
+        const flip = (id, on) => {
+          const box = document.getElementById(id);
+          if (!box || box.disabled || box.checked === on) return;
+          box.checked = on;
+          box.dispatchEvent(new Event('change'));
+        };
+        // Turning one on turns the other off (their own handlers); "None" turns both off.
+        if (want === 'gold') flip('settingGoldAccents', true);
+        else if (want === 'ruby') flip('settingRubyAccents', true);
+        else { flip('settingGoldAccents', false); flip('settingRubyAccents', false); }
+        renderDisplaySummaries();
+      });
+      // Slimmer settings (1.9.0): each setting's explanation sits behind an ⓘ by its name. Lines that show a
+      // status (a backup's state, what's blocked) have an id and stay as they are.
+      document.querySelectorAll('#viewSettings .set-row, .set-sheet .set-row').forEach((row) => {
+        const title = row.querySelector('p.font-bold');
+        const desc = title && title.nextElementSibling;
+        if (!desc || desc.tagName !== 'P' || desc.id || !/text-\[11px\]/.test(desc.className)) return;
+        desc.classList.add('set-desc');
+        const info = document.createElement('button');
+        info.type = 'button';
+        info.className = 'set-info';
+        info.setAttribute('aria-label', `About ${title.textContent.trim()}`);
+        info.setAttribute('aria-expanded', 'false');
+        info.textContent = 'i';
+        info.addEventListener('click', (ev) => {
+          // Inside a switch's label: only the explanation, never the switch.
+          ev.preventDefault();
+          ev.stopPropagation();
+          const open = row.classList.toggle('show-desc');
+          info.setAttribute('aria-expanded', String(open));
+        });
+        title.appendChild(info);
+      });
       bindSetting('settingCompactCards', 'compactCards', true);
       bindSetting('settingTimeFormat', 'timeFormat', false);
       bindSetting('settingShowSeconds', 'showSeconds', true);
