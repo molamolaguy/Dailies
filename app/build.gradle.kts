@@ -28,8 +28,8 @@ android {
         applicationId = "com.dailygames.hub"
         minSdk = 24
         targetSdk = 37
-        versionCode = 30
-        versionName = "1.10.0"
+        versionCode = 29
+        versionName = "1.9.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -135,5 +135,5 @@ tasks.register<Exec>("testHubJs") {
     group = "verification"
     description = "Runs the Node unit tests for hub-core.js against the shared schedule fixtures."
     workingDir = rootProject.projectDir
-    commandLine("node", "--test", "app/src/test/js/hub-core.test.js", "app/src/test/js/known-games.test.js", "app/src/test/js/social.test.js")
+    commandLine("node", "--test", "app/src/test/js/hub-core.test.js", "app/src/test/js/known-games.test.js")
 }
