@@ -1368,6 +1368,12 @@ html[data-theme="light"] .ach-num { color: var(--lt-muted, #5b6170); }
 
 /* Add Game → "Add back a removed game" (1.5.0). */
 .removed-games { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+/* 1.8.13: the link in the Add form may be a game already in the hub. */
+.same-game-note { margin-top: 10px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px;
+  background: color-mix(in srgb, var(--md-primary) 12%, transparent); border: 1px solid color-mix(in srgb, var(--md-primary) 35%, transparent); }
+.same-game-note.hidden { display: none; }
+.same-game-note p { margin: 0; flex: 1; min-width: 0; font-size: 12.5px; line-height: 1.4; }
+.same-game-note.asking { border-color: var(--md-primary); background: color-mix(in srgb, var(--md-primary) 20%, transparent); }
 .removed-games.hidden { display: none; }
 .removed-title { font-size: 11px; font-weight: 700; color: #a9b1c1; text-transform: uppercase; letter-spacing: 0.04em; }
 .removed-game { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: 14px; text-align: left; background: var(--md-container-high); border: 1px solid var(--md-outline); color: inherit; }

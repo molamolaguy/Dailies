@@ -603,3 +603,35 @@ test('isGenericScoreFormat: what the app filled in, not what the user typed', ()
   ['', 'Daily Puzzle', '6 guesses', '60s target', '100 pts', 'Fastest time', 'Fewest moves'].forEach((t) => assert.ok(H.isGenericScoreFormat(t), t));
   ['4 mistakes', 'Find all theme words', 'Under 2 minutes', 'Fewest guesses please'].forEach((t) => assert.ok(!H.isGenericScoreFormat(t), t));
 });
+
+test('the same game behind a different link is recognised (1.8.13)', () => {
+  const games = [
+    { id: 'w', name: 'Wordle', url: 'https://www.nytimes.com/games/wordle/index.html' },
+    { id: 'k', name: 'Krillion', url: 'https://krillion.io/play' },
+    { id: 'n', name: 'Noillirk', url: 'https://noillirk.com/' },
+    { id: 'c', name: 'Costcodle', url: 'https://costcodle.com', altUrls: ['https://www.costcodle.com/game'] },
+    { id: 'e', name: 'Mini Crossword', url: 'https://puzzles.example/mini', embeds: ['https://minigame.example/play'] },
+    { id: 'a', name: 'Old One', url: 'https://archived.example/', archived: true }
+  ];
+  const find = (c) => { const r = core.findSameGame(c, games); return r ? `${r.game.id} ${r.reason}${r.sure ? '!' : ''}` : 'none'; };
+  // The same page however it's written: blocked.
+  assert.equal(find({ url: 'https://nytimes.com/games/wordle/' }), 'w same!');
+  assert.equal(find({ url: 'http://m.nytimes.com/games/wordle?ref=x#top' }), 'w same!');
+  // A link that leads to the game's page, and one of a game's other links.
+  assert.equal(find({ url: 'https://short.example/abc', finalUrl: 'https://noillirk.com' }), 'n redirect!');
+  assert.equal(find({ url: 'https://costcodle.com/game/' }), 'c same!');
+  // A menu page above the game, or a page under it: asked.
+  assert.equal(find({ url: 'https://krillion.io' }), 'k menu');
+  assert.equal(find({ url: 'https://krillion.io/play/today' }), 'k menu');
+  // Another site with the game in a frame, and the game's own page showing this one: asked.
+  assert.equal(find({ url: 'https://other.example/wordle', embeds: ['https://www.nytimes.com/games/wordle/index.html?x=1'] }), 'w embedded');
+  assert.equal(find({ url: 'https://minigame.example/play/' }), 'e embedded');
+  // The same name on another site: asked.
+  assert.equal(find({ url: 'https://wordlegame.example/', name: 'Wordle - The Original Word Game' }), 'w name');
+  // Different games on the same site, a generic name, an archived game: nothing.
+  assert.equal(find({ url: 'https://www.nytimes.com/games/connections', name: 'Connections' }), 'none');
+  assert.equal(find({ url: 'https://other.example/', name: 'Daily Game' }), 'none');
+  assert.equal(find({ url: 'https://archived.example/' }), 'none');
+  assert.equal(core.gameNameKey('The NYT Wordle - Play Online'), 'wordle');
+  assert.equal(core.gameNameKey('Krillion | The Daily Dive'), 'krillion');
+});

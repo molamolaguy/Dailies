@@ -772,6 +772,10 @@
             <button id="btnAutoDetectMeta" type="button" class="px-3 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold shrink-0">Scrape Site</button>
           </div>
           <button id="btnBrowseGames" type="button" class="mt-2 text-xs font-semibold text-indigo-300 underline-offset-2 hover:underline">Or pick from popular daily games</button>
+          <div id="sameGameNote" class="same-game-note hidden" role="status">
+            <p id="sameGameText"></p>
+            <button id="btnOpenSameGame" type="button" class="removed-add">Open</button>
+          </div>
           <div id="removedGames" class="removed-games hidden"></div>
         </div>
 
@@ -2678,6 +2682,9 @@
       if (!key) return null;
       const exact = state.games.find((g) => normalizeUrlKey(g.url) === key);
       if (exact) return exact;
+      // One of a game's other links (where its link led, or the link it was added from) (1.8.13).
+      const other = HubCore.findSameGame({ url: rawUrl }, state.games);
+      if (other && other.sure) return other.game;
       // Two links to the same game's page in the built-in catalogue (nytimes.com/games/wordle and
       // …/wordle/index.html) are the same game. Not for entries that cover a whole site, where other
       // pages can be other games (mini.nerdlegame.com, puzzmo.com/play/…).
@@ -2814,6 +2821,11 @@
             const p = res.parsed;
             const finalUrl = cleanGameUrl(res.finalUrl || cleaned) || cleaned;
             resultMeta.url = finalUrl;
+            // For spotting a game that's already in the hub (1.8.13): the link as typed, where it led,
+            // and the games shown inside its page.
+            resultMeta.typedUrl = cleaned;
+            resultMeta.finalUrl = finalUrl;
+            resultMeta.embeds = Array.isArray(res.embeds) ? res.embeds.slice(0, 8) : [];
             if (p.name) resultMeta.name = p.name;
             if (p.description) resultMeta.desc = p.description;
             if (p.faviconUrl) resultMeta.icon = p.faviconUrl;
@@ -7496,6 +7508,40 @@
     }
 
     let lastAutoScrapedUrl = '';
+    // ---- The same game behind another link (1.8.13) ----
+    // What the page of the link in the Add form showed (where it led, the games inside it, its name).
+    let addLinkInfo = null; // { url, typedUrl, finalUrl, embeds, name }
+    let sameGameAskedFor = ''; // a link the player chose to add anyway
+    const SAME_GAME_WHY = {
+      embedded: (g) => `This page shows ${g.name} from your hub inside it.`,
+      menu: (g) => `This link is on the same site as ${g.name} in your hub, a page above or below it.`,
+      name: (g, m) => `${g.name} in your hub has the same name${m.relatedSite ? ' and is on the same site' : ''}.`
+    };
+    /** The game already in the hub that the Add form's link probably is, or null. */
+    function sameGameForAddForm() {
+      if (document.getElementById('editGameId').value) return null;
+      const url = cleanGameUrl(document.getElementById('inputGameUrl').value);
+      if (!url) return null;
+      const info = addLinkInfo && (addLinkInfo.url === url || addLinkInfo.typedUrl === url) ? addLinkInfo : { url };
+      const name = document.getElementById('inputGameName').value.trim();
+      return HubCore.findSameGame(Object.assign({}, info, { url, name: name || info.name }), state.games);
+    }
+    function renderSameGameNote() {
+      const note = document.getElementById('sameGameNote');
+      if (!note) return;
+      const m = sameGameForAddForm();
+      const url = cleanGameUrl(document.getElementById('inputGameUrl').value);
+      if (sameGameAskedFor && sameGameAskedFor !== url) sameGameAskedFor = '';
+      if (sameGameAskedFor) return; // already asked about this link: the note stays as it is
+      note.classList.remove('asking');
+      const show = Boolean(m && !m.sure);
+      note.classList.toggle('hidden', !show);
+      if (!show) return;
+      document.getElementById('sameGameText').textContent = `Already in your hub? ${SAME_GAME_WHY[m.reason](m.game, m)}`;
+      const btn = document.getElementById('btnOpenSameGame');
+      btn.textContent = `Open ${m.game.name}`;
+      btn.onclick = () => { closeAddModal(); openGameInPlayer(m.game.id); };
+    }
     let urlInputDebounceTimer = null;
     let prevUrlInputValue = '';
 
@@ -7509,6 +7555,10 @@
 
       lastAutoScrapedUrl = '';
       userEditedModalFields.clear();
+      addLinkInfo = null;
+      sameGameAskedFor = '';
+      document.getElementById('sameGameNote').classList.add('hidden');
+      document.getElementById('sameGameNote').classList.remove('asking');
       if (urlInputDebounceTimer) {
         clearTimeout(urlInputDebounceTimer);
         urlInputDebounceTimer = null;
@@ -9185,8 +9235,16 @@
         const quick = inferGameMetaFromUrl(cleaned);
         if (quick) applyScrapedMetaToModal(quick, forceUpdateUrlField);
         const scraped = await scrapeWebsiteMetadata(cleaned);
-        if (scraped) applyScrapedMetaToModal(scraped, forceUpdateUrlField);
+        if (scraped) {
+          applyScrapedMetaToModal(scraped, forceUpdateUrlField);
+          addLinkInfo = { url: scraped.url, typedUrl: scraped.typedUrl || cleaned, finalUrl: scraped.finalUrl, embeds: scraped.embeds || [], name: scraped.name };
+        }
+        renderSameGameNote();
       }
+      ['input', 'change'].forEach((t) => {
+        document.getElementById('inputGameUrl').addEventListener(t, renderSameGameNote);
+        document.getElementById('inputGameName').addEventListener(t, renderSameGameNote);
+      });
 
       document.getElementById('btnAutoDetectMeta').addEventListener('click', () => {
         triggerUrlScrape(document.getElementById('inputGameUrl').value, true, true);
@@ -9339,6 +9397,27 @@
             showToast(`${dupGame.name} is already in your hub`, 'No duplicate was added.', 'indigo');
             return;
           }
+          const same = sameGameForAddForm();
+          if (same && same.sure) {
+            closeAddModal();
+            showToast(`${same.game.name} is already in your hub`, 'That link leads to it. No duplicate was added.', 'indigo', null,
+              { actionLabel: 'Play', onAction: () => openGameInPlayer(same.game.id) });
+            return;
+          }
+          if (same && sameGameAskedFor !== url) {
+            // Asked in the form (a dialog would close it): Save again adds it as a separate game.
+            sameGameAskedFor = url;
+            const note = document.getElementById('sameGameNote');
+            note.classList.remove('hidden');
+            note.classList.add('asking');
+            document.getElementById('sameGameText').textContent =
+              `Already in your hub? ${SAME_GAME_WHY[same.reason](same.game, same)} Save again to add it as a separate game.`;
+            const btn = document.getElementById('btnOpenSameGame');
+            btn.textContent = `Open ${same.game.name}`;
+            btn.onclick = () => { closeAddModal(); openGameInPlayer(same.game.id); };
+            note.scrollIntoView({ block: 'center', behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
+            return;
+          }
           // Restore retained streaks & dayHistory if this game was previously removed
           const urlKey = normalizeUrlKey(url);
           const retained = (state.retainedGameStats && urlKey && state.retainedGameStats[urlKey])
@@ -9370,6 +9449,13 @@
             dayHistory: restoredHistory,
             statsBaseline: retained && retained.statsBaseline ? retained.statsBaseline : { played: 0, won: 0, best: 0 }
           };
+          // Its other links (the one typed when it led elsewhere) and the games shown inside its page,
+          // so the same game added later by another link is recognised (1.8.13).
+          if (addLinkInfo && (addLinkInfo.url === url || addLinkInfo.typedUrl === url)) {
+            const alt = [addLinkInfo.typedUrl, addLinkInfo.finalUrl].filter((u) => u && normalizeUrlKey(u) !== normalizeUrlKey(url));
+            if (alt.length) newGame.altUrls = [...new Set(alt)].slice(0, 4);
+            if (addLinkInfo.embeds && addLinkInfo.embeds.length) newGame.embeds = addLinkInfo.embeds.slice(0, 8);
+          }
           if (retained) {
             const oldSchedule = { resetTime: retained.resetTime, resetZone: HubCore.normalizeZone(retained.resetZone) };
             if (oldSchedule.resetTime !== resetTime || oldSchedule.resetZone !== resetZone) {

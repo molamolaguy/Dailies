@@ -121,7 +121,8 @@ var ld=q('script[type="application/ld+json"]').slice(0,5).map(function(s){return
 var lines=function(el){var out=[],w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),n;while((n=w.nextNode())&&out.length<200){var t=String(n.nodeValue||'').trim();if(t&&!/^(script|style|noscript)$/i.test(n.parentNode&&n.parentNode.nodeName))out.push(t);}return out.join('\n');};
 var help=q('[id*="help" i],[class*="help" i],[id*="how" i],[class*="how-to" i],[class*="howto" i],[id*="rules" i],[class*="rules" i],[id*="instructions" i],[class*="instructions" i],[id*="tutorial" i],[class*="tutorial" i]').slice(0,8).map(lines).join('\n');
 var text=((document.body&&document.body.innerText)||'')+'\nHow to play\n'+help;
-return JSON.stringify({title:document.title||'',url:location.href,meta:meta,ld:ld,text:text.replace(/[ \t ]+/g,' ').replace(/\n\s*\n+/g,'\n').slice(0,40000)});
+var frames=q('iframe[src]').filter(function(f){var r=f.getBoundingClientRect();return /^https?:/i.test(f.src)&&r.width>=150&&r.height>=150;}).slice(0,8).map(function(f){return String(f.src).slice(0,500);});
+return JSON.stringify({title:document.title||'',url:location.href,meta:meta,ld:ld,frames:frames,text:text.replace(/[ \t ]+/g,' ').replace(/\n\s*\n+/g,'\n').slice(0,40000)});
 }catch(e){return '{}';}})()"""
     }
 }

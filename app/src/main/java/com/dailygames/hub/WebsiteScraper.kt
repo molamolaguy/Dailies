@@ -53,7 +53,9 @@ data class PageExtras(
     /** The web-app manifest, if it could be read. */
     val manifest: JSONObject? = null,
     /** A reset zone read from the site's own script ("utc" or an IANA id), or null. */
-    val scriptZone: String? = null
+    val scriptZone: String? = null,
+    /** Big frames on the rendered page (a game shown inside another site), as absolute links. */
+    val frames: List<String> = emptyList()
 ) {
     val isEmpty: Boolean get() = renderedTitle.isBlank() && renderedText.isBlank() && renderedMeta.isEmpty() && jsonLd.isEmpty() && manifest == null && scriptZone == null
 
@@ -66,6 +68,7 @@ data class PageExtras(
             val ld = ArrayList<String>()
             json.optJSONArray("ld")?.let { a -> for (i in 0 until a.length()) a.optString(i).takeIf { it.isNotBlank() }?.let { ld += it } }
             return PageExtras(
+                frames = json.optJSONArray("frames")?.let { a -> (0 until a.length()).mapNotNull { a.optString(it).takeIf { u -> u.startsWith("http") } } }.orEmpty().take(8),
                 renderedTitle = json.optString("title").take(300),
                 renderedText = json.optString("text").take(40_000),
                 renderedMeta = meta,
@@ -265,6 +268,9 @@ object WebsiteScraper {
 
         val renderedUseful = extras.renderedText.length >= 40 || extras.renderedTitle.isNotBlank()
         result.put("parsed", parseHtmlMetadata(html, finalUrl, extras).toJson())
+        // Games shown inside this page (1.8.13): the hub asks before adding one it already has.
+        val embeds = embeddedGameLinks(html, finalUrl, extras.frames)
+        if (embeds.isNotEmpty()) result.put("embeds", JSONArray(embeds))
         result.put("rendered", renderedUseful)
         if (error != null && !renderedUseful) {
             result.put("ok", false)
@@ -273,6 +279,27 @@ object WebsiteScraper {
             result.put("ok", true)
         }
         return result
+    }
+
+    private val IFRAME_SRC = Regex("""<iframe\b[^>]*?\bsrc\s*=\s*["']([^"'<>]+)["']""", RegexOption.IGNORE_CASE)
+    private val NOT_A_GAME_FRAME = Regex("""(youtube|youtu\.be|vimeo|google\.com/maps|recaptcha|disqus|facebook|twitter|x\.com/|instagram|tiktok|spotify|soundcloud|consent|cookie)""", RegexOption.IGNORE_CASE)
+
+    /**
+     * Frames on a page that could be a game shown inside it (1.8.13): from its HTML and, when it was
+     * rendered, the big frames its scripts added. Ads, videos, maps and sign-in frames are left out.
+     */
+    fun embeddedGameLinks(html: String, pageUrl: String, rendered: List<String> = emptyList()): List<String> {
+        val base = runCatching { URI(pageUrl) }.getOrNull()
+        val out = LinkedHashSet<String>()
+        (IFRAME_SRC.findAll(html).map { it.groupValues[1].trim() } + rendered.asSequence()).forEach { raw ->
+            val abs = runCatching { if (base != null) base.resolve(raw.replace(" ", "%20")).toString() else raw }.getOrNull() ?: return@forEach
+            val u = runCatching { URI(abs) }.getOrNull() ?: return@forEach
+            val scheme = u.scheme?.lowercase(Locale.US)
+            if ((scheme != "http" && scheme != "https") || u.host.isNullOrBlank()) return@forEach
+            if (AD_SCRIPT_HOST.containsMatchIn(u.host) || NOT_A_GAME_FRAME.containsMatchIn(abs)) return@forEach
+            out += abs.take(500)
+        }
+        return out.take(8)
     }
 
     /**
