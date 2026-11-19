@@ -67,7 +67,9 @@ class HubActivity : ComponentActivity() {
 
     private var surfaceColor: Int = ThemePrefs.DEFAULT_SURFACE
     private val scrapeExecutor = Executors.newSingleThreadExecutor()
-    private val faviconCache by lazy { FaviconCache(File(filesDir, "favicons")) }
+    private val faviconCacheDelegate = lazy { FaviconCache(File(filesDir, "favicons")) }
+    private val faviconCache by faviconCacheDelegate
+    private var pageRenderer: PageRenderer? = null
 
     // ---- Activity Result API (replaces startActivityForResult / onActivityResult) ----
     private val gameLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
@@ -105,6 +107,7 @@ class HubActivity : ComponentActivity() {
         runJs("window.onScreenshotReading && window.onScreenshotReading()")
         ScreenshotReader.read(applicationContext, uri) { text ->
             runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
                 val arg = text?.take(4000)?.let { JSONObject.quote(it) } ?: "null"
                 runJs("window.onScreenshotText && window.onScreenshotText($arg, ${JSONObject.quote(source)})")
             }
@@ -682,6 +685,9 @@ class HubActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        pageRenderer?.cancel()
+        pageRenderer = null
+        if (faviconCacheDelegate.isInitialized()) faviconCache.shutdown()
         scrapeExecutor.shutdownNow()
         stateStore.close()
         if (::webView.isInitialized) {
@@ -918,6 +924,7 @@ class HubActivity : ComponentActivity() {
         @JavascriptInterface
         fun runAutoBackupNow() {
             Thread {
+                stateStore.flush()
                 AutoBackup.runIfDue(applicationContext, force = true)
                 runOnUiThread { pushAutoBackupStatus() }
             }.start()
@@ -1358,7 +1365,8 @@ class HubActivity : ComponentActivity() {
                     if (web && SafeHttp.isPublicHost(target?.host)) {
                         runOnUiThread {
                             if (isFinishing || isDestroyed) { renderDone.countDown(); return@runOnUiThread }
-                            PageRenderer(scaffoldRoot).render(url, RENDER_TIMEOUT_MS) { json ->
+                            val renderer = pageRenderer ?: PageRenderer(scaffoldRoot).also { pageRenderer = it }
+                            renderer.render(url, RENDER_TIMEOUT_MS) { json ->
                                 renderedJson = json
                                 renderDone.countDown()
                             }
@@ -1387,6 +1395,19 @@ class HubActivity : ComponentActivity() {
     companion object {
         /** The running hub, for reporting install progress from the package installer's callback. */
         @Volatile private var current: java.lang.ref.WeakReference<HubActivity>? = null
+
+        /** Launches Android's update confirmation from the foreground hub if resumed (avoids Android 14+ BAL blocks). */
+        fun launchUpdateConfirm(confirm: Intent): Boolean {
+            val a = current?.get() ?: return false
+            if (a.isFinishing || a.isDestroyed || !a.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return false
+            a.runOnUiThread {
+                if (!a.isFinishing && !a.isDestroyed) {
+                    runCatching { a.startActivity(confirm) }
+                        .onFailure { UpdateInstaller.postConfirmNotification(a.applicationContext, confirm) }
+                }
+            }
+            return true
+        }
 
         /** Tells the hub page how an in-app update is going (state: downloading / installing / permission / error). */
         fun reportUpdateStatus(state: String, percent: Int, message: String?) {

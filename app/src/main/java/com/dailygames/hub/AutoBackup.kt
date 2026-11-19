@@ -128,7 +128,7 @@ object AutoBackup {
         val p = prefs(ctx)
         if (!force && !isDue(p.getLong(KEY_LAST_AT, 0L), nowMs)) return false
         val now = Date(nowMs)
-        val state = HubStateStore(File(ctx.filesDir, HubStateStore.FILE_NAME)).read()
+        val state = HubStateStore.readSnapshot(File(ctx.filesDir, HubStateStore.FILE_NAME))
         val version = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull() ?: ""
         val content = payload(state, version, now)
         if (content == null) {

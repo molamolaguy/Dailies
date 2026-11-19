@@ -22,6 +22,7 @@ mkdirSync(join(out, 'icons'), { recursive: true });
 
 const copies = [
   [join(assets, 'hub-core.js'), 'hub-core.js'],
+  [join(assets, 'hub-ui-helpers.js'), 'hub-ui-helpers.js'],
   [join(assets, 'known-games.js'), 'known-games.js'],
   [join(assets, 'app.css'), 'app.css'],
   [join(web, 'web.js'), 'web.js'],
@@ -33,8 +34,10 @@ for (const f of readdirSync(join(web, 'icons'))) copies.push([join(web, 'icons',
 for (const [from, to] of copies) cpSync(from, join(out, to));
 
 let html = readFileSync(join(assets, 'index.html'), 'utf8');
+const swSrc = readFileSync(join(web, 'sw.js'), 'utf8');
 const hash = createHash('sha256');
 hash.update(html);
+hash.update(swSrc);
 for (const [from] of copies) hash.update(readFileSync(from));
 const version = hash.digest('hex').slice(0, 12);
 const v = (path) => `${path}?v=${version}`;
@@ -54,12 +57,12 @@ const head = [
   `<script src="${v('web.js')}"></script>`
 ].map((l) => `  ${l}`).join('\n');
 
-const viewport = /(<meta name="viewport"[^>]*>\n)/;
+const viewport = /(<meta name="viewport"[^>]*>\r?\n)/;
 if (!viewport.test(html)) throw new Error('index.html: viewport meta not found');
 html = html.replace(viewport, `$1${head}\n`);
-for (const name of ['app.css', 'hub-core.js', 'known-games.js']) {
+for (const name of ['app.css', 'hub-core.js', 'hub-ui-helpers.js', 'known-games.js']) {
   const before = html;
-  html = html.replace(new RegExp(`(src|href)="${name.replace('.', '\\.')}"`, 'g'), `$1="${v(name)}"`);
+  html = html.replace(new RegExp(`(src|href)="${name.replaceAll('.', '\\.')}"`, 'g'), `$1="${v(name)}"`);
   if (html === before) throw new Error(`index.html: no reference to ${name}`);
 }
 if (/<title>[^<]*<\/title>/.test(html) === false) throw new Error('index.html: no <title>');
@@ -67,11 +70,11 @@ writeFileSync(join(out, 'index.html'), html);
 
 // The URLs the page really requests: versioned where index.html links them, plain where app.css
 // (fonts) or the manifest (icons) does.
-const versioned = ['app.css', 'hub-core.js', 'known-games.js', 'web.js', 'web.css', 'manifest.webmanifest',
+const versioned = ['app.css', 'hub-core.js', 'hub-ui-helpers.js', 'known-games.js', 'web.js', 'web.css', 'manifest.webmanifest',
   'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-180.png'];
 const plain = copies.map(([, to]) => to).filter((to) => (to.startsWith('fonts/') && to.endsWith('.woff2')) || to.startsWith('icons/'));
 const files = ['./', 'index.html', ...versioned.map(v), ...plain];
-const sw = readFileSync(join(web, 'sw.js'), 'utf8')
+const sw = swSrc
   .replace('__VERSION__', version)
   .replace('__FILES__', JSON.stringify(files, null, 2));
 writeFileSync(join(out, 'sw.js'), sw);

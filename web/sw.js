@@ -9,7 +9,11 @@ const CACHE = `dailies-${VERSION}`;
 const FILES = __FILES__;
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((c) => c.addAll(FILES.map((u) => new Request(u, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -22,14 +26,22 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   if (req.mode === 'navigate') {
+    const cachedShell = () => caches.open(CACHE).then((c) => c.match('./').then((r) => r || c.match('./index.html')));
     event.respondWith(fetch(req).then((res) => {
-      if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put('./', copy)); }
-      return res;
-    }).catch(() => caches.match('./').then((r) => r || caches.match('./index.html'))));
+      if (res.ok) {
+        const copy = res.clone();
+        event.waitUntil(caches.open(CACHE).then((c) => c.put('./', copy)));
+        return res;
+      }
+      return cachedShell().then((r) => r || res);
+    }).catch(cachedShell));
     return;
   }
-  event.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-    if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
+  event.respondWith(caches.open(CACHE).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => {
+    if (res.ok) {
+      const copy = res.clone();
+      event.waitUntil(c.put(req, copy));
+    }
     return res;
-  })));
+  }))));
 });

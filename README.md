@@ -2,7 +2,7 @@
 
 **One home for every daily web puzzle you play.** An Android app with no account and no tracking.
 
-**[Download the latest APK](../../releases/latest)** · Android 7.0+ · **[Open the web app](https://molamolaguy.github.io/Dailies/)** (iPhone, iPad and any browser) · [Release notes](RELEASE_NOTES.md) · [How it works](GUIDE.md)
+**[Download the latest APK](https://github.com/molamolaguy/Dailies/releases/latest)** · Android 7.0+ · **[Open the web app](https://molamolaguy.github.io/Dailies/)** (iPhone, iPad and any browser) · [Release notes](RELEASE_NOTES.md) · [How it works](GUIDE.md)
 
 <p>
   <img src="design/screens-readme/1-hub.png" width="200" alt="The hub: today's games with reset countdowns, streaks and Play next">
@@ -16,14 +16,14 @@
 - **Alerts you** when a new puzzle is out, and can remind you before a streak is lost.
 - **Plays games ad-free** in a built-in player.
 - **Logs results automatically**: it reads the result from a game's end screen, or when you tap its Share button.
-- **Keeps your streaks and stats**: a calendar, win rate, play times, personal bests, achievements and a monthly recap.
+- **Keeps your streaks and stats**: a calendar, win rate, play times, personal bests, achievements and weekly and monthly recaps.
 - **Reads results from screenshots** for games without a Share button.
 - **Light or dark**, with your wallpaper's colors.
 - **Keeps your data on your phone**: no server, no analytics. Back up by hand or weekly to a folder you choose, or export a `.csv`.
 - **Share your games** with a friend as a link or QR code.
 
 ## Install
-1. On your phone, open the [latest release](../../releases/latest) and download `Dailies-<version>.apk`.
+1. On your phone, open the [latest release](https://github.com/molamolaguy/Dailies/releases/latest) and download `Dailies-<version>.apk`.
 2. Open the file and allow installing when Android asks.
 
 Updates are signed with the same key, so they install over the previous version and keep your data.

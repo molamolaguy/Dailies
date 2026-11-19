@@ -16,6 +16,7 @@ object GameListCodec {
     private const val PREFIX = "dailies://add?v=1&d="
     private const val MAX_GAMES = 100
     private const val MAX_JSON = 64 * 1024
+    private const val MAX_ENCODED = 40000
     private val LINK_RE = Regex("""dailies://add\?v=1&d=([A-Za-z0-9_-]{8,40000})""")
 
     /** [gamesJson]: [{name,url,resetTime,resetZone}] → link, or null if nothing usable. */
@@ -31,13 +32,23 @@ object GameListCodec {
         }
         if (out.length() == 0) return null
         val raw = out.toString().toByteArray(Charsets.UTF_8)
+        if (raw.size > MAX_JSON) return null
         val deflater = Deflater(Deflater.BEST_COMPRESSION, true)
-        deflater.setInput(raw)
-        deflater.finish()
-        val buf = ByteArray(raw.size + 64)
-        val n = deflater.deflate(buf)
-        deflater.end()
-        return PREFIX + b64UrlEncode(buf.copyOf(n))
+        val compressed = ByteArrayOutputStream()
+        try {
+            deflater.setInput(raw)
+            deflater.finish()
+            val buf = ByteArray(4096)
+            while (!deflater.finished()) {
+                val n = deflater.deflate(buf)
+                if (n > 0) compressed.write(buf, 0, n) else break
+            }
+        } finally {
+            deflater.end()
+        }
+        val encoded = b64UrlEncode(compressed.toByteArray())
+        if (encoded.length > MAX_ENCODED) return null
+        return PREFIX + encoded
     }
 
     /** Finds a list link in [text] (a link, or a message containing one) → [{name,url,resetTime,resetZone}] JSON. */

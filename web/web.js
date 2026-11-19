@@ -42,6 +42,7 @@
   window.DailiesWeb = {
     isStandalone: () => Boolean((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone),
     openGame(id, url) {
+      if (!/^https?:/i.test(String(url || '').trim())) return;
       writePending({ id: String(id), openedAt: Date.now(), left: false });
       window.open(url, '_blank', 'noopener,noreferrer');
     }
@@ -80,6 +81,7 @@
     return ios && !window.DailiesWeb.isStandalone();
   }
   function showHint() {
+    if (!document.body) return;
     if (store.get(HINT_KEY) || window.DailiesWeb.isStandalone() || document.getElementById('webInstallHint')) return;
     if (!deferredPrompt && !isIosSafari()) return;
     const bar = document.createElement('div');

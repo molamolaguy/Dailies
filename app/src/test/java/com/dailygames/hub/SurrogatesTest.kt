@@ -28,5 +28,6 @@ class SurrogatesTest {
         assertNull(Surrogates.forUrl("https://example.com/ga.js"))
         assertNull(Surrogates.forUrl("https://sentry-cdn.com.evil.net/x.png"))
         assertNull(Surrogates.forUrl("https://ads.example.com/banner.js"))
+        assertNull(Surrogates.forUrl("https://example.com/app.js?ref=https://www.googletagmanager.com/gtag/js"))
     }
 }

@@ -655,7 +655,7 @@
   const TIME_MINUTES_RE = /(?<![A-Za-z0-9_.])([0-9]{1,3})[ \t\u00A0]*min(?:ute)?s?(?![A-Za-z0-9_])/i;
   const POINTS_RE = /(?<![A-Za-z0-9_#.,\-\u2212])([-\u2212]?)([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]{1,7}(?:\.[0-9]+)?)[ \t\u00A0]*(pts|points?|xp|m|meters?|metres?|km|%)(?![A-Za-z0-9_])/i;
   // "38,412/50,000" (TimeGuessr, FoodGuessr): a points total out of a maximum.
-  const POINTS_OF_RE = /(?<![0-9.,\/])([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,7})[ \t\u00A0]*\/[ \t\u00A0]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,7})(?![0-9\/])/;
+  const POINTS_OF_RE = /(?<![0-9.,\/])([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})[ \t\u00A0]*\/[ \t\u00A0]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,7})(?![0-9\/])/;
   // A unit-less "m" is minutes ("58m"), unless it reads as a distance (Krillion's "4,250m" depth).
   const DISTANCE_CONTEXT_RE = /depth|deep|dive|metre|meter|distance|krillion/i;
   const GOLF_CONTEXT_RE = /\u26F3|golf|strokes?|(?<![A-Za-z])par(?![A-Za-z])/i;
@@ -707,6 +707,7 @@
     if (m) {
       const unit = m[2].toLowerCase().replace(/^(guess)(es)?$/, 'guesses').replace(/^(tries|try)$/, 'tries')
         .replace(/^attempts?$/, 'attempts').replace(/^moves?$/, 'moves').replace(/^mistakes?$/, 'mistakes')
+        .replace(/^swaps?$/, 'swaps').replace(/^clicks?$/, 'clicks').replace(/^steps?$/, 'steps')
         .replace(/^strokes?$/, 'strokes').replace(/^shots?$/, 'shots').replace(/^hints?$/, 'hints');
       const n = Number(m[1]);
       return { kind: 'count', n, unit, group: `c:${unit}`, rank: n, label: `${n} ${unit}` };
@@ -769,6 +770,17 @@
    * The solved rows' scores of the kind this game mostly uses (its most common group), so a game
    * that shows "60" one day and "#117" the next only compares its points.
    */
+  function maxOf(iter, init) {
+    let best = init;
+    for (const v of iter) { if (v > best) best = v; }
+    return best;
+  }
+  function minOf(iter, init) {
+    let best = init;
+    for (const v of iter) { if (v < best) best = v; }
+    return best;
+  }
+
   function dominantScores(rows) {
     const vals = (Array.isArray(rows) ? rows : [])
       .filter((r) => r && r.outcome === 'Completed')
@@ -778,7 +790,7 @@
     const counts = new Map();
     vals.forEach((v) => counts.set(v.group, (counts.get(v.group) || 0) + 1));
     // A tie goes to the kind of the most recent result.
-    const top = Math.max(...counts.values());
+    const top = maxOf(counts.values(), -Infinity);
     let group = null;
     for (let i = vals.length - 1; i >= 0; i--) if (counts.get(vals[i].group) === top) { group = vals[i].group; break; }
     return { group, values: vals.filter((v) => v.group === group) };
@@ -827,7 +839,7 @@
     const played = won + missed;
     const out = {
       won, missed, played, winRate: played ? Math.round((won / played) * 100) : null, avg: null, max: null, avgText: null,
-      fastestMs: times.length ? Math.min(...times) : null,
+      fastestMs: times.length ? minOf(times, Infinity) : null,
       avgMs: times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null,
       timed: times.length
     };
@@ -860,13 +872,29 @@
     // Best score in the same terms: fewest guesses (same N/M), fastest game time, most points.
     const sc = parseResultValue(row.score);
     if (sc) {
-      const earlier = prev.map((r) => parseResultValue(r.score)).filter((p) => p && p.group === sc.group);
-      if (earlier.length && sc.rank < Math.min(...earlier.map((p) => p.rank))) out.push({ kind: 'score', value: sc.label });
+      let bestPrevRank = Infinity;
+      let hasEarlier = false;
+      for (const r of prev) {
+        const p = parseResultValue(r.score);
+        if (p && p.group === sc.group) {
+          hasEarlier = true;
+          if (p.rank < bestPrevRank) bestPrevRank = p.rank;
+        }
+      }
+      if (hasEarlier && sc.rank < bestPrevRank) out.push({ kind: 'score', value: sc.label });
     }
     const t = Number(row.timeMs);
     if (t > 0) {
-      const earlierT = prev.map((r) => Number(r.timeMs)).filter((x) => x > 0);
-      if (earlierT.length && t < Math.min(...earlierT)) out.push({ kind: 'time', value: formatDuration(t) });
+      let bestPrevTime = Infinity;
+      let hasEarlierT = false;
+      for (const r of prev) {
+        const x = Number(r.timeMs);
+        if (x > 0) {
+          hasEarlierT = true;
+          if (x < bestPrevTime) bestPrevTime = x;
+        }
+      }
+      if (hasEarlierT && t < bestPrevTime) out.push({ kind: 'time', value: formatDuration(t) });
     }
     const streak = Number(row.streak) || 0;
     if (streak >= 3 && streak > (Number(prevBestStreak) || 0)) out.push({ kind: 'streak', value: streak });
@@ -881,7 +909,7 @@
     let best = null;
     dom.values.forEach((v) => { if (!best || v.rank < best.rank) best = v; });
     const times = solved.map((r) => Number(r.timeMs)).filter((x) => x > 0 && Number.isFinite(x));
-    return { bestScore: best ? best.label : null, bestKind: best ? best.kind : null, fastestMs: times.length ? Math.min(...times) : null, bestStreak: Number(bestStreak) || 0 };
+    return { bestScore: best ? best.label : null, bestKind: best ? best.kind : null, fastestMs: times.length ? minOf(times, Infinity) : null, bestStreak: Number(bestStreak) || 0 };
   }
 
   // ---- Achievements (1.5.0: two tiers each) ----
@@ -994,12 +1022,14 @@
       } catch (e) {}
     });
     const clutch = solved.map((r) => parseScore(r.score)).filter((p) => p && !p.fail && p.max >= 4 && p.n === p.max).length;
+    let dawnPatrol = 0;
+    for (const s of dawn.values()) { if (s.size > dawnPatrol) dawnPatrol = s.size; }
     return {
       firstInLine,
       nightShift,
       clutch,
-      dawnPatrol: Math.max(0, ...[...dawn.values()].map((s) => s.size)),
-      deepDive: Math.max(0, ...playByDay.values())
+      dawnPatrol,
+      deepDive: maxOf(playByDay.values(), 0)
     };
   }
 
@@ -1122,15 +1152,26 @@
     });
     const active = gs.filter((g) => !g.archived);
     const activeDays = trackedDays(active);
+    let maxStreak = 0;
+    for (const g of gs) {
+      const s = Math.max(Number(g.bestStreak) || 0, Number(g.streak) || 0);
+      if (s > maxStreak) maxStreak = s;
+    }
+    for (const r of rows) {
+      const s = Number(r.streak) || 0;
+      if (s > maxStreak) maxStreak = s;
+    }
+    let variety = 0;
+    for (const set of byDay.values()) { if (set.size > variety) variety = set.size; }
     return {
       solves: solvedRows.length,
       gamesSolved: new Set(solvedRows.map(gameKey)).size,
-      streak: Math.max(0, ...gs.map((g) => Math.max(Number(g.bestStreak) || 0, Number(g.streak) || 0)), ...rows.map((r) => Number(r.streak) || 0)),
+      streak: maxStreak,
       perfectDays: perfectRun(active, activeDays),
-      variety: Math.max(0, ...[...byDay.values()].map((set) => set.size)),
+      variety,
       lucky: guess.filter((p) => p.max >= 5 && p.n <= 2).length,
       holeInOne: guess.filter((p) => p.max >= 3 && p.n === 1).length,
-      fastest: times.length ? Math.min(...times) : Infinity,
+      fastest: times.length ? minOf(times, Infinity) : Infinity,
       games: gs.length,
       early,
       late,
@@ -1266,10 +1307,12 @@
     try { curMisfits = misfitDays(obs, curTime, curZone); } catch (e) { return null; }
     if (curMisfits < 2) return null;
     // Puzzle n is live from B + n days: every result narrows B. Too wide (or inconsistent) means no answer.
+    // Allow 60 min DST slack in the coarse pre-filter; resetFitsObservations() checks exact zone rules.
     let lo = -Infinity;
     let hi = Infinity;
     obs.forEach((o) => { lo = Math.max(lo, o.at - (o.n + 1) * DAY_MS); hi = Math.min(hi, o.at - o.n * DAY_MS); });
-    if (!(hi > lo) || hi - lo > 90 * 60000) return null;
+    const DST_SLACK = 60 * 60000;
+    if (hi + DST_SLACK <= lo || hi - lo > 90 * 60000 + DST_SLACK) return null;
     const fits = [];
     const seen = new Set();
     const consider = (t, z) => {
@@ -1338,12 +1381,16 @@
     const solved = rows.filter((r) => r.outcome === 'Completed');
     const per = new Map();
     rows.forEach((r) => {
-      const name = r.gameName || '';
-      if (!name) return;
-      const e = per.get(name) || { name, results: 0, solved: 0 };
+      const key = r.gameId || r.gameName || '';
+      if (!key) return;
+      const e = per.get(key) || { name: r.gameName || key, latestDate: r.date || '', results: 0, solved: 0 };
+      if (r.gameName && (!e.latestDate || (r.date && r.date >= e.latestDate))) {
+        e.name = r.gameName;
+        if (r.date) e.latestDate = r.date;
+      }
       e.results += 1;
       if (r.outcome === 'Completed') e.solved += 1;
-      per.set(name, e);
+      per.set(key, e);
     });
     let topGame = null;
     let bestGame = null;
@@ -1362,13 +1409,18 @@
       if (!best || ratio < best.ratio || (ratio === best.ratio && p.n < best.n)) best = { ratio, n: p.n, game: r.gameName || '', score: `${p.n}/${p.max}` };
     });
     const timeMs = solved.reduce((a, r) => a + (Number(r.timeMs) > 0 ? Number(r.timeMs) : 0), 0);
+    let bestStreak = 0;
+    for (const r of rows) {
+      const s = Number(r.streak) || 0;
+      if (s > bestStreak) bestStreak = s;
+    }
     return {
       from: fromKey,
       to: toKey,
       results: rows.length,
       solved: solved.length,
       winRate: rows.length ? Math.round((solved.length / rows.length) * 100) : null,
-      bestStreak: Math.max(0, ...rows.map((r) => Number(r.streak) || 0)),
+      bestStreak,
       bestResult: best ? { game: best.game, score: best.score } : null,
       topGame,
       bestGame: bestGame ? { name: bestGame.name, solved: bestGame.solved, results: bestGame.results } : null,
@@ -1392,11 +1444,6 @@
     return n % 2 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
   }
 
-  /**
-   * Days a game went much worse than usual: Map date -> { label, typical }. Uses the kind of score the
-   * game mostly logs and needs five of them. Guesses: two or more above the median; times and counts:
-   * at least 1.75x the median; points: half the median or less. At most the worst 15% of days.
-   */
   /**
    * How a game is scored, learned from its results (1.8.3): "6 guesses", "Fastest time", "Most points"
    * or "Fewest moves". Looks at the latest 20 results with a readable score (failed N/M grids count
@@ -1513,6 +1560,11 @@
     return out;
   }
 
+  /**
+   * Days a game went much worse than usual: Map date -> { label, typical }. Uses the kind of score the
+   * game mostly logs and needs five of them. Guesses: two or more above the median; times and counts:
+   * at least 1.75x the median; points: half the median or less. At most the worst 15% of days.
+   */
   function toughDays(rows) {
     const out = new Map();
     const vals = (Array.isArray(rows) ? rows : [])

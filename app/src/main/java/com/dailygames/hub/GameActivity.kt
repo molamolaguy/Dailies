@@ -75,7 +75,7 @@ class GameActivity : ComponentActivity() {
     private lateinit var webView: WebView
     private lateinit var progress: ProgressBar
     private lateinit var root: LinearLayout
-    private var gameId = ""
+    @Volatile private var gameId = ""
     private var gameUrl = ""
     /** Enabled only while there is page history or fullscreen to undo (predictive back, K1). */
     private val backCallback = object : OnBackPressedCallback(false) {
@@ -212,6 +212,7 @@ class GameActivity : ComponentActivity() {
         if (savedInstanceState != null) {
             openedAt = savedInstanceState.getLong(STATE_OPENED_AT, openedAt)
             capturedShare = savedInstanceState.getString(STATE_SHARE_TEXT)
+            capturedConfirmed = savedInstanceState.getBoolean(STATE_SHARE_CONFIRMED, false)
             capturedAt = savedInstanceState.getLong(STATE_SHARE_AT, 0L)
             foregroundMs = savedInstanceState.getLong(STATE_FOREGROUND_MS, 0L)
             openLogOnReturn = savedInstanceState.getBoolean(STATE_OPEN_LOG, false)
@@ -384,13 +385,18 @@ class GameActivity : ComponentActivity() {
                 dp(BAR_SIDE_PADDING) + sysBars.right,
                 dp(6)
             )
-            root.setPadding(0, 0, 0, maxOf(sysBars.bottom, ime.bottom))
-            // The "result saved" card follows the keyboard and the navigation bar.
-            donePrompt?.let { card ->
+            val bottomInset = maxOf(sysBars.bottom, ime.bottom)
+            root.setPadding(0, 0, 0, bottomInset)
+            // The floating cards and banner follow the keyboard and the navigation bar.
+            listOfNotNull(donePrompt, screenPrompt).forEach { card ->
                 (card.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
-                    lp.bottomMargin = dp(20) + maxOf(sysBars.bottom, ime.bottom)
+                    lp.bottomMargin = dp(20) + bottomInset
                     card.layoutParams = lp
                 }
+            }
+            (banner.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
+                lp.bottomMargin = dp(28) + bottomInset
+                banner.layoutParams = lp
             }
             WindowInsetsCompat.CONSUMED
         }
@@ -411,8 +417,6 @@ class GameActivity : ComponentActivity() {
     private var accentColors = intArrayOf(0, 0)
     private var donePrompt: View? = null
 
-    /** Builds the game WebView (also used to replace one whose renderer process went away). */
-    @SuppressLint("SetJavaScriptEnabled")
     /**
      * Dark theme + "Dark Game Pages": WebView darkens pages that don't offer a dark theme of their
      * own (pages that do, via prefers-color-scheme or color-scheme, keep their own design).
@@ -659,7 +663,6 @@ class GameActivity : ComponentActivity() {
      * same-site and sign-in pages stay in a dialog (so the opener keeps its window.opener link), a
      * tapped link to another site opens in the browser, anything else is dropped.
      */
-    @SuppressLint("SetJavaScriptEnabled")
     /** The site the popup is showing, for first-party checks in its ad blocking. */
     @Volatile private var popupHost: String? = null
 
@@ -691,14 +694,14 @@ class GameActivity : ComponentActivity() {
             if (scheme == "about" || scheme == "javascript" || scheme == null) return true
             decided = true
             if (scheme != "http" && scheme != "https") {
-                child.post { closePopup() }
+                container.post { closePopup() }
                 if (userGesture && scheme != "blob" && scheme != "data") launchExternalScheme(uri)
                 return false
             }
             return when (GamePlayerPolicy.popupAction(uri.host, uri.path, gameHost, userGesture)) {
                 GamePlayerPolicy.PopupAction.DIALOG -> { showPopupDialog(child, uri.host.orEmpty()); true }
-                GamePlayerPolicy.PopupAction.EXTERNAL -> { child.post { closePopup() }; viewExternally(uri); false }
-                GamePlayerPolicy.PopupAction.BLOCK -> { child.post { closePopup() }; onRequestBlocked(); false }
+                GamePlayerPolicy.PopupAction.EXTERNAL -> { container.post { closePopup() }; viewExternally(uri); false }
+                GamePlayerPolicy.PopupAction.BLOCK -> { container.post { closePopup() }; onRequestBlocked(); false }
             }
         }
         child.webViewClient = object : WebViewClient() {
@@ -736,7 +739,7 @@ class GameActivity : ComponentActivity() {
             }
 
             override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
-                child.post { closePopup() }
+                container.post { closePopup() }
                 return true
             }
         }
@@ -1111,11 +1114,13 @@ class GameActivity : ComponentActivity() {
         card.animate().translationY(0f).alpha(1f).setDuration(220).start()
         card.announceForAccessibility(getString(R.string.screen_result_title, gameName))
         screenPrompt = card
+        updateBackIntercept()
     }
 
     private fun hideScreenPrompt() {
         screenPrompt?.let { v -> (v.parent as? ViewGroup)?.removeView(v) }
         screenPrompt = null
+        updateBackIntercept()
     }
 
     /**
@@ -1238,10 +1243,12 @@ class GameActivity : ComponentActivity() {
     private fun showBanner(text: String) {
         if (!::banner.isInitialized) return
         banner.removeCallbacks(hideBanner)
+        banner.animate().cancel()
+        banner.animate().withEndAction(null)
         banner.text = text
         banner.alpha = 0f
         banner.visibility = View.VISIBLE
-        banner.animate().alpha(1f).setDuration(180).start()
+        banner.animate().alpha(1f).setDuration(180).withEndAction(null).start()
         banner.postDelayed(hideBanner, 3500)
     }
 
@@ -1296,7 +1303,9 @@ class GameActivity : ComponentActivity() {
         if (!engine.shouldBlock(s, firstPartyHost, type)) return null
         onRequestBlocked()
         // Ad libraries a game may call directly get a harmless stand-in so the game doesn't stall.
-        Surrogates.forUrl(s)?.let { js -> return scriptResponse(js) }
+        if (type == AdBlockEngine.RequestType.SCRIPT || type == AdBlockEngine.RequestType.OTHER) {
+            Surrogates.forUrl(s)?.let { js -> return scriptResponse(js) }
+        }
         return emptyResponse()
     }
 
@@ -1381,13 +1390,14 @@ class GameActivity : ComponentActivity() {
     }
 
     private fun updateBackIntercept() {
-        backCallback.isEnabled = customView != null || donePrompt != null || (::webView.isInitialized && webView.canGoBack())
+        backCallback.isEnabled = customView != null || donePrompt != null || screenPrompt != null || (::webView.isInitialized && webView.canGoBack())
     }
 
     private fun handleGameBackPress() {
         when {
             customView != null -> exitFullscreen()
             donePrompt != null -> hideDonePrompt()
+            screenPrompt != null -> hideScreenPrompt()
             ::webView.isInitialized && webView.canGoBack() -> webView.goBack()
             else -> finish()
         }
@@ -1438,6 +1448,7 @@ class GameActivity : ComponentActivity() {
         if (::webView.isInitialized) webView.saveState(outState)
         outState.putLong(STATE_OPENED_AT, openedAt)
         capturedShare?.let { outState.putString(STATE_SHARE_TEXT, it) }
+        outState.putBoolean(STATE_SHARE_CONFIRMED, capturedConfirmed)
         outState.putLong(STATE_SHARE_AT, capturedAt)
         outState.putLong(STATE_FOREGROUND_MS, foregroundMs + if (resumedAt > 0) SystemClock.elapsedRealtime() - resumedAt else 0L)
         outState.putBoolean(STATE_OPEN_LOG, openLogOnReturn)
@@ -1488,6 +1499,7 @@ class GameActivity : ComponentActivity() {
         zoomDialog = null
         fileChooserCallback?.onReceiveValue(null)
         fileChooserCallback = null
+        exitFullscreen()
         closePopup()
         if (::webView.isInitialized) {
             (webView.parent as? ViewGroup)?.removeView(webView)
@@ -1779,8 +1791,15 @@ class GameActivity : ComponentActivity() {
         pendingSave = null
         val uri = result.data?.data
         if (result.resultCode != RESULT_OK || uri == null || bytes == null) return@registerForActivityResult
-        val ok = runCatching { contentResolver.openOutputStream(uri)?.use { it.write(bytes) } != null }.getOrDefault(false)
-        showBanner(getString(if (ok) R.string.download_saved else R.string.download_failed))
+        val resolver = applicationContext.contentResolver
+        Thread({
+            val ok = runCatching { resolver.openOutputStream(uri)?.use { it.write(bytes) } != null }.getOrDefault(false)
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed) {
+                    showBanner(getString(if (ok) R.string.download_saved else R.string.download_failed))
+                }
+            }
+        }, "game-saf-write").start()
     }
 
     private fun suggestedName(contentDisposition: String?, mime: String): String {
@@ -1800,12 +1819,17 @@ class GameActivity : ComponentActivity() {
 
     private fun saveDataUrl(url: String, contentDisposition: String?, mimeType: String?) {
         if (url.length > MAX_DATA_URL_CHARS) { showBanner(DOWNLOAD_TOO_BIG); return }
-        val decoded = runCatching {
-            GamePlayerPolicy.decodeDataUrl(url) { android.util.Base64.decode(it, android.util.Base64.DEFAULT) }
-        }.getOrNull()
-        if (decoded == null) { showBanner(getString(R.string.download_failed)); return }
-        val mime = decoded.mime.ifBlank { mimeType.orEmpty() }.ifBlank { "application/octet-stream" }
-        promptSave(decoded.bytes, mime, suggestedName(contentDisposition, mime))
+        Thread({
+            val decoded = runCatching {
+                GamePlayerPolicy.decodeDataUrl(url) { android.util.Base64.decode(it, android.util.Base64.DEFAULT) }
+            }.getOrNull()
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                if (decoded == null) { showBanner(getString(R.string.download_failed)); return@runOnUiThread }
+                val mime = decoded.mime.ifBlank { mimeType.orEmpty() }.ifBlank { "application/octet-stream" }
+                promptSave(decoded.bytes, mime, suggestedName(contentDisposition, mime))
+            }
+        }, "game-dataurl-decode").start()
     }
 
     /**
@@ -1978,6 +2002,7 @@ class GameActivity : ComponentActivity() {
         private const val MAX_LINEUP = 200
         private const val STATE_OPENED_AT = "state_opened_at"
         private const val STATE_SHARE_TEXT = "state_share_text"
+        private const val STATE_SHARE_CONFIRMED = "state_share_confirmed"
         private const val STATE_SHARE_AT = "state_share_at"
         private const val STATE_FOREGROUND_MS = "state_foreground_ms"
         private const val STATE_OPEN_LOG = "state_open_log"

@@ -377,7 +377,7 @@
     <section id="viewSettings" class="tab-page hidden space-y-4" aria-hidden="true" inert>
       <!-- 1. Display Settings -->
       <!-- 1.9.2: each section is a box that opens in place, one at a time. -->
-      <div data-fold="display" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="display" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-palette section-icon" aria-hidden="true"></span>Display</span>
@@ -502,7 +502,7 @@
       </div>
 
       <!-- 2. Gameplay, Streaks & Local Time Settings -->
-      <div data-fold="gameplay" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="gameplay" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div class="min-w-0">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -573,7 +573,7 @@
       </div>
 
       <!-- Game Player: share capture + ad blocking -->
-      <div data-fold="player" data-fold-default="open" class="android-only glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="player" class="android-only glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-shield section-icon" aria-hidden="true"></span>Game Player</span>
@@ -633,7 +633,7 @@
       </div>
 
       <!-- 3. Daily Game Refresh Notification Engine -->
-      <div data-fold="alerts" data-fold-default="open" class="android-only glass-card rounded-2xl p-4 border border-indigo-500/30">
+      <div data-fold="alerts" class="android-only glass-card rounded-2xl p-4 border border-indigo-500/30">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800">
           <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -666,7 +666,7 @@
       </div>
 
       <!-- 4. Data & Backup Management -->
-      <div data-fold="data" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="data" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-save section-icon" aria-hidden="true"></span>Data &amp; Backup</h3>
           <p class="text-xs text-slate-400">Export or import your backup file.</p>
@@ -698,7 +698,7 @@
       </div>
 
       <!-- Archived games -->
-      <div data-fold="archived" data-fold-default="open" id="archivedCard" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="archived" id="archivedCard" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white">Archived Games</h3>
           <p class="text-xs text-slate-400">Hidden from the hub, with no alerts. Their history and stats are kept.</p>
@@ -707,7 +707,7 @@
       </div>
 
       <!-- 5. About & updates -->
-      <div data-fold="about" data-fold-default="open" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="about" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
         <div>
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-info section-icon" aria-hidden="true"></span>About</h3>
           <p id="aboutVersion" class="text-xs text-slate-400">Dailies</p>
@@ -1232,30 +1232,6 @@
     </div>
   </div>
 
-  <div id="modalBulkTime" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalBulkTimeTitle">
-    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl overflow-hidden">
-      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-        <h3 id="modalBulkTimeTitle" class="text-sm sm:text-base font-bold text-white">Change reset time</h3>
-        <button id="btnCloseBulkTime" type="button" data-close-modal="modalBulkTime" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
-      </div>
-      <div class="p-4 space-y-3 text-xs">
-        <p id="bulkTimeSub" class="text-slate-300">For the selected games.</p>
-        <div class="flex items-center gap-2">
-          <input id="bulkTimeInput" type="time" value="00:00" aria-label="Reset time" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm" />
-          <select id="bulkZoneSelect" aria-label="Time zone" class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm">
-            <option value="keep">Keep each game's zone</option>
-            <option value="local">My local time</option>
-            <option value="utc">UTC</option>
-          </select>
-        </div>
-        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-          <button type="button" data-close-modal="modalBulkTime" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-semibold">Cancel</button>
-          <button id="btnApplyBulkTime" type="button" class="px-5 py-2 rounded-xl bg-indigo-600 text-white font-bold">Apply</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div id="modalShareList" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalShareListTitle">
     <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl overflow-hidden">
       <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
@@ -1288,18 +1264,6 @@
           <button id="btnImportListAdd" type="button" class="px-5 py-2 rounded-xl bg-indigo-600 text-white font-bold">Add games</button>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Bulk edit bar (Select mode on the hub) -->
-  <div id="bulkBar" class="bulk-bar hidden" role="toolbar" aria-label="Selected games">
-    <p id="bulkCount" class="bulk-count">0 selected</p>
-    <div class="bulk-actions">
-      <button type="button" data-bulk="alerts-on"><span class="ico ico-bell" aria-hidden="true"></span>Alerts on</button>
-      <button type="button" data-bulk="alerts-off"><span class="ico ico-bell_off" aria-hidden="true"></span>Alerts off</button>
-      <button type="button" data-bulk="time"><span class="ico ico-schedule" aria-hidden="true"></span>Reset time</button>
-      <button type="button" data-bulk="archive"><span class="ico ico-save" aria-hidden="true"></span>Archive</button>
-      <button type="button" data-bulk="done" class="bulk-done">Done</button>
     </div>
   </div>
 
@@ -1369,6 +1333,7 @@
   </nav>
 
   <script src="hub-core.js"></script>
+  <script src="hub-ui-helpers.js"></script>
   <script src="known-games.js"></script>
   <script>
     // =========================================================================
@@ -1578,69 +1543,13 @@
       return HubCore.recomputeGameStatsFromHistory(game);
     }
 
-    const REMINDER_MINUTES = [0, 30, 60, 120, 180, 360];
+    const REMINDER_MINUTES = HubUiHelpers.REMINDER_MINUTES;
     function normalizeReminderMinutes(v) {
-      const n = Number(v);
-      return v !== undefined && v !== null && v !== '' && REMINDER_MINUTES.includes(n) ? n : -1;
+      return HubUiHelpers.normalizeReminderMinutes(v);
     }
 
     function normalizeGameObject(g, idx) {
-      if (!g || typeof g !== 'object') return null;
-      const cleanedUrl = cleanGameUrl(g.url);
-      if (!cleanedUrl) return null;
-      try {
-        const u = new URL(cleanedUrl);
-        if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
-      } catch (e) {
-        return null;
-      }
-      const resetTime = HubCore.sanitizeResetTime(g.resetTime);
-      const resetZone = HubCore.normalizeZone(g.resetZone);
-      const cleanHistory = HubCore.cleanDayHistory(g.dayHistory);
-
-      const norm = {
-        id: String(g.id || ('game-' + idx + '-' + Date.now().toString(36))).trim(),
-        name: String(g.name || 'Daily Game').trim().slice(0, 80) || 'Daily Game',
-        url: cleanedUrl,
-        icon: isImageIcon(g.icon) ? String(g.icon).trim() : getDefaultFaviconUrl(cleanedUrl),
-        category: String(g.category || 'Custom Daily'),
-        resetTime,
-        resetZone,
-        maxTries: String(g.maxTries || 'Daily Puzzle'),
-        // A learned score format the user undid (1.8.3), so it isn't set again.
-        scoreFormatDeclined: typeof g.scoreFormatDeclined === 'string' ? g.scoreFormatDeclined.slice(0, 40) : '',
-        desc: String(g.desc || ''),
-        notifyEnabled: g.notifyEnabled !== false,
-        // Streak reminder lead for this game: -1 = the app-wide setting, 0 = never, else minutes.
-        reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
-        status: (g.status === 'completed' || g.status === 'missed') ? g.status : 'ready',
-        todayScore: typeof g.todayScore === 'string' ? g.todayScore : '',
-        streak: Math.max(0, parseInt(g.streak, 10) || 0),
-        bestStreak: Math.max(0, parseInt(g.bestStreak, 10) || 0),
-        totalPlayed: Math.max(0, parseInt(g.totalPlayed, 10) || 0),
-        totalWon: Math.max(0, parseInt(g.totalWon, 10) || 0),
-        lastCycleKey: /^\d{4}-\d{2}-\d{2}$/.test(String(g.lastCycleKey || ''))
-          ? String(g.lastCycleKey)
-          : getCycleDateKey(resetTime, resetZone),
-        dayHistory: cleanHistory,
-        addedCycleKey: HubCore.DATE_KEY_RE.test(String(g.addedCycleKey || '')) ? String(g.addedCycleKey) : undefined,
-        statsBaseline: (g.statsBaseline && typeof g.statsBaseline === 'object') ? g.statsBaseline : undefined,
-        archived: g.archived === true ? true : undefined,
-        dismissedResetSuggestion: typeof g.dismissedResetSuggestion === 'string' ? g.dismissedResetSuggestion.slice(0, 60) : undefined,
-        notes: typeof g.notes === 'string' && g.notes.trim() ? g.notes.slice(0, 2000) : undefined,
-        playTime: (g.playTime && HubCore.DATE_KEY_RE.test(String(g.playTime.key || '')) && Number(g.playTime.ms) > 0)
-          ? { key: String(g.playTime.key), ms: Math.min(Number(g.playTime.ms), 6 * 3600000) } : undefined
-      };
-      if (!norm.archived) delete norm.archived;
-      if (!norm.dismissedResetSuggestion) delete norm.dismissedResetSuggestion;
-      if (!norm.notes) delete norm.notes;
-      if (!norm.playTime) delete norm.playTime;
-      if (!norm.statsBaseline) delete norm.statsBaseline;
-      if (!norm.addedCycleKey) delete norm.addedCycleKey;
-      // Old saves kept bare counters; fold them into a one-time baseline so totals can go down again.
-      HubCore.ensureStatsBaseline(norm);
-      recomputeGameStatsFromHistory(norm);
-      return norm;
+      return HubUiHelpers.normalizeGameObject(g, idx);
     }
 
     /** A retained (deleted-game) snapshot, validated: null if unusable. */
@@ -1705,7 +1614,7 @@
         const played = Object.values(r.dayHistory || {}).filter((v) => v === 'completed').length;
         const when = retainedRemovedAt(r) ? new Date(retainedRemovedAt(r)).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
         return `<button type="button" class="removed-game" data-removed-id="${escapeHtml(r.id)}">
-          <img src="${escapeHtml(r.icon || getDefaultFaviconUrl(r.url))}" alt="" class="removed-icon" loading="lazy" referrerpolicy="no-referrer" />
+          ${renderGameIconHtml(r.icon || getDefaultFaviconUrl(r.url), r.name, 'removed-icon')}
           <span class="removed-text"><span class="removed-name">${escapeHtml(r.name)}</span>
           <span class="removed-sub">${escapeHtml([when && `Removed ${when}`, played ? `${played} solved` : '', r.bestStreak ? `best streak ${r.bestStreak}` : ''].filter(Boolean).join(' · '))}</span></span>
           <span class="removed-add">Add back</span></button>`;
@@ -1775,28 +1684,15 @@
 
     /** Moves a game's day keys (history, log rows, cycle anchor) when its reset definition changes. */
     function applyScheduleChange(g, from, to, logs) {
-      const shift = HubCore.scheduleKeyShift(from, to);
-      g.resetTime = to.resetTime;
-      g.resetZone = to.resetZone;
-      // Rows from older versions only carry the game's name.
-      const mineRows = (logs || []).filter((l) => l && (l.gameId ? l.gameId === g.id : l.gameName === g.name));
-      const moved = HubCore.rescheduleDays(g.dayHistory, mineRows, from, to);
-      const changed = moved.dates.some((d, i) => d !== mineRows[i].date)
-        || JSON.stringify(moved.dayHistory) !== JSON.stringify(g.dayHistory || {});
-      if (shift || changed) {
-        g.dayHistory = moved.dayHistory;
-        const todayKey = HubCore.getCycleDateKey(to.resetTime, to.resetZone, new Date());
-        const clamp = (k) => (k > todayKey ? todayKey : k);
-        if (HubCore.DATE_KEY_RE.test(String(g.lastCycleKey || ''))) {
-          g.lastCycleKey = clamp(HubCore.addDaysToCycleKey(g.lastCycleKey, shift));
+      const res = HubUiHelpers.applyScheduleChangeState(g, from, to, logs);
+      if (res.changed) {
+        if (Array.isArray(logs)) {
+          logs.length = 0;
+          for (let i = 0; i < res.logs.length; i++) logs.push(res.logs[i]);
         }
-        if (HubCore.DATE_KEY_RE.test(String(g.addedCycleKey || ''))) {
-          g.addedCycleKey = clamp(HubCore.addDaysToCycleKey(g.addedCycleKey, shift));
-        }
-        mineRows.forEach((l, i) => { l.date = moved.dates[i]; });
         invalidateLogIndex();
       }
-      return shift;
+      return res.shift;
     }
 
     function parseSavedState(raw) {
@@ -1987,13 +1883,14 @@
       later();
     }
     function flushPendingSave() {
-      if (saveQueued) flushSaveNow();
+      if (saveQueued) flushSaveNow({ syncNow: true });
+      else if (syncDebounceTimer) flushSyncNativeNow();
     }
     window.__flushPendingSave = flushPendingSave;
     window.addEventListener('pagehide', flushPendingSave);
     document.addEventListener('visibilitychange', () => { if (document.hidden) flushPendingSave(); });
 
-    function flushSaveNow() {
+    function flushSaveNow(opts) {
       saveQueued = false;
       if (state.__saveBlocked) {
         // The saved data isn't overwritten, but device settings (icon, theme, reminders) still apply.
@@ -2018,7 +1915,7 @@
         }
       }
       saveLaunchPrefs();
-      if (syncWanted === 'now') flushSyncNativeNow();
+      if (syncWanted === 'now' || (opts && opts.syncNow && (syncWanted || syncDebounceTimer))) flushSyncNativeNow();
       else if (syncWanted) scheduleSyncNative();
       syncWanted = false;
     }
@@ -2593,17 +2490,11 @@
     }
 
     function isImageIcon(icon) {
-      const s = String(icon || '').trim();
-      return /^https?:\/\//i.test(s) || /^data:image\//i.test(s);
+      return HubUiHelpers.isImageIcon(icon);
     }
 
     function getDefaultFaviconUrl(rawUrl) {
-      try {
-        const u = new URL(cleanGameUrl(rawUrl));
-        return `https://www.google.com/s2/favicons?sz=128&domain_url=${encodeURIComponent(u.origin)}`;
-      } catch (e) {
-        return '';
-      }
+      return HubUiHelpers.getDefaultFaviconUrl(rawUrl);
     }
 
     window.handleFaviconError = function (imgEl) {
@@ -2693,39 +2584,16 @@
     // URL PARSING & NATIVE SCRAPER INTEGRATION
     // =========================================================================
     function extractUrlCandidateFromText(raw) {
-      const s = String(raw || '').trim();
-      if (!s) return '';
-      const httpMatch = s.match(/https?:\/\/[^\s"'<>]+/i);
-      if (httpMatch) return trimUrlPunctuation(httpMatch[0]);
-      const domainMatch = s.match(/\b([a-z0-9-]+\.)+[a-z]{2,}(\/[^\s"'<>]*)?/i);
-      if (domainMatch) return trimUrlPunctuation(domainMatch[0]);
-      return s;
+      return HubUiHelpers.extractUrlCandidateFromText(raw);
     }
 
     /** Drops sentence punctuation stuck to a link in shared text ("…/connections)." -> "…/connections"). */
     function trimUrlPunctuation(u) {
-      let out = String(u || '');
-      for (;;) {
-        const last = out.slice(-1);
-        if (/[.,;:!?'"\]}>]/.test(last)) { out = out.slice(0, -1); continue; }
-        // A closing bracket is part of the link only if it closes one opened inside it (Wikipedia-style).
-        if (last === ')' && (out.match(/\(/g) || []).length < (out.match(/\)/g) || []).length) { out = out.slice(0, -1); continue; }
-        return out;
-      }
+      return HubUiHelpers.trimUrlPunctuation(u);
     }
 
     function normalizeUrlKey(rawUrl) {
-      try {
-        let c = extractUrlCandidateFromText(rawUrl);
-        if (!c) return '';
-        if (!/^https?:\/\//i.test(c)) c = 'https://' + c;
-        const u = new URL(c);
-        // "/games/wordle/index.html" and "/games/wordle/" are the same page as "/games/wordle".
-        return u.hostname.replace(/^www\./i, '').toLowerCase()
-          + u.pathname.replace(/\/index\.html?$/i, '').replace(/\/+$/, '');
-      } catch (e) {
-        return '';
-      }
+      return HubUiHelpers.normalizeUrlKey(rawUrl);
     }
 
     function findGameByUrl(rawUrl) {
@@ -2748,19 +2616,7 @@
     }
 
     function cleanGameUrl(rawUrl) {
-      let c = extractUrlCandidateFromText(rawUrl);
-      if (!c) return '';
-      if (!/^https?:\/\//i.test(c)) c = 'https://' + c;
-      try {
-        const u = new URL(c);
-        if (u.protocol !== 'http:' && u.protocol !== 'https:') return '';
-        if (!u.hostname || !u.hostname.includes('.')) return '';
-      } catch (e) {
-        return '';
-      }
-      // https unless the link explicitly says http:// (some small games are http-only). Stored in the
-      // browser's normal form (lower-case host, %-escapes decoded), so every check reads it the same way.
-      try { return new URL(c).href; } catch (e) { return c; }
+      return HubUiHelpers.cleanGameUrl(rawUrl);
     }
 
     function mapNativeCategoryToUiCategory(cat) {
@@ -3091,15 +2947,6 @@
           </button>
           <div id="doneSection" class="done-section ${isCompact ? 'space-y-1.5' : 'space-y-2.5'}"${collapsed ? ' hidden' : ''}>${collapsed ? '' : cardsHtml(sections.done)}</div>`;
       }
-      grid.classList.toggle('select-mode', selectMode);
-      if (selectMode) {
-        grid.querySelectorAll('[data-card-game-id]').forEach((card) => {
-          const id = card.getAttribute('data-card-game-id');
-          const on = selectedIds.has(id);
-          card.classList.toggle('selected', on);
-          card.insertAdjacentHTML('beforeend', `<button type="button" class="sel-cover" data-action="toggle-select" data-id="${escapeHtml(id)}" aria-pressed="${on}" aria-label="Select ${escapeHtml((state.games.find((g) => g.id === id) || {}).name || '')}"><span class="sel-box" aria-hidden="true"></span></button>`);
-        });
-      }
       if (!isCompact) {
         grid.querySelectorAll('.game-countdown').forEach((el) => {
           const id = el.getAttribute('data-game-id');
@@ -3161,65 +3008,6 @@
           <div class="info"><p class="name" dir="auto">${escapeHtml(g.name)}</p><p class="sub">Best streak ${escapeHtml(plural(g.bestStreak || 0, 'day'))} · ${escapeHtml(plural(g.totalPlayed || 0, 'result'))}</p></div>
           <button type="button" data-action="unarchive" data-id="${escapeHtml(g.id)}" class="toggle-chip off">Restore</button>
         </div>`).join('');
-    }
-
-    // ---- Select mode / bulk edit ----
-    let selectMode = false;
-    const selectedIds = new Set();
-    function setSelectMode(on) {
-      selectMode = Boolean(on);
-      selectedIds.clear();
-      const btn = document.getElementById('btnSelectMode');
-      if (btn) { btn.setAttribute('aria-pressed', String(selectMode)); btn.textContent = selectMode ? 'Cancel' : 'Select'; }
-      renderGamesGrid();
-      renderBulkBar();
-      syncBackInterceptState();
-    }
-    function renderBulkBar() {
-      const bar = document.getElementById('bulkBar');
-      if (!bar) return;
-      bar.classList.toggle('hidden', !selectMode);
-      const n = selectedIds.size;
-      const c = document.getElementById('bulkCount');
-      if (c) c.textContent = n ? `${n} selected` : 'Tap games to select them';
-      bar.querySelectorAll('[data-bulk]').forEach((b) => { if (b.dataset.bulk !== 'done') b.disabled = n === 0; });
-    }
-    function runBulk(kind) {
-      const ids = [...selectedIds];
-      const games = state.games.filter((g) => ids.includes(g.id));
-      if (kind === 'done') { setSelectMode(false); return; }
-      if (!games.length) return;
-      if (kind === 'alerts-on' || kind === 'alerts-off') {
-        const on = kind === 'alerts-on';
-        games.forEach((g) => { g.notifyEnabled = on; });
-        saveState();
-        showToast(on ? 'Alerts on' : 'Alerts off', `For ${plural(games.length, 'game')}.`, 'indigo');
-        setSelectMode(false);
-      } else if (kind === 'archive') {
-        setSelectMode(false);
-        setArchived(ids, true);
-      } else if (kind === 'time') {
-        const sub = document.getElementById('bulkTimeSub');
-        if (sub) sub.textContent = `New reset time for ${plural(games.length, 'game')}. Their history moves with it, like editing one game.`;
-        const t = document.getElementById('bulkTimeInput');
-        if (t) t.value = games[0].resetTime || '00:00';
-        openModal('modalBulkTime');
-      }
-    }
-    function applyBulkTime() {
-      const time = HubCore.sanitizeResetTime(document.getElementById('bulkTimeInput').value);
-      const zoneSel = document.getElementById('bulkZoneSelect').value;
-      const games = state.games.filter((g) => selectedIds.has(g.id));
-      games.forEach((g) => {
-        const from = { resetTime: g.resetTime, resetZone: g.resetZone };
-        const to = { resetTime: time, resetZone: zoneSel === 'keep' ? g.resetZone : zoneSel };
-        applyScheduleChange(g, from, to, state.historyLogs);
-        recomputeGameStatsFromHistory(g);
-      });
-      closeModal('modalBulkTime');
-      saveState();
-      showToast('Reset time changed', `${plural(games.length, 'game')} now reset at ${formatLocalResetTime(time, zoneSel === 'keep' ? (games[0] || {}).resetZone : zoneSel)}${zoneSel === 'keep' ? ' (in each game\'s zone)' : ''}.`, 'indigo');
-      setSelectMode(false);
     }
 
     // ---- Share a game list / add a friend's ----
@@ -3371,10 +3159,12 @@
           return;
         }
       } catch (e) {}
+      const url = URL.createObjectURL(new Blob([historyCsv()], { type: 'text/csv' }));
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([historyCsv()], { type: 'text/csv' }));
+      a.href = url;
       a.download = name;
       a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
     }
     window.onCsvSaved = function (ok) {
       if (ok) showToast('History exported', `${plural(state.historyLogs.length, 'result')} saved as a spreadsheet.`, 'emerald');
@@ -3408,7 +3198,7 @@
       const head = grid && grid.querySelector('.done-section-head');
       doneSectionOpen = !doneSectionOpen;
       haptic('tick');
-      if (!sec || !head || selectMode || hubSearch) { renderGamesGrid(); return; }
+      if (!sec || !head || hubSearch) { renderGamesGrid(); return; }
       head.setAttribute('aria-expanded', String(doneSectionOpen));
       const lbl = head.querySelector('.done-toggle-label');
       if (lbl) lbl.textContent = doneSectionOpen ? 'Hide' : 'Show';
@@ -3653,7 +3443,7 @@
         if (press || drag) { e.preventDefault(); return; }
         // A mouse right-click (web app on a computer) opens the quick actions too.
         const card = e.target.closest('[data-card-game-id]');
-        if (card && !selectMode) { e.preventDefault(); openGameActions(card.getAttribute('data-card-game-id')); }
+        if (card) { e.preventDefault(); openGameActions(card.getAttribute('data-card-game-id')); }
       });
       // A long press that turned into a drag must not also "tap" the button under the finger.
       grid.addEventListener('click', (e) => {
@@ -3673,15 +3463,7 @@
     // via Intl is too costly to redo for every game every second).
     const nextResetCache = new Map();
     function msUntilNextResetCached(g, now) {
-      // The device's UTC offset is part of the key: after a time-zone change (travel, or the user
-      // changing it) every cached reset moment is recomputed instead of counting down to the old one.
-      const sig = `${g.resetTime}|${g.resetZone}|${now.getTimezoneOffset()}`;
-      let c = nextResetCache.get(g.id);
-      if (!c || c.sig !== sig || now.getTime() >= c.at) {
-        c = { sig, at: HubCore.getNextResetDate(g.resetTime, g.resetZone, now).getTime() };
-        nextResetCache.set(g.id, c);
-      }
-      return Math.max(0, c.at - now.getTime());
+      return HubUiHelpers.msUntilNextResetCached(g, now, nextResetCache);
     }
 
     function updateLiveTimers() {
@@ -3917,6 +3699,7 @@
           haptic('tick');
         });
         setTimeout(() => {
+          if (closed) return;
           document.addEventListener('pointerdown', outside, true);
           window.addEventListener('scroll', onScroll, true);
         }, 0);
@@ -3926,8 +3709,8 @@
     }
 
     // ---- Folding cards (Settings headings, Achievements) ----
-    // A card with data-fold shows only its first child (the heading) while folded. Settings cards
-    // start open (data-fold-default="open"), Achievements folded; a choice lasts until the app closes.
+    // A card with data-fold shows only its first child (the heading) while folded. Settings sections
+    // open one at a time in place; Achievements starts folded and remembers its state until close.
     const foldState = new Map();
     // ---- Smoothness (1.6.2): work that can wait runs when the phone is idle ----
     // 1.8.4: work that can wait never runs while a finger is on the screen or a page is sliding. The
@@ -4206,18 +3989,14 @@
     }
 
     // ---- Hub order (1.6.0): Custom (drag to arrange), Next reset, A–Z or Least played ----
-    const HUB_SORTS = ['custom', 'reset', 'alpha', 'least'];
+    const HUB_SORTS = HubUiHelpers.HUB_SORTS;
     function hubSortMode() {
       const m = state.settings && state.settings.hubSort;
       return HUB_SORTS.includes(m) ? m : 'custom';
     }
     /** Visible games in the hub's order (the chosen sort, else the arranged order). */
     function hubOrder(list) {
-      const now = Date.now();
-      return HubCore.sortGames(list || visibleGames(), hubSortMode(), {
-        msUntilReset: (g) => msUntilNextResetCached(g, now),
-        playCount: (g) => Number(g.totalPlayed) || 0
-      });
+      return HubUiHelpers.hubOrder(list || visibleGames(), hubSortMode(), new Date(), nextResetCache);
     }
     /** Dragging or moving a card while a sort is on: the order on screen becomes the custom order. */
     function adoptSortAsCustom() {
@@ -4620,6 +4399,10 @@
         Object.keys(retained).forEach((k) => { if (retained[k] && retained[k].id === t.game.id) delete retained[k]; });
         state.historyLogs = state.historyLogs.filter((l) => !(l && l.gameId === t.game.id));
         invalidateLogIndex();
+      }
+      if (Array.isArray(state.recentChanges)) {
+        state.recentChanges = state.recentChanges.filter((c) => !(c && c.kind === 'remove'
+          && ((t.changeId && c.id === t.changeId) || (t.game && c.game && c.game.id === t.game.id))));
       }
       state.trash = (state.trash || []).filter((x) => x.id !== t.id);
     }
@@ -5112,36 +4895,11 @@
     function applyRestoreGame(mode) {
       const g = restorePick;
       if (!g) return;
-      const rows = restoreBackup.logs.filter((l) => (l.gameId ? l.gameId === g.id : l.gameName === g.name));
-      let target = state.games.find((x) => x.id === g.id) || state.games.find((x) => normalizeUrlKey(x.url) === normalizeUrlKey(g.url));
-      const before = { rows: state.historyLogs.filter((l) => target && (l.gameId ? l.gameId === target.id : l.gameName === target.name)).map((r) => Object.assign({}, r)), game: target ? JSON.parse(JSON.stringify(target)) : null };
-      let added = 0;
-      if (!target) {
-        target = normalizeGameObject(JSON.parse(JSON.stringify(g)), state.games.length);
-        if (!target) return;
-        if (state.games.some((x) => x.id === target.id)) target.id = HubCore.uniqueId(target.id, new Set(state.games.map((x) => x.id)));
-        state.games.push(target);
-      }
-      const mine = (l) => (l.gameId ? l.gameId === target.id : l.gameName === target.name);
-      if (mode === 'replace') {
-        state.historyLogs = state.historyLogs.filter((l) => !mine(l));
-        target.dayHistory = {};
-      }
-      const have = new Set(state.historyLogs.filter(mine).map((l) => l.date));
-      rows.forEach((r) => {
-        if (have.has(r.date)) return;
-        state.historyLogs.push(Object.assign({}, r, { gameId: target.id, gameName: target.name }));
-        have.add(r.date);
-        added += 1;
-      });
-      if (!target.dayHistory || typeof target.dayHistory !== 'object') target.dayHistory = {};
-      Object.entries(g.dayHistory || {}).forEach(([k, v]) => {
-        if (HubCore.DATE_KEY_RE.test(k) && (v === 'completed' || v === 'missed') && (mode === 'replace' || !target.dayHistory[k])) target.dayHistory[k] = v;
-      });
-      state.historyLogs.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+      const res = HubUiHelpers.applyRestoreGameState(state, g, restoreBackup.logs, mode);
+      if (!res) return;
+      const { target, before, added, newGame } = res;
       invalidateLogIndex();
-      recomputeGameStatsFromHistory(target);
-      const changeId = recordChange({ kind: 'restore', gameId: target.id, name: target.name, detail: mode === 'replace' ? 'History replaced from a backup' : `${plural(added, 'day')} added from a backup`, before, newGame: !before.game });
+      const changeId = recordChange({ kind: 'restore', gameId: target.id, name: target.name, detail: mode === 'replace' ? 'History replaced from a backup' : `${plural(added, 'day')} added from a backup`, before, newGame });
       saveState();
       closeModal('modalRestoreGame');
       renderVisibleTab();
@@ -5150,14 +4908,8 @@
         { actionLabel: 'Undo', onAction: () => undoChange(changeId) });
     }
     function restoreRestoredGame(c) {
-      const game = state.games.find((x) => x.id === c.gameId);
-      if (!game) return false;
-      state.historyLogs = state.historyLogs.filter((l) => (l.gameId ? l.gameId !== game.id : l.gameName !== game.name)).concat(c.before.rows || []);
-      state.historyLogs.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-      if (c.newGame) state.games = state.games.filter((x) => x.id !== game.id);
-      else if (c.before.game) Object.assign(game, { dayHistory: c.before.game.dayHistory || {} });
+      if (!HubUiHelpers.restoreRestoredGameState(state, c)) return false;
       invalidateLogIndex();
-      if (!c.newGame) recomputeGameStatsFromHistory(game);
       saveState();
       renderVisibleTab();
       showToast('Restore undone', `${c.name} is back as it was.`, 'indigo');
@@ -5172,7 +4924,7 @@
       const all = document.getElementById('btnPlayAll');
       if (!all) return;
       const left = visibleGames().filter((g) => g.status === 'ready').length;
-      const show = Boolean(left >= 2 && !selectMode && nextGameToPlay());
+      const show = Boolean(left >= 2 && nextGameToPlay());
       all.classList.toggle('hidden', !show);
       if (!show) return;
       document.getElementById('playAllLeft').textContent = `${left} games`;
@@ -5255,7 +5007,11 @@
       const undoOpts = { actionLabel: 'Undo', onAction: () => (changeId ? undoChange(changeId) : restoreUndo(undoSnap)) };
       // For personal records: this game's other results and its best streak before this log.
       const recordBaseRows = state.historyLogs.filter((l) => l && l.date !== todayKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
-      const prevBestStreak = Math.max(Number(game.bestStreak) || 0, ...recordBaseRows.map((r) => Number(r.streak) || 0));
+      let prevBestStreak = Number(game.bestStreak) || 0;
+      for (let i = 0; i < recordBaseRows.length; i++) {
+        const s = Number(recordBaseRows[i].streak) || 0;
+        if (s > prevBestStreak) prevBestStreak = s;
+      }
 
       if (isCurrentCycle) {
         game.status = validStatus;
@@ -5274,6 +5030,7 @@
       }
 
       recomputeGameStatsFromHistory(game);
+      const rowStreak = isCurrentCycle ? game.streak : HubUiHelpers.streakAsOfDate(game.dayHistory, todayKey);
 
       const existingRow = findLogRow(game, todayKey);
       const outcomeLabel = validStatus === 'completed' ? 'Completed' : 'Missed';
@@ -5290,7 +5047,7 @@
         existingRow.icon = game.icon;
         existingRow.outcome = outcomeLabel;
         existingRow.score = displayScore;
-        existingRow.streak = game.streak;
+        existingRow.streak = rowStreak;
         existingRow.localTime = formatLogTime(new Date());
         // When the current puzzle was logged: used to check the game's reset time (puzzle numbers).
         if (isCurrentCycle) existingRow.loggedAt = Date.now();
@@ -5305,13 +5062,14 @@
           icon: game.icon,
           outcome: outcomeLabel,
           score: displayScore,
-          streak: game.streak
+          streak: rowStreak
         };
         if (playedMs > 0) loggedRow.timeMs = playedMs;
         if (isCurrentCycle) loggedRow.loggedAt = Date.now();
         state.historyLogs.unshift(loggedRow);
       }
-      const records = validStatus === 'completed' ? HubCore.newRecords(recordBaseRows, loggedRow, prevBestStreak) : [];
+      const records = validStatus === 'completed'
+        ? HubCore.newRecords(recordBaseRows, loggedRow, isCurrentCycle ? prevBestStreak : Infinity) : [];
       // Personal bests set by this result: a 🏆 on the card and in the history.
       if (records.length) loggedRow.records = records.map((r) => r.kind);
       else delete loggedRow.records;
@@ -5704,7 +5462,7 @@
         const v = value || {};
         return escapeHtml(`${formatLocalResetTime(v.time, v.zone)}${v.zone && v.zone !== 'local' ? ` (${HubCore.zoneLabel(v.zone)})` : ''}`);
       }
-      if (c.field === 'icon') return value ? `<img class="recheck-icon" src="${escapeHtml(value)}" alt="" referrerpolicy="no-referrer" />` : '—';
+      if (c.field === 'icon') return isImageIcon(value) ? `<img class="recheck-icon" src="${escapeHtml(iconSrc(value))}" alt="" referrerpolicy="no-referrer" />` : '—';
       const t = String(value || '').trim();
       return t ? escapeHtml(t.length > 140 ? `${t.slice(0, 139)}…` : t) : '<span class="recheck-none">none</span>';
     }
@@ -7391,7 +7149,7 @@
         r.getAttribute('data-amoled'), r.getAttribute('data-cards'), new Date().toDateString()].join('|');
     }
     function dashboardRenderKey() {
-      return [stateRev, state.activeFilter, selectMode, selectedIds.size, doneSectionOpen, hubSortMode(), new Date().toDateString(), new Date().getHours()].join('|');
+      return [stateRev, state.activeFilter, doneSectionOpen, hubSortMode(), new Date().toDateString(), new Date().getHours()].join('|');
     }
 
     function switchNavigation(targetView, anim) {
@@ -7423,7 +7181,6 @@
       // Leaving Settings closes its open section (1.9.2), out of sight once the page has slid away.
       if (previous === 'settings' && normalized !== 'settings') closeSettingsSection({ instant: true });
       if (normalized !== 'dashboard') hideReturnPrompt();
-      if (normalized !== 'dashboard' && selectMode) setSelectMode(false);
       syncBackInterceptState();
 
       const views = {
@@ -7482,7 +7239,7 @@
       // While a dialog is open the page behind it doesn't scroll (or stretch at its ends).
       document.documentElement.classList.toggle('modal-open', isAnyModalOpen());
       document.documentElement.classList.toggle('qr-open', isModalOpen('modalShareList'));
-      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId) || selectMode || Boolean(themedSelectOpen);
+      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId) || Boolean(themedSelectOpen);
       if (wantsBack === lastBackInterceptState) return;
       lastBackInterceptState = wantsBack;
       try {
@@ -7495,7 +7252,7 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalTheme', 'modalAppIcon', 'modalIconEditor', 'modalRestoreGame', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalBulkTime', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalTheme', 'modalAppIcon', 'modalIconEditor', 'modalRestoreGame', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
@@ -8226,10 +7983,6 @@
         hideReturnPrompt();
         return true;
       }
-      if (selectMode) {
-        setSelectMode(false);
-        return true;
-      }
       if (activeTab === 'settings' && closeSettingsSection()) return true;
       if (activeTab !== 'dashboard') {
         switchNavigation('dashboard');
@@ -8810,8 +8563,6 @@
           shotBtn.addEventListener('click', () => { try { window.AndroidBridge.pickScreenshot(); } catch (e) {} });
         }
       }
-      document.querySelectorAll('#bulkBar [data-bulk]').forEach((b) => b.addEventListener('click', () => runBulk(b.dataset.bulk)));
-      onClick('btnApplyBulkTime', applyBulkTime);
       onClick('btnExportCsv', exportCsv);
       onClick('btnShareGameList', openShareList);
       onClick('btnImportListAdd', addImportedGames);
@@ -9155,13 +8906,6 @@
         const game = state.games.find((g) => g.id === id);
         if (!game) return;
 
-        if (action === 'toggle-select') {
-          if (selectedIds.has(game.id)) selectedIds.delete(game.id); else selectedIds.add(game.id);
-          haptic('tick');
-          renderGamesGrid();
-          renderBulkBar();
-          return;
-        }
         if (action === 'unarchive') {
           setArchived([game.id], false);
           return;

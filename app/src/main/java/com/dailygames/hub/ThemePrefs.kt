@@ -58,11 +58,14 @@ object ThemePrefs {
         return out
     }
 
+    private val HEX_COLOR_RE = Regex("^#([0-9a-fA-F]{6})$")
+    private val RGB_COLOR_RE = Regex("^rgba?\\(\\s*(\\d{1,3})\\s*,\\s*(\\d{1,3})\\s*,\\s*(\\d{1,3})")
+
     /** "#RRGGBB" or "rgb(r, g, b)" (what getComputedStyle returns) to a colour, else null. */
     fun parseColor(v: String?): Int? {
         val s = v?.trim().orEmpty()
-        Regex("^#([0-9a-fA-F]{6})$").find(s)?.let { return (0xFF000000.toInt() or it.groupValues[1].toInt(16)) }
-        Regex("^rgba?\\(\\s*(\\d{1,3})\\s*,\\s*(\\d{1,3})\\s*,\\s*(\\d{1,3})").find(s)?.let { m ->
+        HEX_COLOR_RE.find(s)?.let { return (0xFF000000.toInt() or it.groupValues[1].toInt(16)) }
+        RGB_COLOR_RE.find(s)?.let { m ->
             val (r, g, b) = m.destructured
             if (listOf(r, g, b).all { it.toInt() <= 255 }) return Color.rgb(r.toInt(), g.toInt(), b.toInt())
         }

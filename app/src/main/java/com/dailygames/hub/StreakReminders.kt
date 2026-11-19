@@ -41,14 +41,38 @@ object ReminderChannel {
 class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDefault()) {
     class Candidate(val id: String, val name: String, val streak: Int, val msUntilReset: Long, val cycleKey: String, val leadMs: Long = 0L)
 
-    /** This game's lead time: its own setting when it has one, else [defaultLeadMs]. */
+    /** This game's lead time: its own setting when it has one, else [defaultLeadMs] when reset alerts are enabled. */
     fun leadFor(g: JSONObject, defaultLeadMs: Long): Long {
         val own = if (g.has("reminderMinutes")) g.optInt("reminderMinutes", -1) else -1
         return when {
-            own < 0 -> defaultLeadMs
+            own < 0 -> if (g.optBoolean("notifyEnabled", true)) defaultLeadMs else 0L
             own in ALLOWED_LEAD_MINUTES -> own * 60_000L
-            else -> defaultLeadMs
+            else -> if (g.optBoolean("notifyEnabled", true)) defaultLeadMs else 0L
         }
+    }
+
+    private fun previousCycleKey(key: String): String {
+        val parts = key.split('-')
+        if (parts.size != 3) return ""
+        val y = parts[0].toIntOrNull() ?: return ""
+        val m = parts[1].toIntOrNull() ?: return ""
+        val d = parts[2].toIntOrNull() ?: return ""
+        val cal = java.util.Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            clear()
+            set(y, m - 1, d)
+            add(java.util.Calendar.DAY_OF_MONTH, -1)
+        }
+        return String.format(
+            java.util.Locale.US, "%04d-%02d-%02d",
+            cal.get(java.util.Calendar.YEAR), cal.get(java.util.Calendar.MONTH) + 1, cal.get(java.util.Calendar.DAY_OF_MONTH)
+        )
+    }
+
+    private fun isBrokenStreak(g: JSONObject, cycleKey: String): Boolean {
+        val logged = g.optString("loggedCycle")
+        if (logged.isEmpty()) return false
+        val yesterday = previousCycleKey(cycleKey)
+        return yesterday.isNotEmpty() && logged < yesterday
     }
 
     private fun candidates(games: JSONArray, nowMs: Long, defaultLeadMs: Long): List<Candidate> {
@@ -57,13 +81,13 @@ class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDe
             val g = games.optJSONObject(i) ?: continue
             val id = g.optString("id")
             val streak = g.optInt("streak", 0)
-            if (id.isEmpty() || streak <= 0 || !g.optBoolean("notifyEnabled", true)) continue
+            if (id.isEmpty() || streak <= 0) continue
+            val lead = leadFor(g, defaultLeadMs)
+            if (lead <= 0) continue
             val time = g.optString("resetTime", "00:00")
             val zone = g.optString("resetZone", "local")
             val key = GameStore.cycleKey(time, zone, nowMs, localTimeZone)
-            if (g.optString("loggedCycle") == key) continue
-            val lead = leadFor(g, defaultLeadMs)
-            if (lead <= 0) continue
+            if (g.optString("loggedCycle") == key || isBrokenStreak(g, key)) continue
             out += Candidate(id, g.optString("name").ifBlank { "Your daily game" }, streak,
                 GameStore.msUntilNextReset(time, zone, nowMs, localTimeZone), key, lead)
         }
@@ -84,20 +108,23 @@ class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDe
         for (i in 0 until games.length()) {
             val g = games.optJSONObject(i) ?: continue
             val id = g.optString("id")
-            if (id.isEmpty() || g.optInt("streak", 0) <= 0 || !g.optBoolean("notifyEnabled", true)) continue
+            if (id.isEmpty() || g.optInt("streak", 0) <= 0) continue
             val leadMs = leadFor(g, defaultLeadMs)
             if (leadMs <= 0) continue
             val time = g.optString("resetTime", "00:00")
             val zone = g.optString("resetZone", "local")
-            val untilReset = GameStore.msUntilNextReset(time, zone, nowMs, localTimeZone)
             val key = GameStore.cycleKey(time, zone, nowMs, localTimeZone)
+            if (isBrokenStreak(g, key)) continue
+            val untilReset = GameStore.msUntilNextReset(time, zone, nowMs, localTimeZone)
             val open = g.optString("loggedCycle") != key && remindedCycle(id) != key
-            // Inside the window: remind now if still needed, else look again when tomorrow's opens
-            // (approximately a day on; each check re-plans from the real next reset, so DST is absorbed).
             val at = when {
-                untilReset > leadMs -> nowMs + untilReset - leadMs
+                open && untilReset > leadMs -> nowMs + untilReset - leadMs
                 open -> nowMs
-                else -> nowMs + untilReset + DAY_MS - leadMs
+                else -> {
+                    val afterReset = nowMs + untilReset + 60_000L
+                    val nextReset = afterReset + GameStore.msUntilNextReset(time, zone, afterReset, localTimeZone)
+                    nextReset - leadMs
+                }
             }
             if (best == null || at < best) best = at
         }

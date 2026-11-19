@@ -54,6 +54,7 @@
   }
 
   function show(select) {
+    if (open) open.close();
     ensureHost();
     while (root.childNodes.length > 1) root.removeChild(root.lastChild);
     var scrim = document.createElement('div');
@@ -174,6 +175,6 @@
   document.addEventListener('keydown', function (e) {
     var s = menuSelect(e.target);
     if (!s) { if (open && e.key === 'Escape') open.close(); return; }
-    if (e.key === 'Enter' || e.key === ' ' || (e.altKey && e.key === 'ArrowDown')) { e.preventDefault(); show(s); }
+    if (e.key === 'Enter' || e.key === ' ' || (e.altKey && e.key === 'ArrowDown')) { e.preventDefault(); openFor(s); }
   }, true);
 })();

@@ -28,8 +28,14 @@ class FaviconCache(
     data class Icon(val bytes: ByteArray, val mimeType: String)
 
     private val locks = Array(64) { Any() }
+    private val trimLock = Any()
     private val failures = ConcurrentHashMap<String, Long>()
     private val refresher = Executors.newSingleThreadExecutor { r -> Thread(r, "favicon-refresh").apply { isDaemon = true } }
+
+    /** Stops the background refresh executor (e.g. from HubActivity.onDestroy). */
+    fun shutdown() {
+        refresher.shutdownNow()
+    }
 
     /** Returns the cached icon, downloading and saving it first if needed; null if unavailable. */
     fun load(sourceUrl: String): Icon? {
@@ -107,7 +113,7 @@ class FaviconCache(
     }
 
     /** Evicts least-recently-used icons once the cache exceeds [MAX_CACHE_BYTES]. */
-    private fun trim() {
+    private fun trim() = synchronized(trimLock) {
         val images = dir.listFiles { f -> f.name.endsWith(".img") } ?: return
         var total = images.sumOf { it.length() }
         if (total <= MAX_CACHE_BYTES) return

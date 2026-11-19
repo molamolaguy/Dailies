@@ -128,10 +128,10 @@ object GameRecheck {
 }
 
 class GameRecheckWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
-    override suspend fun doWork(): Result {
-        if (!GameRecheck.enabled(applicationContext)) return Result.success()
+    override suspend fun doWork(): Result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        if (!GameRecheck.enabled(applicationContext)) return@withContext Result.success()
         runCatching { GameRecheck.run(applicationContext) }
             .onFailure { runCatching { CrashLog.append(applicationContext, "Checking game pages failed: ${it.javaClass.simpleName}") } }
-        return Result.success()
+        Result.success()
     }
 }

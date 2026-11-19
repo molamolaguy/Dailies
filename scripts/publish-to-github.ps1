@@ -1,18 +1,21 @@
-# Publishes this project to your GitHub account as a PUBLIC repository and creates the v1.0.0 release
-# with the APK attached. In PowerShell:
+# Initial-setup helper: publishes this project to your GitHub account as a PUBLIC repository,
+# optionally configures release signing secrets, and creates a GitHub release with the APK attached.
+# In PowerShell:
 #
-#   powershell -ExecutionPolicy Bypass -File scripts\publish-to-github.ps1 [-Apk path\to\Dailies-1.0.0.apk] [-SigningDir path\to\Dailies_signing_KEEP_PRIVATE]
+#   powershell -ExecutionPolicy Bypass -File scripts\publish-to-github.ps1 [-Apk path\to\Dailies-<version>.apk] [-SigningDir path\to\Dailies_signing_KEEP_PRIVATE]
 #
 # Needs Git (https://git-scm.com/download/win) and the GitHub CLI (https://cli.github.com, or: winget install GitHub.cli).
 param(
   [string]$Apk = "",
   [string]$SigningDir = "",
-  [string]$RepoName = "dailies"
+  [string]$RepoName = "Dailies"
 )
 $ErrorActionPreference = "Stop"
-$Version = "1.0.0"
 $Description = "One home for every daily web puzzle: reset alerts, streaks, auto-logged results and an ad-blocking game player for Android."
 $Root = Split-Path -Parent $PSScriptRoot
+$GradleFile = Join-Path $Root "app\build.gradle.kts"
+$VersionMatch = Select-String -Path $GradleFile -Pattern '^\s*versionName\s*=\s*"([^"]+)"' | Select-Object -First 1
+$Version = if ($VersionMatch) { $VersionMatch.Matches[0].Groups[1].Value } else { "1.9.4" }
 if (-not $Apk) { $Apk = Join-Path (Split-Path -Parent $Root) "Dailies-$Version.apk" }
 
 function Say($m) { Write-Host "`n$m" -ForegroundColor Cyan }

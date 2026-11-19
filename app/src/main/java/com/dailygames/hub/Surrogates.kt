@@ -52,7 +52,6 @@ object Surrogates {
     /** Google IMA (video ads): ad requests fail at once with an error, so games carry on without the ad. */
     private val IMA = """
         (function(){var w=window;if(w.google&&w.google.ima)return;var n=function(){};
-        function E(t){this.type=t}
         var AdErrorEvent=function(){};AdErrorEvent.Type={AD_ERROR:'adError'};
         AdErrorEvent.prototype.getError=function(){return{getErrorCode:function(){return 1009},getMessage:function(){return'blocked'},
         getType:function(){return'adLoadError'},getVastErrorCode:function(){return 1009},getInnerError:function(){return null},toString:function(){return'AdError 1009'}}};
@@ -100,8 +99,8 @@ object Surrogates {
         val u = url.lowercase(Locale.US)
         val path = u.substringBefore('?').substringBefore('#')
         return when {
-            "googletagmanager.com/gtag/js" in u || "googletagmanager.com/gtm.js" in u ||
-                path.endsWith("google-analytics.com/analytics.js") || path.endsWith("/ga.js") && "google-analytics.com" in u -> GTAG
+            "googletagmanager.com/gtag/js" in path || "googletagmanager.com/gtm.js" in path ||
+                path.endsWith("google-analytics.com/analytics.js") || (path.endsWith("/ga.js") && "google-analytics.com" in path) -> GTAG
             "/tag/js/gpt.js" in path || "/gpt/pubads_impl" in path || "googletagservices.com/tag/js/gpt.js" in path -> GPT
             "imasdk.googleapis.com/js/sdkloader/ima3" in path -> IMA
             "pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" in path || path.endsWith("/show_ads.js") -> ADSENSE

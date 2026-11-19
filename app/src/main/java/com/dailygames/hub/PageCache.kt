@@ -13,6 +13,8 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
@@ -77,11 +79,11 @@ object PageCache {
     }
 
     class PreloadWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(ctx, params) {
-        override suspend fun doWork(): Result {
+        override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
             val ids = inputData.getStringArray("ids")?.toSet().orEmpty()
-            if (ids.isEmpty() || !enabled(applicationContext)) return Result.success()
+            if (ids.isEmpty() || !enabled(applicationContext)) return@withContext Result.success()
             val cm = applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
-            if (cm?.isActiveNetworkMetered == true) return Result.success()
+            if (cm?.isActiveNetworkMetered == true) return@withContext Result.success()
             val games = GameStore.load(applicationContext)
             val now = System.currentTimeMillis()
             for (i in 0 until games.length()) {
@@ -93,7 +95,7 @@ object PageCache {
                 runCatching { preload(applicationContext, id, url, expires) }
             }
             trimTotal(applicationContext)
-            return Result.success()
+            Result.success()
         }
     }
 
@@ -109,7 +111,8 @@ object PageCache {
         val engine = AdBlocker.network()
         val pageHost = runCatching { URL(page.finalUrl).host.lowercase(Locale.US) }.getOrNull()
         val queue = ArrayDeque(subresources(html, page.finalUrl))
-        val dir = gameDir(ctx, gameId).apply { deleteRecursively(); mkdirs() }
+        val finalDir = gameDir(ctx, gameId)
+        val stage = File(root(ctx), "${finalDir.name}.tmp").apply { deleteRecursively(); mkdirs() }
         val index = JSONObject()
         var total = 0L
         var n = 0
@@ -126,7 +129,7 @@ object PageCache {
             val cc = r.headers["cache-control"].orEmpty().lowercase(Locale.US)
             if ("no-store" in cc || "private" in cc) continue
             val (mime, enc) = splitType(r.contentType, res)
-            val file = File(dir, sha(res).take(32))
+            val file = File(stage, sha(res).take(32))
             file.writeBytes(r.body)
             total += r.body.size
             n++
@@ -137,13 +140,31 @@ object PageCache {
             // Fonts a stylesheet uses are needed straight away too.
             if (mime == "text/css") cssFonts(String(r.body, Charsets.UTF_8), res).forEach { queue.addLast(it) }
         }
-        if (n == 0) { dir.deleteRecursively(); return }
-        File(dir, "index.json").writeText(JSONObject().put("game", gameId).put("expires", expiresAt).put("files", index).toString())
+        if (n == 0) { stage.deleteRecursively(); return }
+        val indexJson = JSONObject().put("game", gameId).put("expires", expiresAt).put("files", index).toString()
+        val indexTmp = File(stage, "index.json.tmp")
+        val indexFile = File(stage, "index.json")
+        indexTmp.writeText(indexJson)
+        if (!indexTmp.renameTo(indexFile)) {
+            indexFile.writeText(indexJson)
+            indexTmp.delete()
+        }
+        val oldDir = File(root(ctx), "${finalDir.name}.old").apply { deleteRecursively() }
+        val hadExisting = finalDir.exists()
+        if (hadExisting && !finalDir.renameTo(oldDir)) {
+            finalDir.deleteRecursively()
+        }
+        if (!stage.renameTo(finalDir)) {
+            stage.deleteRecursively()
+            if (oldDir.exists()) oldDir.renameTo(finalDir)
+        } else {
+            oldDir.deleteRecursively()
+        }
     }
 
     /** Drops the oldest games' files while everything together is over the limit. */
     private fun trimTotal(ctx: Context) {
-        val dirs = root(ctx).listFiles()?.filter { it.isDirectory }?.sortedBy { it.lastModified() } ?: return
+        val dirs = root(ctx).listFiles()?.filter { it.isDirectory && !it.name.endsWith(".tmp") && !it.name.endsWith(".old") }?.sortedBy { it.lastModified() } ?: return
         var total = dirs.sumOf { d -> d.listFiles()?.sumOf { it.length() } ?: 0L }
         for (d in dirs) {
             if (total <= MAX_TOTAL_BYTES) break

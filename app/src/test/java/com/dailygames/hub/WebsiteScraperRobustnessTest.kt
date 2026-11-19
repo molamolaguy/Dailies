@@ -103,4 +103,35 @@ class WebsiteScraperRobustnessTest {
         val jan15 = java.time.Instant.parse("2026-01-15T00:00:00Z").toEpochMilli()
         assertEquals("2:00 PM", GameStore.formatLocalResetTime("09:00", "America/New_York", london, jan15))
     }
+
+    @Test
+    fun ownScriptUrls_usesRegistrableDomainForMultiPartTlds() {
+        val html = """
+            <html><head>
+              <script src="https://static.mygame.co.uk/app.js"></script>
+              <script src="https://unrelated.co.uk/tracker.js"></script>
+            </head></html>
+        """.trimIndent()
+        val scripts = WebsiteScraper.ownScriptUrls(html, "https://www.mygame.co.uk/play")
+        assertEquals(listOf("https://static.mygame.co.uk/app.js"), scripts)
+    }
+
+    @Test
+    fun detectResetScheduleDetail_requiresResetContextNearMidnightOrNoon() {
+        val noContextMidnight = WebsiteScraper.detectResetScheduleDetail("Guess the Midnight Sun movie in 6 tries!")
+        assertFalse(noContextMidnight.timeFound)
+        val noContextNoon = WebsiteScraper.detectResetScheduleDetail("High Noon western trivia showdown")
+        assertFalse(noContextNoon.timeFound)
+        assertEquals("00:00", noContextNoon.time)
+
+        val withContext = WebsiteScraper.detectResetScheduleDetail("New puzzle every day at midnight UTC.")
+        assertTrue(withContext.timeFound)
+        assertEquals("00:00", withContext.time)
+        assertEquals("utc", withContext.zone)
+
+        val withNoonContext = WebsiteScraper.detectResetScheduleDetail("Refreshes daily at noon ET")
+        assertTrue(withNoonContext.timeFound)
+        assertEquals("12:00", withNoonContext.time)
+        assertEquals("America/New_York", withNoonContext.zone)
+    }
 }

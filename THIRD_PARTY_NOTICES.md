@@ -13,9 +13,14 @@ each under its own license:
 | Google Sans Flex, Google Sans Code | `app/src/main/assets/fonts/`, `app/src/main/res/font/` | SIL Open Font License 1.1 (license texts next to the fonts) |
 | Material Symbols Rounded | `design/icons/`, app drawables and inline hub icons | Apache License 2.0 (`design/icons/LICENSE-MaterialSymbols.txt`) |
 | AndroidX libraries (core, activity, webkit, work) | Gradle dependencies | Apache License 2.0 |
+| ZXing Core (`com.google.zxing:core:3.5.4`) | Gradle dependency (QR codes for shared game lists) | Apache License 2.0, github.com/zxing/zxing |
+| ML Kit Text Recognition (`com.google.android.gms:play-services-mlkit-text-recognition:19.0.2`) | Gradle dependency (on-device OCR for reading results from screenshots) | Google Play services SDK / Android Software Development Kit License (proprietary, non-free) |
 
 The filter lists are re-encoded by `tools/build_adblock.py` (hostnames as 64-bit hashes, a supported
 subset of rules as text). Their meaning is unchanged. Thanks to all list maintainers.
+
+Note for downstream / F-Droid builders: `play-services-mlkit-text-recognition` is a non-free Google
+Play services dependency used solely by `ScreenshotReader.kt` for on-device screenshot OCR.
 
 "Google Sans" and "Material" are trademarks of Google LLC. This app isn't affiliated with or endorsed
 by Google or by any of the games it can open.

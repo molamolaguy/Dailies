@@ -5,7 +5,7 @@
 set -euo pipefail
 out="${1:?usage: fetch_adblock_lists.sh <folder>}"
 mkdir -p "$out"
-get() { curl -fsSL --retry 4 --retry-delay 5 -o "$out/$1" "$2"; echo "  $1"; }
+get() { curl -fsSL --connect-timeout 15 --max-time 60 --retry 4 --retry-delay 5 -o "$out/$1" "$2"; echo "  $1"; }
 
 echo "Downloading filter lists into $out"
 get stevenblack_hosts https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts

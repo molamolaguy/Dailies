@@ -132,7 +132,10 @@ object WebsiteScraper {
         """(?:reset|refresh|new\s+(?:puzzle|game|daily)|releas\w*|available)[^0-9]{0,25}\b(1[0-2]|0?[1-9])\s*(a\.?m\.?|p\.?m\.?)(?![a-z])""",
         RegexOption.IGNORE_CASE
     )
-    private val MIDNIGHT_OR_NOON_REGEX = Regex("""\b(midnight|noon)\b""", RegexOption.IGNORE_CASE)
+    private val MIDNIGHT_OR_NOON_REGEX = Regex(
+        """(?:reset\w*|refresh\w*|new\s+(?:puzzle|game|word|daily|challenge)|every\s+day|daily|releas\w*|available|updates?)[^.\n]{0,35}\b(midnight|noon)\b""",
+        RegexOption.IGNORE_CASE
+    )
 
     /**
      * Time-zone words that may follow a reset time, mapped to the zone they were published in.
@@ -200,7 +203,7 @@ object WebsiteScraper {
      * its scripts run ([PageRenderer]). A page whose plain HTML is blocked or empty (a bot check, a
      * single-page app) is still read from the rendered copy.
      */
-    fun fetchAndScrape(rawUrl: String, rendered: (() -> JSONObject?)? = null): JSONObject {
+    fun fetchAndScrape(rawUrl: String, fetchExtras: Boolean = true, rendered: (() -> JSONObject?)? = null): JSONObject {
         val started = System.currentTimeMillis()
         val normalizedUrl = normalizeUrl(rawUrl)
         val result = JSONObject()
@@ -249,17 +252,19 @@ object WebsiteScraper {
         // The manifest and the site's own code, within what's left of the time budget.
         fun left() = EXTRAS_BUDGET_MS - (System.currentTimeMillis() - started)
         var manifest: JSONObject? = null
-        manifestUrl(html, finalUrl)?.let { mu ->
-            if (left() > 1_000) {
-                val r = SafeHttp.get(mu, headers = mapOf("User-Agent" to USER_AGENT), maxBytes = 64 * 1024, deadlineMs = minOf(4_000L, left()))
-                if (r != null && r.code in 200..299) manifest = runCatching { JSONObject(String(r.body, Charsets.UTF_8)) }.getOrNull()
-            }
-        }
         var scriptZone: String? = null
-        for (src in ownScriptUrls(html, finalUrl)) {
-            if (scriptZone != null || left() < 1_500) break
-            val r = SafeHttp.get(src, headers = mapOf("User-Agent" to USER_AGENT), maxBytes = 2 * 1024 * 1024, deadlineMs = minOf(5_000L, left()))
-            if (r != null && r.code in 200..299) scriptZone = scriptZoneHint(String(r.body, Charsets.UTF_8))
+        if (fetchExtras) {
+            manifestUrl(html, finalUrl)?.let { mu ->
+                if (left() > 1_000) {
+                    val r = SafeHttp.get(mu, headers = mapOf("User-Agent" to USER_AGENT), maxBytes = 64 * 1024, deadlineMs = minOf(4_000L, left()))
+                    if (r != null && r.code in 200..299) manifest = runCatching { JSONObject(String(r.body, Charsets.UTF_8)) }.getOrNull()
+                }
+            }
+            for (src in ownScriptUrls(html, finalUrl)) {
+                if (scriptZone != null || left() < 1_500) break
+                val r = SafeHttp.get(src, headers = mapOf("User-Agent" to USER_AGENT), maxBytes = 2 * 1024 * 1024, deadlineMs = minOf(5_000L, left()))
+                if (r != null && r.code in 200..299) scriptZone = scriptZoneHint(String(r.body, Charsets.UTF_8))
+            }
         }
         val renderedJson = rendered?.invoke()
         val extras = PageExtras.fromRendered(renderedJson).copy(manifest = manifest, scriptZone = scriptZone)
@@ -618,7 +623,7 @@ object WebsiteScraper {
     fun ownScriptUrls(html: String, pageUrl: String, max: Int = 3): List<String> {
         if (html.isEmpty()) return emptyList()
         val pageHost = extractHost(pageUrl)
-        val site = pageHost.split('.').takeLast(2).joinToString(".")
+        val site = AdBlockEngine.siteOf(pageHost)
         return SCRIPT_SRC_REGEX.findAll(html).mapNotNull { m ->
             val src = decodeHtmlEntities(m.groupValues[1].ifEmpty { m.groupValues[2] })
             val abs = runCatching { URI(pageUrl).resolve(src).toString() }.getOrNull() ?: return@mapNotNull null

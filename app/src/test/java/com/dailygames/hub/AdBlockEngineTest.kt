@@ -1,10 +1,14 @@
 package com.dailygames.hub
 
 import com.dailygames.hub.AdBlockEngine.RequestType
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
 import java.io.File
 
 class AdBlockEngineTest {
@@ -146,6 +150,107 @@ class AdBlockEngineTest {
         assertTrue(Surrogates.forUrl("https://securepubads.g.doubleclick.net/tag/js/gpt.js")!!.contains("googletag"))
         assertTrue(Surrogates.forUrl("https://imasdk.googleapis.com/js/sdkloader/ima3.js")!!.contains("AD_ERROR"))
         assertEquals(null, Surrogates.forUrl("https://ads.net/banner.png"))
+    }
+
+    @Test
+    fun importantOverridesAllowHosts() {
+        val e = AdBlockEngine(
+            blockedHosts = hashes("safe.doubleclick.net"),
+            blockedThirdPartyHosts = LongArray(0),
+            allowedHosts = setOf("vip-ads.net", "evil.com", "safe.doubleclick.net"),
+            urlRuleLines = sequenceOf(
+                "||evil.com^\$important",
+                "@@||evil.com/ok.js\$important",
+                "||safe.doubleclick.net/ad.js"
+            ),
+            importantHosts = hashes("vip-ads.net")
+        )
+        assertTrue("importantHosts must override allow_hosts", e.shouldBlock("https://vip-ads.net/a.js", "g.com", RequestType.SCRIPT))
+        assertTrue("importantHosts subdomain must override allow_hosts", e.shouldBlock("https://cdn.vip-ads.net/a.js", "g.com", RequestType.SCRIPT))
+        assertTrue("important URL block must override allow_hosts", e.shouldBlock("https://evil.com/x.js", "g.com", RequestType.SCRIPT))
+        assertFalse("@@...\$important still lifts \$important block", e.shouldBlock("https://evil.com/ok.js", "g.com", RequestType.SCRIPT))
+        assertFalse("allow_hosts still lifts normal host block", e.shouldBlock("https://safe.doubleclick.net/x.js", "g.com", RequestType.SCRIPT))
+        assertFalse("allow_hosts still lifts normal URL block", e.shouldBlock("https://safe.doubleclick.net/ad.js", "g.com", RequestType.SCRIPT))
+    }
+
+    @Test
+    fun entityDomainWildcard_matchesRegistrableDomainNotSubdomain() {
+        PublicSuffix.load(sequenceOf("com", "uk", "co.uk"))
+        assertTrue(AdBlockEngine.domainMatches("foo.com", "foo.*"))
+        assertTrue(AdBlockEngine.domainMatches("www.foo.com", "foo.*"))
+        assertTrue(AdBlockEngine.domainMatches("foo.co.uk", "foo.*"))
+        assertTrue(AdBlockEngine.domainMatches("www.foo.co.uk", "foo.*"))
+        assertFalse("subdomain label must not match entity rule", AdBlockEngine.domainMatches("foo.example.com", "foo.*"))
+        assertFalse("nested subdomain label must not match entity rule", AdBlockEngine.domainMatches("sub.foo.example.com", "foo.*"))
+        assertFalse("bare label without TLD must not match", AdBlockEngine.domainMatches("foo", "foo.*"))
+        assertFalse(AdBlockEngine.domainMatches("bar.com", "foo.*"))
+
+        val e = AdBlockEngine(LongArray(0), LongArray(0), emptySet(), sequenceOf("||ad.net^\$domain=foo.*"))
+        assertTrue(e.shouldBlock("https://ad.net/a.js", "foo.com", RequestType.SCRIPT))
+        assertTrue(e.shouldBlock("https://ad.net/a.js", "www.foo.co.uk", RequestType.SCRIPT))
+        assertFalse(e.shouldBlock("https://ad.net/a.js", "foo.example.com", RequestType.SCRIPT))
+        assertFalse(e.shouldBlock("https://ad.net/a.js", "sub.foo.example.com", RequestType.SCRIPT))
+    }
+
+    @Test
+    fun mixedCasePageHost_normalizedInShouldBlockAndIsDocumentAllowed() {
+        val e = AdBlockEngine(
+            blockedHosts = hashes("ads.net"),
+            blockedThirdPartyHosts = hashes("cdn-ads.net"),
+            allowedHosts = emptySet(),
+            urlRuleLines = sequenceOf("||promo.example.com^\$domain=news.com|~sports.news.com"),
+            documentAllowedSites = setOf("trusted.com")
+        )
+        assertTrue(e.isDocumentAllowed("TRUSTED.COM"))
+        assertTrue(e.isDocumentAllowed("WWW.Trusted.Com."))
+        assertFalse(e.isDocumentAllowed("OTHER.COM"))
+        assertFalse("document-allowed mixed-case pageHost", e.shouldBlock("https://ads.net/a.js", "WWW.TRUSTED.COM", RequestType.SCRIPT))
+        assertTrue("domain= rule with mixed-case pageHost", e.shouldBlock("https://promo.example.com/x", "News.COM.", RequestType.IMAGE))
+        assertFalse("~domain= rule with mixed-case pageHost", e.shouldBlock("https://promo.example.com/x", "SPORTS.NEWS.COM", RequestType.IMAGE))
+        assertFalse("first-party check with mixed-case pageHost", e.shouldBlock("https://cdn-ads.net/a.js", "CDN-ADS.NET", RequestType.SCRIPT))
+    }
+
+    @Test
+    fun readHashes_handlesPresortedSignedAndLegacyUnsortedArrays() {
+        val hostList = listOf("a.example.com", "b.example.com", "c.example.com", "d.example.com", "doubleclick.net", "tracker.io")
+        val raw = hostList.map { AdBlockEngine.fnv1a64(it) }
+        assertTrue("test requires negative signed hashes", raw.any { it < 0L })
+        assertTrue("test requires non-negative signed hashes", raw.any { it >= 0L })
+
+        val signedSorted = raw.sorted().toLongArray()
+        val unsignedSorted = raw.sortedWith { a, b -> java.lang.Long.compareUnsigned(a, b) }.toLongArray()
+        assertFalse("unsigned order must differ from signed order", signedSorted.contentEquals(unsignedSorted))
+
+        fun encode(arr: LongArray): ByteArray {
+            val baos = ByteArrayOutputStream()
+            DataOutputStream(baos).use { out ->
+                out.writeInt(arr.size)
+                for (v in arr) out.writeLong(v)
+            }
+            return baos.toByteArray()
+        }
+
+        val fromPresorted = AdBlockEngine.readHashes(ByteArrayInputStream(encode(signedSorted)))
+        val fromUnsorted = AdBlockEngine.readHashes(ByteArrayInputStream(encode(unsignedSorted)))
+        assertArrayEquals(signedSorted, fromPresorted)
+        assertArrayEquals(signedSorted, fromUnsorted)
+
+        val ePresorted = AdBlockEngine(fromPresorted, LongArray(0), emptySet(), emptySequence())
+        val eUnsorted = AdBlockEngine(fromUnsorted, LongArray(0), emptySet(), emptySequence())
+        for (h in hostList) {
+            assertTrue("presorted should block $h", ePresorted.shouldBlock("https://$h/x.js", "game.com", RequestType.SCRIPT))
+            assertTrue("unsorted should block $h", eUnsorted.shouldBlock("https://$h/x.js", "game.com", RequestType.SCRIPT))
+        }
+    }
+
+    @Test
+    fun parseRule_trailingDollarAndBareDomainOption() {
+        val e = AdBlockEngine(LongArray(0), LongArray(0), emptySet(), sequenceOf(
+            "||ads.example.com/a$",
+            "||ads.example.com/b\$domain"
+        ))
+        assertFalse("trailing $ with empty options must not match /a", e.shouldBlock("https://ads.example.com/a", "g.com", RequestType.SCRIPT))
+        assertTrue("bare domain option must not add 'domain' to includeDomains", e.shouldBlock("https://ads.example.com/b", "other.com", RequestType.SCRIPT))
     }
 
     /** Smoke test against the real bundled lists (assets/adblock). */

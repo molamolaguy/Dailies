@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Unit tests for build_adblock.py:  python3 tools/test_build_adblock.py"""
-import os, sys, unittest
+import io, os, struct, sys, tempfile, unittest
+from contextlib import redirect_stderr, redirect_stdout
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_adblock import Builder, parse_psl  # noqa: E402
+from build_adblock import Builder, fnv1a64, main, parse_psl, to_i64, write_hashes  # noqa: E402
 
 
 def build(*lines):
@@ -53,9 +54,66 @@ class BuilderTest(unittest.TestCase):
 
     def test_cosmetic_negations(self):
         b = build('example.com,~sub.example.com##.ad', '~skip.example##.banner', '##.global')
-        self.assertEqual({'example.com'}, b.specific_hide[('.ad', ('sub.example.com',))])
-        self.assertEqual(set(), b.specific_hide[('.banner', ('skip.example',))])
+        self.assertEqual({'example.com'}, b.specific_hide[('.ad', ('sub.example.com',), True)])
+        self.assertEqual(set(), b.specific_hide[('.banner', ('skip.example',), False)])
         self.assertIn('.global', b.generic_hide)
+
+    def test_cosmetic_exclusion_only_does_not_collide_with_positive_rule(self):
+        for lines in [
+            ('~foo.com##.ad', 'bar.com,~foo.com##.ad'),
+            ('bar.com,~foo.com##.ad', '~foo.com##.ad'),
+        ]:
+            b = build(*lines)
+            self.assertEqual(set(), b.specific_hide[('.ad', ('foo.com',), False)])
+            self.assertEqual({'bar.com'}, b.specific_hide[('.ad', ('foo.com',), True)])
+
+        with tempfile.TemporaryDirectory() as td:
+            src = os.path.join(td, 'src')
+            out = os.path.join(td, 'out')
+            os.makedirs(src)
+            with open(os.path.join(src, 'easylist_test.txt'), 'w') as f:
+                f.write('~foo.com##.ad\nbar.com,~foo.com##.ad\n')
+            with redirect_stdout(io.StringIO()):
+                main(src, out)
+            with open(os.path.join(out, 'cosmetic_specific.txt')) as f:
+                emitted = f.read().splitlines()
+            self.assertEqual(['bar.com,~foo.com\t.ad', '~foo.com\t.ad'], emitted)
+
+    def test_write_hashes_sorted_signed_int64(self):
+        hosts = ['a.example.com', 'b.example.com', 'c.example.com', 'd.example.com', 'doubleclick.net', 'tracker.io']
+        signed_expected = sorted(to_i64(fnv1a64(h)) for h in hosts)
+        self.assertTrue(any(v < 0 for v in signed_expected), 'expected at least one negative signed int64 hash')
+        self.assertTrue(any(v >= 0 for v in signed_expected), 'expected at least one non-negative signed int64 hash')
+        with tempfile.TemporaryDirectory() as td:
+            p = os.path.join(td, 'hosts.bin')
+            n = write_hashes(p, hosts)
+            self.assertEqual(len(hosts), n)
+            with open(p, 'rb') as f:
+                data = f.read()
+            (count,) = struct.unpack_from('>I', data, 0)
+            self.assertEqual(len(hosts), count)
+            vals = list(struct.unpack_from(f'>{count}q', data, 4))
+            self.assertEqual(signed_expected, vals)
+
+    def test_main_fails_nonzero_when_zero_rules_loaded(self):
+        with tempfile.TemporaryDirectory() as td:
+            empty_src = os.path.join(td, 'empty_src')
+            out1 = os.path.join(td, 'out1')
+            os.makedirs(empty_src)
+            with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as cm1:
+                main(empty_src, out1)
+            self.assertNotEqual(0, cm1.exception.code)
+            self.assertFalse(os.path.exists(out1))
+
+            comment_src = os.path.join(td, 'comment_src')
+            out2 = os.path.join(td, 'out2')
+            os.makedirs(comment_src)
+            with open(os.path.join(comment_src, 'easylist_empty.txt'), 'w') as f:
+                f.write('! comment only\n\n')
+            with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as cm2:
+                main(comment_src, out2)
+            self.assertNotEqual(0, cm2.exception.code)
+            self.assertFalse(os.path.exists(out2))
 
     def test_hosts_list(self):
         b = Builder()

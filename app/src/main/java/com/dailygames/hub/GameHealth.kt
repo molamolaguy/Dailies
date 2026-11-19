@@ -99,7 +99,7 @@ object GameHealth {
         val results = inParallel(games) { g ->
             val width = { url: String -> FaviconCache.download(url)?.let { (b, m) -> iconWidth(b, m) } ?: 0 }
             val current = if (g.icon.startsWith("http", true)) width(g.icon) else 0
-            val scraped = runCatching { WebsiteScraper.fetchAndScrape(g.url).optJSONObject("parsed")?.optString("faviconUrl") }.getOrNull().orEmpty()
+            val scraped = runCatching { WebsiteScraper.fetchAndScrape(g.url, fetchExtras = false).optJSONObject("parsed")?.optString("faviconUrl") }.getOrNull().orEmpty()
             val origin = runCatching { URI(g.url).let { "${it.scheme}://${it.host}" } }.getOrNull()
             val candidates = listOfNotNull(
                 scraped.takeIf { it.startsWith("http", true) && !it.contains("google.com/s2/favicons") },
@@ -148,8 +148,10 @@ object GameHealth {
         if ("temp" in kinds) tempFiles(ctx).forEach { it.deleteRecursively() }
         if ("web" in kinds) {
             // What WebView.clearCache leaves: anything else in the cache folder that isn't Dailies' own.
-            (ctx.cacheDir.listFiles() ?: emptyArray()).filter { it.isDirectory && it.name !in OWN_CACHE_DIRS && it.name != "WebView" && it.name != "org.chromium.android_webview" }
-                .forEach { it.deleteRecursively() }
+            (ctx.cacheDir.listFiles() ?: emptyArray()).filter {
+                !(it.isDirectory && (it.name in OWN_CACHE_DIRS || it.name == "WebView" || it.name == "org.chromium.android_webview")) &&
+                    !(it.isFile && it.name.startsWith("pending_"))
+            }.forEach { it.deleteRecursively() }
         }
     }
 

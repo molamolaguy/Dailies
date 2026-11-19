@@ -14,7 +14,8 @@ class NotificationIdsTest {
     private val fixedIds = mapOf(
         "Notifier.SUMMARY_ID" to Notifier.SUMMARY_ID,
         "Notifier.COMBINED_ID" to Notifier.COMBINED_ID,
-        "StreakReminders.NOTIFICATION_ID" to StreakReminders.NOTIFICATION_ID
+        "StreakReminders.NOTIFICATION_ID" to StreakReminders.NOTIFICATION_ID,
+        "UpdateInstaller.NOTIFICATION_ID" to UpdateInstaller.NOTIFICATION_ID
     )
 
     @Test
