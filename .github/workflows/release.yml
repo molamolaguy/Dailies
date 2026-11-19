@@ -1,6 +1,6 @@
 name: Release
 
-# Push a tag such as v1.4.0 to build a signed APK and publish it as a GitHub release.
+# Push a tag such as v1.9.4 to build a signed APK and publish it as a GitHub release.
 # Needs these repository secrets (Settings → Secrets and variables → Actions), which
 # scripts/publish-to-github.* can set for you:
 #   RELEASE_KEYSTORE_BASE64  base64 of dailies-release.jks
@@ -12,9 +12,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to create, e.g. v1.4.0 (must match versionName in app/build.gradle.kts)'
+        description: 'Release tag to create, e.g. v1.9.4 (must match versionName in app/build.gradle.kts)'
         required: true
-        default: 'v1.4.0'
+        default: 'v1.9.4'
 
 permissions:
   contents: write
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Check the tag matches versionName
+      - name: Check the tag matches versionName and Fastlane changelog exists
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
         run: |
@@ -32,6 +32,13 @@ jobs:
           if [ -z "$VERSION_NAME" ]; then echo "::error::Could not read versionName from app/build.gradle.kts"; exit 1; fi
           if [ "${TAG#v}" != "$VERSION_NAME" ]; then
             echo "::error::Tag $TAG does not match versionName $VERSION_NAME in app/build.gradle.kts (bump versionName and versionCode first)"
+            exit 1
+          fi
+          VERSION_CODE="$(sed -nE 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*([0-9]+).*/\1/p' app/build.gradle.kts | head -1)"
+          if [ -z "$VERSION_CODE" ]; then echo "::error::Could not read versionCode from app/build.gradle.kts"; exit 1; fi
+          CHANGELOG="fastlane/metadata/android/en-US/changelogs/${VERSION_CODE}.txt"
+          if [ ! -f "$CHANGELOG" ]; then
+            echo "::error::Missing Fastlane changelog $CHANGELOG for versionCode $VERSION_CODE"
             exit 1
           fi
           HUB_VERSION="$(sed -nE "s/^[[:space:]]*const APP_VERSION = '([^']+)';.*/\1/p" app/src/main/assets/index.html | head -1)"
@@ -69,13 +76,19 @@ jobs:
         run: |
           if [ -z "$RELEASE_KEYSTORE_BASE64" ]; then echo "::error::RELEASE_KEYSTORE_BASE64 secret is not set"; exit 1; fi
           echo "$RELEASE_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-      - name: Test and build signed APK
+      - name: Hub JS tests
+        run: node --test app/src/test/js/*.test.js
+      - name: Web app build check
+        run: node web/build.mjs dist-web && node web/check-build.mjs dist-web
+      - name: Ad-block list builder tests
+        run: python3 tools/test_build_adblock.py
+      - name: Test, lint and build signed APK
         env:
           RELEASE_STORE_FILE: ${{ runner.temp }}/release.jks
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: $GRADLE --no-daemon testDebugUnitTest testHubJs assembleRelease
+        run: $GRADLE --no-daemon testDebugUnitTest testHubJs lintDebug assembleRelease
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}

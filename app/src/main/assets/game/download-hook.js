@@ -18,6 +18,8 @@
       typeof Map !== 'function' || typeof Blob !== 'function') return;
 
   var KEEP_AFTER_REVOKE_MS = 60000;
+  var MAX_BLOBS = 32;
+  var MAX_BLOB_TTL_MS = 300000;
   var blobs = new Map();
   var greeted = false;
   var origCreate = U.createObjectURL;
@@ -25,11 +27,32 @@
 
   function post(obj) { try { channel.postMessage(JSON.stringify(obj)); } catch (e) {} }
 
+  function deleteBlob(url) {
+    var entry = blobs.get(url);
+    if (!entry) return;
+    if (entry.timer) clearTimeout(entry.timer);
+    blobs.delete(url);
+  }
+
+  function scheduleEvict(url, ms) {
+    var entry = blobs.get(url);
+    if (!entry) return;
+    if (entry.timer) clearTimeout(entry.timer);
+    entry.timer = setTimeout(function () { deleteBlob(url); }, ms);
+  }
+
   U.createObjectURL = function createObjectURL(obj) {
     var url = origCreate.apply(this, arguments);
     try {
       if (obj instanceof Blob && typeof url === 'string') {
-        blobs.set(url, obj);
+        if (blobs.has(url)) deleteBlob(url);
+        while (blobs.size >= MAX_BLOBS) {
+          var oldest = blobs.keys().next().value;
+          if (oldest === undefined) break;
+          deleteBlob(oldest);
+        }
+        blobs.set(url, { blob: obj, timer: null });
+        scheduleEvict(url, MAX_BLOB_TTL_MS);
         if (!greeted) { greeted = true; post({ t: 'hi' }); }
       }
     } catch (e) {}
@@ -39,7 +62,7 @@
     U.revokeObjectURL = function revokeObjectURL(url) {
       var r = origRevoke.apply(this, arguments);
       try {
-        if (blobs.has(url)) setTimeout(function () { blobs.delete(url); }, KEEP_AFTER_REVOKE_MS);
+        if (blobs.has(url)) scheduleEvict(url, KEEP_AFTER_REVOKE_MS);
       } catch (e) {}
       return r;
     };
@@ -49,7 +72,8 @@
     var m;
     try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (!m || m.t !== 'get' || typeof m.url !== 'string' || typeof m.token !== 'string') return;
-    var blob = blobs.get(m.url);
+    var entry = blobs.get(m.url);
+    var blob = entry && entry.blob;
     var found;
     if (blob) found = Promise.resolve(blob);
     else if (m.url.indexOf('blob:' + location.origin + '/') === 0) found = fetch(m.url).then(function (r) { return r.blob(); });

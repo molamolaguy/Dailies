@@ -68,6 +68,46 @@ class V110FeaturesTest {
     }
 
     @Test
+    fun skipsBrokenStreaksAndAllowsExplicitReminderWhenMuted() {
+        val now = ms("2026-11-08T23:15:00Z") // cycle 2026-11-08, yesterday 2026-11-07
+        val broken = game("broken", 5, logged = "2026-11-06")
+        val alive = game("alive", 5, logged = "2026-11-07")
+        val mutedOwn = game("mutedOwn", 4, logged = "2026-11-07", notify = false).dropLast(1) + ",\"reminderMinutes\":120}"
+        val mutedDefault = game("mutedDefault", 4, logged = "2026-11-07", notify = false)
+        val list = games(broken, alive, mutedOwn, mutedDefault)
+
+        val due = planner.due(list, now, hour) { null }.map { it.id }
+        assertEquals(listOf("alive", "mutedOwn"), due)
+
+        // Broken streak alone produces no nextCheck alarm.
+        assertNull(planner.nextCheck(games(broken), now, hour) { null })
+        // Muted game with explicit reminderMinutes still gets a nextCheck alarm.
+        assertEquals(now, planner.nextCheck(games(mutedOwn), now, hour) { null })
+        // Muted game inheriting default gets no alarm.
+        assertNull(planner.nextCheck(games(mutedDefault), now, hour) { null })
+    }
+
+    @Test
+    fun nextCheckHandlesSpringForwardDstAndSlackWindowWithoutDoubleWake() {
+        val ny = TimeZone.getTimeZone("America/New_York")
+        val nyPlanner = StreakReminderPlanner(ny)
+        // 2026-03-08 is US spring-forward day (23-hour day in America/New_York).
+        // Reset is 00:00 America/New_York. On 2026-03-07 23:30 EST (2026-03-08T04:30:00Z),
+        // today's cycle (2026-03-07) resets in 30 min (at 2026-03-08T05:00:00Z).
+        // Tomorrow's cycle (2026-03-08) resets at 2026-03-09T00:00:00 EDT = 2026-03-09T04:00:00Z (23h later).
+        // With 1 hr lead, tomorrow's window opens at 2026-03-09T03:00:00Z.
+        val g = """{"id":"w","name":"Wordle","resetTime":"00:00","resetZone":"America/New_York","streak":5,"loggedCycle":"2026-03-07","notifyEnabled":true}"""
+        val now = ms("2026-03-08T04:30:00Z")
+        assertEquals(ms("2026-03-09T03:00:00Z"), nyPlanner.nextCheck(games(g), now, hour) { null })
+
+        // Slack window: 60 min 30 sec before reset (inside lead + SLACK_MS), already reminded this cycle.
+        val slackNow = ms("2026-11-08T22:59:30Z")
+        val w = games(game("wordle", 5, logged = "2026-11-07"))
+        // Must schedule tomorrow's window (2026-11-09T23:00:00Z), NOT 2026-11-08T23:00:00Z (30s later).
+        assertEquals(ms("2026-11-09T23:00:00Z"), planner.nextCheck(w, slackNow, hour) { "2026-11-08" })
+    }
+
+    @Test
     fun reminderTextNamesTheGamesAndLeadTime() {
         val now = ms("2026-11-08T23:15:00Z")
         val one = planner.due(games(game("wordle", 5)), now, hour) { null }

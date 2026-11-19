@@ -144,6 +144,8 @@ object UpdateInstaller {
         return sigs.map { s -> md.digest(s.toByteArray()).joinToString("") { "%02x".format(it) } }.toSet()
     }
 
+    const val NOTIFICATION_ID = 0x0DA1E9
+
     /** Starts an install session; Android then shows its "Update this app?" confirmation. */
     fun install(ctx: Context, apk: File) {
         val installer = ctx.packageManager.packageInstaller
@@ -152,18 +154,44 @@ object UpdateInstaller {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
         }
         val id = installer.createSession(params)
-        installer.openSession(id).use { session ->
-            apk.inputStream().use { input ->
-                session.openWrite("base.apk", 0, apk.length()).use { out ->
-                    input.copyTo(out)
-                    session.fsync(out)
+        try {
+            installer.openSession(id).use { session ->
+                apk.inputStream().use { input ->
+                    session.openWrite("base.apk", 0, apk.length()).use { out ->
+                        input.copyTo(out)
+                        session.fsync(out)
+                    }
                 }
+                val intent = Intent(ACTION_STATUS).setClass(ctx, UpdateInstallReceiver::class.java)
+                val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
+                val pi = PendingIntent.getBroadcast(ctx, id, intent, flags)
+                session.commit(pi.intentSender)
             }
-            val intent = Intent(ACTION_STATUS).setClass(ctx, UpdateInstallReceiver::class.java)
-            val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
-            val pi = PendingIntent.getBroadcast(ctx, id, intent, flags)
-            session.commit(pi.intentSender)
+        } catch (e: Throwable) {
+            runCatching { installer.abandonSession(id) }
+            throw e
         }
+    }
+
+    /** Posts a notification that opens Android's update confirmation (fallback when backgrounded on Android 14+). */
+    fun postConfirmNotification(ctx: Context, confirm: Intent): Boolean {
+        val nm = androidx.core.app.NotificationManagerCompat.from(ctx)
+        if (!nm.areNotificationsEnabled()) return false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) return false
+        Notifier.ensureChannel(ctx)
+        val launch = Intent(confirm).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        val pending = PendingIntent.getActivity(ctx, NOTIFICATION_ID, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val n = androidx.core.app.NotificationCompat.Builder(ctx, Notifier.channelId(ctx))
+            .setSmallIcon(R.drawable.ic_stat_dailes)
+            .setContentTitle("Dailies update ready")
+            .setContentText("Tap to finish installing the update.")
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+            .let { Notifier.withAppIcon(ctx, it) }
+            .build()
+        return runCatching { nm.notify(NOTIFICATION_ID, n) }.isSuccess
     }
 }
 
@@ -177,7 +205,14 @@ class UpdateInstallReceiver : BroadcastReceiver() {
                 } else {
                     @Suppress("DEPRECATION") intent.getParcelableExtra(Intent.EXTRA_INTENT)
                 }
-                confirm?.let { runCatching { context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } }
+                confirm?.let {
+                    if (!HubActivity.launchUpdateConfirm(it)) {
+                        val started = runCatching { context.startActivity(Intent(it).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+                        if (!started || Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            UpdateInstaller.postConfirmNotification(context, it)
+                        }
+                    }
+                }
             }
             PackageInstaller.STATUS_SUCCESS -> Unit // the app restarts as the new version
             PackageInstaller.STATUS_FAILURE_ABORTED -> HubActivity.reportUpdateStatus("error", -1, "Update cancelled.")

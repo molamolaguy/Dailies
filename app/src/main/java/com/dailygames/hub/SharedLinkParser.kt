@@ -9,7 +9,8 @@ object SharedLinkParser {
      * or returns the trimmed text if no explicit URL scheme is embedded.
      */
     fun extractSharedUrl(action: String?, mimeType: String?, rawText: String?): String? {
-        if (action != "android.intent.action.SEND" || mimeType != "text/plain") return null
+        val baseMime = mimeType?.substringBefore(';')?.trim()?.lowercase(java.util.Locale.US)
+        if (action != "android.intent.action.SEND" || baseMime != "text/plain") return null
         val text = rawText?.trim().orEmpty()
         if (text.isEmpty()) return null
         return URL_REGEX.find(text)?.value ?: text

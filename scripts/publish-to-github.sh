@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
-# Publishes this project to your GitHub account as a PUBLIC repository and creates the v1.0.0 release
-# with the APK attached. Run it from anywhere:
+# Initial-setup helper: publishes this project to your GitHub account as a PUBLIC repository,
+# optionally configures release signing secrets, and creates a GitHub release with the APK attached.
+# Run it from anywhere:
 #
-#   bash scripts/publish-to-github.sh [path/to/Dailies-1.0.0.apk] [path/to/Dailies_signing_KEEP_PRIVATE]
+#   bash scripts/publish-to-github.sh [path/to/Dailies-<version>.apk] [path/to/Dailies_signing_KEEP_PRIVATE]
 #
 # Needs git and the GitHub CLI (https://cli.github.com). It signs you in to GitHub if needed.
 # If you pass the signing folder, the key is also stored as encrypted repository secrets so the
 # Release workflow can build signed updates when you push a tag (optional; the key itself is never committed).
 set -euo pipefail
 
-REPO_NAME="${REPO_NAME:-dailies}"
+REPO_NAME="${REPO_NAME:-Dailies}"
 DESCRIPTION="One home for every daily web puzzle: reset alerts, streaks, auto-logged results and an ad-blocking game player for Android."
-VERSION="1.0.0"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VERSION="${VERSION:-$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$ROOT/app/build.gradle.kts" | head -1)}"
+[ -n "$VERSION" ] || VERSION="1.9.4"
 APK="${1:-$ROOT/../Dailies-$VERSION.apk}"
 SIGNING_DIR="${2:-}"
 

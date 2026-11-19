@@ -39,33 +39,7 @@ class HubStateStore(
     /** The stored JSON; "" when nothing has ever been saved; [READ_ERROR] when data exists but can't be read. */
     fun read(): String = synchronized(lock) {
         pending.get()?.let { return it }
-        val main = readFile(file)
-        if (main != null && looksComplete(main)) return main
-        val bak = readFile(backup)
-        if (bak != null && looksComplete(bak)) return bak
-        // Neither looks whole: hand over whatever there is and let the hub decide (it shows the
-        // "couldn't be read" banner instead of overwriting it).
-        if (main != null && main.isNotBlank()) return main
-        if (bak != null && bak.isNotBlank()) return bak
-        val anyExists = (file.exists() && file.length() > 0) || (backup.exists() && backup.length() > 0)
-        return if (anyExists) READ_ERROR else ""
-    }
-
-    /** A saved state is one JSON object: a truncated or zero-filled file fails this cheap check. */
-    private fun looksComplete(text: String): Boolean {
-        val t = text.trim()
-        return t.length >= 2 && t.first() == '{' && t.last() == '}' && t.indexOf('\u0000') < 0
-    }
-
-    private fun readFile(f: File): String? {
-        if (!f.exists()) return null
-        if (f.length() > MAX_STATE_BYTES) return null
-        return try {
-            f.readText(Charsets.UTF_8)
-        } catch (e: Throwable) {
-            // IOException, or OutOfMemoryError on a huge/corrupt file: report "unreadable", never crash.
-            null
-        }
+        return readSnapshot(file)
     }
 
     /** Queues [json] to be written; returns immediately. Blank input is ignored (never wipes data). */
@@ -182,5 +156,37 @@ class HubStateStore(
         const val READ_ERROR = "__DAILES_READ_ERROR__"
         /** Refuse to load anything absurd (a corrupt file would otherwise exhaust memory). */
         private const val MAX_STATE_BYTES = 200L * 1024 * 1024
+
+        /** Reads persisted state (falling back to `.bak`) without creating a writer executor. */
+        fun readSnapshot(file: File): String {
+            val backup = File(file.parentFile, file.name + ".bak")
+            val main = readFile(file)
+            if (main != null && looksComplete(main)) return main
+            val bak = readFile(backup)
+            if (bak != null && looksComplete(bak)) return bak
+            // Neither looks whole: hand over whatever there is and let the hub decide (it shows the
+            // "couldn't be read" banner instead of overwriting it).
+            if (main != null && main.isNotBlank()) return main
+            if (bak != null && bak.isNotBlank()) return bak
+            val anyExists = (file.exists() && file.length() > 0) || (backup.exists() && backup.length() > 0)
+            return if (anyExists) READ_ERROR else ""
+        }
+
+        /** A saved state is one JSON object: a truncated or zero-filled file fails this cheap check. */
+        private fun looksComplete(text: String): Boolean {
+            val t = text.trim()
+            return t.length >= 2 && t.first() == '{' && t.last() == '}' && t.indexOf('\u0000') < 0
+        }
+
+        private fun readFile(f: File): String? {
+            if (!f.exists()) return null
+            if (f.length() > MAX_STATE_BYTES) return null
+            return try {
+                f.readText(Charsets.UTF_8)
+            } catch (e: Throwable) {
+                // IOException, or OutOfMemoryError on a huge/corrupt file: report "unreadable", never crash.
+                null
+            }
+        }
     }
 }

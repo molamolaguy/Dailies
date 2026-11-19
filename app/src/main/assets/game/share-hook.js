@@ -169,7 +169,8 @@
     [/^(m\.)?facebook\.com\/(sharer|share|dialog\/share)/i, ['quote', 'text']],
     [/^(old\.)?reddit\.com\/submit/i, ['title', 'text']],
     [/^bsky\.app\/intent\/compose/i, ['text']],
-    [/^threads\.(net|com)\/intent\/post/i, ['text']]
+    [/^threads\.(net|com)\/intent\/post/i, ['text']],
+    [/^(mastodonshare\.com|toot\.kytta\.dev)\//i, ['text']]
   ];
   function queryParam(q, key, plusIsSpace) {
     var parts = String(q || '').split('&');
@@ -276,9 +277,16 @@
   function deepText(limit) {
     var text = (document.body && document.body.innerText) || '';
     try {
-      var hosts = deepQueryAll('*');
-      for (var i = 0; i < hosts.length && text.length < limit; i++) {
-        if (hosts[i].shadowRoot) text += '\n' + (hosts[i].shadowRoot.textContent || '');
+      var roots = [document];
+      for (var r = 0; r < roots.length && r < 60 && text.length < limit; r++) {
+        var all = roots[r].querySelectorAll('*');
+        for (var i = 0; i < all.length && roots.length < 60 && text.length < limit; i++) {
+          var sr = all[i].shadowRoot;
+          if (sr) {
+            roots.push(sr);
+            text += '\n' + (sr.textContent || '');
+          }
+        }
       }
     } catch (e) {}
     return text.slice(0, limit);

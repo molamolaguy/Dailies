@@ -1,8 +1,8 @@
-# Dailies 1.5.1: How the App Works
+# Dailies 1.9.4: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.5.1` (`versionCode = 9`)
+- **Version**: `1.9.4` (`versionCode = 32`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **License**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -13,47 +13,44 @@ new puzzle is out, opens games in a built-in ad-blocking player, and keeps your 
 
 ---
 
-## 1. What's in version 1.0.0
-
-1.0.0 is the first public release. It contains everything from the private 2.x builds, plus a full
-code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes from the review.
+## 1. What's in Dailies
 
 | Area | What you get |
 |---|---|
-| **Daily Hub** | A card for every game you add, with a live countdown to its next reset, your streak, and Play / Log / Edit / Remove buttons. Reorder cards by long-press and drag, or with the arrows. Filter by All / Ready / Done. |
-| **Adding games** | Paste or share a link. The app reads the game's name, icon, category and reset time from the page, and checks a built-in list of 12 popular games (Wordle, Connections, Strands, Contexto, Globle, Nerdle, Waffle, FE Guess, Framed, PokeDoku, Travle, Krillion) for known reset times. |
+| **Daily Hub** | A card for every game you add, with a live countdown to its next reset, your streak, and Play / Log / Edit actions. Search, sort, filter by All / Ready / Done, group finished games, long-press to drag-reorder or open Quick Actions (with notes), or tap **Play all** to run through unplayed games in sequence. |
+| **Adding games** | Paste or share a link (or a `dailies://add` shared list / QR code). The app reads the game's name, icon, category and reset time from the page, detects duplicates, and includes a built-in catalog of 67 popular daily games with known reset times. |
 | **Reset times** | Each reset is stored in the time zone the game publishes it in (your local time, UTC, or a named zone such as `America/New_York`). It's always shown in your phone's local time, with daylight-saving changes handled correctly. |
-| **Game player** | Full-screen player with Hub, a game switcher on the title, Next, an ad-block shield (with a blocked count), a ⋮ menu (Reload, Open in browser, Zoom) and Log. Supports fullscreen video and canvas, file uploads (Photo Picker), downloads, and "open in app" links. |
-| **Auto-logging** | When you tap a game's **Share** or **Copy** button, the result is captured. Going back to the hub logs it as Solved (or Missed for a failed result such as "X/6"), with the share text as your score and an **Undo** button. |
-| **Ad blocking** | About 302,000 ad, tracker and malware domains, 23,400 URL rules and 43,000 element-hiding rules, built from EasyList, EasyPrivacy, AdGuard Base, HaGeZi Pro and StevenBlack. You can switch it off per site or everywhere. |
-| **Streaks & Log** | A completion calendar per game (best streak, current streak, plays) and the full score history, 5 results per page. Swipe or tap to change pages. |
-| **Reset alerts** | A notification when a game's new puzzle is out, per-game on/off, grouped when several reset at once, and exact timing where Android allows it. |
-| **Look** | Material 3 Expressive with Google Sans, Material Symbols icons, Material You wallpaper colors, an optional true-black AMOLED mode and compact cards. |
-| **Your data** | Stored only on your phone, with no size limit. Every save is atomic and keeps a backup copy. You can export and import `.json` backups. |
+| **Game player** | Full-screen player with Hub, a game switcher on the title, Next, an ad-block shield (with a blocked count), a ⋮ menu (Reload, Open in browser, Zoom) and Log. Supports fullscreen video and canvas, file uploads (Photo Picker), downloads, cookie-banner hiding, pull-to-refresh, dark game pages, asset preloading and safe `intent://` links. |
+| **Auto-logging** | When you tap a game's **Share** or **Copy** button — or when a game reaches its end screen — the result is captured. Going back to the hub logs it as Solved (or Missed for a failed result such as "X/6"), with the share text as your score and an **Undo** button. You can also read results from screenshots via on-device OCR. |
+| **Ad blocking** | About 316,000 ad, tracker and malware domains, 21,500 URL rules and 42,900 element-hiding rules, built from EasyList, EasyPrivacy, AdGuard Base, HaGeZi Pro and StevenBlack. You can switch it off per site or everywhere. |
+| **Streaks & Log** | A completion calendar per game (best streak, current streak, plays, score stats and personal bests), weekly and monthly swipeable recaps with shareable PNG cards, searchable and filterable score history (8 results per page), and two-tier + secret achievements. |
+| **Reset alerts** | A notification when a game's new puzzle is out, optional global and per-game streak reminders before reset, per-game on/off toggles, grouped alerts, and exact timing where Android allows it. |
+| **Look** | Material 3 Expressive with Google Sans, Material Symbols icons, Dark / Light / Match phone themes, Material You wallpaper colors, custom color seeds, true-black AMOLED mode, selectable app icons (including Custom, Gold and Ruby), and compact cards. |
+| **Your data** | Stored only on your phone, with no size limit. Every save is atomic and keeps a backup copy. You can export/import `.json` backups, restore a single game, schedule weekly folder backups, export `.csv`, and undo from Recent changes or Trash. |
 
 ---
 
 ## 2. Installing
 
-1. Download `Dailies-1.0.0.apk` from the GitHub release page.
+1. Download `Dailies-<version>.apk` (e.g. `Dailies-1.9.4.apk`) from the GitHub release page.
 2. Open it on your phone. Android will ask you to allow installs from your browser or file manager the first time; allow it.
 3. Open **Dailies** and tap **+ Add Game**.
 
-> **Already have a 2.x build installed?** 1.0.0 is signed with a new release key and has version code 1,
-> so Android won't install it over a 2.x build. Your data moves across with a backup:
+> **Already have a pre-1.0 2.x build installed?** Public 1.x releases are signed with the release key,
+> so Android won't install them over a private 2.x build. Your data moves across with a backup:
 > 1. In the old app: **Settings → Data & Backup → Save Backup (.json)**.
 > 2. Uninstall the old app. This deletes its data, so do step 1 first.
-> 3. Install `Dailies-1.0.0.apk`, then **Settings → Data & Backup → Import Backup** and pick the file.
+> 3. Install `Dailies-<version>.apk`, then **Settings → Data & Backup → Import Backup** and pick the file.
 >
-> Every future update is signed with the same key, so it will install straight over 1.0.0.
+> Every public release is signed with the same key, so updates install straight over the previous version.
 
 ---
 
 ## 3. Using the app
 
 ### Tab 1: Daily Hub
-- **Adding a game**: tap **+ Add Game** and paste a link, or use **Share → Dailies** from Chrome.
-  - **Or pick from popular daily games** lists the 59 built-in games by category (searchable); tap one to fill in its link, name and reset time.
+- **Adding a game**: tap **+ Add Game** and paste a link (or a shared `dailies://add` list link), or use **Share → Dailies** from Chrome.
+  - **Or pick from popular daily games** lists the 67 built-in games by category (searchable); tap one to fill in its link, name and reset time.
   - The name, icon, category and reset time fill in by themselves.
   - Anything you've already typed is never overwritten.
   - **✓ Reset time from built-in list** means the time came from the catalog of popular games.
@@ -63,14 +60,15 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - the reset time in your local time;
   - a status pill (Ready / Done / Missed);
   - a live countdown and the action buttons.
-- **Reset time check**: when a game's logged puzzle numbers don't fit its reset time (two puzzles on one day, or one puzzle on two), a banner suggests the time that fits, such as midnight New York time. **Update** changes it (moving history the same way as editing it); ✕ hides that suggestion for good.
-- **Copy**: the button at the top of the hub copies all of today's solved results, each as logged, with a "— — —" line between them. It shows once a result is logged today.
-- **Up next**: once you've finished a game today, a bar above the cards names the next unplayed game (after the one you played last, in your order). **Play next** opens it.
-- **Reordering**:
-  - Long-press a card for about 0.4 s until it lifts, then drag it. The list auto-scrolls near the edges.
-  - The ⌃/⌄ arrows also work.
+- **Reset time check**: when a game's logged puzzle numbers don't fit its reset time (two puzzles on one day, or one puzzle on two), a banner suggests the time that fits, such as midnight New York time. **Update** changes it (moving history the same way as editing it); ✕ hides that suggestion for good. You can also turn on automatic reset-time fixes in Settings.
+- **Search, sort & filter**: search games by name, site, category or notes; sort by custom order, status, next reset, streak or name; filter by **All / Ready / Done**; and optionally fold finished games under **Done today**.
+- **Copy**: the button at the top of the hub copies or shares all of today's solved results, each as logged, with a divider line between them. It shows once a result is logged today.
+- **Play all**: the **Play all** bar above the cards opens your unplayed games in hub order and automatically advances to the next one after each captured result.
+- **Reordering & Quick Actions**:
+  - Long-press a card until it lifts, then drag it to reorder (the list auto-scrolls near the edges).
+  - Long-press and release without moving (or right-click on desktop) to open **Quick Actions** (edit notes, archive, move, delete).
   - With a filter on, only the visible cards swap places.
-- **Playing**: **Play** opens the game player. **✓** logs a result by hand: **Solved**, **Missed** and an optional score. **📋 Paste** drops in a copied share text.
+- **Playing**: **Play** opens the game player. **✓** logs a result by hand: **Solved**, **Missed**, an optional score, or **Read from screenshot**. **📋 Paste** drops in a copied share text.
 - **After playing**:
   - Come back from a game you haven't logged and a sheet offers **Solved / Missed / + Score**.
   - If the puzzle reset while you were playing, the sheet first asks **which puzzle** you finished: the one you opened, or the new one.
@@ -79,17 +77,17 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 - **Top bar**:
   - **Hub**: go back to the hub.
   - **Game name**: tap it to switch to any of today's games (▶ playing, ✓ done, ○ not yet) without going back to the hub.
-  - **After a result is saved** (copied, shared or found on the end screen), a card offers **Play \<next game\>** (opens it in the player straight away), **Back to hub**, or ✕ to keep playing. Logging by hand after leaving the player (the **Log** button, or **Solved** / **Missed** on the return prompt) shows the same choice in the hub.
+  - **After a result is saved** (copied, shared or found on the end screen), a card offers **Play \<next game\>** (opens it in the player straight away; counts down automatically in Play all mode), **Back to hub**, or ✕ to keep playing. Logging by hand after leaving the player (the **Log** button, or **Solved** / **Missed** on the return prompt) shows the same choice in the hub.
   - **Next** (⏭): the next game you haven't played, in your hub order. Each game keeps its own play time and result, all logged when you return.
   - **Shield**: shows how many requests were blocked. Tap it to allow ads on this game's site, or to block them again; the choice is remembered per game.
   - **⋮**: **Reload**, **Open in browser** and **Zoom**. Zoom (50–200%) is remembered for each site.
   - **Log**: go back and open the log form, pre-filled with any captured result.
 - **Result capture** works three ways at once:
   1. **Clipboard**: anything the game copies while it's on screen is checked, and checked again when you come back to the player or close it.
-  2. **Find Results Automatically** (part of `share-hook.js`): when the page shows an end screen ("Next puzzle in 05:12:44", "You solved it") with a Share / Copy button a tap could actually reach, Dailies presses that button once in a probe mode where the result text is captured and nothing is copied, shared or opened. Links and buttons for other apps or images ("Share on X", "Copy link", "Share image") are never pressed, each button at most once and at most three per page, it stops once a result has gone out, and a real tap ends probe mode at once. It can be turned off in Settings.
-  3. **Page hooks**: a small script (`share-hook.js`) sees `navigator.clipboard`, `execCommand('copy')`, copy events, `DataTransfer.setData` and `navigator.share`. Each hook calls the original and returns its result unchanged, so games behave exactly as before.
+  2. **Find Results Automatically** (part of `share-hook.js`): when the page shows an end screen ("Next puzzle in 05:12:44", "You solved it") with a Share / Copy button a tap could actually reach, Dailies presses that button once in a probe mode where the result text is captured and nothing is copied, shared or opened. Links and buttons for other apps or images ("Share on X", "Copy link", "Share image") are never pressed, each button at most once and at most three per page, it stops once a result has gone out, and a real tap ends probe mode at once. It can also offer a score read from a stable end screen (`Log it / Not now`). It can be turned off in Settings.
+  3. **Page hooks**: a small script (`share-hook.js`) sees `navigator.clipboard`, `execCommand('copy')`, copy events, `DataTransfer.setData`, `navigator.share`, and share links. Each hook calls the original and returns its result unchanged, so games behave exactly as before.
 - **What counts as a result**: an emoji grid, a score like "3/6" with context, or the game's name with a count such as "#512" or "4 guesses". Links, names and random text are ignored.
-  - Only the game's own page can submit a result; ads and embedded frames can't.
+  - Only the game's own page (and same-site frames) can submit a result; ads and third-party frames can't.
   - The result is logged against the puzzle that was live when you opened the game.
 - **Downloads**:
   - Web links download with the game's login: into Downloads on Android 10+, or through Android's **Save to…** picker on Android 7–9 (up to 25 MB). If that fails, the link goes to your browser.
@@ -102,64 +100,62 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - Tap a day to see its result (outcome, time, play time, streak and the result text) with **Copy** and **Edit**.
   - The tiles show **Best streak**, **Current** and **Plays**.
   - **Score stats** below them: win rate, the average score, play times and personal bests. Scores are read as guesses ("3/6"), game times ("1:42", "1m 05s"), points ("2,450 pts", "4,250m", or a line that's just a number, like Krillion's "60") or counts ("45 guesses"); each game is compared in the kind it uses most.
+- **Weekly & monthly recaps**: swipe between periods and share a 1080×1350 PNG recap card.
 - **Score history**:
-  - Every result is listed newest first, 5 per page: game, date, time, play time, outcome and streak.
+  - Every result is listed newest first, grouped by day, 8 per page: game, date, time, play time, outcome and streak.
   - Search every result (all words must match the result text, game name or date; matches are highlighted), and filter by game (the dropdown) and by **All / Completed / Missed**.
-  - Tap **Result** on an entry to see the text the game shared, and **Copy result** to copy it with its line breaks and emoji.
-  - From the 6th result, a pager appears: tap ‹ › or swipe on the list (it follows your finger, like the calendar).
+  - Tap an entry to expand the text the game shared, and **Copy result** to copy it with its line breaks and emoji.
+  - From the 9th result, a pager appears: tap ‹ › or swipe on the list (it follows your finger, like the calendar).
   - Logging the same day again replaces that day's entry. Once today is logged as done, the card's ✓ is hidden; use **Edit entry** in the game's settings (⚙). Stats are recalculated from the history, so they go down as well as up.
+- **Achievements**: collapsible card with 19 two-tier achievements and 5 secret achievements, unlocking the Gold and Ruby icons and accents.
 
 ### Tab 3: Settings
+Settings is a list of collapsible sections that open in place, one at a time, and close when you leave Settings:
 - **Display**:
-  - Theme: Dark, Light or Match phone
-  - Match Device Wallpaper Colors
-  - AMOLED Pitch-Black Surface (dark theme only)
-  - Compact Game Cards
-  - Group Finished Games: today's done games move under a **Done today** header, folded away until you open it (with the All filter)
-  - App Icon: Default (white, yellow-to-green star), Theme (follows the theme and wallpaper colors), Midnight, Sunset, Ocean, Mono, and Gold, which unlocks once the first tier of every achievement is earned. The hub's logo matches it
-  - Gold Accents (1.5.0): unlocked by earning every tier of every achievement; gold replaces the theme's main color, with gold card trim, in the dark, light and AMOLED themes
+  - **Theme** dialog: Dark, Light or Match phone; Match Device Wallpaper Colors; 5 color seeds + custom accent; AMOLED Pitch-Black Surface (dark theme only)
+  - **App Icon** dialog: Default, Theme, Midnight, Sunset, Ocean, Mono, Custom (pinned shortcut), Gold (unlocked via achievements), and step-cut Ruby (unlocked via secret achievements)
+  - **Accent**: None, Gold, or Ruby (once unlocked)
+  - Compact Game Cards, Group Finished Games (**Done today**), Countdown Font, Text Size, High Contrast, Bottom Bar Transparency, Celebration Sparkle
 - **Gameplay & Time**:
-  - 12h / 24h clock
-  - Seconds in countdowns
-  - Ask to Log After Playing
-  - Auto-scrape on paste
+  - 12h / 24h clock, Seconds in countdowns, Ask to Log After Playing, Auto-scrape on paste, Auto-fix reset times, Check game pages weekly for changes
 - **Game Player**:
-  - Block Ads in Games
-  - Auto-Log Shared Results
-  - Find Results Automatically
+  - Block Ads in Games, Auto-Log Shared Results, Find Results Automatically, Dark Game Pages, Hide Cookie Banners, Pull to Refresh, Preload Games on New Reset
 - **Reset Alerts**:
-  - The button reads **✓ Notifications enabled** when Android allows them. Otherwise it reads **Allow Notifications**, which asks for permission or opens the right Android settings page.
-  - **Streak Reminder**: off, or 30 min to 6 hr before a reset. Each game can override it in its settings (⚙ → **Streak reminder for this game**: same as Settings, off, or its own time). If a game you have a streak in isn't logged by then, one notification lists them (on its own "Streak Reminders" channel).
-  - Below it, each game has its own alert toggle.
-- **Data & Backup**: **Save Backup (.json)** and **Import Backup (.json or .txt)** through the Android file picker.
-  - **Weekly Automatic Backup**: choose a folder and a backup in the same format is written there every week (`dailies_autobackup_<date>.json`, the newest 5 kept). **Back up now** and **Turn off** appear once it's on.
-- **About**: the version, and an opt-in **Check for Updates** (once a day, one anonymous request to GitHub's releases API). A newer release shows a banner on the hub; **Update** (or **Check now**) downloads it and opens Android's install screen.
+  - **✓ Notifications enabled** / **Allow Notifications** permission button
+  - **Streak Reminder**: off, or 30 min to 6 hr before a reset (each game can override it in its settings, independently of reset alerts)
+  - Per-game reset alert toggles
+- **Data & Backup**:
+  - **Save Backup (.json)**, **Import Backup (.json or .txt)**, **Restore one game**, **Weekly Automatic Backup** (SAF folder, newest 5 kept), **Export (.csv)**, **Share game list / QR code**, **Recent changes** (undo log up to 300 entries / 60 days), **Trash** (up to 100 items / 30 days), **Check links**, **Refresh icons**, and **Storage** manager
+- **Archived Games**: restore or permanently delete archived games
+- **About**: version, opt-in **Check for Updates** (GitHub releases API + verified in-app APK install), **What's new**, and **Report a problem** (with local error and crash logs)
 
 ### Undo
-- Auto-logged results, quick actions, manual logs and backup imports show a toast with an **Undo** button. The toast stays up for 20 seconds.
-- Undo is refused once that game's puzzle has reset, so it can never overwrite a newer day.
-- To correct an older day, tap that day in the **Streaks & Log** calendar.
+- Auto-logged results, quick actions, manual logs and backup imports show a toast with an **Undo** button (20 seconds; 10 minutes for deleted-game restore toasts).
+- **Recent changes** (Settings → Data & Backup) keeps up to 300 entries for 60 days with no time limit on undo.
+- To correct an older day directly, tap that day in the **Streaks & Log** calendar.
 
 ---
 
 ## 4. How it works inside
 
 ```
-┌────────────── MainActivity (hub) ──────────────┐        ┌──────── GameActivity (player) ────────┐
+┌────────────── HubActivity (hub) ───────────────┐        ┌──────── GameActivity (player) ────────┐
 │ WebView: assets/index.html + app.css           │  Play  │ WebView: the game's own site          │
-│   hub-core.js  (dates, resets, streaks)        │ ─────▶ │   share-hook.js → "DailesShare"       │
-│   known-games.js (built-in reset times)        │        │   cosmetic.js   → "DailesAdBlock"     │
-│ AndroidBridge (JS ⇄ Kotlin)                    │ ◀───── │ AdBlockEngine / CosmeticFilters       │
-│   HubStateStore  → files/hub_state.json        │ result │ Surrogates (stand-in ad libraries)    │
+│   hub-core.js       (dates, resets, streaks)   │ ─────▶ │   share-hook.js → "DailesShare"       │
+│   hub-ui-helpers.js (hub sort, restore, norm)  │        │   cosmetic.js   → "DailesAdBlock"     │
+│   known-games.js    (67-game catalog)          │        │ AdBlockEngine / CosmeticFilters       │
+│ AndroidBridge (JS ⇄ Kotlin)                    │ ◀───── │ Surrogates (stand-in ad libraries)    │
+│   HubStateStore  → files/hub_state.json        │ result │ PageCache (preloaded cycle assets)    │
 │   FaviconCache   → files/favicons/             │        └───────────────────────────────────────┘
-│   WebsiteScraper → SafeHttp                    │
-│   GameRepository → ResetAlarms / WorkManager   │──▶ Notifier (grouped reset notifications)
+│   WebsiteScraper + PageRenderer → SafeHttp     │
+│   GameStore → ResetAlarms / WorkManager        │──▶ Notifier (grouped reset & streak alerts)
 └────────────────────────────────────────────────┘
 ```
 
 ### The hub (`assets/`)
 - **`index.html`** is the whole hub UI, fully offline. It talks to Android through `AndroidBridge`.
-- **`hub-core.js`** holds the pure date logic: which "day" (cycle) a puzzle is on, the next reset, streaks and share-result detection. It's unit tested with Node.
+- **`hub-core.js`** holds the pure date, reset, streak, score, achievement, recap, theme and duplicate-detection logic. It's unit tested with Node.
+- **`hub-ui-helpers.js`** holds testable pure UI glue helpers (`hubOrder`, `normalizeGameObject`, `applyRestoreGameState`, `dedupeHistoryLogs`, `streakAsOfDate`, etc.), shared by the hub and Node tests.
   - **Shared test fixtures**: `schedule_cases.json` and `share_cases.json` are run by **both** the Node and the Kotlin tests. That way the notification scheduler and the hub can never disagree about a reset time or what counts as a result.
 - **Time zones**:
   - Resets are kept in their own zone and converted for display.
@@ -167,7 +163,7 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
   - **Clock goes forward** (a time is skipped): the reset moves forward to the next real time.
   - **Traveling west** (going back a day) doesn't wipe a logged result.
 - **Saving**:
-  - Several saves made close together are combined into one write.
+  - Several saves made close together are combined into one write, and flushed synchronously (including native `syncGames`) when leaving the app.
   - On startup, the newest copy (native file or browser storage) wins.
   - If saved data exists but can't be read, the hub shows a banner instead of starting empty. **Start fresh** moves the unreadable file aside (it's never deleted); **Import backup** is also offered.
 - **Accessibility**: dialogs trap focus and close with Back, Escape or a tap outside. Toasts are announced by screen readers, streaks have spoken labels, and pinch-zoom works.
@@ -181,31 +177,31 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 - **`SafeHttp.kt`**: all metadata and icon downloads go through it.
   - Only http and https to **public** addresses are allowed: no localhost, private, link-local or carrier NAT ranges, checked on every redirect.
   - Each download has a deadline and a size cap.
-- **`WebsiteScraper.kt`** reads a new link's title, description, icon and reset time, including the zone written next to it ("9 AM ET", "midnight UTC").
+- **`WebsiteScraper.kt`** & **`PageRenderer.kt`** read a new link's title, description, icon, embedded frames and reset time, including the zone written next to it ("9 AM ET", "midnight UTC"). `PageRenderer` enforces `SafeHttp.isPublicHost` on redirects/requests and cancels cleanly on `HubActivity.onDestroy()`.
 - **`FaviconCache.kt`** stores icons on the device and serves them through a reserved address (`favicon.dailes.invalid`). It backs off from icons that keep failing, refreshes icons older than 30 days in the background, and keeps the cache under 20 MB.
-- **Reset alerts**:
+- **Reset & streak alerts**:
   - `GameStore.kt` mirrors each game's schedule natively.
   - `ResetAlarms.kt` uses an exact alarm where allowed. Otherwise it uses a staged inexact alarm that re-arms closer to the reset.
-  - `DailyRefreshWorker.kt` (WorkManager) is the backup.
+  - `DailyRefreshWorker.kt` (WorkManager) is the backup; `StreakReminders.kt` schedules pre-reset streak reminders for active streaks.
   - `Notifier.kt` posts grouped notifications. Each carries a private token, so other apps can't use it to open the player.
   - Alarms are re-armed after a reboot, app update, time-zone change or clock change.
 - **`GameActivity.kt`** is the player:
   - edge-to-edge, with predictive back and dynamic colors;
-  - fullscreen, uploads, downloads and safe `intent://` handling;
-  - its state survives Android closing it in the background (play time, captured result, page).
+  - fullscreen, uploads, downloads (off-main-thread SAF writes & `data:` decoding) and safe `intent://` handling;
+  - its state survives Android closing it in the background (play time, captured result, confirmation flag, page).
 - **Ad blocking** (`AdBlockEngine.kt`, `CosmeticFilters.kt`, `AdBlocker.kt`, `Surrogates.kt`):
-  - **Hostname lists**: about 302k domains, stored as sorted 64-bit hashes and found by binary search. A listed domain covers its subdomains.
+  - **Hostname lists**: about 316k domains, stored as sorted signed 64-bit hashes and found by binary search. A listed domain covers its subdomains.
   - **URL rules** use a subset of Adblock Plus syntax:
     - anchors and wildcards;
-    - third-party / first-party, resource-type, `domain=` and `match-case` options, including uBlock Origin aliases;
+    - third-party / first-party, resource-type, `domain=` (including `foo.*` entity rules) and `match-case` options, including uBlock Origin aliases;
     - `@@` exceptions and `$important`.
     - They're indexed by token, so a check takes about 40 µs.
-  - **Precedence**: an `@@…$important` exception beats a `$important` block, which beats a normal exception, which beats a normal block.
-  - **Same site**: the Public Suffix List decides whether a request comes from the game's own site. The game's own site is never blocked by the big host lists.
-  - **Stand-ins**: blocked Google Analytics / gtag, Google Publisher Tag, IMA video ads and AdSense are replaced with harmless scripts, so games that call them directly don't break.
+  - **Precedence**: an `@@…$important` exception beats a `$important` block, which beats a normal exception (including `allow_hosts.txt`), which beats a normal block.
+  - **Same site**: the Public Suffix List decides whether a request comes from the game's own site (loaded before `GamePrefs` lookups). The game's own site is never blocked by the big host lists.
+  - **Stand-ins**: blocked Google Analytics / gtag, Google Publisher Tag, IMA video ads and AdSense are replaced with harmless scripts (for script requests), so games that call them directly don't break.
   - **Element hiding**:
     - The page reports the class and id names it actually uses, and only matching rules come back.
-    - Site rules support `~domain` exclusions.
+    - Site rules support `~domain` exclusions and exclusion-only rules.
     - Sites marked `$generichide` / `$elemhide` / `$document` in the lists are honored.
   - **Popups and redirects**: pop-ups, pop-unders and redirects to ad domains that you didn't tap are stopped.
   - **Service workers**: requests made by a site's service worker are filtered too.
@@ -214,17 +210,20 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 - No accounts, analytics, ads or tracking. The app has **no server**.
 - **What reaches the internet**:
   - the games you open;
-  - the page of a link you add, to read its details;
-  - game icons, through Google's favicon service.
+  - the page of a link you add, to read its details (`WebsiteScraper` / `PageRenderer`);
+  - game icons, fetched through `SafeHttp` / Google's favicon service and cached locally in `FaviconCache`;
+  - optional **Check for Updates** requests to GitHub's releases API (`UpdateCheck`) and APK downloads from GitHub Releases (`UpdateInstaller`), only when enabled or triggered by you;
+  - optional **weekly game-page rechecks** (`GameRecheck`, off by default, unmetered network) and **new-cycle asset preloading** (`PageCache`, unmetered network) for games you added;
+  - **on-device screenshot OCR** (`ScreenshotReader`) uses Google Play services ML Kit Text Recognition; Google Play services may download the Latin OCR model on demand, and screenshots are processed locally on your device.
 - Your games, history and settings stay on your phone.
-  - Android's own backup only includes the hub file and settings.
-  - Game-site logins, cookies and the icon cache are never backed up.
+  - Android Auto Backup / device transfer includes only the hub file and portable settings — device-specific preferences (SAF backup folder grant, notification prompt state, per-install notification token, crash log and recheck timestamps), game-site logins, cookies and the icon cache are excluded.
 - **Permissions**:
-  - Internet;
-  - notifications;
-  - vibrate (drag haptics);
-  - run at startup (re-arm alarms);
-  - exact alarms (on-time reset alerts).
+  - `INTERNET` (loading games, scraping links, icons, opt-in updates/rechecks/preloading);
+  - `POST_NOTIFICATIONS` (reset and streak reminder alerts);
+  - `VIBRATE` (drag haptics);
+  - `RECEIVE_BOOT_COMPLETED` (re-arm alarms after reboot);
+  - `USE_EXACT_ALARM` / `SCHEDULE_EXACT_ALARM` (on-time reset alerts);
+  - `REQUEST_INSTALL_PACKAGES` (installing verified APKs from GitHub Releases when you use in-app updates).
 
 ---
 
@@ -233,11 +232,14 @@ code review: 37 bugs fixed and 26 improvements made. Section 7 lists the changes
 Requirements:
 - JDK 17 or newer;
 - the Android SDK with platform 37 (Android Studio installs it);
-- Node.js 18+ (only for `testHubJs`);
-- Python 3 (only to rebuild the ad-block lists).
+- Node.js 18+ (for JS tests and the web app build);
+- Python 3 (only to rebuild/test the ad-block lists).
 
 ```bash
-./gradlew testDebugUnitTest testHubJs assembleDebug
+./gradlew testDebugUnitTest testHubJs lintDebug assembleDebug
+node --test app/src/test/js/*.test.js
+node web/build.mjs dist-web && node web/check-build.mjs dist-web
+python3 tools/test_build_adblock.py
 ```
 
 The debug APK is `app/build/outputs/apk/debug/Dailies-debug.apk`.
@@ -255,10 +257,10 @@ The debug APK is `app/build/outputs/apk/debug/Dailies-debug.apk`.
 
   | Command | What it runs |
   |---|---|
-  | `testDebugUnitTest` | 78 Kotlin tests |
-  | `connectedDebugAndroidTest` | On-device smoke tests (needs an emulator or phone; CI runs them on an Android 14 emulator) |
-  | `testHubJs` | The Node tests |
-  | `python3 tools/test_build_adblock.py` | The list-builder tests |
+  | `testDebugUnitTest` | 130 Kotlin unit tests |
+  | `connectedDebugAndroidTest` | 25 on-device instrumentation tests (needs an emulator or phone; CI runs them on an Android 14 emulator) |
+  | `node --test app/src/test/js/*.test.js` (and `testHubJs`) | 51 Node tests (`hub-core.js`, `hub-ui-helpers.js`, `known-games.js`) |
+  | `python3 tools/test_build_adblock.py` | 14 ad-block list-builder tests |
 
 - **Refreshing the ad-block lists**: `tools/fetch_adblock_lists.sh <folder>` downloads the sources, then run `python3 tools/build_adblock.py <folder>` and rebuild. The **Update ad-block lists** workflow does this every Monday and opens a pull request (allow it under **Settings → Actions → General → Allow GitHub Actions to create pull requests**). The file names to use are in the comment at the top of the script:
   - the EasyList / EasyPrivacy component files;
@@ -271,14 +273,15 @@ The debug APK is `app/build/outputs/apk/debug/Dailies-debug.apk`.
 
 | Path | Contents |
 |---|---|
-| `app/src/main/assets/` | Hub UI (`index.html`, `app.css`, `hub-core.js`, `known-games.js`), fonts, game-page scripts, ad-block data |
+| `app/src/main/assets/` | Hub UI (`index.html`, `app.css`, `hub-core.js`, `hub-ui-helpers.js`, `known-games.js`), fonts, game-page scripts, ad-block data |
 | `app/src/main/java/com/dailygames/hub/` | Kotlin sources (see Section 4) |
 | `app/src/main/res/` | Icons, launch theme, strings, backup / network rules |
 | `app/src/test/` | Kotlin tests, Node tests (`js/`), shared fixtures (`resources/`) |
+| `web/` | Zero-dependency PWA build (`build.mjs`, `check-build.mjs`, `sw.js`, `web.js`, `web.css`, manifest & icons) |
 | `tools/` | Ad-block list builder and its tests |
-| `design/icons/` | Material Symbols PNG sources |
-| `scripts/` | One-step GitHub publishing (`publish-to-github.sh` / `.ps1`) |
-| `.github/workflows/` | CI tests on every push, and a signed release build when you push a `v*` tag |
+| `design/icons/` | Material Symbols PNG sources and icon/CSS generators |
+| `scripts/` | Initial-setup GitHub publishing (`publish-to-github.sh` / `.ps1`) |
+| `.github/workflows/` | CI tests on every push, PWA deploy, weekly ad-block refresh, and a signed release build when you push a `v*` tag |
 
 ---
 
@@ -540,85 +543,19 @@ The hub also runs as an installable web app on GitHub Pages; see `web/README.md`
 - **Finding results** (`share-hook.js`): `RESULTS_OPEN_RE` (press "See results" / "Stats" once on a finished game, then rescan), `shareLinkText` (window.open and `<a>` share links), `deepQueryAll` / `deepText` (open shadow roots), `FINISHED_INTL_RE` and the multilingual `BUTTON_RE`, `screenResultLine` → `via: "screen"`. `GameActivity.captureShareLink` (`ShareLinkText`, also for navigations and popups), `offerScreenResult` (a Log it / Not now card; `EXTRA_SHARE_CONFIRMED` makes the hub skip its strict check).
 - **UI**: every `<select>` uses `themeSelect`; `#btnPlayAll` is the only bar above the games; no Select button, Personal Bests, tough days or Settings → Recent changes; recap boxes swipe (`.recap-swipe`); achievements and secrets in two grids; `settingsRenderKey` so Settings isn't rebuilt on each swipe; card styles restyled; `formatLocalNowTime` follows Show Seconds; alerts have no large icon.
 
-## 37. New in 1.9.3
+## 24. New in 1.8.4
 
-- **Ruby app icon, step cut**: `design/icons/ruby-icon.js` draws the stone as four copies of the star outline scaled 1, 0.84, 0.68 and 0.52 about the centre, each with its own top-left-to-bottom-right gradient (alternately lit and shadowed, so they read as steps), thin light edges between them and a blurred highlight at the top left; the shadow, rim and white mark are as before. Run it to rebuild the launcher PNGs and the hub's `rubyIconSvg`.
-- **Today on the calendar**: `.cal-cell.today` uses `--today-c` (the primary colour, `#BAA465` gold, `#CF1D4F` ruby) for an inset ring, an inner glow and an outer halo (`z-index: 1` so it shows over the next day); `.cal-swipe` has `overflow-clip-margin: 16px` so the halo isn't cut off at the edges.
+- **Glass cards**: one flat tint (`color-mix` of white into the container colour) plus the bright edge and an inset highlight; the 1.8.3 gradient and large soft shadow made Settings about 3x as much raster work as it slid in.
+- **Parked pages**: `Pager.park(tab, draw)` / `unpark`, `parkNeighbours()` (after every switch, when idle, and after `queueTabPrerender`). The current page's neighbours keep their full layout beside the screen (`.tab-page.hidden.parked`, `will-change: transform`); `draw` shows the page for a few frames at 0.4% opacity so the browser rasters it, then moves it aside. `#m3Scaffold` is `overflow: clip; min-height: 100vh`, so parked pages never change the scroll length. A cancelled swipe re-parks (`Pager.detach`). Off with Reduce Motion.
+- **Idle work**: `whenIdle` waits while a finger is on the screen (`touchActiveUntil`), a page is sliding or a neighbour is attached; `queueTabPrerender()` also runs at startup.
 
-## 36. New in 1.9.2
+## 25. New in 1.8.5
 
-- **Settings sections open in place** (replacing 1.9.1's pages): `#settingsIndex` and the back bar are gone. Each `#viewSettings > [data-fold]` card is a fold that starts closed; `initFolds()` adds a `.fold-note` (from `SETTINGS_SECTION_NOTES`) after its h3, shown only while folded. `openSettingsSection(name, { keepScroll })` closes any other open section, keeps the tapped heading where it was on screen (scrolling by how far a section closing above moved it), opens it with the usual glide, and scrolls a section opened low on the screen up. `closeSettingsSection({ instant })` closes the open one (true if there was one); Back, tapping Settings again, and `switchNavigation` leaving Settings (instantly, once the page has slid away) call it. `revealFold()` opens the element's section without the scroll handling.
-
-## 35. New in 1.9.1
-
-- **Settings as pages**: `#settingsIndex` lists the `#viewSettings > [data-fold]` cards (`renderSettingsIndex()`: the card's icon and h3, a note from `SETTINGS_SECTION_NOTES`, a row hidden while its card is, kept in step by a MutationObserver). `openSettingsSection(name)` adds `.sub-open` to the view and `.sub-current` to the card (opened, its heading no longer folds it); CSS shows either the list or the `#settingsSubHead` back bar plus that card. `closeSettingsSection()` returns to the list (the back bar, `handleBackPress` before leaving the tab, and the Settings tab tapped again). `revealFold()` on an element in Settings opens its section.
-- The 1.9.0 ⓘ explanations are gone (`.set-desc` / `.set-info`), and `.set-row` padding is 12px again.
-
-## 34. New in 1.9.0
-
-- **Settings → Display**: `#btnOpenTheme` opens `#modalTheme` (theme mode, wallpaper colors, `#themeChoices`, AMOLED: the same controls, moved, so their wiring is unchanged); `#btnOpenAppIcon` opens `#modalAppIcon` (`#iconChoices`). `#settingAccent` (None / Gold / Ruby, only unlocked ones) sets the old `#settingGoldAccents` / `#settingRubyAccents` switches, which stay in the page (rows `.accent-switch-row`, never shown) with their own handlers. `renderDisplaySummaries()` fills `#themeSummary`, `#appIconSummary` and the Accent choice; it runs from the theme / icon / accent renders and after any setting changes.
-- **Explanations**: at start, each Settings row's grey line right after its title (a `p` without an id) gets `.set-desc` (hidden) and an `.set-info` ⓘ button in the title that toggles `.show-desc` on the row (it prevents the default, so inside a switch's label it never flips the switch). `.set-row` padding 12px → 9px. Divider lines: any row with a shown row before it (hidden rows between no longer drop the line).
-- **Hub**: the `.gc-pb` personal-best tag is gone from game cards.
-
-## 33. New in 1.8.13
-
-- **Ruby cabochon**: `design/icons/ruby-css.js` GEM: `--gold-shine` is three radial gradients (a gloss at 32% 20%, light from below at 56% 82%, a body darkest in the middle and the same red at every edge); filled buttons get `inset 0 0 0 1px rgba(100,0,28,.3)` inside a light border, and an even glow (`0 0 16px -5px`). `--gold-edge` is vertical and as bright at the bottom as the top. The generator now rewrites its block in place and copies only the gold rules before it (later rules adjust gold and ruby together). The 1.8.8 ruby override uses `var(--gold-shine)`.
-- **Same game, other link**: `HubCore.findSameGame(cand, games)` → `{ game, reason, sure }`; `gameLinkKey` (host without www./m., lower-case path without index.html or `/`), `gameNameKey`. Sure: `same` (the page, or one of `game.altUrls`), `redirect` (`cand.finalUrl`). Asked: `embedded` (`cand.embeds` vs the game's links, or `game.embeds` vs the candidate), `menu` (same host, one path inside the other), `name`. Archived games are skipped.
-- **All done**: `celebrateAllDone()`, `#celebrate` and the `.celebrate` / `.cel-*` styles are gone; `checkAllDoneCelebration()` only sets `#hubLogo.all-done` (the sparkle), and only with `settings.celebrate` on (re-checked when the setting changes).
-- Scraper: `WebsiteScraper.embeddedGameLinks(html, pageUrl, renderedFrames)` (iframes from the HTML and PageRenderer's frames of at least 150×150, no ads, videos, maps or social frames) → `embeds` in the result. The Add form keeps `addLinkInfo`, shows `#sameGameNote`, asks on the first Save (`sameGameAskedFor`); a new game stores `altUrls` and `embeds`.
-
-## 32. New in 1.8.12
-
-- **share-hook.js, screen results**: `saysFinished()` (FINISHED_RE / FINISHED_INTL_RE without lines matching NEXT_LINE_RE or COUNTDOWN_RE) gates `offerScreenResult`; `screenResultLines()` skips NOT_RESULT_RE / COUNTDOWN_RE lines and 0:00, a time needs a label (`time`, `took`, `solved in`…, not a bare `in`), a bare value isn't labelled by a line that is itself a score. The lines are read twice 1.6 s apart and only unchanged ones are kept, ranked (what the player did > a count > a time).
-- **share-hook.js, MutationObserver**: observes `document` (it ran before `document.documentElement` existed, threw, and never observed), and ignores records that add no element (a ticking clock).
-- **hub-core.js**: `memo()` for `normalizeZone`, `parseHHMM` (frozen), `cycleKeyToDay`, `addDaysToCycleKey`, `resetOnDay` (keyed on the day in its zone, plus `localZone()` for local schedules, read at most once a second); `trackedDays` once per `achievementMetrics`.
-- **index.html**: the achievements cache also holds the secrets (`currentSecrets()`); `checkNewAchievements` keeps it current across its own save (`keepAchievementsCurrent`); the start check runs 8 s after load.
-- Device tests `GamePlayerTest.aCountdownAndARunningClockAreNotOfferedAsAResult`, `aLateEndScreenOffersItsResult`.
-
-## 31. New in 1.8.11
-
-Measured in the real WebView on the CI emulator (`SwipeTimingDeviceTest`, logcat tag `SwipeTiming`, printed by ci.yml): only the first slides in a fresh app process stalled (touchmoves 100-500 ms late, no JS task over 8 ms meanwhile, so drawing); later ones were smooth either way, also after a page reload or a new renderer. Neither parking pages in place at 0.4% opacity nor a 0.4% opacity rehearsal helped.
-- **`warmUnderCover()`** (index.html): called by `HubActivity.revealHub` once the launch screen lets the activity draw, while `launchCover` is still over the WebView. Attaches each other tab in turn and moves it with `Pager.follow` over 8 frames (out to a full page and back), then `stopDrag(0)` / `detach()` / `NavIndicator.place`, and calls `AndroidBridge.onWarmDone()`, which lifts the cover (`liftLaunchCover`, after a visual-state callback). The cover comes off after `MAX_WARMUP_MS` (1.5 s) whatever happens. About 300 ms on desktop.
-- Device-test hooks: localStorage `dailies_test_motion=1` turns reduced motion off (CI runs with animations off, which the WebView reports as reduced motion) and turns on `window.__probe` (timers, idle tasks, frame callbacks, listeners and native calls over 8 ms).
-
-## 30. New in 1.8.10
-
-Quick swipes stuttered, slow ones didn't: the first drag frame did all the setup (attach changed the neighbour's class and cssText, repainting it; `dragWith` created the WAAPI animations) and took ~37 ms at 6x, so a fast finger was well ahead by the next frame.
-- **`Pager.prime()`** on touchstart (after `swipe` is made): paused WAAPI animations (2000 ms, `fill: both`, `currentTime` 1000 = rest) for the current page (w → -w), prev (0 → -2w) and next (2w → 0) when both are parked exactly, and the highlight (prev, cur, next x; equal widths only). `follow(dx)` sets `currentTime = 1000 - dx / w * 1000`. `unprime(dx)` writes the inline positions, cancels and flushes; it runs from `stopDrag`, a vertical scroll, a card reorder and an unlocked `endSwipe`.
-- **`attach` fast path**: a parked page whose `el.__parked` (`{left, top, width, dir, w}` from `park`) still matches `slideGeometry` keeps its class and cssText. `unpark` and `switchNavigation` clear it.
-- `NavIndicator.place(tab)` no longer measures; `measure()` runs on resize and after a text-size change.
-- First touchmove handler ~0.6 ms at 6x (setup ~9 ms at touchstart, before motion); per move ~6.5 ms.
-
-## 29. New in 1.8.9
-
-Measured frame by frame: page velocity across release, main-thread work per drag frame by stage (at 6x CPU), invalidation tracking and a JS profile of the drag.
-- **Release**: `Pager.settleCurve(dx, target, v, w)` — a `cubic-bezier(0.333, s/3, 0.667, 1)` (time-exact) whose starting slope `s` is the finger's speed (`toward * ms / left`, at most 3), duration `2.2 * left / speed` within 200-420 ms, starting a frame's travel ahead. From rest or moving away: `cubic-bezier(0.2, 0, 0, 1)`. Rubber band uses a fifth of the finger's speed. The old curve paused a frame and set off at up to 3.6x.
-- **Drag**: `Pager.dragWith` makes paused WAAPI animations (cur page, neighbour, highlight; `fill: both`, linear over 1000 ms) and `follow` sets their `currentTime`; `stopDrag(dx)` writes the same positions inline, cancels them and flushes styles (a transition's start is the pre-drag inline value otherwise). Layerize per frame went from ~3 ms to ~0.25 ms at 6x.
-- `Pager.width()` cached (`_w`, cleared on resize); `NavIndicator` measures tabs once (fractional, relative to the bar), writes only changed properties (`put`), equal widths within 0.5 px move by transform only.
-- **Card press**: `press-hold` added after 150 ms of resting, not on touchstart.
-- `slideGeometry` uses fractional rects (offsetTop/Left are rounded).
-- `#calendarDaysGrid, #historyTableBody, .recap-swipe { will-change: transform, opacity }`.
-- Device test `HubSmokeTest.swipingBetweenPagesWithAFingerMovesTabAndSettles`.
-
-## 28. New in 1.8.8
-
-- **Pages as layers**: `.tab-page { will-change: transform }` permanently (not with Reduce Motion); `Pager.attach` / `settle` no longer set and clear `will-change` on the current page. Toggling it re-rastered the page leaving at the start of each swipe and the page arriving (into the root layer) as it landed.
-- **Parking at the scroll position**: `Pager.slideGeometry(cur, el)` (shared by `attach` and `park`) gives the top a page slides in at; parked pages wait (and are ghost-drawn) there. A scroll listener re-parks them when idle, redrawing when the scroll moved more than half a screen from where they were drawn (`el.__drawnAt`).
-- **Drop-downs in the player**: `select-menu.js` opens the menu on `touchend` (non-passive, cancelled) for a tap that didn't move, so no compatibility `mousedown` reaches the `<select>` (Android WebView opened its picker before a `mousedown` handler could prevent it). `GamePlayerTest.aDropDownOnAGamePageOpensTheAppsOwnMenu` taps a `<select>` in the real player and checks the menu shows.
-- **Bar at Clear**: `--nav-accent` (1 − see-through). Gold / ruby docks draw their accent edge as a masked `::before` ring at that opacity over the white glass edge, and their glow's alpha is scaled by it.
-- **Even rims**: ruby buttons and the bar's highlight use a gloss that is the same at the top and bottom; gold's shine on them runs at 90°.
-
-## 27. New in 1.8.7
-
-- **Background glow**: `body::before` (fixed, `z-index: -1`, explicit radial-gradient radii) instead of `background-image` on `body`. The body background is drawn on the canvas, sized to the document, so each tab's length changed the glow: a brightness step when a tab landed.
-- **Theme changes**: `applyThemeAndSettings` adds `html.theme-switch` (`transition: none` on everything) for two frames.
-- **Score History**: rows show the name and the meta (streak, time, status) on one line; the preview line and the PB flag are gone. `btnHistoryChanges` lives in Data & Backup.
-- **Recap**: `#recapCard { overflow: clip }`.
-- **Settings rows**: `.set-row` (no box; a divider between rows) replaces the boxed row classes inside `#viewSettings`.
-- **Card Style**: setting, `data-cards` and its CSS removed.
-- **Bottom bar**: `applyNavTransparency` also sets `--nav-sheen`, `--nav-edge` and `--nav-sat` (clear glass toward 100).
-- **Gold / ruby buttons**: `inset 0 0 0 1px` rim instead of a top highlight and bottom shade. **Toasts**: no `tone-ok::before` bar. **Hub icons**: `.m3-shape-app` (30% radius) for every card.
-- **Game player**: `assets/game/select-menu.js` (document-start, every frame) prevents a single-choice `<select>`'s own picker on `mousedown` and opens a themed menu in a closed shadow root; a choice sets `selectedIndex` and dispatches `input` and `change`. Colours from `GameActivity.selectMenuColors`.
+- **Checking game pages** (`GameRecheck.kt`, Settings → Check Game Pages for Changes, `settings.recheckGames`, off by default): a daily `PeriodicWorkRequest` on an unmetered network with the battery not low runs a pass once a week (`GameRecheck.isDue`). It reads up to 60 games' pages with `WebsiteScraper.fetchAndScrape` (no rendering, which needs the app open) within 7 minutes and writes `files/game_recheck.json` (`{at, results: [{id, url, finalUrl, parsed}]}`); it changes nothing. On the next start the hub reads it (`AndroidBridge.getRecheckResults`), and `HubCore.recheckChanges` keeps only changes worth asking about: name / description that differ, the icon when the game uses a site icon, the reset time only when the page states it (`parsed.timeFound` / `zoneFound`, new in the scraper output), the score type only over the "Daily Puzzle" placeholder, the category only over "Custom Daily", and the link when the site moved to another host. Built-in games are skipped. The dialog (`modalRecheck`) applies the ticked ones (a reset time moves history as an edit does) and keeps the rest in `state.recheckDeclined` (`HubCore.recheckKey`) so they aren't suggested again; "Keep mine" declines them all, closing decides nothing. **Check now** runs a pass at once (`recheckGamesNow` → `window.onRecheckDone(count)`).
+- **Bottom bar**: `--nav-alpha` (how solid it is, 25% by default) from `settings.navTransparency` (0-100, the slider in Settings → Display).
+- **Copied results**: `HubCore.combinedShareText` puts a `───────────` line between games.
+- **Swipes**: `parkNeighbours()` now parks every page but the current one, drawing one at a time (neighbours first), 700 ms after a switch (`parkSoon`). `Pager.stopDrawing()` on `touchstart` moves a page being drawn ahead aside at once (the screen's frames waited for that drawing). `saveState({ keeps: ['dashboard'] })` for saves the hub doesn't show (the version seen, achievements), so they don't make the hub redraw on the first swipe away.
+- **Accents**: `--gold-glow` has no offset (it was 4 px lower than the button).
 
 ## 26. New in 1.8.6
 
@@ -632,16 +569,89 @@ Measured with a harness that runs each interaction at 4x CPU slowdown and report
 - **Nav labels**: no colour transition (it ran on the main thread as a page landed). **Celebration**: no `backdrop-filter`.
 - **Slider**: a vertical drag that starts on `#settingNavTransparency` puts its value back.
 
-## 25. New in 1.8.5
+## 27. New in 1.8.7
 
-- **Checking game pages** (`GameRecheck.kt`, Settings → Check Game Pages for Changes, `settings.recheckGames`, off by default): a daily `PeriodicWorkRequest` on an unmetered network with the battery not low runs a pass once a week (`GameRecheck.isDue`). It reads up to 60 games' pages with `WebsiteScraper.fetchAndScrape` (no rendering, which needs the app open) within 7 minutes and writes `files/game_recheck.json` (`{at, results: [{id, url, finalUrl, parsed}]}`); it changes nothing. On the next start the hub reads it (`AndroidBridge.getRecheckResults`), and `HubCore.recheckChanges` keeps only changes worth asking about: name / description that differ, the icon when the game uses a site icon, the reset time only when the page states it (`parsed.timeFound` / `zoneFound`, new in the scraper output), the score type only over the "Daily Puzzle" placeholder, the category only over "Custom Daily", and the link when the site moved to another host. Built-in games are skipped. The dialog (`modalRecheck`) applies the ticked ones (a reset time moves history as an edit does) and keeps the rest in `state.recheckDeclined` (`HubCore.recheckKey`) so they aren't suggested again; "Keep mine" declines them all, closing decides nothing. **Check now** runs a pass at once (`recheckGamesNow` → `window.onRecheckDone(count)`).
-- **Bottom bar**: `--nav-alpha` (how solid it is, 25% by default) from `settings.navTransparency` (0-100, the slider in Settings → Display).
-- **Copied results**: `HubCore.combinedShareText` puts a `───────────` line between games.
-- **Swipes**: `parkNeighbours()` now parks every page but the current one, drawing one at a time (neighbours first), 700 ms after a switch (`parkSoon`). `Pager.stopDrawing()` on `touchstart` moves a page being drawn ahead aside at once (the screen's frames waited for that drawing). `saveState({ keeps: ['dashboard'] })` for saves the hub doesn't show (the version seen, achievements), so they don't make the hub redraw on the first swipe away.
-- **Accents**: `--gold-glow` has no offset (it was 4 px lower than the button).
+- **Background glow**: `body::before` (fixed, `z-index: -1`, explicit radial-gradient radii) instead of `background-image` on `body`. The body background is drawn on the canvas, sized to the document, so each tab's length changed the glow: a brightness step when a tab landed.
+- **Theme changes**: `applyThemeAndSettings` adds `html.theme-switch` (`transition: none` on everything) for two frames.
+- **Score History**: rows show the name and the meta (streak, time, status) on one line; the preview line and the PB flag are gone. `btnHistoryChanges` lives in Data & Backup.
+- **Recap**: `#recapCard { overflow: clip }`.
+- **Settings rows**: `.set-row` (no box; a divider between rows) replaces the boxed row classes inside `#viewSettings`.
+- **Card Style**: setting, `data-cards` and its CSS removed.
+- **Bottom bar**: `applyNavTransparency` also sets `--nav-sheen`, `--nav-edge` and `--nav-sat` (clear glass toward 100).
+- **Gold / ruby buttons**: `inset 0 0 0 1px` rim instead of a top highlight and bottom shade. **Toasts**: no `tone-ok::before` bar. **Hub icons**: `.m3-shape-app` (30% radius) for every card.
+- **Game player**: `assets/game/select-menu.js` (document-start, every frame) prevents a single-choice `<select>`'s own picker on `mousedown` and opens a themed menu in a closed shadow root; a choice sets `selectedIndex` and dispatches `input` and `change`. Colours from `GameActivity.selectMenuColors`.
 
-## 24. New in 1.8.4
+## 28. New in 1.8.8
 
-- **Glass cards**: one flat tint (`color-mix` of white into the container colour) plus the bright edge and an inset highlight; the 1.8.3 gradient and large soft shadow made Settings about 3x as much raster work as it slid in.
-- **Parked pages**: `Pager.park(tab, draw)` / `unpark`, `parkNeighbours()` (after every switch, when idle, and after `queueTabPrerender`). The current page's neighbours keep their full layout beside the screen (`.tab-page.hidden.parked`, `will-change: transform`); `draw` shows the page for a few frames at 0.4% opacity so the browser rasters it, then moves it aside. `#m3Scaffold` is `overflow: clip; min-height: 100vh`, so parked pages never change the scroll length. A cancelled swipe re-parks (`Pager.detach`). Off with Reduce Motion.
-- **Idle work**: `whenIdle` waits while a finger is on the screen (`touchActiveUntil`), a page is sliding or a neighbour is attached; `queueTabPrerender()` also runs at startup.
+- **Pages as layers**: `.tab-page { will-change: transform }` permanently (not with Reduce Motion); `Pager.attach` / `settle` no longer set and clear `will-change` on the current page. Toggling it re-rastered the page leaving at the start of each swipe and the page arriving (into the root layer) as it landed.
+- **Parking at the scroll position**: `Pager.slideGeometry(cur, el)` (shared by `attach` and `park`) gives the top a page slides in at; parked pages wait (and are ghost-drawn) there. A scroll listener re-parks them when idle, redrawing when the scroll moved more than half a screen from where they were drawn (`el.__drawnAt`).
+- **Drop-downs in the player**: `select-menu.js` opens the menu on `touchend` (non-passive, cancelled) for a tap that didn't move, so no compatibility `mousedown` reaches the `<select>` (Android WebView opened its picker before a `mousedown` handler could prevent it). `GamePlayerTest.aDropDownOnAGamePageOpensTheAppsOwnMenu` taps a `<select>` in the real player and checks the menu shows.
+- **Bar at Clear**: `--nav-accent` (1 − see-through). Gold / ruby docks draw their accent edge as a masked `::before` ring at that opacity over the white glass edge, and their glow's alpha is scaled by it.
+- **Even rims**: ruby buttons and the bar's highlight use a gloss that is the same at the top and bottom; gold's shine on them runs at 90°.
+
+## 29. New in 1.8.9
+
+Measured frame by frame: page velocity across release, main-thread work per drag frame by stage (at 6x CPU), invalidation tracking and a JS profile of the drag.
+- **Release**: `Pager.settleCurve(dx, target, v, w)` — a `cubic-bezier(0.333, s/3, 0.667, 1)` (time-exact) whose starting slope `s` is the finger's speed (`toward * ms / left`, at most 3), duration `2.2 * left / speed` within 200-420 ms, starting a frame's travel ahead. From rest or moving away: `cubic-bezier(0.2, 0, 0, 1)`. Rubber band uses a fifth of the finger's speed. The old curve paused a frame and set off at up to 3.6x.
+- **Drag**: `Pager.dragWith` makes paused WAAPI animations (cur page, neighbour, highlight; `fill: both`, linear over 1000 ms) and `follow` sets their `currentTime`; `stopDrag(dx)` writes the same positions inline, cancels them and flushes styles (a transition's start is the pre-drag inline value otherwise). Layerize per frame went from ~3 ms to ~0.25 ms at 6x.
+- `Pager.width()` cached (`_w`, cleared on resize); `NavIndicator` measures tabs once (fractional, relative to the bar), writes only changed properties (`put`), equal widths within 0.5 px move by transform only.
+- **Card press**: `press-hold` added after 150 ms of resting, not on touchstart.
+- `slideGeometry` uses fractional rects (offsetTop/Left are rounded).
+- `#calendarDaysGrid, #historyTableBody, .recap-swipe { will-change: transform, opacity }`.
+- Device test `HubSmokeTest.swipingBetweenPagesWithAFingerMovesTabAndSettles`.
+
+## 30. New in 1.8.10
+
+Quick swipes stuttered, slow ones didn't: the first drag frame did all the setup (attach changed the neighbour's class and cssText, repainting it; `dragWith` created the WAAPI animations) and took ~37 ms at 6x, so a fast finger was well ahead by the next frame.
+- **`Pager.prime()`** on touchstart (after `swipe` is made): paused WAAPI animations (2000 ms, `fill: both`, `currentTime` 1000 = rest) for the current page (w → -w), prev (0 → -2w) and next (2w → 0) when both are parked exactly, and the highlight (prev, cur, next x; equal widths only). `follow(dx)` sets `currentTime = 1000 - dx / w * 1000`. `unprime(dx)` writes the inline positions, cancels and flushes; it runs from `stopDrag`, a vertical scroll, a card reorder and an unlocked `endSwipe`.
+- **`attach` fast path**: a parked page whose `el.__parked` (`{left, top, width, dir, w}` from `park`) still matches `slideGeometry` keeps its class and cssText. `unpark` and `switchNavigation` clear it.
+- `NavIndicator.place(tab)` no longer measures; `measure()` runs on resize and after a text-size change.
+- First touchmove handler ~0.6 ms at 6x (setup ~9 ms at touchstart, before motion); per move ~6.5 ms.
+
+## 31. New in 1.8.11
+
+Measured in the real WebView on the CI emulator (`SwipeTimingDeviceTest`, logcat tag `SwipeTiming`, printed by ci.yml): only the first slides in a fresh app process stalled (touchmoves 100-500 ms late, no JS task over 8 ms meanwhile, so drawing); later ones were smooth either way, also after a page reload or a new renderer. Neither parking pages in place at 0.4% opacity nor a 0.4% opacity rehearsal helped.
+- **`warmUnderCover()`** (index.html): called by `HubActivity.revealHub` once the launch screen lets the activity draw, while `launchCover` is still over the WebView. Attaches each other tab in turn and moves it with `Pager.follow` over 8 frames (out to a full page and back), then `stopDrag(0)` / `detach()` / `NavIndicator.place`, and calls `AndroidBridge.onWarmDone()`, which lifts the cover (`liftLaunchCover`, after a visual-state callback). The cover comes off after `MAX_WARMUP_MS` (1.5 s) whatever happens. About 300 ms on desktop.
+- Device-test hooks: localStorage `dailies_test_motion=1` turns reduced motion off (CI runs with animations off, which the WebView reports as reduced motion) and turns on `window.__probe` (timers, idle tasks, frame callbacks, listeners and native calls over 8 ms).
+
+## 32. New in 1.8.12
+
+- **share-hook.js, screen results**: `saysFinished()` (FINISHED_RE / FINISHED_INTL_RE without lines matching NEXT_LINE_RE or COUNTDOWN_RE) gates `offerScreenResult`; `screenResultLines()` skips NOT_RESULT_RE / COUNTDOWN_RE lines and 0:00, a time needs a label (`time`, `took`, `solved in`…, not a bare `in`), a bare value isn't labelled by a line that is itself a score. The lines are read twice 1.6 s apart and only unchanged ones are kept, ranked (what the player did > a count > a time).
+- **share-hook.js, MutationObserver**: observes `document` (it ran before `document.documentElement` existed, threw, and never observed), and ignores records that add no element (a ticking clock).
+- **hub-core.js**: `memo()` for `normalizeZone`, `parseHHMM` (frozen), `cycleKeyToDay`, `addDaysToCycleKey`, `resetOnDay` (keyed on the day in its zone, plus `localZone()` for local schedules, read at most once a second); `trackedDays` once per `achievementMetrics`.
+- **index.html**: the achievements cache also holds the secrets (`currentSecrets()`); `checkNewAchievements` keeps it current across its own save (`keepAchievementsCurrent`); the start check runs 8 s after load.
+- Device tests `GamePlayerTest.aCountdownAndARunningClockAreNotOfferedAsAResult`, `aLateEndScreenOffersItsResult`.
+
+## 33. New in 1.8.13
+
+- **Ruby cabochon**: `design/icons/ruby-css.js` GEM: `--gold-shine` is three radial gradients (a gloss at 32% 20%, light from below at 56% 82%, a body darkest in the middle and the same red at every edge); filled buttons get `inset 0 0 0 1px rgba(100,0,28,.3)` inside a light border, and an even glow (`0 0 16px -5px`). `--gold-edge` is vertical and as bright at the bottom as the top. The generator now rewrites its block in place and copies only the gold rules before it (later rules adjust gold and ruby together). The 1.8.8 ruby override uses `var(--gold-shine)`.
+- **Same game, other link**: `HubCore.findSameGame(cand, games)` → `{ game, reason, sure }`; `gameLinkKey` (host without www./m., lower-case path without index.html or `/`), `gameNameKey`. Sure: `same` (the page, or one of `game.altUrls`), `redirect` (`cand.finalUrl`). Asked: `embedded` (`cand.embeds` vs the game's links, or `game.embeds` vs the candidate), `menu` (same host, one path inside the other), `name`. Archived games are skipped.
+- **All done**: `celebrateAllDone()`, `#celebrate` and the `.celebrate` / `.cel-*` styles are gone; `checkAllDoneCelebration()` only sets `#hubLogo.all-done` (the sparkle), and only with `settings.celebrate` on (re-checked when the setting changes).
+- Scraper: `WebsiteScraper.embeddedGameLinks(html, pageUrl, renderedFrames)` (iframes from the HTML and PageRenderer's frames of at least 150×150, no ads, videos, maps or social frames) → `embeds` in the result. The Add form keeps `addLinkInfo`, shows `#sameGameNote`, asks on the first Save (`sameGameAskedFor`); a new game stores `altUrls` and `embeds`.
+
+## 34. New in 1.9.0
+
+- **Settings → Display**: `#btnOpenTheme` opens `#modalTheme` (theme mode, wallpaper colors, `#themeChoices`, AMOLED: the same controls, moved, so their wiring is unchanged); `#btnOpenAppIcon` opens `#modalAppIcon` (`#iconChoices`). `#settingAccent` (None / Gold / Ruby, only unlocked ones) sets the old `#settingGoldAccents` / `#settingRubyAccents` switches, which stay in the page (rows `.accent-switch-row`, never shown) with their own handlers. `renderDisplaySummaries()` fills `#themeSummary`, `#appIconSummary` and the Accent choice; it runs from the theme / icon / accent renders and after any setting changes.
+- **Explanations**: at start, each Settings row's grey line right after its title (a `p` without an id) gets `.set-desc` (hidden) and an `.set-info` ⓘ button in the title that toggles `.show-desc` on the row (it prevents the default, so inside a switch's label it never flips the switch). `.set-row` padding 12px → 9px. Divider lines: any row with a shown row before it (hidden rows between no longer drop the line).
+- **Hub**: the `.gc-pb` personal-best tag is gone from game cards.
+
+## 35. New in 1.9.1
+
+- **Settings as pages**: `#settingsIndex` lists the `#viewSettings > [data-fold]` cards (`renderSettingsIndex()`: the card's icon and h3, a note from `SETTINGS_SECTION_NOTES`, a row hidden while its card is, kept in step by a MutationObserver). `openSettingsSection(name)` adds `.sub-open` to the view and `.sub-current` to the card (opened, its heading no longer folds it); CSS shows either the list or the `#settingsSubHead` back bar plus that card. `closeSettingsSection()` returns to the list (the back bar, `handleBackPress` before leaving the tab, and the Settings tab tapped again). `revealFold()` on an element in Settings opens its section.
+- The 1.9.0 ⓘ explanations are gone (`.set-desc` / `.set-info`), and `.set-row` padding is 12px again.
+
+## 36. New in 1.9.2
+
+- **Settings sections open in place** (replacing 1.9.1's pages): `#settingsIndex` and the back bar are gone. Each `#viewSettings > [data-fold]` card is a fold that starts closed; `initFolds()` adds a `.fold-note` (from `SETTINGS_SECTION_NOTES`) after its h3, shown only while folded. `openSettingsSection(name, { keepScroll })` closes any other open section, keeps the tapped heading where it was on screen (scrolling by how far a section closing above moved it), opens it with the usual glide, and scrolls a section opened low on the screen up. `closeSettingsSection({ instant })` closes the open one (true if there was one); Back, tapping Settings again, and `switchNavigation` leaving Settings (instantly, once the page has slid away) call it. `revealFold()` opens the element's section without the scroll handling.
+
+## 37. New in 1.9.3
+
+- **Ruby app icon, step cut**: `design/icons/ruby-icon.js` draws the stone as four copies of the star outline scaled 1, 0.84, 0.68 and 0.52 about the centre, each with its own top-left-to-bottom-right gradient (alternately lit and shadowed, so they read as steps), thin light edges between them and a blurred highlight at the top left; the shadow, rim and white mark are as before. Run it to rebuild the launcher PNGs and the hub's `rubyIconSvg`.
+- **Today on the calendar**: `.cal-cell.today` uses `--today-c` (the primary colour, `#BAA465` gold, `#CF1D4F` ruby) for an inset ring, an inner glow and an outer halo (`z-index: 1` so it shows over the next day); `.cal-swipe` has `overflow-clip-margin: 16px` so the halo isn't cut off at the edges.
+
+## 38. New in 1.9.4
+
+- **Hub JS & UI glue (`hub-ui-helpers.js`, `hub-core.js`, `index.html`)**: extracted pure UI glue helpers (`hubOrder`, `msUntilNextResetCached`, `normalizeGameObject`, `applyRestoreGameState`, `restoreRestoredGameState`, `dedupeHistoryLogs`, `applyScheduleChangeState`, `streakAsOfDate`) into `app/src/main/assets/hub-ui-helpers.js` with Node regression tests. Fixed `hubOrder()` passing `Date.now()` instead of `new Date()` when sorting by Next reset; preserved `altUrls`/`embeds` in `normalizeGameObject()`; reset/restored `status` and `todayScore` on single-game Restore/Undo; flushed native `syncGames` synchronously in `flushPendingSave()`; routed `renderRemovedGames`/`recheckValueHtml` through `iconSrc()`; fixed `themeSelect()` listener leak; replaced unbounded `Math.max`/`Math.min` spreads with O(n) loops; deduplicated `historyLogs` after schedule changes; normalized `swaps?`/`clicks?`/`steps?` and 1–2 digit numerators in `POINTS_OF_RE`; added DST slack in `suggestResetTime()`; fixed past-day edit streak stamping and PB suppression; grouped `periodRecap()` by `gameId`; revoked `exportCsv()` object URLs; removed dead `selectMode` markup/code and dead `data-fold-default="open"` attributes.
+- **Native Android & Game Player**: fixed `StreakReminders` broken-streak skip, explicit per-game `reminderMinutes` override when muted, and DST-safe `nextCheck()`; excluded 5 device-local `SharedPreferences` files from `backup_rules.xml` and `data_extraction_rules.xml`; added `SafeHttp.isPublicHost` redirect/request checks and `cancel()` to `PageRenderer`; fixed detached popup `WebView` leaks, off-main-thread SAF writes and `data:` decoding, `@Volatile gameId`, `STATE_SHARE_CONFIRMED`, `WindowInsets`, Back press, `exitFullscreen()`, and `banner.animate()` race in `GameActivity`; moved `ScreenshotReader` bitmap decode off the UI thread with `recognizer.close()` and cancel handling; wrapped `PageCache`/`GameRecheck` in `Dispatchers.IO` with atomic `PageCache` staging; added `fetchExtras = false` for `GameHealth.refreshIcons()`; fixed `WebsiteScraper` `.co.uk` PSL and `midnight`/`noon` reset context; synchronized `CrashLog` with safe truncation; fixed `GameListCodec` deflate loop and size bounds; abandoned failed `UpdateInstaller` sessions with BAL-safe confirmation; hardened `download-hook.js` (bounded `blobs` + TTL), `select-menu.js`, `share-hook.js`, and `cookie-hide.js`.
+- **Ad-blocker & tools**: loaded `PublicSuffix` before `GamePrefs` lookups on cold start; fixed `$important` vs `allow_hosts` precedence, `domain=foo.*` entity matching, and lowercase `pageHost` in `AdBlockEngine`; pre-sorted signed int64 host hashes and separated exclusion-only cosmetic rules in `tools/build_adblock.py`; added curl timeouts to `tools/fetch_adblock_lists.sh`.
+- **PWA, docs & CI**: scoped `web/sw.js` cache lookups to `CACHE`, added 5xx navigation fallback, wrapped `c.put()` in `event.waitUntil()`, and added `{ cache: 'reload' }` on precache; hashed `web/sw.js` and bundled `hub-ui-helpers.js` in `web/build.mjs` / `web/check-build.mjs`; guarded `web/web.js` `showHint()` and `openGame()`; updated `THIRD_PARTY_NOTICES.md`, `RELEASE_NOTES.md`, `README.md`, `GUIDE.md`, `design/icons/README.md`, Fastlane metadata (`30.txt`, `31.txt`, `32.txt`, `full_description.txt`), and `.github/workflows/{ci,release}.yml`.

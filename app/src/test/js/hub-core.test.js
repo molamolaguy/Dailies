@@ -635,3 +635,125 @@ test('the same game behind a different link is recognised (1.8.13)', () => {
   assert.equal(core.gameNameKey('The NYT Wordle - Play Online'), 'wordle');
   assert.equal(core.gameNameKey('Krillion | The Daily Dive'), 'krillion');
 });
+
+test('1.9.4: singular swap/click/step share score groups with plural forms', () => {
+  for (const [sing, plur, group] of [
+    ['Solved in 1 step', 'Solved in 4 steps', 'c:steps'],
+    ['Won in 1 swap', 'Won in 3 swaps', 'c:swaps'],
+    ['Done in 1 click', 'Done in 5 clicks', 'c:clicks']
+  ]) {
+    const a = core.parseResultValue(sing);
+    const b = core.parseResultValue(plur);
+    assert.ok(a && b, `${sing} / ${plur}`);
+    assert.equal(a.group, group);
+    assert.equal(b.group, group);
+    assert.equal(a.group, b.group);
+    // Personal record compares 1 step against earlier 4 steps in the same group.
+    const recs = core.newRecords([{ outcome: 'Completed', score: plur }], { outcome: 'Completed', score: sing }, 0);
+    assert.ok(recs.some((r) => r.kind === 'score'), `record for ${sing}`);
+  }
+});
+
+test('1.9.4: POINTS_OF_RE accepts 1-2 digit numerators like 0/50,000 and 50/50,000', () => {
+  const zero = core.parseResultValue('TimeGuessr #890 0/50,000');
+  assert.ok(zero);
+  assert.equal(zero.kind, 'points');
+  assert.equal(zero.value, 0);
+  assert.equal(zero.group, 'p:pts');
+
+  const fifty = core.parseResultValue('TimeGuessr #891 50/50,000');
+  assert.ok(fifty);
+  assert.equal(fifty.kind, 'points');
+  assert.equal(fifty.value, 50);
+  assert.equal(fifty.group, 'p:pts');
+
+  // Ordinary small fractions like dates or guess scores are unaffected.
+  assert.equal(core.parseResultValue('Wordle 3/6').kind, 'guesses');
+  assert.equal(core.parseResultValue('Played on 12/31'), null);
+});
+
+test('1.9.4: suggestResetTime succeeds across DST spring-forward and fall-back transitions', () => {
+  const row = (n, iso) => ({ score: `Daily #${n}`, loggedAt: Date.parse(iso) });
+  // America/New_York springs forward on 2026-03-08 at 02:00 EST (07:00Z):
+  // midnight reset moves from 05:00Z (2026-03-08) to 04:00Z (2026-03-09), inverting constant-DAY_MS lo/hi.
+  const springForward = [
+    row(100, '2026-03-07T04:45:00Z'), // 23:45 EST Mar 6 (15m before EST midnight)
+    row(101, '2026-03-07T05:15:00Z'), // 00:15 EST Mar 7
+    row(102, '2026-03-08T05:15:00Z'), // 00:15 EST Mar 8 (before 2am spring-forward)
+    row(102, '2026-03-09T03:45:00Z'), // 23:45 EDT Mar 8 (15m before EDT midnight)
+    row(103, '2026-03-09T04:15:00Z'), // 00:15 EDT Mar 9 (inverts constant-DAY_MS lo/hi against Mar 7 04:45Z)
+    row(104, '2026-03-10T04:20:00Z')  // 00:20 EDT Mar 10 (ensures >= 2 days span)
+  ];
+  assert.deepEqual(
+    core.suggestResetTime(springForward, { resetTime: '00:00', resetZone: 'utc' }),
+    { resetTime: '00:00', resetZone: 'America/New_York' }
+  );
+
+  // America/New_York falls back on 2026-11-01 at 02:00 EDT (06:00Z):
+  // midnight reset moves from 04:00Z (2026-11-01) to 05:00Z (2026-11-02), widening constant-DAY_MS [lo, hi] > 90m.
+  const fallBack = [
+    row(200, '2026-10-31T03:30:00Z'), // 23:30 EDT Oct 30 (30m before EDT midnight)
+    row(201, '2026-10-31T04:20:00Z'), // 00:20 EDT Oct 31
+    row(202, '2026-11-01T04:20:00Z'), // 00:20 EDT Nov 1 (before 2am fall-back)
+    row(202, '2026-11-02T04:30:00Z'), // 23:30 EST Nov 1 (30m before EST midnight)
+    row(203, '2026-11-02T05:30:00Z')  // 00:30 EST Nov 2 (30m after EST midnight)
+  ];
+  assert.deepEqual(
+    core.suggestResetTime(fallBack, { resetTime: '00:00', resetZone: 'utc' }),
+    { resetTime: '00:00', resetZone: 'America/New_York' }
+  );
+});
+
+test('1.9.4: achievementMetrics, scoreStats, personalBests, newRecords, secretMetrics, and periodRecap handle >100k rows without RangeError', () => {
+  const N = 120000;
+  const rows = new Array(N);
+  for (let i = 0; i < N; i++) {
+    rows[i] = {
+      gameId: 'g1',
+      gameName: 'Wordle',
+      date: '2026-11-10',
+      outcome: 'Completed',
+      score: i === 50000 ? '2/6' : '4/6',
+      streak: i === 75000 ? 42 : 1,
+      timeMs: i === 60000 ? 15000 : 45000,
+      loggedAt: Date.UTC(2026, 10, 10, 12, 0, 0)
+    };
+  }
+  const games = [{ id: 'g1', name: 'Wordle', resetTime: '00:00', resetZone: 'utc', streak: 1, bestStreak: 10, dayHistory: {} }];
+
+  const stats = core.scoreStats(rows);
+  assert.equal(stats.won, N);
+  assert.equal(stats.fastestMs, 15000);
+
+  const pb = core.personalBests(rows, 42);
+  assert.equal(pb.bestScore, '2/6');
+  assert.equal(pb.fastestMs, 15000);
+
+  const recs = core.newRecords(rows, { outcome: 'Completed', score: '1/6', timeMs: 10000, streak: 50 }, 42);
+  assert.deepEqual(recs.map((r) => r.kind), ['score', 'time', 'streak']);
+
+  const metrics = core.achievementMetrics(games, rows);
+  assert.equal(metrics.solves, N);
+  assert.equal(metrics.streak, 42);
+  assert.equal(metrics.fastest, 15000);
+
+  const secrets = core.secretMetrics(games, rows);
+  assert.equal(secrets.deepDive, (N - 1) * 45000 + 15000);
+
+  const recap = core.periodRecap(rows, '2026-11-01', '2026-11-30');
+  assert.equal(recap.results, N);
+  assert.equal(recap.bestStreak, 42);
+});
+
+test('1.9.4: periodRecap groups renamed games by gameId without splitting stats', () => {
+  const logs = [
+    { gameId: 'g-wordle', gameName: 'Wordle Old', date: '2026-11-09', outcome: 'Completed', score: '3/6', streak: 1 },
+    { gameId: 'g-wordle', gameName: 'Wordle Old', date: '2026-11-10', outcome: 'Missed', score: '', streak: 0 },
+    { gameId: 'g-wordle', gameName: 'Wordle Renamed', date: '2026-11-11', outcome: 'Completed', score: '2/6', streak: 1 }
+  ];
+  const r = core.periodRecap(logs, '2026-11-09', '2026-11-15');
+  assert.equal(r.games, 1);
+  assert.deepEqual(r.topGame, { name: 'Wordle Renamed', count: 3 });
+  assert.deepEqual(r.bestGame, { name: 'Wordle Renamed', solved: 2, results: 3 });
+});
+

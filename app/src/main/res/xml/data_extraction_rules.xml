@@ -5,9 +5,19 @@
     <cloud-backup>
         <include domain="file" path="hub_state.json" />
         <include domain="sharedpref" path="." />
+        <exclude domain="sharedpref" path="dailes_auto_backup.xml" />
+        <exclude domain="sharedpref" path="dailes_permissions.xml" />
+        <exclude domain="sharedpref" path="dailes_notifier.xml" />
+        <exclude domain="sharedpref" path="dailies_crash_log.xml" />
+        <exclude domain="sharedpref" path="dailies_game_recheck.xml" />
     </cloud-backup>
     <device-transfer>
         <include domain="file" path="hub_state.json" />
         <include domain="sharedpref" path="." />
+        <exclude domain="sharedpref" path="dailes_auto_backup.xml" />
+        <exclude domain="sharedpref" path="dailes_permissions.xml" />
+        <exclude domain="sharedpref" path="dailes_notifier.xml" />
+        <exclude domain="sharedpref" path="dailies_crash_log.xml" />
+        <exclude domain="sharedpref" path="dailies_game_recheck.xml" />
     </device-transfer>
 </data-extraction-rules>

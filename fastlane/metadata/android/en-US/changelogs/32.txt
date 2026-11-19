@@ -1,0 +1,5 @@
+• Fixed a crash when sorting the hub by "Next reset".
+• Fixed single-game restore/undo status, past-day edit streaks, duplicate schedule rows and alt link persistence.
+• Fixed broken-streak reminders, per-game reminder overrides and Android Auto Backup exclusions.
+• Moved exports, screenshot OCR and workers off the main thread; fixed popup WebView leaks and scraper redirects.
+• Fixed ad-blocker $important rules, PSL allowlist/zoom on cold start and web app offline fallback.

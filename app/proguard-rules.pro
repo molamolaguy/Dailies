@@ -3,4 +3,5 @@
     @android.webkit.JavascriptInterface <methods>;
 }
 
--keep class com.dailygames.hub.DailyRefreshWorker { *; }
+# WorkManager's bundled consumer rules already keep ListenableWorker subclasses
+# (DailyRefreshWorker, AutoBackupWorker, PagePreloadWorker, GameRecheckWorker).

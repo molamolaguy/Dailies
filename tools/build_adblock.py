@@ -11,7 +11,7 @@ Inputs (any missing file is skipped):
   public_suffix_list.dat (publicsuffix.org) for "same site" checks
 
 Outputs:
-  hosts.bin            sorted big-endian uint64 FNV-1a hashes of blocked hostnames (host + subdomains)
+  hosts.bin            sorted big-endian signed int64 FNV-1a hashes of blocked hostnames (host + subdomains)
   hosts_3p.bin         same, but only blocked when requested by a page on another site ($third-party)
   hosts_important.bin  host rules marked $important (only @@…$important exceptions lift them)
   allow_hosts.txt      hostnames never blocked (@@||host^ exceptions with no options)
@@ -73,7 +73,7 @@ class Builder:
         self.allow_hosts, self.document_allow = set(), set()
         self.url_rules = []
         self.generic_hide, self.hide_except = set(), set()
-        self.specific_hide = {}  # (selector, negatives tuple) -> set(positive domains)
+        self.specific_hide = {}  # (selector, negatives tuple, has_positive) -> set(positive domains)
         self.nohide = {}         # site -> 'generic' | 'all'
         self.network_lines = []  # (line, src) collected first so $badfilter can cancel rules
         self.badfilters = set()
@@ -123,7 +123,7 @@ class Builder:
             return  # only wildcard domains (example.*): not supported
         if not pos and not neg:
             return
-        self.specific_hide.setdefault((sel, neg), set()).update(pos)
+        self.specific_hide.setdefault((sel, neg, bool(pos)), set()).update(pos)
 
     def _add_network(self, line):
         allow = line.startswith('@@')
@@ -227,17 +227,19 @@ def parse_psl(lines):
     return out
 
 
+def to_i64(v: int) -> int:
+    return v - (1 << 64) if v >= (1 << 63) else v
+
+
 def write_hashes(path, hosts):
-    hs = sorted(set(fnv1a64(h) for h in hosts))
+    hs = sorted(set(to_i64(fnv1a64(h)) for h in hosts))
     with open(path, 'wb') as f:
         f.write(struct.pack('>I', len(hs)))
-        for v in hs: f.write(struct.pack('>Q', v))
+        for v in hs: f.write(struct.pack('>q', v))
     return len(hs)
 
 
 def main(src, out):
-    os.makedirs(out, exist_ok=True)
-
     def read(name):
         p = os.path.join(src, name)
         if not os.path.exists(p): return None
@@ -259,6 +261,17 @@ def main(src, out):
         sources.append({'file': name, 'licence': lic, 'lines': n})
     b.finish()
 
+    total_rules = (
+        len(b.block_hosts) + len(b.block_hosts_3p) + len(b.important_hosts)
+        + len(b.allow_hosts) + len(b.document_allow) + len(b.url_rules)
+        + len(b.generic_hide) + len(b.specific_hide) + len(b.hide_except) + len(b.nohide)
+    )
+    if not sources or total_rules == 0:
+        print(f'error: no adblock rules loaded from {src!r}', file=sys.stderr)
+        sys.exit(1)
+
+    os.makedirs(out, exist_ok=True)
+
     psl = read('public_suffix_list.dat')
     if psl is not None:
         rules = parse_psl(psl)
@@ -277,7 +290,7 @@ def main(src, out):
     write_lines('url_rules.txt', b.url_rules)
     write_lines('cosmetic_generic.txt', sorted(b.generic_hide))
     write_lines('cosmetic_specific.txt', sorted(
-        ','.join(sorted(pos) + ['~' + d for d in neg]) + '\t' + sel for (sel, neg), pos in b.specific_hide.items()))
+        ','.join(sorted(pos) + ['~' + d for d in neg]) + '\t' + sel for (sel, neg, _), pos in b.specific_hide.items()))
     write_lines('cosmetic_except.txt', sorted(d + '\t' + sel for d, sel in b.hide_except))
     write_lines('cosmetic_nohide.txt', sorted(s + '\t' + v for s, v in b.nohide.items()))
     summary = {'built': time.strftime('%Y-%m-%d'), 'blocked_hosts': n_hosts, 'third_party_hosts': n_hosts3,

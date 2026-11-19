@@ -7,12 +7,15 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayInputStream
+import java.util.Locale
 
 /**
  * Renders a pasted game link with its scripts run, to read what a single-page app only builds in
@@ -21,10 +24,18 @@ import org.json.JSONObject
  *
  * The page loads in a WebView placed behind the hub (covered by it, so it lays out and runs normally
  * but is never seen). It has no JavaScript bridge, no file or content access, loads no images, never
- * leaves http(s) and is destroyed after one read. Main thread only.
+ * leaves public http(s) hosts and is destroyed after one read. Main thread only.
  */
 class PageRenderer(private val host: ViewGroup) {
     private val main = Handler(Looper.getMainLooper())
+    private val active = HashSet<() -> Unit>()
+
+    /** Cancels and destroys any in-flight render (e.g. from HubActivity.onDestroy). */
+    fun cancel() {
+        val copy = active.toList()
+        active.clear()
+        copy.forEach { runCatching { it() } }
+    }
 
     /**
      * Loads [url] and calls [done] once with what the page shows ([EXTRACT_JS]'s JSON), or null if it
@@ -33,11 +44,14 @@ class PageRenderer(private val host: ViewGroup) {
     @SuppressLint("SetJavaScriptEnabled")
     fun render(url: String, timeoutMs: Long, done: (JSONObject?) -> Unit) {
         var finished = false
+        val token = Any()
         lateinit var wv: WebView
+        lateinit var cancelThis: () -> Unit
         fun finish(json: JSONObject?) {
             if (finished) return
             finished = true
-            main.removeCallbacksAndMessages(null)
+            active.remove(cancelThis)
+            main.removeCallbacksAndMessages(token)
             runCatching { done(json) }
             runCatching {
                 wv.stopLoading()
@@ -45,6 +59,7 @@ class PageRenderer(private val host: ViewGroup) {
                 wv.destroy()
             }
         }
+        cancelThis = { finish(null) }
         fun read() {
             if (finished) return
             runCatching {
@@ -61,6 +76,7 @@ class PageRenderer(private val host: ViewGroup) {
             done(null)
             return
         }
+        active.add(cancelThis)
         wv.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -77,8 +93,23 @@ class PageRenderer(private val host: ViewGroup) {
         wv.webViewClient = object : WebViewClient() {
             private var loads = 0
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                val scheme = request?.url?.scheme?.lowercase()
-                return scheme != "http" && scheme != "https"
+                val u = request?.url ?: return true
+                val scheme = u.scheme?.lowercase(Locale.US)
+                if (scheme != "http" && scheme != "https") return true
+                val h = u.host?.trim('[', ']')?.lowercase(Locale.US)?.trimEnd('.').orEmpty()
+                if (h.isEmpty() || h == "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) return true
+                return false
+            }
+
+            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                val u = request?.url ?: return blockedResponse()
+                val scheme = u.scheme?.lowercase(Locale.US)
+                if (scheme != "http" && scheme != "https") return blockedResponse()
+                if (!SafeHttp.isPublicHost(u.host)) {
+                    if (request.isForMainFrame) main.post { finish(null) }
+                    return blockedResponse()
+                }
+                return null
             }
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -94,16 +125,20 @@ class PageRenderer(private val host: ViewGroup) {
             override fun onPageFinished(view: WebView?, url: String?) {
                 // A redirect chain finishes several pages: read once the last one has settled.
                 val at = loads
-                main.postDelayed({ if (at == loads) read() }, SETTLE_MS)
+                main.postAtTime({ if (at == loads) read() }, token, android.os.SystemClock.uptimeMillis() + SETTLE_MS)
             }
         }
         // Behind everything in the hub's layout, at the screen's size (pages lay out for a phone).
         runCatching { host.addView(wv, 0, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)) }
-        main.postDelayed({ read() }, timeoutMs)
+        val now = android.os.SystemClock.uptimeMillis()
+        main.postAtTime({ read() }, token, now + timeoutMs)
         // A read that never answers (a hung page) still ends.
-        main.postDelayed({ finish(null) }, timeoutMs + 1_500)
+        main.postAtTime({ finish(null) }, token, now + timeoutMs + 1_500)
         runCatching { wv.loadUrl(url) }.onFailure { finish(null) }
     }
+
+    private fun blockedResponse() =
+        WebResourceResponse("text/plain", "utf-8", 403, "Forbidden", emptyMap(), ByteArrayInputStream(ByteArray(0)))
 
     companion object {
         /** Wait after the page finished loading, for a single-page app to build its screen. */

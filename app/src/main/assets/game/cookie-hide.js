@@ -27,7 +27,7 @@
     '.cookiefirst-root',
     '#hs-eu-cookie-confirmation',
     '#gdpr-consent-tool-wrapper', '#_evidon_banner', '.evidon-banner', '#consent_blackbar',
-    '#ccc', '#ccc-overlay',
+    '#ccc.ccc-module', '#ccc[role="region"]', '#ccc-overlay',
     '#cookie-banner', '#cookieBanner', '#cookie-notice', '#cookieNotice', '#cookie-consent-banner', '#cookieConsent',
     '.cookie-banner', '.cookie-consent-banner', '.cookie-notice-container', '.js-cookie-consent',
     '#gdpr-cookie-message', '#consent-banner', '.consent-banner'

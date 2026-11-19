@@ -40,7 +40,7 @@ object UpdateCheck {
             return out.put("ok", false).put("newer", false).toString()
         }
         val tag = release.optString("tag_name")
-        return out.put("ok", parse(tag) != null).put("latest", tag.removePrefix("v")).put("newer", isNewer(tag, current))
+        return out.put("ok", parse(tag) != null).put("latest", tag.removePrefix("v").removePrefix("V")).put("newer", isNewer(tag, current))
             .put("canInstall", apkAsset(release) != null).toString()
     }
 

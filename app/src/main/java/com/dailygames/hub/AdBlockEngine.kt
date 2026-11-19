@@ -83,26 +83,30 @@ class AdBlockEngine(
         if (type == RequestType.DOCUMENT) return false // never blank the game page itself
         val lowerUrl = url.lowercase(Locale.US)
         val host = hostOf(lowerUrl) ?: return false
-        if (pageHost != null && isDocumentAllowed(pageHost)) return false
-        if (isAllowedHost(host)) return false
-        val thirdParty = pageHost != null && !sameSite(host, pageHost)
+        val ph = pageHost?.lowercase(Locale.US)?.trimEnd('.')
+        if (ph != null && isDocumentAllowed(ph)) return false
+        val thirdParty = ph != null && !sameSite(host, ph)
         val tokens = tokenize(lowerUrl)
-        val ctx = Ctx(url, lowerUrl, host, pageHost, thirdParty, type, tokens)
+        val ctx = Ctx(url, lowerUrl, host, ph, thirdParty, type, tokens)
 
         // 1) $important blocks: only an @@…$important exception can lift them.
         val importantHit = hostHashHit(host, importantHosts) || findMatch(ctx, importantBlocks) != null
         if (importantHit) return findMatch(ctx, importantAllows) == null
 
         // 2) Normal blocks (host lists, then URL rules), lifted by any exception.
-        val hostListHit = (thirdParty || pageHost == null) &&
+        if (isAllowedHost(host)) return false
+        val hostListHit = (thirdParty || ph == null) &&
             (hostHashHit(host, blockedHosts) || (thirdParty && hostHashHit(host, blockedThirdPartyHosts)))
         if (!hostListHit && findMatch(ctx, blocks) == null) return false
         return findMatch(ctx, importantAllows) == null && findMatch(ctx, allows) == null
     }
 
     /** Sites the filter lists deliberately exempt from all blocking (`@@||site^$document`). */
-    fun isDocumentAllowed(pageHost: String): Boolean =
-        documentAllowedSites.isNotEmpty() && anySuffix(pageHost) { it in documentAllowedSites }
+    fun isDocumentAllowed(pageHost: String): Boolean {
+        if (documentAllowedSites.isEmpty()) return false
+        val ph = pageHost.lowercase(Locale.US).trimEnd('.')
+        return ph.isNotEmpty() && anySuffix(ph) { it in documentAllowedSites }
+    }
 
     private class Ctx(
         val url: String, val lowerUrl: String, val host: String, val pageHost: String?,
@@ -253,7 +257,7 @@ class AdBlockEngine(
                     "important" -> important = true
                     "match-case" -> matchCase = true
                     "all" -> types = null
-                    "domain", "from" -> o.substringAfter('=').split('|').forEach { d ->
+                    "domain", "from" -> o.substringAfter('=', "").split('|').forEach { d ->
                         val dd = d.trim().lowercase(Locale.US)
                         if (dd.startsWith("~")) exclude.add(dd.substring(1)) else if (dd.isNotEmpty()) include.add(dd)
                     }
@@ -314,7 +318,7 @@ class AdBlockEngine(
     private fun isTokenChar(c: Char) = (c in 'a'..'z') || (c in '0'..'9') || c == '%'
 
     companion object {
-        private val OPTS_RE = Regex("""[~a-zA-Z0-9_=|.,\-*]*""")
+        private val OPTS_RE = Regex("""[~a-zA-Z0-9_=|.,\-*]+""")
         private val TYPE_NAMES = mapOf(
             "script" to RequestType.SCRIPT, "image" to RequestType.IMAGE, "stylesheet" to RequestType.STYLESHEET,
             "css" to RequestType.STYLESHEET, "xmlhttprequest" to RequestType.XHR, "xhr" to RequestType.XHR,
@@ -333,11 +337,19 @@ class AdBlockEngine(
             return h
         }
 
-        /** Reads a hosts.bin file: uint32 count + sorted uint64 hashes (compared as signed longs). */
+        /** Reads a hosts.bin file: uint32 count + 64-bit FNV-1a hashes (sorted as signed longs). */
         fun readHashes(input: InputStream): LongArray = DataInputStream(input.buffered()).use { din ->
             val n = din.readInt()
-            val arr = LongArray(n) { din.readLong() }
-            arr.sort() // the file is sorted unsigned; binarySearch needs signed order
+            val arr = LongArray(n)
+            var sorted = true
+            var prev = Long.MIN_VALUE
+            for (i in 0 until n) {
+                val v = din.readLong()
+                arr[i] = v
+                if (i > 0 && v < prev) sorted = false
+                prev = v
+            }
+            if (!sorted) arr.sort() // fallback for legacy unsigned-sorted assets
             arr
         }
 
@@ -367,7 +379,10 @@ class AdBlockEngine(
         fun domainMatches(host: String, domain: String): Boolean {
             if (domain.endsWith(".*")) {
                 val base = domain.dropLast(2)
-                return host == base || host.startsWith("$base.") || host.contains(".$base.")
+                if (base.isEmpty()) return false
+                val site = PublicSuffix.registrableDomain(host)
+                val dot = site.indexOf('.')
+                return dot > 0 && site.substring(0, dot) == base
             }
             return host == domain || host.endsWith(".$domain")
         }

@@ -29,4 +29,24 @@ class SharedLinkParserTest {
         assertEquals("", SharedLinkParser.sharedTextForLogging(null))
         assertEquals("", SharedLinkParser.sharedTextForLogging("x".repeat(9000)))
     }
+
+    @Test
+    fun extractSharedUrl_acceptsTextPlainWithMimeParameters() {
+        assertEquals(
+            "https://wordle.example.com/",
+            SharedLinkParser.extractSharedUrl(
+                "android.intent.action.SEND",
+                "text/plain; charset=utf-8",
+                "Play https://wordle.example.com/"
+            )
+        )
+        assertEquals(
+            "https://example.com/daily",
+            SharedLinkParser.extractSharedUrl(
+                "android.intent.action.SEND",
+                "TEXT/PLAIN; charset=UTF-8",
+                "https://example.com/daily"
+            )
+        )
+    }
 }

@@ -55,4 +55,39 @@ class GameListCodecTest {
         }
         assertNull(GameListCodec.b64UrlDecode("ab*c"))
     }
+
+    @Test
+    fun largeUtf8ListRoundTripsAndOversizedPayloadReturnsNull() {
+        // Large UTF-8 list (50 games with multibyte chars) exercises multi-chunk deflate loop.
+        val large = JSONArray()
+        for (i in 1..50) {
+            large.put(
+                org.json.JSONObject()
+                    .put("name", "パズルゲーム №$i — 日本語タイトル")
+                    .put("url", "https://example$i.com/daily/puzzle?day=today&mode=challenge-$i")
+                    .put("resetTime", "00:00")
+                    .put("resetZone", "Asia/Tokyo")
+            )
+        }
+        val link = GameListCodec.encode(large.toString())
+        assertNotNull(link)
+        val back = JSONArray(GameListCodec.decode(link)!!)
+        assertEquals(50, back.length())
+        assertEquals("パズルゲーム №50 — 日本語タイトル", back.getJSONObject(49).getString("name"))
+
+        // Over MAX_JSON (64 KB): 100 games with 80-char multibyte names + 500-char URLs > 64 KB UTF-8.
+        val huge = JSONArray()
+        val longName = "あ".repeat(80) // 240 UTF-8 bytes
+        val longUrl = "https://example.com/" + "a".repeat(480) // 500 bytes
+        for (i in 1..100) {
+            huge.put(
+                org.json.JSONObject()
+                    .put("name", longName)
+                    .put("url", longUrl)
+                    .put("resetTime", "00:00")
+                    .put("resetZone", "America/New_York")
+            )
+        }
+        assertNull(GameListCodec.encode(huge.toString()))
+    }
 }

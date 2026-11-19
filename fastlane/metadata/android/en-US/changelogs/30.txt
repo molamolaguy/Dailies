@@ -1,0 +1,2 @@
+• Settings sections now open in place, one at a time, keeping the tapped heading steady on screen.
+• Leaving Settings, pressing Back, or tapping Settings again closes the open section.

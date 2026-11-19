@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Settings → About → Report a problem (1.8.0): app crashes kept on this device so they can be attached
@@ -18,12 +19,11 @@ import java.util.TimeZone
 object CrashLog {
     private const val FILE = "crash_log.txt"
     private const val MAX_BYTES = 24 * 1024
-    @Volatile private var installed = false
+    private val installed = AtomicBoolean(false)
 
     /** Records uncaught exceptions, then lets Android handle them as usual. Safe to call more than once. */
     fun install(ctx: Context) {
-        if (installed) return
-        installed = true
+        if (!installed.compareAndSet(false, true)) return
         val app = ctx.applicationContext
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, error ->
@@ -47,6 +47,13 @@ object CrashLog {
         return sb.toString()
     }
 
+    internal fun trimToLimit(text: String, maxBytes: Int = MAX_BYTES): String {
+        if (text.length <= maxBytes) return text
+        val cut = text.takeLast(maxBytes)
+        val nl = cut.indexOf('\n')
+        return if (nl in 0 until cut.lastIndex) cut.substring(nl + 1) else cut
+    }
+
     /** Also for things that aren't exceptions, such as the hub's WebView renderer being stopped. */
     @Synchronized
     fun append(ctx: Context, entry: String) {
@@ -54,11 +61,19 @@ object CrashLog {
         val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
         val version = runCatching { ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName }.getOrNull().orEmpty()
         val text = (if (f.exists()) f.readText() else "") + "[$stamp] $version: $entry\n"
-        f.writeText(if (text.length > MAX_BYTES) text.takeLast(MAX_BYTES).substringAfter('\n') else text)
+        val trimmed = trimToLimit(text)
+        val tmp = File(ctx.filesDir, "$FILE.tmp")
+        tmp.writeText(trimmed)
+        if (!tmp.renameTo(f)) {
+            f.writeText(trimmed)
+            tmp.delete()
+        }
     }
 
+    @Synchronized
     fun read(ctx: Context): String = runCatching { File(ctx.filesDir, FILE).takeIf { it.exists() }?.readText().orEmpty() }.getOrDefault("")
 
+    @Synchronized
     fun clear(ctx: Context) {
         runCatching { File(ctx.filesDir, FILE).delete() }
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putLong(KEY_EXITS_CLEARED, System.currentTimeMillis()) }

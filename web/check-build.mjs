@@ -10,7 +10,7 @@ const strip = (u) => u.split('?')[0];
 const has = (u) => existsSync(join(dir, strip(u) === './' ? 'index.html' : strip(u)));
 
 const html = readFileSync(join(dir, 'index.html'), 'utf8');
-for (const tag of ['rel="manifest"', 'apple-touch-icon', 'apple-mobile-web-app-capable', 'viewport-fit=cover', 'web.js?v=']) {
+for (const tag of ['rel="manifest"', 'apple-touch-icon', 'apple-mobile-web-app-capable', 'viewport-fit=cover', 'web.js?v=', 'hub-ui-helpers.js?v=']) {
   if (!html.includes(tag)) fail(`index.html is missing ${tag}`);
 }
 for (const m of html.matchAll(/(?:src|href)="([^"#:$]+)"/g)) if (!has(m[1])) fail(`index.html links a missing file: ${m[1]}`);
