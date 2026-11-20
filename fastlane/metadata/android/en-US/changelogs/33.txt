@@ -1,0 +1,3 @@
+- Radiant Star Ruby accents: deep faceted crimson palette, prism rims, vivid glow, high-contrast Light mode tones, and a subtle sheen sweep on primary buttons.
+- Crystalline Prism Ruby icon: redesigned 4-plane faceted gemstone icon with a central diamond table and luminous white glints.
+- Gold accent polish: fixed unlocked achievement card gold borders and aligned the Done status pill with the horizontal gold sheen.

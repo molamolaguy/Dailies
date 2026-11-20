@@ -1,8 +1,8 @@
-# Dailies 1.9.4: How the App Works
+# Dailies 1.9.5: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.9.4` (`versionCode = 32`)
+- **Version**: `1.9.5` (`versionCode = 33`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **License**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))

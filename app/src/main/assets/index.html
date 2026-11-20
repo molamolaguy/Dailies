@@ -1409,7 +1409,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.9.4';
+    const APP_VERSION = '1.9.5';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4432,6 +4432,10 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.9.5': [
+        ['💎', 'Radiant Star Ruby & Crystalline Prism icon', 'Ruby accents now use a deep faceted crimson palette with crisp prism rims and a subtle sheen sweep, paired with a new 4-plane crystalline Ruby app icon.'],
+        ['👑', 'Gold accent polish', 'Unlocked achievement cards now show their gold border, and the Done pill matches the horizontal gold sheen on buttons.']
+      ],
       '1.9.4': [
         ['🛠️', 'Next-reset sort & reliability fixes', 'Sorting by Next reset no longer crashes, duplicate-game links survive restarts, single-game restore and undo update today\'s card right away, and changes sync cleanly when leaving the app.'],
         ['🔔', 'Smarter reminders & smoother playback', 'Streak reminders stop once a streak is broken, per-game reminders work even when reset alerts are muted, and large exports, screenshots, and ad-block rules run faster and safer.']

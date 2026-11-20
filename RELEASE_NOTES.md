@@ -1,3 +1,17 @@
+# Dailies 1.9.5
+
+A visual refresh for the Ruby and Gold unlocks. It installs over 1.9.4 and keeps everything, every setting included. If you're on 1.9.4, you can install it from **Settings → About → Check now**.
+
+## Changes
+- **Radiant Star Ruby accents.** Replaced the coral-pink cabochon Ruby finish with a deep faceted crimson palette, crisp prism rims, vivid crimson glow, high-contrast Light mode tones, and a subtle sheen sweep on primary buttons (disabled when Reduce Motion is on).
+- **Crystalline Prism Ruby icon.** Redesigned the Ruby app icon as a 4-plane geometric crystal with a central diamond table, crimson under-glow, and luminous white glints across all launcher densities and the hub picker.
+- **Gold accent polish.** Fixed unlocked achievement cards missing their gold border and aligned Gold's completed status pill with the horizontal gold sheen used on buttons.
+
+## Requirements
+- Android 7.0 or newer.
+
+---
+
 # Dailies 1.9.4
 
 A stability, security and reliability update. It installs over 1.9.3 and keeps everything, every setting included. If you're on 1.9.3, you can install it from **Settings → About → Check now**.
