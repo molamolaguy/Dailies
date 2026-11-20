@@ -2178,10 +2178,10 @@
       applyTextSize(s.textSize);
       if (ruby) {
         const r = light
-          ? { '--md-primary': '#A3123A', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#FFD9DE', '--md-on-primary-container': '#3E0412',
-            '--md-secondary-container': '#FCE3E6', '--md-tertiary': '#A3123A', '--md-tertiary-container': '#FFE0E4', '--md-glow': 'rgba(163, 18, 58, 0.22)' }
-          : { '--md-primary': '#F25C7A', '--md-on-primary': '#3D0613', '--md-primary-container': '#5A1022', '--md-on-primary-container': '#FFD3DB',
-            '--md-secondary-container': '#4A1420', '--md-tertiary': '#FF8FA3', '--md-tertiary-container': '#5E1626', '--md-glow': 'rgba(242, 92, 122, 0.30)' };
+          ? { '--md-primary': '#AD0826', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#FFE0E5', '--md-on-primary-container': '#4A0210',
+            '--md-secondary-container': '#FCE4E8', '--md-tertiary': '#AD0826', '--md-tertiary-container': '#FFE3E8', '--md-glow': 'rgba(196, 12, 44, 0.24)' }
+          : { '--md-primary': '#FF2E4F', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#4A0614', '--md-on-primary-container': '#FFD9E0',
+            '--md-secondary-container': '#3D0813', '--md-tertiary': '#FF6E88', '--md-tertiary-container': '#520818', '--md-glow': 'rgba(245, 22, 60, 0.36)' };
         Object.keys(r).forEach((k) => root.style.setProperty(k, r[k]));
       }
       if (gold) {
@@ -5280,44 +5280,37 @@
       const sc = (s) => 'translate(54 54) scale(' + s + ') translate(-54 -54)';
       const stops = (list) => list.map((x) => '<stop offset="' + x[0] + '" stop-color="' + x[1] + '"' + (x[2] === undefined ? '' : ' stop-opacity="' + x[2] + '"') + '/>').join('');
       const lin = (n, x1, y1, x2, y2, list) => '<linearGradient id="' + id + n + '" gradientUnits="userSpaceOnUse" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '">' + stops(list) + '</linearGradient>';
-      const glow = (n, cx, cy, r, c, op) => '<radialGradient id="' + id + n + '" gradientUnits="userSpaceOnUse" cx="' + cx + '" cy="' + cy + '" r="' + r + '"><stop offset="0" stop-color="' + c + '" stop-opacity="' + op + '"/><stop offset="1" stop-color="' + c + '" stop-opacity="0"/></radialGradient>';
-      // Step cut (1.9.3): bands that follow the star's outline, stepping down towards the middle. Each is lit
-      // from the top left; the steps alternate between catching the light and showing it through the stone.
-      const bands = [1, 0.84, 0.68, 0.52];
-      const tones = [['#FF6A88', '#C0103A', '#4A0014'], ['#5A0018', '#B80E36', '#FF4C70'], ['#FF7A94', '#D3164A', '#6A0420'], ['#E8204E', '#A00A30', '#FF5878']];
-      let bandDefs = '', body = '';
-      bands.forEach((b, i) => {
-        bandDefs += lin('g' + i, 54 - 30 * b, 54 - 30 * b, 54 + 30 * b, 54 + 30 * b, [[0, tones[i][0]], [0.5, tones[i][1]], [1, tones[i][2]]]);
-        body += '<path d="' + flower + '" transform="' + sc(b) + '" fill="url(#' + id + 'g' + i + ')"/>';
-        if (i) body += '<path d="' + flower + '" transform="' + sc(b) + '" fill="none" stroke="#FFC2CF" stroke-opacity="0.22" stroke-width="' + (0.5 / b).toFixed(2) + '"/>';
-      });
       const defs = '<defs>'
-        + glow('w1', 0, 112, 78, '#7A1028', 0.7) + glow('w2', 112, 112, 66, '#7A1028', 0.55) + glow('w3', -4, -4, 48, '#4A0E1A', 0.35)
-        + bandDefs
-        + lin('rim', 32, 30, 76, 78, [[0, '#FFFFFF', 0.9], [0.45, '#FFB8C6', 0.2], [1, '#2A000A', 0.9]])
+        + '<radialGradient id="' + id + 'bg" cx="54" cy="54" r="46" gradientUnits="userSpaceOnUse">'
+        + stops([[0, '#400612'], [0.55, '#170307'], [1, '#080305']]) + '</radialGradient>'
+        // Crystalline Prism: 4 broad geometric crystal planes + center diamond table.
+        + lin('p1', 28, 28, 54, 54, [[0, '#FF4766'], [1, '#BD0B2C']])
+        + lin('p2', 80, 28, 54, 54, [[0, '#B00725'], [1, '#6E0215']])
+        + lin('p3', 28, 80, 54, 54, [[0, '#7D0318'], [1, '#C90E2F']])
+        + lin('p4', 80, 80, 54, 54, [[0, '#47010D'], [0.6, '#96051F'], [1, '#EB1C3F']])
+        + lin('rim', 28, 28, 80, 80, [[0, '#FFFFFF', 0.95], [0.5, '#FF5C77', 0.35], [1, '#300009', 0.95]])
         + '<clipPath id="' + id + 'k"><path d="' + flower + '"/></clipPath>'
-        + '<filter id="' + id + 'd" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.4"/></filter>'
-        + '<filter id="' + id + 'b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="1.3"/></filter>'
-        + '<filter id="' + id + 'h" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2"/></filter>'
-        + '<filter id="' + id + 's" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="0.9"/></filter>'
+        + '<filter id="' + id + 'sh" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="2"/></filter>'
+        + '<filter id="' + id + 'gl" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="3.4"/></filter>'
+        + '<filter id="' + id + 'sg" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="0.8"/></filter>'
         + (o.clip ? '<clipPath id="' + id + 'c">' + o.clip + '</clipPath>' : '')
         + '</defs>';
       const t = sc(k);
-      const bg = o.bg
-        ? '<rect width="108" height="108" fill="#0C090A"/><rect width="108" height="108" fill="url(#' + id + 'w1)"/>'
-          + '<rect width="108" height="108" fill="url(#' + id + 'w2)"/><rect width="108" height="108" fill="url(#' + id + 'w3)"/>'
-        : '';
+      const bg = o.bg ? '<rect width="108" height="108" fill="url(#' + id + 'bg)"/>' : '';
       const fg = o.star
         ? '<g transform="' + t + '">'
-          // A dark drop shadow and red light thrown under the stone.
-          + '<path d="' + flower + '" fill="#000" fill-opacity="0.7" transform="translate(1.2 3)" filter="url(#' + id + 'b)"/>'
-          + '<path d="' + flower + '" fill="#E0204A" fill-opacity="0.45" transform="translate(0 2)" filter="url(#' + id + 'd)"/>'
-          + '<g clip-path="url(#' + id + 'k)">' + body
-          + '<ellipse cx="42" cy="38" rx="11" ry="5" transform="rotate(-38 42 38)" fill="#FFFFFF" fill-opacity="0.35" filter="url(#' + id + 'h)"/></g>'
-          // A rim lit at the top left and in shadow at the bottom right.
-          + '<path d="' + flower + '" fill="none" stroke="url(#' + id + 'rim)" stroke-width="0.8" stroke-linejoin="round"/>'
-          // The Dailies mark and sparks as white glints.
-          + '<path d="' + mark + ' ' + sparks + '" fill="#FFFFFF" fill-opacity="0.75" filter="url(#' + id + 's)"/>'
+          + '<path d="' + flower + '" fill="#FF2247" fill-opacity="0.42" transform="translate(0 1.5)" filter="url(#' + id + 'gl)"/>'
+          + '<path d="' + flower + '" fill="#000" fill-opacity="0.75" transform="translate(0.8 2.6)" filter="url(#' + id + 'sh)"/>'
+          + '<g clip-path="url(#' + id + 'k)">'
+          + '<polygon points="0,0 54,0 54,54 0,54" fill="url(#' + id + 'p1)"/>'
+          + '<polygon points="54,0 108,0 108,54 54,54" fill="url(#' + id + 'p2)"/>'
+          + '<polygon points="0,54 54,54 54,108 0,108" fill="url(#' + id + 'p3)"/>'
+          + '<polygon points="54,54 108,54 108,108 54,108" fill="url(#' + id + 'p4)"/>'
+          + '<polygon points="54,34 74,54 54,74 34,54" fill="#B50928" fill-opacity="0.45" stroke="#FFE0E6" stroke-opacity="0.32" stroke-width="0.6"/>'
+          + '<line x1="24" y1="54" x2="84" y2="54" stroke="#FFD6DE" stroke-opacity="0.18" stroke-width="0.5"/>'
+          + '<line x1="54" y1="24" x2="54" y2="84" stroke="#FFD6DE" stroke-opacity="0.18" stroke-width="0.5"/></g>'
+          + '<path d="' + flower + '" fill="none" stroke="url(#' + id + 'rim)" stroke-width="0.95" stroke-linejoin="round"/>'
+          + '<path d="' + mark + ' ' + sparks + '" fill="#FFFFFF" fill-opacity="0.65" filter="url(#' + id + 'sg)"/>'
           + '<path d="' + mark + ' ' + sparks + '" fill="#FFFFFF"/></g>'
         : '';
       return '<svg xmlns="http://www.w3.org/2000/svg" width="' + o.size + '" height="' + o.size + '" viewBox="' + (o.viewBox || '0 0 108 108') + '">'

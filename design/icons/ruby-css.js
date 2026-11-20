@@ -28,29 +28,55 @@ function rubyText(t) {
   });
 }
 const BTN = ['.m4-primary-fab', '.bg-indigo-600', '.return-btn.primary', '.next-game-play', '.toast-action', '.m4-tonal-pill', '.recap-btn.primary', '.recap-seg.on', '.chg-undo', '.cal-today-btn', '#btnShareRecap'];
+const SWEEP_BTN = ['.m4-primary-fab', '.bg-indigo-600', '.return-btn.primary', '.next-game-play', '.recap-btn.primary', '#btnShareRecap'];
 const GEM = `html[data-ruby="true"] {
-  /* Cabochon (1.8.13): a smooth polished stone, deepest in the middle, with a soft gloss near the top and
-     light coming back up from below. No bands, so no lines; the top and bottom edges are the same red, so
-     the rim sits evenly all round (light reaching an edge read as a second outline). */
-  --gold-shine: radial-gradient(62% 58% at 32% 20%, rgba(255, 228, 235, 0.5) 0%, rgba(255, 228, 235, 0.16) 45%, rgba(255, 228, 235, 0) 72%), radial-gradient(58% 46% at 56% 82%, rgba(255, 104, 140, 0.4) 0%, rgba(255, 104, 140, 0) 78%), radial-gradient(130% 120% at 50% 50%, #9C0B32 0%, #A90E37 45%, #BE1440 100%);
-  --gold-text: linear-gradient(100deg, #FFB3C4 0%, #FF5C80 38%, #E3265A 70%, #FF7C99 100%);
-  /* Edges as bright at the bottom as at the top, so an outline sits evenly round a card or the bar. */
-  --gold-edge: linear-gradient(180deg, rgba(255, 182, 200, 0.85), rgba(214, 30, 76, 0.55) 50%, rgba(255, 150, 178, 0.85));
+  /* Radiant Star Ruby (Option C): high-brilliance faceted crimson with diagonal crystalline sheen,
+     vivid ruby fire, and a crisp prism rim (no milky pink wash). */
+  --gold-shine: linear-gradient(125deg, #E8193B 0%, #B30826 38%, #7D0318 68%, #D91436 100%);
+  --gold-text: linear-gradient(95deg, #FFE0E6 0%, #FF4262 40%, #D10B2E 72%, #FF6E88 100%);
+  --gold-edge: linear-gradient(135deg, rgba(255, 148, 168, 0.92), rgba(224, 17, 52, 0.4) 45%, rgba(82, 2, 16, 0.34) 72%, rgba(255, 46, 79, 0.85));
   --gold-ink: #FFFFFF;
-  --gold-glow: 0 0 16px -5px rgba(214, 24, 74, 0.75);
+  --gold-glow: 0 4px 22px -4px rgba(245, 22, 60, 0.78);
 }
 html[data-ruby="true"][data-theme="light"] {
-  --gold-text: linear-gradient(100deg, #B0153F 0%, #D81E4A 40%, #860A2B 75%, #C2143F 100%);
-  --gold-edge: linear-gradient(180deg, rgba(200, 22, 63, 0.85), rgba(240, 90, 125, 0.5) 50%, rgba(200, 22, 63, 0.85));
-  --gold-glow: 0 0 12px -4px rgba(163, 18, 58, 0.5);
+  --gold-shine: linear-gradient(125deg, #E01638 0%, #AB0724 42%, #750216 74%, #CE1232 100%);
+  --gold-text: linear-gradient(95deg, #800319 0%, #D10D30 45%, #610212 78%, #B80A28 100%);
+  --gold-edge: linear-gradient(135deg, rgba(214, 16, 50, 0.88), rgba(245, 56, 88, 0.4) 50%, rgba(150, 8, 34, 0.82));
+  --gold-glow: 0 3px 16px -3px rgba(196, 12, 44, 0.55);
 }
 ${BTN.map((b) => `html[data-ruby="true"] ${b}`).join(',\n')} {
-  /* The rim: a light outline with a thin dark ring just inside it, all the way round, so it reads the
-     same at the top (light) and the bottom (deep red) and never looks higher than the button. */
-  color: #FFFFFF !important; border-color: rgba(255, 182, 200, 0.62) !important; text-shadow: 0 1px 1px rgba(70, 0, 18, 0.5);
-  box-shadow: var(--gold-glow), inset 0 0 0 1px rgba(100, 0, 28, 0.3) !important;
+  color: #FFFFFF !important; border-color: rgba(255, 170, 185, 0.72) !important; text-shadow: 0 1px 2px rgba(48, 0, 10, 0.7);
+  box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 232, 236, 0.62) !important;
 }
-html[data-ruby="true"] .status-pill.status-completed { color: #FFFFFF; text-shadow: 0 1px 1px rgba(70, 0, 18, 0.5); box-shadow: inset 0 0 0 1px rgba(100, 0, 28, 0.3); }
+${BTN.map((b) => `html[data-ruby="true"][data-theme="light"] ${b}`).join(',\n')} {
+  border-color: rgba(140, 6, 30, 0.52) !important; text-shadow: 0 1px 2px rgba(48, 0, 10, 0.6);
+  box-shadow: var(--gold-glow), inset 0 1px 0 rgba(255, 228, 234, 0.55) !important;
+}
+@keyframes rubySheenSweep {
+  0%, 58% { transform: translateX(-130%); }
+  100% { transform: translateX(140%); }
+}
+${SWEEP_BTN.map((b) => `html[data-ruby="true"] ${b}`).join(',\n')} {
+  position: relative; overflow: hidden;
+}
+${SWEEP_BTN.map((b) => `html[data-ruby="true"] ${b}::after`).join(',\n')} {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 22%, rgba(255, 235, 240, 0.30) 48%, transparent 74%);
+  transform: translateX(-130%); animation: rubySheenSweep 3.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  ${SWEEP_BTN.map((b) => `html[data-ruby="true"] ${b}::after`).join(',\n  ')} { display: none; }
+}
+html[data-ruby="true"] .play-next { background: linear-gradient(135deg, #36050F, #160206 55%, #2B040C) !important; color: #FF94A6 !important; border: 1px solid rgba(255, 46, 79, 0.58) !important; }
+html[data-ruby="true"][data-theme="light"] .play-next { background: linear-gradient(135deg, #FFE0E5, #FFC2CC) !important; color: #4A0210 !important; border-color: rgba(196, 12, 44, 0.48) !important; }
+html[data-ruby="true"] .gc-streak, html[data-ruby="true"] .text-amber-300 { color: #FF4F6D !important; text-shadow: 0 0 10px rgba(245, 22, 60, 0.45); }
+html[data-ruby="true"][data-theme="light"] .gc-streak, html[data-ruby="true"][data-theme="light"] .text-amber-300 { color: #AD0826 !important; text-shadow: none; }
+html[data-ruby="true"] .cal-cell.done { background: linear-gradient(135deg, rgba(245, 26, 64, 0.40), rgba(145, 6, 30, 0.26)) !important; border-color: rgba(255, 46, 79, 0.85); color: #FFABB8; }
+html[data-ruby="true"][data-theme="light"] .cal-cell.done { background: linear-gradient(135deg, #DE1638, #A30722) !important; border-color: rgba(130, 5, 28, 0.6); color: #FFFFFF; }
+html[data-ruby="true"] .cal-cell.today { --today-c: #FF2E4F; }
+html[data-ruby="true"][data-theme="light"] .cal-cell.today { --today-c: #AD0826; }
+html[data-ruby="true"] .status-pill.status-completed { color: #FFFFFF; background-image: var(--gold-shine); border-color: rgba(255, 170, 185, 0.65); text-shadow: 0 1px 2px rgba(48, 0, 10, 0.65); box-shadow: 0 0 12px -3px rgba(245, 22, 60, 0.52), inset 0 1px 0 rgba(255, 232, 236, 0.5); }
+html[data-ruby="true"][data-theme="light"] .status-pill.status-completed { border-color: rgba(140, 6, 30, 0.5); box-shadow: inset 0 1px 0 rgba(255, 228, 234, 0.48); }
 html[data-ruby="true"] .status-pill.status-completed .dot-star { color: #FFE3EA; }
 html[data-ruby="true"] .status-pill.status-completed .dot { background: #FFE3EA; }
 html[data-ruby="true"] .nav-btn.nav-on { color: #FFFFFF !important; }`;
