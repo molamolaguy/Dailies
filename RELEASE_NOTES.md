@@ -1,3 +1,19 @@
+# Dailies 1.9.6
+
+More color themes, daily random theme rotation, a remade Gold icon, and UI polish. It installs over 1.9.5 and keeps everything, every setting included. If you're on 1.9.5, you can install it from **Settings → About → Check now**.
+
+## Changes
+- **7 new Color Themes.** Added Teal, Amber, Crimson, Cobalt, Sage, Plum and Slate alongside Iris, Ocean, Forest, Sunset and Rose.
+- **Gold & Ruby in the Theme picker.** Unlocked Gold and Ruby themes now appear right inside **Settings → Display → Theme** instead of a separate Accent menu.
+- **Daily Random Theme.** Turn on **Daily Random Theme** in Theme settings to rotate through your unlocked pre-made color themes each day (without repeating yesterday's), with the app icon automatically matching.
+- **Brushed Champagne Gold icon.** Rebuilt the Gold app icon with crisp pure-vector edges, a silky diagonal specular sheen, and a centered elevation shadow across all launcher densities.
+- **UI polish.** Fixed the calendar's today glow clipping on Sunday/Saturday edges and aligned the Reset Alerts card border and button glow with standard app theme colors.
+
+## Requirements
+- Android 7.0 or newer.
+
+---
+
 # Dailies 1.9.5
 
 A visual refresh for the Ruby and Gold unlocks. It installs over 1.9.4 and keeps everything, every setting included. If you're on 1.9.4, you can install it from **Settings → About → Check now**.

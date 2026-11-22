@@ -1388,7 +1388,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.9.5';
+    const APP_VERSION = '1.9.6';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4475,6 +4475,10 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.9.6': [
+        ['🎨', '7 new Color Themes & Daily Random', 'Pick from 12 pre-made themes (plus Gold & Ruby right inside the Theme picker), or turn on Daily Random Theme to rotate colors and match the app icon every day.'],
+        ['👑', 'Brushed Champagne Gold icon & polish', 'The Gold app icon has crisp vector edges and a centered shadow, calendar glows no longer clip at the edges, and Reset Alerts matches the rest of Settings.']
+      ],
       '1.9.5': [
         ['💎', 'Radiant Star Ruby & Crystalline Prism icon', 'Ruby accents now use a deep faceted crimson palette with crisp prism rims and a subtle sheen sweep, paired with a new 4-plane crystalline Ruby app icon.'],
         ['👑', 'Gold accent polish', 'Unlocked achievement cards now show their gold border, and the Done pill matches the horizontal gold sheen on buttons.']

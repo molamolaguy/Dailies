@@ -1,0 +1,5 @@
+- 7 new Color Themes: Teal, Amber, Crimson, Cobalt, Sage, Plum and Slate.
+- Gold & Ruby moved into the Color Theme picker (once unlocked).
+- Daily Random Theme: rotate through pre-made themes each day with a matching app icon.
+- Remade Brushed Champagne Gold app icon with crisp vector edges and centered shadow.
+- Fixed calendar today glow clipping on left/right edges and Reset Alerts glow/border consistency.
