@@ -1664,7 +1664,53 @@
   const RESULTS_SPACER = '───────────';
 
   // ---- Colour themes: Material-style tones from one seed colour (OKLCH, kept inside sRGB) ----
-  const THEME_PRESETS = { ocean: '#1E88C8', forest: '#2E8B57', sunset: '#F06A3C', rose: '#D9467A' };
+  const THEME_PRESETS = {
+    ocean: '#1E88C8',
+    forest: '#2E8B57',
+    sunset: '#F06A3C',
+    rose: '#D9467A',
+    teal: '#0F9D9A',
+    amber: '#D98A16',
+    crimson: '#C82838',
+    cobalt: '#3B5BDB',
+    sage: '#5F8D6B',
+    plum: '#9C36B5',
+    slate: '#5C728A'
+  };
+
+  /** Deterministic PRNG (mulberry32) for shuffling pre-made themes per epoch without repeats. */
+  function shuffleForEpoch(len, epoch) {
+    let a = ((epoch * 0x9E3779B1) ^ 0x85EBCA6B) >>> 0;
+    const next = () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const arr = Array.from({ length: len }, (_, i) => i);
+    for (let i = len - 1; i > 0; i--) {
+      const j = Math.floor(next() * (i + 1));
+      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    return arr;
+  }
+
+  function pickDailyTheme(dateKey, candidates) {
+    const list = Array.isArray(candidates) ? candidates.filter(Boolean) : [];
+    if (list.length === 0) return 'iris';
+    if (list.length === 1) return list[0];
+    const day = cycleKeyToDay(dateKey);
+    if (!Number.isFinite(day)) return list[0];
+    const n = list.length;
+    const epoch = Math.floor(day / n);
+    const pos = ((day % n) + n) % n;
+    const bag = shuffleForEpoch(n, epoch);
+    const prevBag = shuffleForEpoch(n, epoch - 1);
+    if (bag[0] === prevBag[n - 1]) {
+      const tmp = bag[0]; bag[0] = bag[1]; bag[1] = tmp;
+    }
+    return list[bag[pos]];
+  }
 
   function hexToRgb(hex) {
     const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
@@ -1838,6 +1884,7 @@
     isGridLine,
     combinedShareText,
     THEME_PRESETS,
+    pickDailyTheme,
     themeTokens,
     hexToOklch,
     oklchToHex,
