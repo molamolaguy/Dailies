@@ -1244,7 +1244,10 @@ html[data-theme="light"] .bulk-bar { box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 
 #m3Scaffold > section { margin-top: 0 !important; }
 
 /* Calendar: swipe sideways to change month (vertical scrolling still works). */
-.cal-swipe { overflow-x: clip; overflow-clip-margin: 16px; touch-action: pan-y; }
+.cal-swipe { overflow-x: clip; overflow-clip-margin: 26px; touch-action: pan-y; }
+#calendarDowRow, #calendarDaysGrid { padding-inline: 6px; }
+#calendarDaysGrid { padding-block: 4px; }
+#btnRequestBrowserPerm[data-state="off"] { box-shadow: 0 4px 14px -3px var(--md-glow); }
 
 /* Open dialogs: the page behind stays put, and nothing rubber-bands or stretches. */
 html.modal-open, html.modal-open body { overflow: hidden; overscroll-behavior: none; }
@@ -1586,6 +1589,8 @@ html[data-theme="light"] .recap-seg.on { color: var(--md-on-primary-container); 
 html[data-theme="light"] .theme-name { color: var(--lt-strong); }
 html[data-theme="light"] .theme-swatch { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
 html[data-gold="true"] .theme-choice.on { border-color: #BAA465; }
+.theme-swatch-special { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 2px 8px -2px rgba(0, 0, 0, 0.45); }
+#modalTheme .set-sheet { overflow-y: auto; max-height: calc(100vh - 150px); }
 
 .today-results-panel, .changes-panel { border-radius: 28px; padding: 20px; height: auto; align-self: center; max-height: calc(100vh - 48px); display: flex; flex-direction: column; gap: 12px; }
 .today-results-opt { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: #cbd2de; cursor: pointer; }

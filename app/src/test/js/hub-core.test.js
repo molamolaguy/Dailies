@@ -757,3 +757,33 @@ test('1.9.4: periodRecap groups renamed games by gameId without splitting stats'
   assert.deepEqual(r.bestGame, { name: 'Wordle Renamed', solved: 2, results: 3 });
 });
 
+test('THEME_PRESETS all produce valid dark and light theme tokens', () => {
+  const keys = Object.keys(core.THEME_PRESETS);
+  assert.ok(keys.length >= 11, `expected >= 11 presets, got ${keys.length}`);
+  for (const k of keys) {
+    const dark = core.themeTokens(core.THEME_PRESETS[k], false);
+    const light = core.themeTokens(core.THEME_PRESETS[k], true);
+    assert.ok(dark && /^#[0-9A-F]{6}$/.test(dark['--md-primary']), `valid dark primary for ${k}`);
+    assert.ok(light && /^#[0-9A-F]{6}$/.test(light['--md-primary']), `valid light primary for ${k}`);
+  }
+});
+
+test('pickDailyTheme is deterministic for a date and avoids repeating yesterday', () => {
+  const pool = ['iris', ...Object.keys(core.THEME_PRESETS), 'gold', 'ruby'];
+  assert.equal(core.pickDailyTheme('2026-11-22', pool), core.pickDailyTheme('2026-11-22', pool));
+  let prev = null;
+  const seen = new Set();
+  for (let i = 0; i < 60; i++) {
+    const k = core.addDaysToCycleKey('2026-11-01', i);
+    const picked = core.pickDailyTheme(k, pool);
+    assert.ok(pool.includes(picked));
+    if (prev !== null) assert.notEqual(picked, prev, `repeated ${picked} on ${k}`);
+    prev = picked;
+    seen.add(picked);
+  }
+  assert.ok(seen.size >= 8, `expected variety across 60 days, got ${seen.size}`);
+  assert.equal(core.pickDailyTheme('2026-11-22', []), 'iris');
+  assert.equal(core.pickDailyTheme('2026-11-22', ['ocean']), 'ocean');
+});
+
+

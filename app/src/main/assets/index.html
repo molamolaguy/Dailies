@@ -403,41 +403,12 @@
             <span id="appIconSummary" class="set-value set-icon-value"></span><span class="set-chevron" aria-hidden="true">›</span>
           </button>
 
-          <!-- 1.9.0: Gold and Ruby accents as one choice (shown once either is unlocked). -->
-          <div id="accentRow" class="hidden set-row flex items-center justify-between gap-3 sm:col-span-3">
-            <div>
-              <p class="font-bold text-white">Accent</p>
-              <p class="text-[11px] text-slate-400">Gold or ruby highlights across the app</p>
-            </div>
-            <select id="settingAccent" aria-label="Accent" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
-              <option value="none">None</option>
-              <option value="gold">👑 Gold</option>
-              <option value="ruby">💎 Ruby</option>
-            </select>
-          </div>
-
           <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Compact Game Cards</p>
               <p class="text-[11px] text-slate-400">Hide reset times &amp; shrink cards</p>
             </div>
             <input id="settingCompactCards" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <label id="goldAccentsRow" class="hidden accent-switch-row set-row flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
-            <div>
-              <p class="font-bold text-white">👑 Gold Accents</p>
-              <p id="goldAccentsHint" class="text-[11px] text-slate-400">Gold highlights across the app</p>
-            </div>
-            <input id="settingGoldAccents" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <label id="rubyAccentsRow" class="hidden accent-switch-row set-row flex items-center justify-between gap-3 cursor-pointer sm:col-span-3">
-            <div>
-              <p class="font-bold text-white">💎 Ruby Accents</p>
-              <p class="text-[11px] text-slate-400">Ruby highlights across the app (instead of gold)</p>
-            </div>
-            <input id="settingRubyAccents" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
 
           <div class="set-row">
@@ -633,7 +604,7 @@
       </div>
 
       <!-- 3. Daily Game Refresh Notification Engine -->
-      <div data-fold="alerts" class="android-only glass-card rounded-2xl p-4 border border-indigo-500/30">
+      <div data-fold="alerts" class="android-only glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800">
           <div>
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -1137,8 +1108,16 @@
             <p class="text-[11px] text-slate-400">A preset, or pick your own accent</p>
             <div id="themeChoices" class="theme-choices" role="radiogroup" aria-label="Color theme"></div>
             <p id="themeLockedHint" class="hidden text-[11px] text-slate-400 mt-2">Using your wallpaper's colors. Turn off <strong class="text-slate-200">Match Device Wallpaper Colors</strong> to choose a theme.</p>
+            <p id="themeRandomHint" class="hidden text-[11px] text-slate-400 mt-2"></p>
             <input id="customAccentInput" type="color" value="#1E88C8" class="sr-only" tabindex="-1" aria-hidden="true" />
           </div>
+          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+            <div>
+              <p class="font-bold text-white">Daily Random Theme</p>
+              <p class="text-[11px] text-slate-400">Pick a different pre-made color theme each day and match the app icon</p>
+            </div>
+            <input id="settingDailyRandomTheme" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
           <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">AMOLED Pitch-Black Surface</p>
@@ -1488,6 +1467,7 @@
       return {
         dynamicWallpaper: true,
         themeSeed: 'wallpaper',
+        dailyRandomTheme: false,
         amoledDark: false,
         compactCards: false,
         autoMarkMissed: true,
@@ -2016,18 +1996,45 @@
       if (state && state.settings && state.settings.themeMode === 'system') applyThemeAndSettings();
     };
 
-    // ---- Colour themes (1.6.0): wallpaper colours, presets, or a custom accent ----
+    // ---- Colour themes: wallpaper colours, 12 presets, Gold/Ruby (when unlocked), Daily Random, or Custom ----
     const COLOR_THEMES = [
       { id: 'iris', label: 'Iris', seed: '#6750A4' },
       { id: 'ocean', label: 'Ocean', seed: HubCore.THEME_PRESETS.ocean },
       { id: 'forest', label: 'Forest', seed: HubCore.THEME_PRESETS.forest },
       { id: 'sunset', label: 'Sunset', seed: HubCore.THEME_PRESETS.sunset },
       { id: 'rose', label: 'Rose', seed: HubCore.THEME_PRESETS.rose },
+      { id: 'teal', label: 'Teal', seed: HubCore.THEME_PRESETS.teal },
+      { id: 'amber', label: 'Amber', seed: HubCore.THEME_PRESETS.amber },
+      { id: 'crimson', label: 'Crimson', seed: HubCore.THEME_PRESETS.crimson },
+      { id: 'cobalt', label: 'Cobalt', seed: HubCore.THEME_PRESETS.cobalt },
+      { id: 'sage', label: 'Sage', seed: HubCore.THEME_PRESETS.sage },
+      { id: 'plum', label: 'Plum', seed: HubCore.THEME_PRESETS.plum },
+      { id: 'slate', label: 'Slate', seed: HubCore.THEME_PRESETS.slate },
+      { id: 'gold', label: 'Gold', special: 'gold' },
+      { id: 'ruby', label: 'Ruby', special: 'ruby' },
       { id: 'custom', label: 'Custom' }
     ];
     function validHex(v) { return /^#[0-9a-f]{6}$/i.test(String(v || '')); }
+    function localTodayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function visibleColorThemes() {
+      return COLOR_THEMES.filter((t) => {
+        if (t.id === 'gold') return goldAccentsUnlocked();
+        if (t.id === 'ruby') return rubyUnlocked();
+        return true;
+      });
+    }
+    function dailyThemePool() {
+      return visibleColorThemes().filter((t) => t.id !== 'custom').map((t) => t.id);
+    }
+    function dailyRandomThemeId() {
+      return HubCore.pickDailyTheme(localTodayKey(), dailyThemePool());
+    }
     function colorThemeId() {
       const s = state.settings || {};
+      if (s.dailyRandomTheme) return dailyRandomThemeId();
       if (s.dynamicWallpaper !== false && !IS_WEB) return 'wallpaper';
       if (s.dynamicWallpaper !== false) return 'iris';
       return savedThemeId();
@@ -2035,44 +2042,73 @@
     /** The color theme picked in the list (shown grayed out while wallpaper colors are on). */
     function savedThemeId() {
       const s = state.settings || {};
-      return COLOR_THEMES.some((t) => t.id === s.themeSeed) ? s.themeSeed : 'iris';
+      if (s.themeSeed === 'ruby' && rubyUnlocked()) return 'ruby';
+      if (s.themeSeed === 'gold' && goldAccentsUnlocked()) return 'gold';
+      if (s.rubyAccents && rubyUnlocked() && (!s.themeSeed || s.themeSeed === 'wallpaper' || s.themeSeed === 'iris')) return 'ruby';
+      if (s.goldAccents && goldAccentsUnlocked() && (!s.themeSeed || s.themeSeed === 'wallpaper' || s.themeSeed === 'iris')) return 'gold';
+      return visibleColorThemes().some((t) => t.id === s.themeSeed) ? s.themeSeed : 'iris';
     }
     /** With "Match Device Wallpaper Colors" on (Android), the wallpaper decides and the themes are grayed out. */
     function themesLocked() {
-      return !IS_WEB && (state.settings || {}).dynamicWallpaper !== false;
+      const s = state.settings || {};
+      return !IS_WEB && s.dynamicWallpaper !== false && !s.dailyRandomTheme;
     }
-    /** The seed colour of the chosen theme, or null for Wallpaper and Iris (the built-in colours). */
+    /** The seed colour of the chosen theme, or null for Wallpaper, Iris, Gold, and Ruby. */
     function themeSeedHex() {
       const id = colorThemeId();
       if (id === 'custom') return validHex(state.settings.customAccent) ? state.settings.customAccent : null;
-      if (id === 'wallpaper' || id === 'iris') return null;
+      if (id === 'wallpaper' || id === 'iris' || id === 'gold' || id === 'ruby') return null;
       const t = COLOR_THEMES.find((x) => x.id === id);
       return t ? t.seed : null;
     }
     function renderThemeChoices() {
       const box = document.getElementById('themeChoices');
       if (!box) return;
+      const s = state.settings || {};
       const locked = themesLocked();
-      const cur = savedThemeId();
+      const randOn = Boolean(s.dailyRandomTheme);
+      const cur = randOn ? dailyRandomThemeId() : savedThemeId();
       const light = isLightTheme();
       box.classList.toggle('locked', locked);
       box.setAttribute('aria-disabled', String(locked));
       const hint = document.getElementById('themeLockedHint');
       if (hint) hint.classList.toggle('hidden', !locked);
-      box.innerHTML = COLOR_THEMES.map((t) => {
+      const randHint = document.getElementById('themeRandomHint');
+      if (randHint) {
+        const rolled = COLOR_THEMES.find((t) => t.id === cur);
+        randHint.textContent = randOn && rolled ? `Today's random theme: ${rolled.label} (app icon matches). Picking a theme turns Daily Random off.` : '';
+        randHint.classList.toggle('hidden', !randOn);
+      }
+      const randCb = document.getElementById('settingDailyRandomTheme');
+      if (randCb) randCb.checked = randOn;
+      box.innerHTML = visibleColorThemes().map((t) => {
         const on = t.id === cur;
-        const seed = t.id === 'custom' ? (validHex(state.settings.customAccent) ? state.settings.customAccent : '#888888') : t.seed;
-        const tk = HubCore.themeTokens(seed, light);
-        const swatch = `background: conic-gradient(${tk['--md-primary']} 0 50%, ${tk['--md-tertiary']} 0 75%, ${tk['--md-primary-container']} 0)`;
+        let swatch = '';
+        let swatchCls = 'theme-swatch';
+        let inner = '';
+        if (t.id === 'gold') {
+          swatch = 'background: linear-gradient(125deg, #F2E6BC 0%, #C5AE6C 48%, #8C7E57 100%)';
+          swatchCls += ' theme-swatch-special';
+          inner = '<span class="theme-edit" aria-hidden="true">👑</span>';
+        } else if (t.id === 'ruby') {
+          swatch = 'background: linear-gradient(125deg, #FF4262 0%, #B30826 48%, #7D0318 100%)';
+          swatchCls += ' theme-swatch-special';
+          inner = '<span class="theme-edit" aria-hidden="true">💎</span>';
+        } else {
+          const seed = t.id === 'custom' ? (validHex(s.customAccent) ? s.customAccent : '#888888') : t.seed;
+          const tk = HubCore.themeTokens(seed, light);
+          swatch = `background: conic-gradient(${tk['--md-primary']} 0 50%, ${tk['--md-tertiary']} 0 75%, ${tk['--md-primary-container']} 0)`;
+          if (t.id === 'custom') inner = '<span class="theme-edit" aria-hidden="true">✎</span>';
+        }
         return `<button type="button" class="theme-choice${on ? ' on' : ''}" data-color-theme="${t.id}" role="radio" aria-checked="${on && !locked}"${locked ? ' disabled' : ''} aria-label="${escapeHtml(t.label)} theme">`
-          + `<span class="theme-swatch" style="${swatch}">${t.id === 'custom' ? '<span class="theme-edit" aria-hidden="true">✎</span>' : ''}</span>`
+          + `<span class="${swatchCls}" style="${swatch}">${inner}</span>`
           + `<span class="theme-name">${escapeHtml(t.label)}</span></button>`;
       }).join('');
       renderDisplaySummaries();
     }
     function chooseColorTheme(id) {
       if (!state.settings) state.settings = getDefaultSettings();
-      if (themesLocked() || !COLOR_THEMES.some((t) => t.id === id)) return;
+      if (themesLocked() || !visibleColorThemes().some((t) => t.id === id)) return;
       if (id === 'custom') {
         const input = document.getElementById('customAccentInput');
         if (input) {
@@ -2081,7 +2117,10 @@
         }
         if (colorThemeId() === 'custom' || !validHex(state.settings.customAccent)) return;
       }
+      state.settings.dailyRandomTheme = false;
       state.settings.themeSeed = id;
+      state.settings.goldAccents = id === 'gold';
+      state.settings.rubyAccents = id === 'ruby';
       saveState({ sync: false });
       applyThemeAndSettings();
       saveLaunchPrefs();
@@ -2091,7 +2130,10 @@
       if (!validHex(hex) || themesLocked()) return;
       state.settings.customAccent = hex.toUpperCase();
       state.settings.dynamicWallpaper = false;
+      state.settings.dailyRandomTheme = false;
       state.settings.themeSeed = 'custom';
+      state.settings.goldAccents = false;
+      state.settings.rubyAccents = false;
       const cb = document.getElementById('settingDynamicWallpaper');
       if (cb) cb.checked = false;
       saveState({ sync: false });
@@ -2114,13 +2156,14 @@
       root.setAttribute('data-theme', light ? 'light' : 'dark');
       root.classList.toggle('dark', !light);
       root.setAttribute('data-amoled', s.amoledDark && !light ? 'true' : 'false');
-      // The header logo follows the launcher icon choice.
+      // The header logo follows the launcher icon choice (or today's random theme when Daily Random is on).
       const iconStyle = currentAppIcon();
       root.setAttribute('data-app-icon', iconStyle);
       const logo = document.getElementById('hubLogo');
       if (logo && logo.dataset.style !== iconStyle) { logo.innerHTML = appIconSvg(iconStyle, 22, 'hub'); logo.dataset.style = iconStyle; }
-      const seed = s.dynamicWallpaper ? 'wallpaper' : (s.themeSeed || 'iris');
-      root.setAttribute('data-m4-seed', seed);
+      const activeTheme = colorThemeId();
+      const useWallpaper = !s.dailyRandomTheme && s.dynamicWallpaper !== false && !IS_WEB;
+      root.setAttribute('data-m4-seed', useWallpaper ? 'wallpaper' : activeTheme);
       const palette = !deviceWallpaperPalette ? null
         : (light ? (deviceWallpaperPalette.light && typeof deviceWallpaperPalette.light === 'object' ? deviceWallpaperPalette.light : null) : deviceWallpaperPalette);
       const amoledOn = s.amoledDark && !light;
@@ -2134,7 +2177,7 @@
         '--md-outline', '--md-glow'
       ];
 
-      if (s.dynamicWallpaper && palette) {
+      if (useWallpaper && palette) {
         props.forEach((p) => root.style.removeProperty(p));
         const set = (prop, key, skipWhenAmoled) => {
           if (palette[key] && !(skipWhenAmoled && amoledOn)) root.style.setProperty(prop, palette[key]);
@@ -2155,18 +2198,18 @@
         props.forEach((p) => root.style.removeProperty(p));
       }
       // A preset or custom colour theme (without wallpaper colours): tones made from its seed colour.
-      const seedHex = s.dynamicWallpaper && palette ? null : themeSeedHex();
+      const seedHex = useWallpaper && palette ? null : themeSeedHex();
       const themeTokens = seedHex ? HubCore.themeTokens(seedHex, light) : null;
       if (themeTokens) Object.keys(themeTokens).forEach((k) => root.style.setProperty(k, themeTokens[k]));
-      root.setAttribute('data-accent', themeTokens ? colorThemeId() : (s.dynamicWallpaper && palette ? 'wallpaper' : 'iris'));
+      root.setAttribute('data-accent', themeTokens ? activeTheme : (useWallpaper && palette ? 'wallpaper' : (activeTheme === 'gold' || activeTheme === 'ruby' ? activeTheme : 'iris')));
       // Remembered for the next launch, so the first frame already has these colours.
       try {
         if (themeTokens) localStorage.setItem('dailydeck_theme_tokens_v1', JSON.stringify({ light, tokens: themeTokens }));
         else localStorage.removeItem('dailydeck_theme_tokens_v1');
       } catch (e) {}
-      // Gold accents (every achievement tier earned): gold in place of the theme's main colour.
-      const ruby = rubyAccentsOn();
-      const gold = goldAccentsOn() && !ruby;
+      // Gold & Ruby themes (picked in Color Theme, rolled via Daily Random, or legacy accent flag with Wallpaper).
+      const ruby = (activeTheme === 'ruby' || (useWallpaper && rubyAccentsOn())) && rubyUnlocked();
+      const gold = !ruby && (activeTheme === 'gold' || (useWallpaper && goldAccentsOn())) && goldAccentsUnlocked();
       root.setAttribute('data-gold', gold ? 'true' : 'false');
       root.setAttribute('data-ruby', ruby ? 'true' : 'false');
       // 1.7.0 display options.
@@ -5174,58 +5217,48 @@
     const rubyAccentsOn = () => Boolean(state.settings && state.settings.rubyAccents) && rubyUnlocked();
     /** Whether an icon style is still locked (Gold: every first tier; Ruby: every secret). */
     const iconLocked = (st) => (st.id === 'gold' ? !goldIconUnlocked() : st.id === 'ruby' ? !rubyUnlocked() : false);
-    function renderRubyAccentsSetting() {
-      const el = document.getElementById('settingRubyAccents');
-      if (!el) return;
-      const unlocked = rubyUnlocked();
-      el.disabled = !unlocked;
-      el.checked = rubyAccentsOn();
-      renderDisplaySummaries();
-    }
-    function renderGoldAccentsSetting() {
-      const el = document.getElementById('settingGoldAccents');
-      if (!el) return;
-      const unlocked = goldAccentsUnlocked();
-      el.disabled = !unlocked;
-      el.checked = goldAccentsOn();
-      // An easter egg: the switch only appears once it's unlocked, with no hint before then.
-      renderDisplaySummaries();
-    }
+    function renderRubyAccentsSetting() { renderThemeChoices(); }
+    function renderGoldAccentsSetting() { renderThemeChoices(); }
     /**
-     * Settings → Display, 1.9.0: Theme and App Icon are one row each that opens their choices, and Gold
-     * and Ruby accents are one Accent choice. These keep the rows' summaries and that choice up to date.
+     * Settings → Display: Theme and App Icon are one row each that opens their choices.
+     * Gold and Ruby accents now live inside the Color Theme picker.
      */
     function renderDisplaySummaries() {
       const s = state.settings || {};
       const themeEl = document.getElementById('themeSummary');
       if (themeEl) {
         const mode = { dark: 'Dark', light: 'Light', system: 'Match phone' }[s.themeMode] || 'Dark';
-        const colors = themesLocked() ? 'Wallpaper colors' : ((COLOR_THEMES.find((t) => t.id === savedThemeId()) || {}).label || '');
+        let colors = '';
+        if (s.dailyRandomTheme) {
+          const rolled = COLOR_THEMES.find((t) => t.id === dailyRandomThemeId());
+          colors = rolled ? `Daily Random (${rolled.label})` : 'Daily Random';
+        } else if (themesLocked()) {
+          colors = 'Wallpaper colors';
+        } else {
+          colors = (COLOR_THEMES.find((t) => t.id === savedThemeId()) || {}).label || '';
+        }
         themeEl.textContent = [mode, colors, s.amoledDark ? 'Pitch-black' : ''].filter(Boolean).join(' · ');
       }
       const iconEl = document.getElementById('appIconSummary');
       if (iconEl && typeof appIconSvg === 'function') {
         const cur = currentAppIcon();
         const st = ICON_STYLES.find((x) => x.id === cur);
-        iconEl.innerHTML = `${appIconSvg(cur, 24, 'sum')}<span>${escapeHtml(st ? st.label : '')}</span>`;
+        const label = s.dailyRandomTheme ? `${st ? st.label : 'Theme'} (Daily)` : (st ? st.label : '');
+        iconEl.innerHTML = `${appIconSvg(cur, 24, 'sum')}<span>${escapeHtml(label)}</span>`;
       }
-      const row = document.getElementById('accentRow');
-      const sel = document.getElementById('settingAccent');
-      if (row && sel) {
-        const gold = goldAccentsUnlocked();
-        const ruby = rubyUnlocked();
-        row.classList.toggle('hidden', !gold && !ruby);
-        [...sel.options].forEach((o) => {
-          const ok = o.value === 'none' || (o.value === 'gold' && gold) || (o.value === 'ruby' && ruby);
-          o.hidden = !ok;
-          o.disabled = !ok;
-        });
-        sel.value = rubyAccentsOn() ? 'ruby' : (goldAccentsOn() ? 'gold' : 'none');
-      }
+    }
+    /** The app icon matching a given pre-made color theme when Daily Random Theme is on. */
+    function iconForTheme(themeId) {
+      if (themeId === 'gold' && goldIconUnlocked()) return 'gold';
+      if (themeId === 'ruby' && rubyUnlocked()) return 'ruby';
+      if (themeId === 'ocean') return 'ocean';
+      if (themeId === 'sunset') return 'sunset';
+      return 'themed';
     }
     /** The chosen style ("" means the 1.2–1.3 switch decides), never a locked one. */
     function currentAppIcon() {
       const s = state.settings || {};
+      if (s.dailyRandomTheme) return iconForTheme(dailyRandomThemeId());
       let style = s.appIcon || (s.iconFollowsTheme ? 'themed' : 'default');
       if (!ICON_STYLES.some((x) => x.id === style)) style = 'default';
       if (style === 'gold' && !goldIconUnlocked()) style = 'default';
@@ -5233,42 +5266,37 @@
       return style;
     }
     /** The icon as an SVG (same shapes and colours as the launcher icon). */
-    // ---- Gold icon: satin gold star with a crisp bevel, as on the launcher (same design as its PNGs) ----
-    const METAL_ICON_PALETTES = {"gold":{"g0":"#E6D49A","g1":"#CBB679","g2":"#A68E54","hi":"#FFF7DC","sh":"#4A3E22","glow":"#6B5128","glow2":"#4A3A20","base":"#0B0B09"}};
+    // ---- Gold icon: Brushed Champagne gold star, as on the launcher (same design as its PNGs) ----
+    const METAL_ICON_PALETTES = {"gold":{"g0":"#B08F44","g1":"#EBD796","hi":"#FFF8DF","g2":"#CBA854","g3":"#8C6D28","sh":"#403112","glow":"#D9BD6C","bg0":"#292214","bg1":"#12100A","base":"#080706"}};
     function goldIconSvg(o) {
       // o: { id, size, viewBox, k, bg: bool, star: bool, clip: '' | svg clip shape, p: palette (METAL_ICON_PALETTES) }
       const id = o.id;
       const p = o.p || METAL_ICON_PALETTES.gold;
       const k = o.k || 1;
-      const star = 'M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z' + ' ' + 'M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z' + ' ' + 'M65.5,38.3 C66.17,41.83 66.17,41.83 69.7,42.5 C66.17,43.17 66.17,43.17 65.5,46.7 C64.83,43.17 64.83,43.17 61.3,42.5 C64.83,41.83 64.83,41.83 65.5,38.3Z M43,62.5 C43.48,65.02 43.48,65.02 46,65.5 C43.48,65.98 43.48,65.98 43,68.5 C42.52,65.98 42.52,65.98 40,65.5 C42.52,65.02 42.52,65.02 43,62.5Z';
+      const flower = 'M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z';
+      const star = flower + ' ' + 'M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z' + ' ' + 'M65.5,38.3 C66.17,41.83 66.17,41.83 69.7,42.5 C66.17,43.17 66.17,43.17 65.5,46.7 C64.83,43.17 64.83,43.17 61.3,42.5 C64.83,41.83 64.83,41.83 65.5,38.3Z M43,62.5 C43.48,65.02 43.48,65.02 46,65.5 C43.48,65.98 43.48,65.98 43,68.5 C42.52,65.98 42.52,65.98 40,65.5 C42.52,65.02 42.52,65.02 43,62.5Z';
       const defs = '<defs>'
-        + '<linearGradient id="' + id + 'g" gradientUnits="userSpaceOnUse" x1="78" y1="26" x2="30" y2="82">'
-        + '<stop offset="0" stop-color="' + p.g0 + '"/><stop offset="0.5" stop-color="' + p.g1 + '"/><stop offset="1" stop-color="' + p.g2 + '"/></linearGradient>'
-        + '<radialGradient id="' + id + 'w1" gradientUnits="userSpaceOnUse" cx="0" cy="112" r="78"><stop offset="0" stop-color="' + p.glow + '" stop-opacity="0.75"/><stop offset="1" stop-color="' + p.glow + '" stop-opacity="0"/></radialGradient>'
-        + '<radialGradient id="' + id + 'w2" gradientUnits="userSpaceOnUse" cx="112" cy="112" r="66"><stop offset="0" stop-color="' + p.glow + '" stop-opacity="0.6"/><stop offset="1" stop-color="' + p.glow + '" stop-opacity="0"/></radialGradient>'
-        + '<radialGradient id="' + id + 'w3" gradientUnits="userSpaceOnUse" cx="-4" cy="-4" r="48"><stop offset="0" stop-color="' + p.glow2 + '" stop-opacity="0.35"/><stop offset="1" stop-color="' + p.glow2 + '" stop-opacity="0"/></radialGradient>'
-        // Satin grain + crisp bevel: a light band where the shape ends toward the top left, a dark band toward the bottom right.
-        + '<filter id="' + id + 'f" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">'
-        + '<feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="7" result="n"/>'
-        + '<feColorMatrix in="n" type="matrix" values="0 0 0 0 0.5  0 0 0 0 0.5  0 0 0 0 0.5  0.33 0.33 0.33 0 0" result="ng"/>'
-        + '<feComposite in="SourceGraphic" in2="ng" operator="arithmetic" k1="0" k2="1" k3="0.16" k4="-0.08" result="grain"/>'
-        + '<feComposite in="grain" in2="SourceAlpha" operator="in" result="body"/>'
-        + '<feOffset in="SourceAlpha" dx="0.75" dy="0.75" result="o1"/><feComposite in="SourceAlpha" in2="o1" operator="out" result="b1"/>'
-        + '<feGaussianBlur in="b1" stdDeviation="0.22" result="b1s"/><feFlood flood-color="' + p.hi + '" flood-opacity="0.85"/><feComposite in2="b1s" operator="in"/><feComposite in2="SourceAlpha" operator="in" result="hi"/>'
-        + '<feOffset in="SourceAlpha" dx="-0.75" dy="-0.75" result="o2"/><feComposite in="SourceAlpha" in2="o2" operator="out" result="b2"/>'
-        + '<feGaussianBlur in="b2" stdDeviation="0.22" result="b2s"/><feFlood flood-color="' + p.sh + '" flood-opacity="0.85"/><feComposite in2="b2s" operator="in"/><feComposite in2="SourceAlpha" operator="in" result="sh"/>'
-        + '<feMerge><feMergeNode in="body"/><feMergeNode in="hi"/><feMergeNode in="sh"/></feMerge></filter>'
-        + '<filter id="' + id + 'd" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.1"/></filter>'
+        + '<radialGradient id="' + id + 'bg" cx="54" cy="54" r="46" gradientUnits="userSpaceOnUse">'
+        + '<stop offset="0" stop-color="' + p.bg0 + '"/><stop offset="0.58" stop-color="' + p.bg1 + '"/><stop offset="1" stop-color="' + p.base + '"/></radialGradient>'
+        // Brushed Champagne: smooth diagonal specular highlight band with pure vector edges (no noise grain).
+        + '<linearGradient id="' + id + 'g" gradientUnits="userSpaceOnUse" x1="24" y1="34" x2="84" y2="74">'
+        + '<stop offset="0" stop-color="' + p.g0 + '"/><stop offset="0.3" stop-color="' + p.g1 + '"/><stop offset="0.5" stop-color="' + p.hi + '"/>'
+        + '<stop offset="0.72" stop-color="' + p.g2 + '"/><stop offset="1" stop-color="' + p.g3 + '"/></linearGradient>'
+        + '<linearGradient id="' + id + 'rim" gradientUnits="userSpaceOnUse" x1="28" y1="28" x2="80" y2="80">'
+        + '<stop offset="0" stop-color="#FFFFFF" stop-opacity="0.88"/><stop offset="0.5" stop-color="' + p.g1 + '" stop-opacity="0.3"/>'
+        + '<stop offset="1" stop-color="' + p.sh + '" stop-opacity="0.88"/></linearGradient>'
+        + '<filter id="' + id + 'gl" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="3.2"/></filter>'
+        + '<filter id="' + id + 'sh" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="2.1"/></filter>'
         + (o.clip ? '<clipPath id="' + id + 'c">' + o.clip + '</clipPath>' : '')
         + '</defs>';
       const t = 'translate(54 54) scale(' + k + ') translate(-54 -54)';
-      const bg = o.bg
-        ? '<rect width="108" height="108" fill="' + p.base + '"/><rect width="108" height="108" fill="url(#' + id + 'w1)"/>'
-          + '<rect width="108" height="108" fill="url(#' + id + 'w2)"/><rect width="108" height="108" fill="url(#' + id + 'w3)"/>'
-        : '';
+      const bg = o.bg ? '<rect width="108" height="108" fill="url(#' + id + 'bg)"/>' : '';
       const fg = o.star
-        ? '<g transform="' + t + '"><path d="' + star + '" fill-rule="evenodd" fill="#000" fill-opacity="0.55" transform="translate(0.3 0.9)" filter="url(#' + id + 'd)"/>'
-          + '<path d="' + star + '" fill-rule="evenodd" fill="url(#' + id + 'g)" filter="url(#' + id + 'f)"/></g>'
+        ? '<g transform="' + t + '">'
+          + '<path d="' + flower + '" fill="' + p.glow + '" fill-opacity="0.32" transform="translate(0 1.2)" filter="url(#' + id + 'gl)"/>'
+          + '<path d="' + star + '" fill-rule="evenodd" fill="#000" fill-opacity="0.68" transform="translate(0 2.4)" filter="url(#' + id + 'sh)"/>'
+          + '<path d="' + star + '" fill-rule="evenodd" fill="url(#' + id + 'g)"/>'
+          + '<path d="' + flower + '" fill="none" stroke="url(#' + id + 'rim)" stroke-width="0.85" stroke-linejoin="round"/></g>'
         : '';
       return '<svg xmlns="http://www.w3.org/2000/svg" width="' + o.size + '" height="' + o.size + '" viewBox="' + (o.viewBox || '0 0 108 108') + '">'
         + defs + (o.clip ? '<g clip-path="url(#' + id + 'c)">' + bg + fg + '</g>' : bg + fg) + '</svg>';
@@ -5594,11 +5622,11 @@
         delay += 1000;
       }
       if (accents && !wasAccents) {
-        setTimeout(() => showToast('👑 Gold accents unlocked', 'You earned every achievement tier. Turn on Gold Accents in Settings → Display.', 'emerald'), delay + 600);
+        setTimeout(() => showToast('👑 Gold theme unlocked', 'You earned every achievement tier. Choose Gold in Settings → Display → Theme.', 'emerald'), delay + 600);
         delay += 1000;
       }
       if (ruby && !wasRuby) {
-        setTimeout(() => showToast('💎 Ruby unlocked', 'You found every secret. Choose the Ruby icon and turn on Ruby Accents in Settings → Display.', 'emerald'), delay + 600);
+        setTimeout(() => showToast('💎 Ruby unlocked', 'You found every secret. Choose Ruby in Settings → Display → Theme and App Icon.', 'emerald'), delay + 600);
       }
     }
 
@@ -6419,6 +6447,7 @@
         if (el) el.value = val;
       };
       setChk('settingDynamicWallpaper', s.dynamicWallpaper);
+      setChk('settingDailyRandomTheme', Boolean(s.dailyRandomTheme));
       setChk('settingAmoledDark', s.amoledDark);
       setChk('settingCompactCards', s.compactCards);
       setVal('settingTimeFormat', s.timeFormat || '12h');
@@ -8455,24 +8484,32 @@
         });
       };
       bindSetting('settingDynamicWallpaper', 'dynamicWallpaper', true);
+      document.getElementById('settingDynamicWallpaper').addEventListener('change', (e) => {
+        if (e.target.checked && state.settings && state.settings.dailyRandomTheme) {
+          state.settings.dailyRandomTheme = false;
+          const rb = document.getElementById('settingDailyRandomTheme');
+          if (rb) rb.checked = false;
+          saveState({ sync: false });
+          applyThemeAndSettings();
+          saveLaunchPrefs();
+        }
+      });
+      bindSetting('settingDailyRandomTheme', 'dailyRandomTheme', true);
+      document.getElementById('settingDailyRandomTheme').addEventListener('change', (e) => {
+        if (!state.settings) state.settings = getDefaultSettings();
+        if (e.target.checked && state.settings.dynamicWallpaper !== false) {
+          state.settings.dynamicWallpaper = false;
+          const dw = document.getElementById('settingDynamicWallpaper');
+          if (dw) dw.checked = false;
+        }
+        saveState({ sync: false });
+        applyThemeAndSettings();
+        renderIconChoices();
+        saveLaunchPrefs();
+      });
       bindSetting('settingAmoledDark', 'amoledDark', true);
-      bindSetting('settingGoldAccents', 'goldAccents', true);
       document.getElementById('btnOpenTheme').addEventListener('click', () => { renderThemeChoices(); openModal('modalTheme'); });
       document.getElementById('btnOpenAppIcon').addEventListener('click', () => { renderIconChoices(); openModal('modalAppIcon'); });
-      document.getElementById('settingAccent').addEventListener('change', (e) => {
-        const want = e.target.value;
-        const flip = (id, on) => {
-          const box = document.getElementById(id);
-          if (!box || box.disabled || box.checked === on) return;
-          box.checked = on;
-          box.dispatchEvent(new Event('change'));
-        };
-        // Turning one on turns the other off (their own handlers); "None" turns both off.
-        if (want === 'gold') flip('settingGoldAccents', true);
-        else if (want === 'ruby') flip('settingRubyAccents', true);
-        else { flip('settingGoldAccents', false); flip('settingRubyAccents', false); }
-        renderDisplaySummaries();
-      });
 
       bindSetting('settingCompactCards', 'compactCards', true);
       bindSetting('settingTimeFormat', 'timeFormat', false);
@@ -8540,14 +8577,6 @@
       bindSetting('settingHideCookies', 'hideCookieBanners', true);
       bindSetting('settingPullRefresh', 'pullToRefresh', true);
       bindSetting('settingCelebrate', 'celebrate', true);
-      bindSetting('settingRubyAccents', 'rubyAccents', true);
-      // Gold or Ruby accents: one at a time.
-      document.getElementById('settingRubyAccents').addEventListener('change', (e) => {
-        if (e.target.checked && state.settings.goldAccents) { state.settings.goldAccents = false; renderGoldAccentsSetting(); saveState({ sync: false }); applyThemeAndSettings(); }
-      });
-      document.getElementById('settingGoldAccents').addEventListener('change', (e) => {
-        if (e.target.checked && state.settings.rubyAccents) { state.settings.rubyAccents = false; renderRubyAccentsSetting(); saveState({ sync: false }); applyThemeAndSettings(); }
-      });
       bindSetting('settingDarkPages', 'darkGamePages', true);
       document.getElementById('iconChoices').addEventListener('click', (e) => {
         const b = e.target && e.target.closest ? e.target.closest('[data-icon-style]') : null;
