@@ -1,14 +1,14 @@
 {
- "built": "2026-11-16",
- "blocked_hosts": 316865,
- "third_party_hosts": 827,
+ "built": "2026-11-23",
+ "blocked_hosts": 303810,
+ "third_party_hosts": 882,
  "important_hosts": 0,
  "allowed_hosts": 20,
  "document_allowed_sites": 33,
- "url_rules": 21527,
+ "url_rules": 21619,
  "badfilters": 88,
  "generic_hide": 13866,
- "specific_hide": 29033,
+ "specific_hide": 29177,
  "hide_exceptions": 2957,
  "nohide_sites": 352,
  "sources": [
@@ -20,17 +20,17 @@
   {
    "file": "hagezi_pro.txt",
    "licence": "GPL-3.0 (hagezi/dns-blocklists)",
-   "new_hosts": 227781
+   "new_hosts": 211638
   },
   {
    "file": "adguard_base.txt",
    "licence": "GPL-3.0 (AdguardTeam/AdguardFilters)",
-   "lines": 150896
+   "lines": 153061
   },
   {
    "file": "easylist_easylist_adservers.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 42993
+   "lines": 43743
   },
   {
    "file": "easylist_easylist_adservers_popup.txt",
@@ -60,7 +60,7 @@
   {
    "file": "easylist_easylist_general_block.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 1004
+   "lines": 1007
   },
   {
    "file": "easylist_easylist_general_block_dimensions.txt",
@@ -80,7 +80,7 @@
   {
    "file": "easylist_easylist_specific_block.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 930
+   "lines": 936
   },
   {
    "file": "easylist_easylist_specific_block_popup.txt",
@@ -90,7 +90,7 @@
   {
    "file": "easylist_easylist_specific_hide.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 9048
+   "lines": 9116
   },
   {
    "file": "easylist_easylist_thirdparty.txt",
@@ -105,17 +105,17 @@
   {
    "file": "easyprivacy_easyprivacy_allowlist.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 590
+   "lines": 591
   },
   {
    "file": "easyprivacy_easyprivacy_allowlist_international.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 414
+   "lines": 418
   },
   {
    "file": "easyprivacy_easyprivacy_general.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 3178
+   "lines": 3199
   },
   {
    "file": "easyprivacy_easyprivacy_general_emailtrackers.txt",
@@ -125,22 +125,22 @@
   {
    "file": "easyprivacy_easyprivacy_specific.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 2571
+   "lines": 2603
   },
   {
    "file": "easyprivacy_easyprivacy_specific_international.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 2151
+   "lines": 2149
   },
   {
    "file": "easyprivacy_easyprivacy_thirdparty.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 3545
+   "lines": 3573
   },
   {
    "file": "easyprivacy_easyprivacy_thirdparty_international.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 1282
+   "lines": 1283
   },
   {
    "file": "easyprivacy_easyprivacy_trackingservers.txt",
@@ -150,7 +150,7 @@
   {
    "file": "easyprivacy_easyprivacy_trackingservers_admiral.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 2778
+   "lines": 2831
   },
   {
    "file": "easyprivacy_easyprivacy_trackingservers_international.txt",
@@ -160,12 +160,12 @@
   {
    "file": "easyprivacy_easyprivacy_trackingservers_thirdparty.txt",
    "licence": "GPL-3.0 / CC BY-SA 3.0 (easylist)",
-   "lines": 2553
+   "lines": 2554
   },
   {
    "file": "public_suffix_list.dat",
    "licence": "MPL-2.0 (publicsuffix.org)",
-   "rules": 10453
+   "rules": 10469
   }
  ]
 }
