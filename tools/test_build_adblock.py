@@ -42,7 +42,13 @@ class BuilderTest(unittest.TestCase):
     def test_page_exceptions(self):
         b = build('@@||game.example^$document', '@@||a.example^$generichide', '@@||b.example^$elemhide', '@@||c.example^$ghide')
         self.assertEqual({'game.example'}, b.document_allow)
-        self.assertEqual({'a.example': 'generic', 'b.example': 'all', 'c.example': 'generic'}, b.nohide)
+        self.assertEqual({'game.example': 'all', 'a.example': 'generic', 'b.example': 'all', 'c.example': 'generic'}, b.nohide)
+
+    def test_all_option_stays_in_url_rules(self):
+        b = build('||ads.example^$all', '||other.example^')
+        self.assertNotIn('ads.example', b.block_hosts)
+        self.assertEqual(['||ads.example^$all'], b.url_rules)
+        self.assertEqual({'other.example'}, b.block_hosts)
 
     def test_aliases_canonicalised(self):
         b = build('/ad.js$xhr,css,frame,beacon', '/px$1p')
@@ -58,6 +64,33 @@ class BuilderTest(unittest.TestCase):
         self.assertEqual(set(), b.specific_hide[('.banner', ('skip.example',), False)])
         self.assertIn('.global', b.generic_hide)
 
+    def test_cosmetic_rejects_css_braces_and_bare_single_labels_and_keeps_wildcards(self):
+        b = build(
+            'example.com##.bad {color:red}',
+            'example.com#@#.bad-exc {display:block}',
+            '##.gen-bad {margin:0}',
+            'me##.bare-tld',
+            'az,example.com##.mixed-tld',
+            'me#@#.bare-exc',
+            '*#@#.global-exc',
+            '#@#.global-empty-exc',
+            'amazon.*,~smile.amazon.*##.entity-ad',
+            'read.amazon.*#@#.entity-exc',
+            'example.com.##.trailing-dot',
+        )
+        self.assertNotIn('.bad {color:red}', [s for (s, _, _) in b.specific_hide])
+        self.assertNotIn('.gen-bad {margin:0}', b.generic_hide)
+        self.assertNotIn(('*', '.bad-exc {display:block}'), b.hide_except)
+        self.assertNotIn(('example.com', '.bad-exc {display:block}'), b.hide_except)
+        self.assertNotIn(('.bare-tld', (), True), b.specific_hide)
+        self.assertEqual({'example.com'}, b.specific_hide[('.mixed-tld', (), True)])
+        self.assertNotIn(('me', '.bare-exc'), b.hide_except)
+        self.assertIn(('*', '.global-exc'), b.hide_except)
+        self.assertIn(('*', '.global-empty-exc'), b.hide_except)
+        self.assertEqual({'amazon.*'}, b.specific_hide[('.entity-ad', ('smile.amazon.*',), True)])
+        self.assertIn(('read.amazon.*', '.entity-exc'), b.hide_except)
+        self.assertEqual({'example.com'}, b.specific_hide[('.trailing-dot', (), True)])
+
     def test_cosmetic_exclusion_only_does_not_collide_with_positive_rule(self):
         for lines in [
             ('~foo.com##.ad', 'bar.com,~foo.com##.ad'),
@@ -71,11 +104,13 @@ class BuilderTest(unittest.TestCase):
             src = os.path.join(td, 'src')
             out = os.path.join(td, 'out')
             os.makedirs(src)
-            with open(os.path.join(src, 'easylist_test.txt'), 'w') as f:
+            with open(os.path.join(src, 'easylist_test.txt'), 'w', encoding='utf-8') as f:
                 f.write('~foo.com##.ad\nbar.com,~foo.com##.ad\n')
+            with open(os.path.join(src, 'public_suffix_list.dat'), 'w', encoding='utf-8') as f:
+                f.write('com\n')
             with redirect_stdout(io.StringIO()):
                 main(src, out)
-            with open(os.path.join(out, 'cosmetic_specific.txt')) as f:
+            with open(os.path.join(out, 'cosmetic_specific.txt'), encoding='utf-8') as f:
                 emitted = f.read().splitlines()
             self.assertEqual(['bar.com,~foo.com\t.ad', '~foo.com\t.ad'], emitted)
 
@@ -95,7 +130,7 @@ class BuilderTest(unittest.TestCase):
             vals = list(struct.unpack_from(f'>{count}q', data, 4))
             self.assertEqual(signed_expected, vals)
 
-    def test_main_fails_nonzero_when_zero_rules_loaded(self):
+    def test_main_fails_nonzero_when_zero_rules_loaded_or_psl_missing(self):
         with tempfile.TemporaryDirectory() as td:
             empty_src = os.path.join(td, 'empty_src')
             out1 = os.path.join(td, 'out1')
@@ -108,20 +143,33 @@ class BuilderTest(unittest.TestCase):
             comment_src = os.path.join(td, 'comment_src')
             out2 = os.path.join(td, 'out2')
             os.makedirs(comment_src)
-            with open(os.path.join(comment_src, 'easylist_empty.txt'), 'w') as f:
+            with open(os.path.join(comment_src, 'easylist_empty.txt'), 'w', encoding='utf-8') as f:
                 f.write('! comment only\n\n')
             with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as cm2:
                 main(comment_src, out2)
             self.assertNotEqual(0, cm2.exception.code)
             self.assertFalse(os.path.exists(out2))
 
+            no_psl_src = os.path.join(td, 'no_psl_src')
+            out3 = os.path.join(td, 'out3')
+            os.makedirs(no_psl_src)
+            with open(os.path.join(no_psl_src, 'easylist_only.txt'), 'w', encoding='utf-8') as f:
+                f.write('||ads.example.com^\n')
+            with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as cm3:
+                main(no_psl_src, out3)
+            self.assertNotEqual(0, cm3.exception.code)
+            self.assertFalse(os.path.exists(out3))
+
     def test_hosts_list(self):
         b = Builder()
         b.add_hosts_list(['0.0.0.0 ads.example.com', '*.wild.example', 'localhost', '# c'])
         self.assertEqual({'ads.example.com', 'wild.example'}, b.block_hosts)
 
-    def test_psl(self):
-        self.assertEqual(['com', '*.ck', '!www.ck'], parse_psl(['// x', 'com', '', '*.ck', '!www.ck']))
+    def test_psl_idna_punycode(self):
+        self.assertEqual(
+            ['com', '*.ck', '!www.ck', 'xn--aroport-bya.ci', '*.xn--p1ai', '!xn--80a.xn--p1ai'],
+            parse_psl(['// x', 'com', '', '*.ck', '!www.ck', 'aéroport.ci', '*.рф', '!а.рф'])
+        )
 
 
 if __name__ == '__main__':

@@ -16,7 +16,7 @@ object Surrogates {
      */
     private val GTAG = """
         (function(){var w=window;
-        function later(f){if(typeof f==='function')setTimeout(function(){try{f()}catch(e){}},0)}
+        function later(f,arg){if(typeof f==='function')setTimeout(function(){try{f(arg)}catch(e){}},0)}
         function handle(e){try{if(!e||typeof e!=='object')return;later(e.eventCallback);
         if(e.length>=3&&e[0]==='event'&&e[2]&&typeof e[2]==='object')later(e[2].event_callback)}catch(x){}}
         var dl=w.dataLayer=w.dataLayer||[];if(typeof w.gtag!=='function'){w.gtag=function(){dl.push(arguments)}}
@@ -24,10 +24,11 @@ object Surrogates {
         var op=dl.push;dl.push=function(){for(var i=0;i<arguments.length;i++)handle(arguments[i]);return op.apply(dl,arguments)};
         for(var i=0;i<dl.length;i++)handle(dl[i])}
         try{dl.hide&&dl.hide.end&&dl.hide.end()}catch(e){}
+        var tracker={get:function(){return''},set:function(){},send:function(){}};
         if(typeof w.ga!=='function'||!w.ga.loaded){var q=(w.ga&&w.ga.q)||[];
-        w.ga=function(){var a=arguments,c=a[a.length-1];if(c&&typeof c==='object')later(c.hitCallback);if(typeof a[0]==='function')later(a[0])};
-        w.ga.create=function(){return{get:function(){},set:function(){},send:function(){}}};w.ga.getAll=function(){return[]};
-        w.ga.getByName=function(){return null};w.ga.loaded=true;
+        w.ga=function(){var a=arguments,c=a[a.length-1];if(c&&typeof c==='object')later(c.hitCallback);if(typeof a[0]==='function')later(a[0],tracker)};
+        w.ga.create=function(){return tracker};w.ga.getAll=function(){return[tracker]};
+        w.ga.getByName=function(){return tracker};w.ga.loaded=true;
         for(var j=0;j<q.length;j++){try{w.ga.apply(null,q[j])}catch(e){}}}})();
     """.trimIndent()
 
@@ -56,19 +57,28 @@ object Surrogates {
         AdErrorEvent.prototype.getError=function(){return{getErrorCode:function(){return 1009},getMessage:function(){return'blocked'},
         getType:function(){return'adLoadError'},getVastErrorCode:function(){return 1009},getInnerError:function(){return null},toString:function(){return'AdError 1009'}}};
         AdErrorEvent.prototype.getUserRequestContext=function(){return{}};
-        var AdsLoader=function(){this.l={}};
-        AdsLoader.prototype.addEventListener=function(t,f){(this.l[t]=this.l[t]||[]).push(f)};
-        AdsLoader.prototype.removeEventListener=n;AdsLoader.prototype.contentComplete=n;AdsLoader.prototype.destroy=n;
-        AdsLoader.prototype.getSettings=function(){return w.google.ima.settings};
-        AdsLoader.prototype.requestAds=function(){var s=this;setTimeout(function(){(s.l[AdErrorEvent.Type.AD_ERROR]||[]).forEach(function(f){
+        var ImaSdkSettings=function(){};
+        ImaSdkSettings.VpaidMode={DISABLED:0,ENABLED:1,INSECURE:2};
+        ImaSdkSettings.prototype.setLocale=n;ImaSdkSettings.prototype.setVpaidMode=n;ImaSdkSettings.prototype.setNumRedirects=n;
+        ImaSdkSettings.prototype.setPlayerType=n;ImaSdkSettings.prototype.setPlayerVersion=n;
+        ImaSdkSettings.prototype.setDisableCustomPlaybackForIOS10Plus=n;ImaSdkSettings.prototype.setAutoPlayAdBreaks=n;
+        ImaSdkSettings.prototype.setCookiesEnabled=n;ImaSdkSettings.prototype.setSessionId=n;
+        ImaSdkSettings.prototype.getLocale=function(){return'en'};
+        var settings=new ImaSdkSettings();
+        var AdsLoader=function(){this.l={};this._d=false;this._t=0;this._s=new ImaSdkSettings()};
+        AdsLoader.prototype.addEventListener=function(t,f){if(this._d||typeof f!=='function')return;var a=this.l[t]=this.l[t]||[];if(a.indexOf(f)<0)a.push(f)};
+        AdsLoader.prototype.removeEventListener=function(t,f){var a=this.l[t];if(!a)return;var i=a.indexOf(f);if(i>=0)a.splice(i,1)};
+        AdsLoader.prototype.contentComplete=n;
+        AdsLoader.prototype.destroy=function(){this._d=true;this.l={};if(this._t){clearTimeout(this._t);this._t=0}};
+        AdsLoader.prototype.getSettings=function(){return this._s};
+        AdsLoader.prototype.requestAds=function(){var s=this;if(s._d)return;s._t=setTimeout(function(){s._t=0;if(s._d)return;
+        var list=(s.l[AdErrorEvent.Type.AD_ERROR]||[]).slice();list.forEach(function(f){
         try{var e=new AdErrorEvent();e.type=AdErrorEvent.Type.AD_ERROR;f(e)}catch(x){}})},0)};
         var AdDisplayContainer=function(){};AdDisplayContainer.prototype.initialize=n;AdDisplayContainer.prototype.destroy=n;
-        var settings={setLocale:n,setVpaidMode:n,setNumRedirects:n,setPlayerType:n,setPlayerVersion:n,setDisableCustomPlaybackForIOS10Plus:n,
-        setAutoPlayAdBreaks:n,setCookiesEnabled:n,setSessionId:n,getLocale:function(){return'en'}};
         w.google=w.google||{};w.google.ima={AdDisplayContainer:AdDisplayContainer,AdsLoader:AdsLoader,AdsRequest:function(){},
         AdsRenderingSettings:function(){},AdErrorEvent:AdErrorEvent,AdError:{ErrorCode:{},Type:{AD_LOAD:'adLoadError',AD_PLAY:'adPlayError'}},
         AdEvent:{Type:{}},AdsManagerLoadedEvent:{Type:{ADS_MANAGER_LOADED:'adsManagerLoaded'}},ViewMode:{NORMAL:'normal',FULLSCREEN:'fullscreen'},
-        ImaSdkSettings:{VpaidMode:{DISABLED:0,ENABLED:1,INSECURE:2}},UiElements:{},settings:settings,VERSION:'3.0.0',OmidAccessMode:{}};})();
+        ImaSdkSettings:ImaSdkSettings,UiElements:{},settings:settings,VERSION:'3.0.0',OmidAccessMode:{}};})();
     """.trimIndent()
 
     /**
@@ -94,17 +104,29 @@ object Surrogates {
 
     private val ADSENSE = "(function(){window.adsbygoogle={loaded:true,push:function(){}};})();"
 
+    private fun hostMatches(host: String, domain: String): Boolean =
+        host == domain || host.endsWith(".$domain")
+
+    private fun pathOf(url: String): String {
+        val afterHost = url.indexOf('/', AdBlockEngine.hostStartIndex(url))
+        if (afterHost < 0) return ""
+        return url.substring(afterHost).substringBefore('?').substringBefore('#')
+    }
+
     /** Script to serve instead of a blocked [url], or null to serve an empty response. */
     fun forUrl(url: String): String? {
         val u = url.lowercase(Locale.US)
-        val path = u.substringBefore('?').substringBefore('#')
+        val host = AdBlockEngine.hostOf(u) ?: return null
+        val path = pathOf(u)
         return when {
-            "googletagmanager.com/gtag/js" in path || "googletagmanager.com/gtm.js" in path ||
-                path.endsWith("google-analytics.com/analytics.js") || (path.endsWith("/ga.js") && "google-analytics.com" in path) -> GTAG
-            "/tag/js/gpt.js" in path || "/gpt/pubads_impl" in path || "googletagservices.com/tag/js/gpt.js" in path -> GPT
-            "imasdk.googleapis.com/js/sdkloader/ima3" in path -> IMA
-            "pagead2.googlesyndication.com/pagead/js/adsbygoogle.js" in path || path.endsWith("/show_ads.js") -> ADSENSE
-            "sentry-cdn.com/" in path && path.endsWith(".js") -> SENTRY
+            hostMatches(host, "googletagmanager.com") && (path == "/gtag/js" || path == "/gtm.js" || path.startsWith("/gtag/js/") || path.startsWith("/gtm.js/")) -> GTAG
+            hostMatches(host, "google-analytics.com") && (path == "/analytics.js" || path == "/ga.js") -> GTAG
+            hostMatches(host, "securepubads.g.doubleclick.net") && (path == "/tag/js/gpt.js" || path.startsWith("/gpt/pubads_impl")) -> GPT
+            hostMatches(host, "googletagservices.com") && (path == "/tag/js/gpt.js" || path.startsWith("/gpt/pubads_impl")) -> GPT
+            hostMatches(host, "doubleclick.net") && path.startsWith("/gpt/pubads_impl") -> GPT
+            hostMatches(host, "imasdk.googleapis.com") && path.startsWith("/js/sdkloader/ima3") && path.endsWith(".js") -> IMA
+            hostMatches(host, "pagead2.googlesyndication.com") && (path == "/pagead/js/adsbygoogle.js" || path.endsWith("/show_ads.js")) -> ADSENSE
+            hostMatches(host, "sentry-cdn.com") && path.endsWith(".js") -> SENTRY
             else -> null
         }
     }

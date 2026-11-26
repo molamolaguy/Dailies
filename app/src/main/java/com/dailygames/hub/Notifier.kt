@@ -44,7 +44,7 @@ object Notifier {
         val existing = prefs.getInt(key, 0)
         if (existing != 0) return existing
         val next = prefs.getInt("next_id", 1000) + 1
-        prefs.edit { putInt(key, next); putInt("next_id", next) }
+        prefs.edit(commit = true) { putInt(key, next); putInt("next_id", next) }
         return next
     }
 
@@ -53,7 +53,7 @@ object Notifier {
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         prefs.getString("token", null)?.let { return it }
         val t = java.util.UUID.randomUUID().toString()
-        prefs.edit { putString("token", t) }
+        prefs.edit(commit = true) { putString("token", t) }
         return t
     }
     /**
@@ -64,8 +64,13 @@ object Notifier {
     const val SUMMARY_ID = 0x0DA1E5
     /** The single notification used when several games are ready (1.5.0). */
     const val COMBINED_ID = 0x0DA1E6
+    const val REMINDER_CHANNEL_ID = ReminderChannel.ID
+    private const val EXTRA_READY_ID = "dailes_ready_id"
     private const val EXTRA_READY_NAME = "dailes_ready_name"
+    private const val EXTRA_READY_IDS = "dailes_ready_ids"
     private const val EXTRA_READY_NAMES = "dailes_ready_names"
+
+    fun reminderChannelBlocked(ctx: Context): Boolean = ReminderChannel.isBlocked(ctx)
 
     /**
      * Notifications take the accent colour of the app icon chosen in Settings (Android always shows the
@@ -83,6 +88,26 @@ object Notifier {
     /** Names from the shade (still unread) followed by this pass's, each once, in that order. */
     fun mergeReadyNames(inShade: List<String>, fresh: List<String>): List<String> =
         LinkedHashSet<String>().apply { (inShade + fresh).forEach { n -> n.trim().takeIf { it.isNotEmpty() }?.let { add(it) } } }.toList()
+
+    /**
+     * Merges unread shade entries and fresh ready games keyed by game ID so two distinct custom
+     * games sharing the same display name do not collapse into one. Falls back cleanly when a
+     * legacy shade entry has no stored ID.
+     */
+    internal fun mergeReadyEntries(
+        inShade: List<Pair<String, String>>,
+        fresh: List<Pair<String, String>>
+    ): List<Pair<String, String>> {
+        val byKey = LinkedHashMap<String, Pair<String, String>>()
+        (inShade + fresh).forEach { (rawId, rawName) ->
+            val name = rawName.trim()
+            if (name.isEmpty()) return@forEach
+            val id = rawId.trim()
+            val key = if (id.isNotEmpty()) "id:$id" else "name:$name"
+            byKey[key] = id to name
+        }
+        return byKey.values.toList()
+    }
 
     /** Title and text of the one notification for several ready games. */
     fun combinedText(names: List<String>): Pair<String, String> {
@@ -141,7 +166,7 @@ object Notifier {
             )
             chosen = if (decision == ChannelMigration.KEEP_LEGACY) LEGACY_CHANNEL_ID else SOUND_CHANNEL_ID
             if (decision == ChannelMigration.REPLACE_LEGACY) nm.deleteNotificationChannel(LEGACY_CHANNEL_ID)
-            prefs.edit { putString(KEY_CHANNEL, chosen) }
+            prefs.edit(commit = true) { putString(KEY_CHANNEL, chosen) }
         }
         // Re-creating an existing channel only refreshes its name and description; user settings stay.
         val channel = NotificationChannel(chosen, "Reset Alerts", NotificationManager.IMPORTANCE_DEFAULT).apply {
@@ -191,7 +216,10 @@ object Notifier {
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
             .setAutoCancel(true)
             .setContentIntent(pending)
-            .addExtras(android.os.Bundle().apply { putString(EXTRA_READY_NAME, readyName ?: title) })
+            .addExtras(android.os.Bundle().apply {
+                putString(EXTRA_READY_ID, gameId)
+                putString(EXTRA_READY_NAME, readyName ?: title)
+            })
             .apply { if (grouped) setGroup(GROUP_KEY) }
             .let { withAppIcon(ctx, it) }
             .build()
@@ -277,28 +305,45 @@ object Notifier {
         val systemNm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         val active = runCatching { systemNm?.activeNotifications?.toList().orEmpty() }.getOrDefault(emptyList())
         // Alerts still in the shade: an earlier combined one, single-game ones, and 1.4.0's grouped ones.
-        val inShade = ArrayList<String>()
+        val inShade = ArrayList<Pair<String, String>>()
         val toCancel = ArrayList<Int>()
         active.forEach { sbn ->
             val extras = sbn.notification.extras
             when {
-                sbn.id == COMBINED_ID -> extras?.getStringArray(EXTRA_READY_NAMES)?.let { inShade.addAll(it) }
+                sbn.id == COMBINED_ID -> {
+                    val readyNames = extras?.getStringArray(EXTRA_READY_NAMES)
+                    val readyIds = extras?.getStringArray(EXTRA_READY_IDS)
+                    if (readyNames != null) {
+                        for (i in readyNames.indices) {
+                            val id = readyIds?.getOrNull(i).orEmpty()
+                            inShade += id to readyNames[i]
+                        }
+                    }
+                    toCancel += sbn.id
+                }
                 sbn.id == SUMMARY_ID -> toCancel += sbn.id
-                extras?.getString(EXTRA_READY_NAME) != null -> { inShade += extras.getString(EXTRA_READY_NAME)!!; toCancel += sbn.id }
+                extras?.getString(EXTRA_READY_NAME) != null -> {
+                    inShade += extras.getString(EXTRA_READY_ID).orEmpty() to extras.getString(EXTRA_READY_NAME)!!
+                    toCancel += sbn.id
+                }
                 sbn.notification.group == GROUP_KEY -> {
                     extras?.getCharSequence(android.app.Notification.EXTRA_TITLE)?.toString()
-                        ?.removeSuffix(" has refreshed")?.let { inShade += it }
+                        ?.removeSuffix(" has refreshed")?.let { inShade += "" to it }
                     toCancel += sbn.id
                 }
             }
         }
-        val freshNames = ready.map { it.name }
-        val names = mergeReadyNames(inShade, freshNames)
-        if (names.size <= 1) {
+        val freshEntries = ready.map { it.id to it.name }
+        val entries = mergeReadyEntries(inShade, freshEntries)
+        val names = entries.map { it.second }
+        if (entries.size <= 1) {
             val g = ready.first()
+            val singleId = notificationIdFor(ctx, g.id)
+            toCancel.filter { it != singleId }.forEach { runCatching { nm.cancel(it) } }
             postGameNotification(ctx, g.id, g.title, g.body, updateSummary = false, readyName = g.name, grouped = false)
             return
         }
+        val ids = entries.map { it.first }
         val (title, text) = combinedText(names)
         val style = NotificationCompat.InboxStyle().setBigContentTitle(title)
         names.take(6).forEach { style.addLine("$it has refreshed") }
@@ -319,11 +364,14 @@ object Notifier {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
             .setContentIntent(pending)
-            .addExtras(android.os.Bundle().apply { putStringArray(EXTRA_READY_NAMES, names.toTypedArray()) })
+            .addExtras(android.os.Bundle().apply {
+                putStringArray(EXTRA_READY_IDS, ids.toTypedArray())
+                putStringArray(EXTRA_READY_NAMES, names.toTypedArray())
+            })
             .let { withAppIcon(ctx, it) }
             .build()
         try {
-            toCancel.forEach { nm.cancel(it) }
+            toCancel.filter { it != COMBINED_ID }.forEach { nm.cancel(it) }
             nm.notify(COMBINED_ID, combined)
         } catch (e: SecurityException) {
             // Permission revoked between the check and the call.

@@ -18,13 +18,19 @@ object AppIcon {
     /** Styles the hub can choose, and their launcher entries ("themed" is resolved from the theme). */
     val STYLES = mapOf(
         "default" to DEFAULT, "midnight" to ".IconMidnight", "sunset" to ".IconSunset",
-        "ocean" to ".IconOcean", "mono" to ".IconMono", "gold" to ".IconGold", "ruby" to ".IconRuby",
+        "ocean" to ".IconOcean", "iris" to ".IconIris", "forest" to ".IconForest",
+        "rose" to ".IconRose", "teal" to ".IconTeal", "amber" to ".IconAmber",
+        "crimson" to ".IconCrimson", "cobalt" to ".IconCobalt", "sage" to ".IconSage",
+        "plum" to ".IconPlum", "slate" to ".IconSlate", "mono" to ".IconMono",
+        "gold" to ".IconGold", "ruby" to ".IconRuby",
         // A custom icon (1.7.0) is a home-screen shortcut; the app's own launcher entry stays the default.
         "custom" to DEFAULT
     )
     val ALL = listOf(
         DEFAULT, ".IconAuto", ".IconLight", ".IconDark", ".IconLightClassic", ".IconDarkClassic", ".IconAutoClassic",
-        ".IconMidnight", ".IconSunset", ".IconOcean", ".IconMono", ".IconGold", ".IconRuby"
+        ".IconMidnight", ".IconSunset", ".IconOcean", ".IconIris", ".IconForest", ".IconRose", ".IconTeal",
+        ".IconAmber", ".IconCrimson", ".IconCobalt", ".IconSage", ".IconPlum", ".IconSlate",
+        ".IconMono", ".IconGold", ".IconRuby"
     )
     private const val PREFS = "dailes_theme_prefs"
     private const val KEY_FOLLOW = "icon_follows_theme"
@@ -61,19 +67,30 @@ object AppIcon {
         "midnight" -> 0xFF8B7CF6.toInt()
         "sunset" -> 0xFFF43F5E.toInt()
         "ocean" -> 0xFF2563EB.toInt()
+        "iris" -> 0xFF8B5CF6.toInt()
+        "forest" -> 0xFF2E8B57.toInt()
+        "rose" -> 0xFFD9467A.toInt()
+        "teal" -> 0xFF0F9D9A.toInt()
+        "amber" -> 0xFFD98A16.toInt()
+        "crimson" -> 0xFFC82838.toInt()
+        "cobalt" -> 0xFF3B5BDB.toInt()
+        "sage" -> 0xFF5F8D6B.toInt()
+        "plum" -> 0xFF9C36B5.toInt()
+        "slate" -> 0xFF5C728A.toInt()
         "mono" -> 0xFF757575.toInt()
         "gold" -> 0xFFBAA465.toInt()
         "ruby" -> 0xFFC8163F.toInt()
         "custom" -> customStar(ctx)
         else -> ThemePrefs.playerColors(ctx)["primary"]
+            ?: if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S && ThemePrefs.isDynamic(ctx)) {
+                runCatching { ctx.getColor(android.R.color.system_accent1_600) }.getOrNull()
+            } else null
     }
 
     // ---- Custom icon (1.7.0): made in the hub's icon editor; added to the home screen as a shortcut ----
-    private const val CUSTOM_FILE = "custom_icon.png"
     private const val KEY_CUSTOM_STAR = "custom_star"
 
-    fun saveCustom(ctx: Context, png: ByteArray, starColor: Int) {
-        java.io.File(ctx.filesDir, CUSTOM_FILE).writeBytes(png)
+    fun saveCustom(ctx: Context, @Suppress("UNUSED_PARAMETER") png: ByteArray, starColor: Int) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putInt(KEY_CUSTOM_STAR, starColor) }
     }
 

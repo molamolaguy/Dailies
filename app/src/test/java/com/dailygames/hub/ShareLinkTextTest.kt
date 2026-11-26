@@ -44,4 +44,19 @@ class ShareLinkTextTest {
         assertNull(ShareLinkText.extract(null))
         assertNull(ShareLinkText.extract("sms:?body="))
     }
+
+    @Test
+    fun lenientWebParsingCaseInsensitivityEmptyDuplicateParamsAndStrayPercent() {
+        // Case-insensitive host & path
+        assertEquals("Wordle 123 3/6", ShareLinkText.extract("https://X.COM/Intent/Post?text=Wordle+123+3%2F6"))
+        // Unencoded spaces, pipes, and Unicode characters
+        assertEquals("Queens #540 | 1:42 👑", ShareLinkText.extract("https://x.com/intent/tweet?text=Queens #540 | 1:42 👑"))
+        // Empty first value followed by non-empty value for the same key
+        assertEquals("Solved 4/6", ShareLinkText.extract("https://wa.me/?text=&text=Solved+4%2F6"))
+        // Stray '%' does not abort decoding of '+' or valid '%XX' sequences
+        assertEquals("Accuracy 100% + bonus!", ShareLinkText.extract("https://x.com/intent/post?text=Accuracy+100%+%2B+bonus%21"))
+        assertEquals("Accuracy 100%+2", ShareLinkText.extract("sms:?body=Accuracy%20100%+2"))
+        assertEquals("Accuracy 100% +2", ShareLinkText.extract("sms:?body=Accuracy%20100%%20+2"))
+    }
 }
+

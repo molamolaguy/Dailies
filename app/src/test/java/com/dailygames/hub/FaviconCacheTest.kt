@@ -64,4 +64,23 @@ class FaviconCacheTest {
         assertArrayEquals(png, cache.load(url)!!.bytes)
         assertEquals(2, calls)
     }
+
+    @Test
+    fun sniffsWebpAndCaseInsensitiveSvgAndRejectsUnsafeSvg() {
+        val fakeRiff = "RIFF1234AVI ".toByteArray(Charsets.US_ASCII)
+        val realWebp = "RIFF1234WEBP".toByteArray(Charsets.US_ASCII)
+        assertEquals("", FaviconCache.sniffMime(fakeRiff))
+        assertEquals("image/webp", FaviconCache.sniffMime(realWebp))
+
+        val paddedSvg = ("<!-- " + "x".repeat(400) + " --><SVG viewBox='0 0 10 10'></SVG>").toByteArray()
+        assertEquals("image/svg+xml", FaviconCache.sniffMime(paddedSvg))
+
+        val unsafeSvg = "<svg onload=\"alert(1)\"><script>evil()</script></svg>".toByteArray()
+        assertEquals("", FaviconCache.sniffMime(unsafeSvg))
+
+        val dir = Files.createTempDirectory("fav-svg").toFile()
+        val cache = FaviconCache(dir, fetcher = { unsafeSvg to "image/svg+xml" })
+        assertNull(cache.load("https://example.com/bad.svg"))
+    }
 }
+

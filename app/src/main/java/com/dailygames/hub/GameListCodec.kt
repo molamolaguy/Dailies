@@ -26,7 +26,7 @@ object GameListCodec {
         for (i in 0 until minOf(src.length(), MAX_GAMES)) {
             val g = src.optJSONObject(i) ?: continue
             val url = g.optString("url")
-            if (!url.startsWith("https://") && !url.startsWith("http://")) continue
+            if (!url.startsWith("https://", ignoreCase = true) && !url.startsWith("http://", ignoreCase = true)) continue
             out.put(JSONArray().put(g.optString("name").take(80)).put(url.take(500))
                 .put(g.optString("resetTime", "00:00")).put(g.optString("resetZone", "local")))
         }
@@ -76,7 +76,7 @@ object GameListCodec {
         for (i in 0 until minOf(arr.length(), MAX_GAMES)) {
             val row = arr.optJSONArray(i) ?: continue
             val url = row.optString(1)
-            if (!url.startsWith("https://") && !url.startsWith("http://")) continue
+            if (!url.startsWith("https://", ignoreCase = true) && !url.startsWith("http://", ignoreCase = true)) continue
             games.put(JSONObject().put("name", row.optString(0).take(80)).put("url", url.take(500))
                 .put("resetTime", row.optString(2, "00:00")).put("resetZone", row.optString(3, "local")))
         }
@@ -117,6 +117,10 @@ object GameListCodec {
                 out.write((acc shr bits) and 0xff)
             }
         }
+        if (bits > 0) {
+            val mask = (1 shl bits) - 1
+            if ((acc and mask) != 0) return null
+        }
         return out.toByteArray()
     }
 
@@ -127,7 +131,11 @@ object GameListCodec {
         val m = com.google.zxing.qrcode.QRCodeWriter().encode(text, com.google.zxing.BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
         val px = IntArray(m.width * m.height) { i -> if (m.get(i % m.width, i / m.width)) 0xFF000000.toInt() else 0xFFFFFFFF.toInt() }
         val bmp = android.graphics.Bitmap.createBitmap(px, m.width, m.height, android.graphics.Bitmap.Config.ARGB_8888)
-        val bytes = ByteArrayOutputStream().also { bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
-        "data:image/png;base64," + android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        try {
+            val bytes = ByteArrayOutputStream().also { bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+            "data:image/png;base64," + android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        } finally {
+            bmp.recycle()
+        }
     }.getOrNull()
 }

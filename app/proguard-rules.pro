@@ -1,5 +1,6 @@
-# Keep JavaScriptInterface methods on HubActivity.AndroidBridge for WebView communication
--keepclassmembers class com.dailygames.hub.HubActivity$AndroidBridge {
+# Keep HubActivity.AndroidBridge and its JavascriptInterface methods/annotations under R8 minification
+-keepattributes JavascriptInterface,*Annotation*
+-keep class com.dailygames.hub.HubActivity$AndroidBridge {
     @android.webkit.JavascriptInterface <methods>;
 }
 

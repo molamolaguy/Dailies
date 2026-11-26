@@ -27,13 +27,13 @@ function rubyText(t) {
     return `rgba(${(v >> 16) & 255}${sp}${(v >> 8) & 255}${sp}${v & 255}${sp}${a})`;
   });
 }
-const BTN = ['.m4-primary-fab', '.bg-indigo-600', '.return-btn.primary', '.next-game-play', '.toast-action', '.m4-tonal-pill', '.recap-btn.primary', '.recap-seg.on', '.chg-undo', '.cal-today-btn', '#btnShareRecap'];
+const BTN = ['.m4-primary-fab', '.bg-indigo-600', '.return-btn.primary', '.next-game-play', '.toast-action', '.m4-tonal-pill', '.filter-tab.on', '.hist-chip.on', '.hub-sort.tsel-btn.sorted', '.recap-btn.primary', '.recap-seg.on', '.chg-undo', '.cal-today-btn', '#btnShareRecap'];
 const SWEEP_BTN = ['.m4-primary-fab', '.bg-indigo-600', '.return-btn.primary', '.next-game-play', '.recap-btn.primary', '#btnShareRecap'];
 const GEM = `html[data-ruby="true"] {
   /* Radiant Star Ruby (Option C): high-brilliance faceted crimson with diagonal crystalline sheen,
      vivid ruby fire, and a crisp prism rim (no milky pink wash). */
   --gold-shine: linear-gradient(125deg, #E8193B 0%, #B30826 38%, #7D0318 68%, #D91436 100%);
-  --gold-text: linear-gradient(95deg, #FFE0E6 0%, #FF4262 40%, #D10B2E 72%, #FF6E88 100%);
+  --gold-text: linear-gradient(95deg, #FFE6EB 0%, #FF6E88 40%, #FF4F6D 72%, #FF8EA2 100%);
   --gold-edge: linear-gradient(135deg, rgba(255, 148, 168, 0.92), rgba(224, 17, 52, 0.4) 45%, rgba(82, 2, 16, 0.34) 72%, rgba(255, 46, 79, 0.85));
   --gold-ink: #FFFFFF;
   --gold-glow: 0 4px 22px -4px rgba(245, 22, 60, 0.78);
@@ -69,8 +69,20 @@ ${SWEEP_BTN.map((b) => `html[data-ruby="true"] ${b}::after`).join(',\n')} {
 }
 html[data-ruby="true"] .play-next { background: linear-gradient(135deg, #36050F, #160206 55%, #2B040C) !important; color: #FF94A6 !important; border: 1px solid rgba(255, 46, 79, 0.58) !important; }
 html[data-ruby="true"][data-theme="light"] .play-next { background: linear-gradient(135deg, #FFE0E5, #FFC2CC) !important; color: #4A0210 !important; border-color: rgba(196, 12, 44, 0.48) !important; }
+html[data-ruby="true"] .text-indigo-300, html[data-ruby="true"] .removed-add, html[data-ruby="true"] .done-toggle, html[data-ruby="true"] .bulk-actions button.bulk-done { color: #FF6E88 !important; }
+html[data-ruby="true"][data-theme="light"] .text-indigo-300, html[data-ruby="true"][data-theme="light"] .removed-add, html[data-ruby="true"][data-theme="light"] .done-toggle, html[data-ruby="true"][data-theme="light"] .bulk-actions button.bulk-done { color: #AD0826 !important; }
+html[data-ruby="true"] .app-toast .toast-msg { color: rgba(255, 194, 206, 0.88); }
+html[data-ruby="true"][data-theme="light"] .app-toast .toast-msg { color: #55011A; }
+html[data-ruby="true"] .app-toast .toast-close { color: #FF6E88; background: rgba(255, 110, 136, 0.16); }
+html[data-ruby="true"][data-theme="light"] .app-toast .toast-close { color: #AD0826; background: rgba(173, 8, 38, 0.12); }
 html[data-ruby="true"] .gc-streak, html[data-ruby="true"] .text-amber-300 { color: #FF4F6D !important; text-shadow: 0 0 10px rgba(245, 22, 60, 0.45); }
 html[data-ruby="true"][data-theme="light"] .gc-streak, html[data-ruby="true"][data-theme="light"] .text-amber-300 { color: #AD0826 !important; text-shadow: none; }
+html[data-ruby="true"] .gc-streak { background: rgba(245, 22, 60, 0.16); }
+html[data-ruby="true"][data-theme="light"] .gc-streak { background: rgba(173, 8, 38, 0.11); }
+html[data-ruby="true"] .hero-pill-streak { color: #FF8EA2; background: rgba(245, 22, 60, 0.16); border-color: rgba(255, 46, 79, 0.45); }
+html[data-ruby="true"][data-theme="light"] .hero-pill-streak { color: #AD0826; background: rgba(173, 8, 38, 0.11); border-color: rgba(173, 8, 38, 0.35); }
+html[data-ruby="true"] input[type="checkbox"]:checked { background-color: #CF1D4F; background-image: var(--gold-shine); border-color: rgba(255, 170, 185, 0.72); }
+html[data-ruby="true"] input[type="checkbox"]:checked::before { background-color: #FFFFFF; }
 html[data-ruby="true"] .cal-cell.done { background: linear-gradient(135deg, rgba(245, 26, 64, 0.40), rgba(145, 6, 30, 0.26)) !important; border-color: rgba(255, 46, 79, 0.85); color: #FFABB8; }
 html[data-ruby="true"][data-theme="light"] .cal-cell.done { background: linear-gradient(135deg, #DE1638, #A30722) !important; border-color: rgba(130, 5, 28, 0.6); color: #FFFFFF; }
 html[data-ruby="true"] .cal-cell.today { --today-c: #FF2E4F; }
@@ -79,7 +91,15 @@ html[data-ruby="true"] .status-pill.status-completed { color: #FFFFFF; backgroun
 html[data-ruby="true"][data-theme="light"] .status-pill.status-completed { border-color: rgba(140, 6, 30, 0.5); box-shadow: inset 0 1px 0 rgba(255, 228, 234, 0.48); }
 html[data-ruby="true"] .status-pill.status-completed .dot-star { color: #FFE3EA; }
 html[data-ruby="true"] .status-pill.status-completed .dot { background: #FFE3EA; }
-html[data-ruby="true"] .nav-btn.nav-on { color: #FFFFFF !important; }`;
+html[data-ruby="true"] .nav-btn.nav-on { color: #FFFFFF !important; }
+html[data-ruby="true"] .range-value { color: #F25C7A; }
+html[data-ruby="true"][data-theme="light"] .range-value { color: #AD0826; }
+html[data-ruby="true"] .bg-indigo-500\\/25 { background-color: #4A0614; }
+html[data-ruby="true"] .border-indigo-400\\/30 { border-color: rgba(255, 46, 79, 0.55); }
+html[data-ruby="true"] .text-indigo-200 { color: #FFD9E0; }
+html[data-ruby="true"][data-theme="light"] .bg-indigo-500\\/25 { background-color: #FFE0E5; }
+html[data-ruby="true"][data-theme="light"] .border-indigo-400\\/30 { border-color: rgba(173, 8, 38, 0.45); }
+html[data-ruby="true"][data-theme="light"] .text-indigo-200 { color: #4A0210; }`;
 let css = fs.readFileSync(cssPath, 'utf8');
 // The block is rewritten where it is (1.8.13): rules after it in app.css adjust it and must stay after it.
 let before = css;

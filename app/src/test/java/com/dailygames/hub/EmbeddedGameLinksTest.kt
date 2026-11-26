@@ -26,4 +26,19 @@ class EmbeddedGameLinksTest {
     fun aPageWithoutFramesHasNone() {
         assertEquals(emptyList<String>(), WebsiteScraper.embeddedGameLinks("<p>No frames</p>", "https://a.example/"))
     }
+
+    @Test
+    fun keepsCookieNamedGamesWhileBlockingConsentFrames() {
+        val html = """
+            <iframe src="https://orteil.dashnet.org/cookieclicker/"></iframe>
+            <iframe src="https://games.example/cookie-clicker"></iframe>
+            <iframe src="https://consent.cookiebot.com/uc.js"></iframe>
+            <iframe src="https://games.example/cookie-banner.html"></iframe>
+        """.trimIndent()
+        assertEquals(
+            listOf("https://orteil.dashnet.org/cookieclicker/", "https://games.example/cookie-clicker"),
+            WebsiteScraper.embeddedGameLinks(html, "https://games.example/")
+        )
+    }
 }
+

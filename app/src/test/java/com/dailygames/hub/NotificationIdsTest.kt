@@ -35,4 +35,9 @@ class NotificationIdsTest {
         // far above any number of games.
         fixedIds.values.forEach { assertTrue("fixed id $it is too low", it > 100_000) }
     }
+
+    @Test
+    fun reminderChannelIdMatchesNotifierConstant() {
+        assertEquals(ReminderChannel.ID, Notifier.REMINDER_CHANNEL_ID)
+    }
 }

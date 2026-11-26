@@ -9,6 +9,7 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.isActive
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -55,12 +56,13 @@ object GameRecheck {
 
     fun isDue(lastAt: Long, nowMs: Long): Boolean = lastAt <= 0L || nowMs < lastAt || nowMs - lastAt >= INTERVAL_MS - 60 * 60_000L
 
-    /** The games worth reading again: an id and a web address (http or https). */
+    /** The games worth reading again: active (not archived) web games, each once. */
     fun targets(games: JSONArray, max: Int = MAX_GAMES): List<Pair<String, String>> {
         val out = ArrayList<Pair<String, String>>()
         val seen = HashSet<String>()
         for (i in 0 until games.length()) {
             val g = games.optJSONObject(i) ?: continue
+            if (g.optBoolean("archived", false)) continue
             val id = g.optString("id")
             val url = g.optString("url").trim()
             if (id.isEmpty() || !(url.startsWith("https://", true) || url.startsWith("http://", true)) || !seen.add(id)) continue
@@ -79,10 +81,13 @@ object GameRecheck {
         ctx: Context,
         force: Boolean = false,
         nowMs: Long = System.currentTimeMillis(),
-        scrape: (String) -> JSONObject = { WebsiteScraper.fetchAndScrape(it) }
+        scrape: (String) -> JSONObject = { WebsiteScraper.fetchAndScrape(it, maxScriptUrls = 1, maxScriptBytes = 512 * 1024) },
+        isActive: () -> Boolean = { true }
     ): Int {
+        if (!isActive()) return 0
         if (!force && !isDue(prefs(ctx).getLong(KEY_LAST_AT, 0L), nowMs)) return 0
-        val results = collect(targets(GameStore.load(ctx)), scrape)
+        val results = collect(targets(GameStore.load(ctx)), scrape, isActive = isActive)
+        if (!isActive()) return 0
         // Saved even when empty, so the hub knows a pass happened (and found nothing to suggest).
         val out = JSONObject().put("at", nowMs).put("results", results)
         val f = file(ctx)
@@ -98,12 +103,13 @@ object GameRecheck {
         targets: List<Pair<String, String>>,
         scrape: (String) -> JSONObject,
         budgetMs: Long = PASS_BUDGET_MS,
-        clock: () -> Long = { System.currentTimeMillis() }
+        clock: () -> Long = { System.currentTimeMillis() },
+        isActive: () -> Boolean = { true }
     ): JSONArray {
         val started = clock()
         val results = JSONArray()
         for ((id, url) in targets) {
-            if (clock() - started > budgetMs) break
+            if (!isActive() || clock() - started > budgetMs) break
             val res = runCatching { scrape(url) }.getOrNull() ?: continue
             if (!res.optBoolean("ok", false)) continue
             val parsed = res.optJSONObject("parsed") ?: continue
@@ -129,8 +135,8 @@ object GameRecheck {
 
 class GameRecheckWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
     override suspend fun doWork(): Result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-        if (!GameRecheck.enabled(applicationContext)) return@withContext Result.success()
-        runCatching { GameRecheck.run(applicationContext) }
+        if (!isActive || !GameRecheck.enabled(applicationContext)) return@withContext Result.success()
+        runCatching { GameRecheck.run(applicationContext, isActive = { isActive }) }
             .onFailure { runCatching { CrashLog.append(applicationContext, "Checking game pages failed: ${it.javaClass.simpleName}") } }
         Result.success()
     }

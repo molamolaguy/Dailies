@@ -73,4 +73,27 @@ class GameRecheckTest {
         assertFalse(silent.timeFound)
         assertFalse(silent.toJson().getBoolean("zoneFound"))
     }
+
+    @Test
+    fun targetsSkipArchivedGamesAndCollectStopsWhenCancelled() {
+        val games = JSONArray()
+            .put(JSONObject().put("id", "active").put("url", "https://active.example/"))
+            .put(JSONObject().put("id", "arch").put("url", "https://arch.example/").put("archived", true))
+        assertEquals(listOf("active" to "https://active.example/"), GameRecheck.targets(games))
+
+        var active = true
+        var scraped = 0
+        val out = GameRecheck.collect(
+            listOf("1" to "https://a.example/", "2" to "https://b.example/"),
+            scrape = {
+                scraped++
+                active = false
+                JSONObject().put("ok", true).put("parsed", JSONObject().put("name", "A"))
+            },
+            isActive = { active }
+        )
+        assertEquals(1, scraped)
+        assertEquals(1, out.length())
+    }
 }
+

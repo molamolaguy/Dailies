@@ -104,4 +104,6 @@ jobs:
           else
             gh release create "$TAG" "Dailies-$VERSION.apk" --title "Dailies $VERSION" --notes-file "$NOTES" --target "$GITHUB_SHA" --latest
           fi
-          rm -f "$RUNNER_TEMP/release.jks"
+      - name: Clean up signing keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"

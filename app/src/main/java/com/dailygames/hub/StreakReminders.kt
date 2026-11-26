@@ -28,6 +28,12 @@ object ReminderChannel {
             }
         )
     }
+
+    fun isBlocked(ctx: Context): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
+        val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return false
+        return nm.getNotificationChannel(ID)?.importance == NotificationManager.IMPORTANCE_NONE
+    }
 }
 
 /**
@@ -39,7 +45,14 @@ object ReminderChannel {
  * (0 = never remind for this game; absent or -1 = use the app-wide setting).
  */
 class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDefault()) {
-    class Candidate(val id: String, val name: String, val streak: Int, val msUntilReset: Long, val cycleKey: String, val leadMs: Long = 0L)
+    class Candidate(
+        val id: String,
+        val name: String,
+        val streak: Int,
+        val msUntilReset: Long,
+        val cycleKey: String,
+        val leadMs: Long = 0L
+    )
 
     /** This game's lead time: its own setting when it has one, else [defaultLeadMs] when reset alerts are enabled. */
     fun leadFor(g: JSONObject, defaultLeadMs: Long): Long {
@@ -69,10 +82,10 @@ class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDe
     }
 
     private fun isBrokenStreak(g: JSONObject, cycleKey: String): Boolean {
-        val logged = g.optString("loggedCycle")
-        if (logged.isEmpty()) return false
+        val last = g.optString("lastLoggedCycle").ifEmpty { g.optString("loggedCycle") }
+        if (last.isEmpty()) return false
         val yesterday = previousCycleKey(cycleKey)
-        return yesterday.isNotEmpty() && logged < yesterday
+        return yesterday.isNotEmpty() && last < yesterday
     }
 
     private fun candidates(games: JSONArray, nowMs: Long, defaultLeadMs: Long): List<Candidate> {
@@ -88,8 +101,14 @@ class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDe
             val zone = g.optString("resetZone", "local")
             val key = GameStore.cycleKey(time, zone, nowMs, localTimeZone)
             if (g.optString("loggedCycle") == key || isBrokenStreak(g, key)) continue
-            out += Candidate(id, g.optString("name").ifBlank { "Your daily game" }, streak,
-                GameStore.msUntilNextReset(time, zone, nowMs, localTimeZone), key, lead)
+            out += Candidate(
+                id,
+                g.optString("name").ifBlank { "Your daily game" },
+                streak,
+                GameStore.msUntilNextReset(time, zone, nowMs, localTimeZone),
+                key,
+                lead
+            )
         }
         return out
     }
@@ -97,6 +116,15 @@ class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDe
     /** Games to remind about at [nowMs] (window open, not logged, not yet reminded this cycle). */
     fun due(games: JSONArray, nowMs: Long, leadMs: Long, remindedCycle: (String) -> String?): List<Candidate> =
         candidates(games, nowMs, leadMs).filter { it.msUntilReset <= it.leadMs + SLACK_MS && remindedCycle(it.id) != it.cycleKey }
+            .sortedBy { it.msUntilReset }
+
+    /**
+     * All games whose reminder window is currently open and haven't been logged yet in this cycle,
+     * regardless of whether they were already reminded. Used to reconcile an active shade notification
+     * when games are logged or new reminder windows open.
+     */
+    fun openDue(games: JSONArray, nowMs: Long, leadMs: Long): List<Candidate> =
+        candidates(games, nowMs, leadMs).filter { it.msUntilReset <= it.leadMs + SLACK_MS }
             .sortedBy { it.msUntilReset }
 
     /**
@@ -131,15 +159,43 @@ class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDe
         return best
     }
 
-    /** Notification text: "Wordle resets in 1 hr" / "3 streaks reset within 2 hr". */
+    /** Notification text: "Keep your Wordle streak" / "Keep your 3 streaks going". */
     fun message(due: List<Candidate>, defaultLeadMs: Long): Pair<String, String> {
-        val leadMs = due.maxOfOrNull { it.leadMs }?.takeIf { it > 0 } ?: defaultLeadMs
-        val lead = formatLead(leadMs)
+        if (due.isEmpty()) return "" to ""
         return if (due.size == 1) {
             val c = due[0]
+            val windowMs = when {
+                c.msUntilReset > 0L && c.leadMs > 0L -> minOf(c.msUntilReset, c.leadMs)
+                c.msUntilReset > 0L -> c.msUntilReset
+                c.leadMs > 0L -> c.leadMs
+                else -> defaultLeadMs
+            }
+            val lead = formatLead(windowMs)
             "Keep your ${c.name} streak" to "${c.streak}-day streak · ${c.name} resets within $lead and you haven't logged it yet."
         } else {
-            "Keep your ${due.size} streaks going" to due.joinToString(", ") { "${it.name} (${it.streak}d)" } + " reset within $lead."
+            val distinctWindows = due.map { c ->
+                when {
+                    c.msUntilReset > 0L && c.leadMs > 0L -> minOf(c.msUntilReset, c.leadMs)
+                    c.msUntilReset > 0L -> c.msUntilReset
+                    c.leadMs > 0L -> c.leadMs
+                    else -> defaultLeadMs
+                }
+            }.map { formatLead(it) }.toSet()
+            if (distinctWindows.size == 1) {
+                val lead = distinctWindows.first()
+                "Keep your ${due.size} streaks going" to due.joinToString(", ") { "${it.name} (${it.streak}d)" } + " reset within $lead."
+            } else {
+                val perGame = due.joinToString(", ") { c ->
+                    val w = when {
+                        c.msUntilReset > 0L && c.leadMs > 0L -> minOf(c.msUntilReset, c.leadMs)
+                        c.msUntilReset > 0L -> c.msUntilReset
+                        c.leadMs > 0L -> c.leadMs
+                        else -> defaultLeadMs
+                    }
+                    "${c.name} (${c.streak}d, ${formatLead(w)})"
+                }
+                "Keep your ${due.size} streaks going" to "$perGame reset soon."
+            }
         }
     }
 
@@ -149,7 +205,7 @@ class StreakReminderPlanner(private val localTimeZone: TimeZone = TimeZone.getDe
         val ALLOWED_LEAD_MINUTES = setOf(0, 30, 60, 120, 180, 360)
 
         fun formatLead(ms: Long): String {
-            val min = (ms / 60_000L).toInt()
+            val min = ((ms + 59_999L) / 60_000L).toInt().coerceAtLeast(1)
             return when {
                 min < 60 -> "$min min"
                 min % 60 == 0 -> "${min / 60} hr"
@@ -164,6 +220,7 @@ object StreakReminders {
     private const val PREFS = "dailes_reminders"
     private const val KEY_LEAD = "lead_minutes"
     private const val REMINDED_PREFIX = "reminded_"
+    private const val EXTRA_REMINDER_ITEMS = "dailes_reminder_items"
     private const val REQUEST_CODE = 4102
     /** Its own id: 0x0DA1E6 is the combined reset alert ([Notifier.COMBINED_ID]), which [schedule] used to clear. */
     const val NOTIFICATION_ID = 0x0DA1E8
@@ -173,32 +230,131 @@ object StreakReminders {
 
     fun setLeadMinutes(ctx: Context, minutes: Int) {
         val m = if (minutes in StreakReminderPlanner.ALLOWED_LEAD_MINUTES) minutes else 0
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putInt(KEY_LEAD, m) }
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit(commit = true) { putInt(KEY_LEAD, m) }
         schedule(ctx)
     }
 
-    /** Posts any due reminder, clears one the user has since dealt with, and arms the next check. */
+    /** Removes `reminded_<id>` entries for games no longer in [activeIds]. */
+    fun prune(ctx: Context, activeIds: Set<String>) {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val stale = prefs.all.keys.filter { it.startsWith(REMINDED_PREFIX) && it.removePrefix(REMINDED_PREFIX) !in activeIds }
+        if (stale.isNotEmpty()) {
+            prefs.edit(commit = true) { stale.forEach { remove(it) } }
+        }
+    }
+
+    /** Serializes [candidates] into JSON for [EXTRA_REMINDER_ITEMS] in the shade notification. */
+    internal fun encodeItems(candidates: List<StreakReminderPlanner.Candidate>): String =
+        JSONArray().also { arr ->
+            candidates.forEach { c ->
+                arr.put(
+                    JSONObject()
+                        .put("id", c.id)
+                        .put("name", c.name)
+                        .put("streak", c.streak)
+                        .put("msUntilReset", c.msUntilReset)
+                        .put("leadMs", c.leadMs)
+                        .put("cycleKey", c.cycleKey)
+                )
+            }
+        }.toString()
+
+    internal fun decodeItems(raw: String?): List<StreakReminderPlanner.Candidate> {
+        if (raw.isNullOrBlank()) return emptyList()
+        val arr = runCatching { JSONArray(raw) }.getOrNull() ?: return emptyList()
+        val out = ArrayList<StreakReminderPlanner.Candidate>(arr.length())
+        for (i in 0 until arr.length()) {
+            val o = arr.optJSONObject(i) ?: continue
+            val id = o.optString("id")
+            if (id.isEmpty()) continue
+            out += StreakReminderPlanner.Candidate(
+                id = id,
+                name = o.optString("name").ifBlank { "Your daily game" },
+                streak = o.optInt("streak", 1),
+                msUntilReset = o.optLong("msUntilReset", 0L),
+                cycleKey = o.optString("cycleKey", ""),
+                leadMs = o.optLong("leadMs", 0L)
+            )
+        }
+        return out
+    }
+
+    /**
+     * Merges unread shade reminder items (filtered to games that are still open and unlogged in
+     * [stillOpen]) with freshly due candidates, deduplicated by game id and ordered by soonest reset.
+     */
+    internal fun mergeShadeItems(
+        inShade: List<StreakReminderPlanner.Candidate>,
+        fresh: List<StreakReminderPlanner.Candidate>,
+        stillOpen: List<StreakReminderPlanner.Candidate>
+    ): List<StreakReminderPlanner.Candidate> {
+        val openById = stillOpen.associateBy { it.id }
+        val byId = LinkedHashMap<String, StreakReminderPlanner.Candidate>()
+        inShade.forEach { old ->
+            val current = openById[old.id]
+            if (current != null && (old.cycleKey.isEmpty() || old.cycleKey == current.cycleKey)) {
+                byId[current.id] = current
+            }
+        }
+        fresh.forEach { c -> byId[c.id] = c }
+        return byId.values.sortedBy { it.msUntilReset }
+    }
+
+    private fun activeReminderItems(ctx: Context): List<StreakReminderPlanner.Candidate>? {
+        val systemNm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return null
+        val sbn = runCatching { systemNm.activeNotifications.firstOrNull { it.id == NOTIFICATION_ID } }.getOrNull()
+            ?: return null
+        return decodeItems(sbn.notification.extras?.getString(EXTRA_REMINDER_ITEMS))
+    }
+
+    /** Posts any due reminder (merging with unread shade items), and arms the next check. */
     fun run(ctx: Context, nowMs: Long = System.currentTimeMillis()) = synchronized(ScheduleLock) {
         val leadMs = leadMinutes(ctx) * 60_000L
         val games = GameStore.load(ctx)
         val planner = StreakReminderPlanner()
         val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val due = planner.due(games, nowMs, leadMs) { prefs.getString(REMINDED_PREFIX + it, null) }
+        val stillOpen = planner.openDue(games, nowMs, leadMs)
         if (due.isNotEmpty()) {
-            post(ctx, planner.message(due, leadMs))
-            // Marked even if notifications are off, so the alarm doesn't keep firing for this cycle.
-            prefs.edit { due.forEach { putString(REMINDED_PREFIX + it.id, it.cycleKey) } }
+            val inShade = activeReminderItems(ctx).orEmpty()
+            val merged = mergeShadeItems(inShade, due, stillOpen).ifEmpty { due }
+            if (post(ctx, planner.message(merged, leadMs), merged)) {
+                prefs.edit(commit = true) { due.forEach { putString(REMINDED_PREFIX + it.id, it.cycleKey) } }
+            }
+        } else {
+            reconcileActiveReminder(ctx, planner, stillOpen, leadMs)
         }
         scheduleLocked(ctx, games, nowMs, leadMs)
     }
 
-    /** Re-plans after the games list or the setting changes. A shown reminder goes once nothing is left to log. */
+    /** Re-plans after the games list or the setting changes. Updates or clears an active shade reminder. */
     fun schedule(ctx: Context, nowMs: Long = System.currentTimeMillis()) = synchronized(ScheduleLock) {
         val leadMs = leadMinutes(ctx) * 60_000L
         val games = GameStore.load(ctx)
-        val stillOpen = StreakReminderPlanner().due(games, nowMs, leadMs) { null }.isNotEmpty()
-        if (!stillOpen) runCatching { NotificationManagerCompat.from(ctx).cancel(NOTIFICATION_ID) }
+        val planner = StreakReminderPlanner()
+        val stillOpen = planner.openDue(games, nowMs, leadMs)
+        reconcileActiveReminder(ctx, planner, stillOpen, leadMs)
         scheduleLocked(ctx, games, nowMs, leadMs)
+    }
+
+    private fun reconcileActiveReminder(
+        ctx: Context,
+        planner: StreakReminderPlanner,
+        stillOpen: List<StreakReminderPlanner.Candidate>,
+        leadMs: Long
+    ) {
+        if (stillOpen.isEmpty()) {
+            runCatching { NotificationManagerCompat.from(ctx).cancel(NOTIFICATION_ID) }
+            return
+        }
+        val inShade = activeReminderItems(ctx) ?: return
+        if (inShade.isEmpty()) return
+        val remaining = mergeShadeItems(inShade, emptyList(), stillOpen)
+        if (remaining.isEmpty()) {
+            runCatching { NotificationManagerCompat.from(ctx).cancel(NOTIFICATION_ID) }
+        } else if (remaining.map { it.id }.toSet() != inShade.map { it.id }.toSet()) {
+            post(ctx, planner.message(remaining, leadMs), remaining, silent = true)
+        }
     }
 
     private fun scheduleLocked(ctx: Context, games: JSONArray, nowMs: Long, leadMs: Long) {
@@ -213,12 +369,18 @@ object StreakReminders {
         }
     }
 
-    private fun post(ctx: Context, text: Pair<String, String>): Boolean {
+    private fun post(
+        ctx: Context,
+        text: Pair<String, String>,
+        items: List<StreakReminderPlanner.Candidate>,
+        silent: Boolean = false
+    ): Boolean {
         val nm = NotificationManagerCompat.from(ctx)
         if (!nm.areNotificationsEnabled()) return false
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ctx.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return false
+        if (ReminderChannel.isBlocked(ctx)) return false
         Notifier.ensureChannel(ctx)
         val launch = Intent(ctx, HubActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP }
         val pending = PendingIntent.getActivity(ctx, NOTIFICATION_ID, launch, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -229,10 +391,13 @@ object StreakReminders {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text.second))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
+            .setOnlyAlertOnce(true)
+            .setSilent(silent)
             .setContentIntent(pending)
+            .addExtras(android.os.Bundle().apply { putString(EXTRA_REMINDER_ITEMS, encodeItems(items)) })
             .let { Notifier.withAppIcon(ctx, it) }
             .build()
-        return runCatching { nm.notify(NOTIFICATION_ID, n) }.isSuccess
+        return runCatching { nm.notify(NOTIFICATION_ID, n); true }.getOrDefault(false)
     }
 
     private fun pendingIntent(ctx: Context): PendingIntent = PendingIntent.getBroadcast(
@@ -250,3 +415,4 @@ class StreakReminderReceiver : BroadcastReceiver() {
         }.start()
     }
 }
+

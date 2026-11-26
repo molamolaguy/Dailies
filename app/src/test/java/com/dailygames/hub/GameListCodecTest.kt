@@ -90,4 +90,21 @@ class GameListCodecTest {
         }
         assertNull(GameListCodec.encode(huge.toString()))
     }
+
+    @Test
+    fun acceptsUppercaseHttpSchemesAndRejectsNonZeroBase64PaddingBits() {
+        val mixedCase = """[{"name":"Upper","url":"HTTPS://EXAMPLE.COM/game","resetTime":"00:00","resetZone":"utc"}]"""
+        val link = GameListCodec.encode(mixedCase)
+        assertNotNull(link)
+        val back = JSONArray(GameListCodec.decode(link)!!)
+        assertEquals(1, back.length())
+        assertEquals("HTTPS://EXAMPLE.COM/game", back.getJSONObject(0).getString("url"))
+
+        // Single byte [0x00] encodes to "AA" (6+2 bits; low 4 bits must be 0). "AB" has non-zero trailing bits.
+        assertTrue(byteArrayOf(0).contentEquals(GameListCodec.b64UrlDecode("AA")))
+        assertNull(GameListCodec.b64UrlDecode("AB"))
+        // Two bytes [0x00, 0x00] encode to "AAA" (16+2 bits; low 2 bits must be 0). "AAB" has non-zero trailing bit.
+        assertTrue(byteArrayOf(0, 0).contentEquals(GameListCodec.b64UrlDecode("AAA")))
+        assertNull(GameListCodec.b64UrlDecode("AAB"))
+    }
 }

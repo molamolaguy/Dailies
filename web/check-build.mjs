@@ -2,9 +2,11 @@
 // Sanity checks on a web build (node web/check-build.mjs dist-web): every file the page, the
 // manifest and the service worker list exists, and the page carries the web app's head tags.
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const dir = process.argv[2] || 'dist-web';
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const dir = resolve(root, process.argv[2] || 'dist-web');
 const fail = (m) => { console.error(`✗ ${m}`); process.exitCode = 1; };
 const strip = (u) => u.split('?')[0];
 const has = (u) => existsSync(join(dir, strip(u) === './' ? 'index.html' : strip(u)));

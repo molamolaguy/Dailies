@@ -15,6 +15,7 @@ import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import android.view.View
@@ -36,11 +37,13 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.util.Locale
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicReference
 
 class HubActivity : ComponentActivity() {
     private lateinit var scaffoldRoot: FrameLayout
@@ -66,14 +69,21 @@ class HubActivity : ComponentActivity() {
     @Volatile private var lastImeVisible = false
 
     private var surfaceColor: Int = ThemePrefs.DEFAULT_SURFACE
+    private var lastHubRendererGoneAt = 0L
     private val scrapeExecutor = Executors.newSingleThreadExecutor()
     private val faviconCacheDelegate = lazy { FaviconCache(File(filesDir, "favicons")) }
     private val faviconCache by faviconCacheDelegate
     private var pageRenderer: PageRenderer? = null
+    private val pendingBackupFile = AtomicReference<File?>(null)
+    private val pendingCsvFile = AtomicReference<File?>(null)
+
+    private class BackupTooLargeException : Exception()
 
     // ---- Activity Result API (replaces startActivityForResult / onActivityResult) ----
     private val gameLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
         val data = res.data ?: return@registerForActivityResult
+        // Normal return from GameActivity: clear persisted in-flight snapshot first so we never double-report.
+        InFlightGameSession.clear(applicationContext)
         val id = data.getStringExtra(GameActivity.EXTRA_ID).orEmpty()
         val openLog = data.getBooleanExtra(GameActivity.EXTRA_LOG, false)
         val elapsedMs = data.getLongExtra(GameActivity.EXTRA_ELAPSED_MS, 0L)
@@ -81,13 +91,13 @@ class HubActivity : ComponentActivity() {
         val shareText = data.getStringExtra(GameActivity.EXTRA_SHARE_TEXT).orEmpty()
         // Games switched away from inside the player first, then the one it closed on.
         data.getStringExtra(GameActivity.EXTRA_EARLIER)?.let { earlier ->
-            val arr = runCatching { org.json.JSONArray(earlier) }.getOrNull()
-            if (arr != null) runJs("window.onReturnFromEarlierGames && window.onReturnFromEarlierGames(${arr})")
+            val arr = runCatching { JSONArray(earlier) }.getOrNull()
+            if (arr != null) runJs("window.onReturnFromEarlierGames && window.onReturnFromEarlierGames(${jsSafeJson(arr.toString())})")
         }
         // A result the player confirmed (read off the end screen) skips the hub's strict check (1.8.3).
         val confirmed = data.getBooleanExtra(GameActivity.EXTRA_SHARE_CONFIRMED, false)
         if (id.isNotBlank()) {
-            runJs("window.onReturnFromGame(${JSONObject.quote(id)}, $openLog, $elapsedMs, ${JSONObject.quote(shareText)}, $openedAt, { confirmed: $confirmed })")
+            runJs("window.onReturnFromGame(${jsQuote(id)}, $openLog, $elapsedMs, ${jsQuote(shareText)}, $openedAt, { confirmed: $confirmed })")
         }
     }
 
@@ -99,29 +109,35 @@ class HubActivity : ComponentActivity() {
 
     /** Photo picker for "Read a screenshot" in the log dialog. */
     private val screenshotPicker = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri == null) runJs("window.onScreenshotText && window.onScreenshotText(null, 'picker')")
+        if (uri == null) runJs("window.onScreenshotText && window.onScreenshotText(null, 'picker', null)")
         else readScreenshot(uri, "picker")
     }
 
     private fun readScreenshot(uri: Uri, source: String) {
         runJs("window.onScreenshotReading && window.onScreenshotReading()")
-        ScreenshotReader.read(applicationContext, uri) { text ->
+        ScreenshotReader.readDetailed(applicationContext, uri) { text, error ->
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
-                val arg = text?.take(4000)?.let { JSONObject.quote(it) } ?: "null"
-                runJs("window.onScreenshotText && window.onScreenshotText($arg, ${JSONObject.quote(source)})")
+                val arg = text?.take(4000)?.let { jsQuote(it) } ?: "null"
+                val errArg = error?.let { jsQuote(it) } ?: "null"
+                runJs("window.onScreenshotText && window.onScreenshotText($arg, ${jsQuote(source)}, $errArg)")
             }
         }
     }
 
     /** "Save to…" picker for the CSV history export. */
     private val csvLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
-        val temp = File(cacheDir, CSV_TEMP_FILE)
-        if (uri == null) { runCatching { temp.delete() }; runJs("window.onCsvSaved && window.onCsvSaved(false)"); return@registerForActivityResult }
+        val temp = pendingCsvFile.getAndSet(null)
+        if (uri == null || temp == null) {
+            runCatching { temp?.delete() }
+            runJs("window.onCsvSaved && window.onCsvSaved(false)")
+            return@registerForActivityResult
+        }
         Thread {
             val ok = runCatching {
-                (runCatching { contentResolver.openOutputStream(uri, "wt") }.getOrNull() ?: contentResolver.openOutputStream(uri, "w"))
-                    ?.use { out -> temp.inputStream().use { it.copyTo(out) }; true } ?: false
+                if (!temp.exists() || temp.length() == 0L) false
+                else (runCatching { contentResolver.openOutputStream(uri, "wt") }.getOrNull() ?: contentResolver.openOutputStream(uri, "w"))
+                    ?.use { out -> temp.inputStream().use { it.copyTo(out) }; out.flush(); true } ?: false
             }.getOrDefault(false)
             runCatching { temp.delete() }
             runOnUiThread { runJs("window.onCsvSaved && window.onCsvSaved($ok)") }
@@ -138,13 +154,14 @@ class HubActivity : ComponentActivity() {
         if (uri == null) { pushAutoBackupStatus(); return@registerForActivityResult }
         AutoBackup.enable(applicationContext, uri)
         Thread {
+            stateStore.flush()
             AutoBackup.runIfDue(applicationContext, force = true)
             runOnUiThread { pushAutoBackupStatus() }
         }.start()
     }
 
     private fun pushAutoBackupStatus() {
-        runJs("window.onAutoBackupStatus && window.onAutoBackupStatus(${AutoBackup.statusJson(applicationContext)})")
+        runJs("window.onAutoBackupStatus && window.onAutoBackupStatus(${jsSafeJson(AutoBackup.statusJson(applicationContext))})")
     }
 
     private val notificationPermissionLauncher =
@@ -314,11 +331,25 @@ class HubActivity : ComponentActivity() {
                 }
 
                 override fun onRenderProcessGone(view: WebView?, detail: RenderProcessGoneDetail?): Boolean {
-                    runCatching { CrashLog.append(applicationContext, if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && detail?.didCrash() == true) "The hub page crashed (WebView renderer)." else "The hub page was stopped to free memory (WebView renderer).") }
-                    // Recover gracefully if the OS kills the WebView renderer process under low memory (K5).
+                    val crashed = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && detail?.didCrash() == true
+                    runCatching {
+                        CrashLog.append(
+                            applicationContext,
+                            if (crashed) "The hub page crashed (WebView renderer)." else "The hub page was stopped to free memory (WebView renderer)."
+                        )
+                    }
+                    // Recover gracefully if the OS kills the WebView renderer process under low memory (K5),
+                    // but stop if it crashes twice within 60s so we don't loop infinitely.
                     (view?.parent as? ViewGroup)?.removeView(view)
                     runCatching { view?.destroy() }
-                    if (!isFinishing && !isDestroyed) createAndAttachWebView()
+                    val now = SystemClock.elapsedRealtime()
+                    val repeatedCrash = crashed && lastHubRendererGoneAt > 0L && now - lastHubRendererGoneAt < HUB_RENDERER_CRASH_WINDOW_MS
+                    if (crashed) lastHubRendererGoneAt = now
+                    if (repeatedCrash || isFinishing || isDestroyed) {
+                        if (!isFinishing) finish()
+                        return true
+                    }
+                    createAndAttachWebView()
                     return true
                 }
             }
@@ -474,7 +505,7 @@ class HubActivity : ComponentActivity() {
         val paletteJson = extractDeviceWallpaperPalette().toString()
         pushInsetsToWebView()
         webView.evaluateJavascript(
-            "window.applyDeviceDynamicColors && window.applyDeviceDynamicColors($paletteJson);",
+            "window.applyDeviceDynamicColors && window.applyDeviceDynamicColors(${jsSafeJson(paletteJson)});",
             null
         )
     }
@@ -532,7 +563,12 @@ class HubActivity : ComponentActivity() {
     // Every startActivity / ActivityResultLauncher.launch from the hub comes through here.
     override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
         coveredByOwnScreen = true
-        super.startActivityForResult(intent, requestCode, options)
+        try {
+            super.startActivityForResult(intent, requestCode, options)
+        } catch (t: Throwable) {
+            coveredByOwnScreen = false
+            throw t
+        }
     }
 
     override fun onStart() {
@@ -542,6 +578,7 @@ class HubActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        stateStore.flushAsync()
         // Swap the launcher icon only once the user has left the app (home, recents, another app).
         if (!isChangingConfigurations && !coveredByOwnScreen) AppIcon.apply(applicationContext)
     }
@@ -549,9 +586,15 @@ class HubActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         // The hub writes its state at a quiet moment (1.8.6): leaving the app writes what's waiting now.
-        if (::webView.isInitialized) runCatching { webView.evaluateJavascript("window.__flushPendingSave && window.__flushPendingSave()", null) }
-        if (::webView.isInitialized) webView.onPause()
-        // Make sure the latest hub state reaches disk before the process can be killed.
+        if (::webView.isInitialized) {
+            runCatching {
+                webView.evaluateJavascript("window.__flushPendingSave && window.__flushPendingSave()") {
+                    stateStore.flushAsync()
+                }
+            }
+            webView.onPause()
+        }
+        // Make sure already-queued hub state reaches disk before the process can be killed.
         stateStore.flushAsync()
     }
 
@@ -567,6 +610,25 @@ class HubActivity : ComponentActivity() {
                 pushNotificationStatus()
             }
         }
+        if (::scaffoldRoot.isInitialized) {
+            scaffoldRoot.post {
+                if (!isFinishing && !isDestroyed) consumeInterruptedGameSession(interruptedByIntent = false)
+            }
+        }
+    }
+
+    private fun consumeInterruptedGameSession(interruptedByIntent: Boolean = false) {
+        val snap = InFlightGameSession.consume(applicationContext) ?: return
+        if (snap.earlierJson.isNotBlank()) {
+            val arr = runCatching { JSONArray(snap.earlierJson) }.getOrNull()
+            if (arr != null) {
+                runJs("window.onReturnFromEarlierGames && window.onReturnFromEarlierGames(${jsSafeJson(arr.toString())})")
+            }
+        }
+        runJs(
+            "window.onReturnFromGame(${jsQuote(snap.gameId)}, ${snap.openLog}, ${snap.elapsedMs}, " +
+                "${jsQuote(snap.shareText)}, ${snap.openedAt}, { confirmed: ${snap.shareConfirmed}, interrupted: $interruptedByIntent })"
+        )
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -580,9 +642,9 @@ class HubActivity : ComponentActivity() {
      * limited to ~1 MB and would throw TransactionTooLargeException for large histories).
      */
     private fun handleExportResult(uri: Uri?) {
-        val tempFile = File(cacheDir, BACKUP_TEMP_FILE)
-        if (uri == null) {
-            runCatching { tempFile.delete() }
+        val tempFile = pendingBackupFile.getAndSet(null)
+        if (uri == null || tempFile == null) {
+            runCatching { tempFile?.delete() }
             runJs("window.onBackupFileSaved && window.onBackupFileSaved(false)")
             return
         }
@@ -627,11 +689,11 @@ class HubActivity : ComponentActivity() {
                             val n = input.read(buf)
                             if (n <= 0) break
                             out.write(buf, 0, n)
-                            if (out.size() > MAX_IMPORT_BYTES) throw IllegalStateException("too_large")
+                            if (out.size() > MAX_IMPORT_BYTES) throw BackupTooLargeException()
                         }
                         out.toString(Charsets.UTF_8.name())
                     } ?: ""
-                } catch (e: IllegalStateException) {
+                } catch (e: BackupTooLargeException) {
                     runOnUiThread {
                         runJs("window.showToast && showToast('Backup too large', 'That file is over 50 MB, so it can\\'t be a Dailies backup.', 'indigo')")
                     }
@@ -649,7 +711,7 @@ class HubActivity : ComponentActivity() {
 
     private fun showImportError(title: String) {
         runOnUiThread {
-            runJs("window.showToast && showToast(${JSONObject.quote(title)}, 'The backup could not be imported. Your current data was not changed.', 'indigo')")
+            runJs("window.showToast && showToast(${jsQuote(title)}, 'The backup could not be imported. Your current data was not changed.', 'indigo')")
         }
     }
 
@@ -665,7 +727,7 @@ class HubActivity : ComponentActivity() {
                 var end = minOf(content.length, i + IMPORT_CHUNK_CHARS)
                 // Never split a surrogate pair across two slices.
                 if (end < content.length && Character.isHighSurrogate(content[end - 1])) end -= 1
-                chunks.add(JSONObject.quote(content.substring(i, end)))
+                chunks.add(jsQuote(content.substring(i, end)))
                 i = end
             }
             runOnUiThread {
@@ -685,6 +747,8 @@ class HubActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        pendingBackupFile.getAndSet(null)?.let { runCatching { it.delete() } }
+        pendingCsvFile.getAndSet(null)?.let { runCatching { it.delete() } }
         pageRenderer?.cancel()
         pageRenderer = null
         if (faviconCacheDelegate.isInitialized()) faviconCache.shutdown()
@@ -703,13 +767,17 @@ class HubActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
 
+        // If a notification tap or external intent popped GameActivity via CLEAR_TOP without
+        // delivering onActivityResult, recover the interrupted session first.
+        consumeInterruptedGameSession(interruptedByIntent = true)
+
         val gameId = intent.getStringExtra(Notifier.EXTRA_GAME_ID)
         // HubActivity is exported (launcher + share target): only our own notifications, which carry
         // the app-private token, may ask it to open a game.
         val trusted = intent.getStringExtra(Notifier.EXTRA_TOKEN) == Notifier.intentToken(this)
         if (!gameId.isNullOrBlank() && trusted) {
             intent.removeExtra(Notifier.EXTRA_GAME_ID)
-            runJs("window.openGameInPlayer(${JSONObject.quote(gameId)})")
+            runJs("window.openGameInPlayer(${jsQuote(gameId)})")
             return
         }
 
@@ -729,7 +797,7 @@ class HubActivity : ComponentActivity() {
         GameListCodec.decode(listSource)?.let { list ->
             intent.action = Intent.ACTION_MAIN
             intent.data = null
-            runJs("window.onSharedGameList && window.onSharedGameList($list)")
+            runJs("window.onSharedGameList && window.onSharedGameList(${jsSafeJson(list)})")
             return
         }
 
@@ -739,9 +807,15 @@ class HubActivity : ComponentActivity() {
             intent.action = Intent.ACTION_MAIN // mark as consumed
             // The whole text goes along too: a game's share result sent to Dailies is logged, not reopened.
             val fullText = SharedLinkParser.sharedTextForLogging(sharedText)
-            runJs("window.handleSharedUrl(${JSONObject.quote(shared)}, ${JSONObject.quote(fullText)})")
+            runJs("window.handleSharedUrl(${jsQuote(shared)}, ${jsQuote(fullText)})")
         }
     }
+
+    private fun jsQuote(s: String): String =
+        JSONObject.quote(s).replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+
+    private fun jsSafeJson(json: String): String =
+        json.replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
 
     /** Runs JS once the hub page is interactive (queues it until then). Main thread only. */
     private fun runJs(js: String) {
@@ -780,6 +854,7 @@ class HubActivity : ComponentActivity() {
             .put("enabled", appEnabled && !channelBlocked)
             .put("appEnabled", appEnabled)
             .put("channelBlocked", channelBlocked)
+            .put("reminderChannelBlocked", Notifier.reminderChannelBlocked(this))
             .toString()
     }
 
@@ -880,6 +955,10 @@ class HubActivity : ComponentActivity() {
         @JavascriptInterface
         fun setThemePrefs(dynamicWallpaper: Boolean, amoled: Boolean) {
             ThemePrefs.save(applicationContext, dynamicWallpaper, amoled)
+            runOnUiThread {
+                surfaceColor = ThemePrefs.surfaceColor(this@HubActivity)
+                window.setBackgroundDrawable(surfaceColor.toDrawable())
+            }
         }
 
         /** Settings → Theme: "dark", "light" or "system". */
@@ -936,7 +1015,7 @@ class HubActivity : ComponentActivity() {
             val current = runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: ""
             Thread {
                 val json = UpdateCheck.check(current)
-                runOnUiThread { runJs("window.onUpdateCheckResult && window.onUpdateCheckResult($json)") }
+                runOnUiThread { runJs("window.onUpdateCheckResult && window.onUpdateCheckResult(${jsSafeJson(json)})") }
             }.start()
         }
 
@@ -966,8 +1045,12 @@ class HubActivity : ComponentActivity() {
                         is UpdateInstaller.Result.Failed -> reportUpdateStatus("error", -1, r.message)
                         is UpdateInstaller.Result.Ready -> {
                             reportUpdateStatus("installing", 100, null)
-                            runCatching { UpdateInstaller.install(applicationContext, r.file) }
+                            val committed = runCatching { UpdateInstaller.install(applicationContext, r.file) }
                                 .onFailure { reportUpdateStatus("error", -1, "Android couldn't start the install. Try again.") }
+                                .isSuccess
+                            if (committed) {
+                                reportUpdateStatus("confirming", 100, null)
+                            }
                         }
                     }
                 } finally {
@@ -1000,11 +1083,27 @@ class HubActivity : ComponentActivity() {
         /** Saves a CSV the hub built through the system "Save to…" picker; answers window.onCsvSaved. */
         @JavascriptInterface
         fun saveCsvFile(suggestedFileName: String, content: String) {
-            val staged = content.isNotBlank() && runCatching { File(cacheDir, CSV_TEMP_FILE).writeText(content, Charsets.UTF_8) }.isSuccess
+            if (content.isBlank()) {
+                runOnUiThread { runJs("window.onCsvSaved && window.onCsvSaved(false)") }
+                return
+            }
+            val staged = runCatching {
+                val f = File.createTempFile("pending_csv_", ".csv", cacheDir)
+                f.writeText(content, Charsets.UTF_8)
+                f
+            }.getOrNull()
+            if (staged == null) {
+                runOnUiThread { runJs("window.onCsvSaved && window.onCsvSaved(false)") }
+                return
+            }
+            pendingCsvFile.getAndSet(staged)?.let { prev -> if (prev != staged) runCatching { prev.delete() } }
             runOnUiThread {
-                if (!staged) { runJs("window.onCsvSaved && window.onCsvSaved(false)"); return@runOnUiThread }
                 runCatching { csvLauncher.launch(suggestedFileName.ifBlank { "dailies_history.csv" }) }
-                    .onFailure { runJs("window.onCsvSaved && window.onCsvSaved(false)") }
+                    .onFailure {
+                        pendingCsvFile.compareAndSet(staged, null)
+                        runCatching { staged.delete() }
+                        runJs("window.onCsvSaved && window.onCsvSaved(false)")
+                    }
             }
         }
 
@@ -1013,7 +1112,7 @@ class HubActivity : ComponentActivity() {
         fun pickScreenshot() {
             runOnUiThread {
                 runCatching { screenshotPicker.launch(androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
-                    .onFailure { runJs("window.onScreenshotText && window.onScreenshotText(null, 'picker')") }
+                    .onFailure { runJs("window.onScreenshotText && window.onScreenshotText(null, 'picker', null)") }
             }
         }
 
@@ -1095,9 +1194,11 @@ class HubActivity : ComponentActivity() {
             val bytes = runCatching { android.util.Base64.decode(base64Png, android.util.Base64.DEFAULT) }.getOrNull() ?: return
             val bmp = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return
             val color = ThemePrefs.parseColor(starColor) ?: 0xFFF2C94C.toInt()
+            val appCtx = applicationContext
+            AppIcon.saveCustom(appCtx, bytes, color)
             runOnUiThread {
-                AppIcon.saveCustom(this@HubActivity, bytes, color)
                 val asked = runCatching {
+                    if (isFinishing || isDestroyed) return@runCatching false
                     if (!androidx.core.content.pm.ShortcutManagerCompat.isRequestPinShortcutSupported(this@HubActivity)) return@runCatching false
                     val shortcut = androidx.core.content.pm.ShortcutInfoCompat.Builder(this@HubActivity, "dailies-custom-icon")
                         .setShortLabel("Dailies")
@@ -1179,31 +1280,36 @@ class HubActivity : ComponentActivity() {
             // A PNG starts with these 8 bytes; anything else isn't shared.
             val sig = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
             if (bytes.size < 8 || !bytes.copyOfRange(0, 8).contentEquals(sig)) return
+            val file = runCatching {
+                val dir = File(cacheDir, "shared").apply { mkdirs() }
+                dir.listFiles()?.forEach { it.delete() }
+                File(dir, "dailies-recap.png").also { it.writeBytes(bytes) }
+            }.getOrNull() ?: return
+            val pkg = packageName
+            val subj = subject.take(120)
+            val body = text.take(4000)
             runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
                 runCatching {
-                    val dir = java.io.File(cacheDir, "shared").apply { mkdirs() }
-                    dir.listFiles()?.forEach { it.delete() }
-                    val file = java.io.File(dir, "dailies-recap.png")
-                    file.writeBytes(bytes)
-                    val uri = androidx.core.content.FileProvider.getUriForFile(this@HubActivity, "$packageName.files", file)
+                    val uri = androidx.core.content.FileProvider.getUriForFile(this@HubActivity, "$pkg.files", file)
                     val send = Intent(Intent.ACTION_SEND).setType("image/png")
                         .putExtra(Intent.EXTRA_STREAM, uri)
-                        .putExtra(Intent.EXTRA_TEXT, text.take(4000))
-                        .putExtra(Intent.EXTRA_SUBJECT, subject.take(120))
+                        .putExtra(Intent.EXTRA_TEXT, body)
+                        .putExtra(Intent.EXTRA_SUBJECT, subj)
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     send.clipData = android.content.ClipData.newRawUri("", uri)
-                    startActivity(Intent.createChooser(send, subject.take(120)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
+                    startActivity(Intent.createChooser(send, subj).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
                 }
             }
         }
 
-        /** {"enabled": bool, "appEnabled": bool, "channelBlocked": bool} for the Settings button. */
+        /** {"enabled": bool, "appEnabled": bool, "channelBlocked": bool, "reminderChannelBlocked": bool} for the Settings button. */
         @JavascriptInterface
         fun getNotificationStatus(): String = notificationStatusJson()
 
         /** JSON array of the zone ids java.util.TimeZone knows here, so the picker only offers zones alerts can use. */
         @JavascriptInterface
-        fun getSupportedTimeZones(): String = org.json.JSONArray(java.util.TimeZone.getAvailableIDs().toList()).toString()
+        fun getSupportedTimeZones(): String = JSONArray(java.util.TimeZone.getAvailableIDs().toList()).toString()
 
         /** Haptic feedback for drag-to-reorder: "start" (lift), "tick" (passed a card), "drop". */
         @JavascriptInterface
@@ -1233,16 +1339,21 @@ class HubActivity : ComponentActivity() {
                 return
             }
             val staged = runCatching {
-                File(cacheDir, BACKUP_TEMP_FILE).writeText(content, Charsets.UTF_8)
-            }.isSuccess
+                val f = File.createTempFile("pending_backup_", ".json", cacheDir)
+                f.writeText(content, Charsets.UTF_8)
+                f
+            }.getOrNull()
+            if (staged == null) {
+                runOnUiThread { runJs("window.onBackupFileSaved && window.onBackupFileSaved(false)") }
+                return
+            }
+            pendingBackupFile.getAndSet(staged)?.let { prev -> if (prev != staged) runCatching { prev.delete() } }
             runOnUiThread {
-                if (!staged) {
-                    runJs("window.onBackupFileSaved && window.onBackupFileSaved(false)")
-                    return@runOnUiThread
-                }
                 try {
                     exportLauncher.launch(suggestedFileName.ifBlank { "dailies_backup.json" })
                 } catch (e: Exception) {
+                    pendingBackupFile.compareAndSet(staged, null)
+                    runCatching { staged.delete() }
                     runJs("window.onBackupFileSaved && window.onBackupFileSaved(false)")
                 }
             }
@@ -1275,7 +1386,7 @@ class HubActivity : ComponentActivity() {
                 val text = runCatching {
                     cm?.primaryClip?.takeIf { it.itemCount > 0 }?.getItemAt(0)?.coerceToText(this@HubActivity)?.toString()
                 }.getOrNull().orEmpty()
-                runJs("window.onClipboardText && window.onClipboardText($requestId, ${JSONObject.quote(text)})")
+                runJs("window.onClipboardText && window.onClipboardText($requestId, ${jsQuote(text)})")
             }
         }
 
@@ -1318,7 +1429,7 @@ class HubActivity : ComponentActivity() {
         fun checkLinks(requestId: Int, gamesJson: String) {
             Thread {
                 val json = GameHealth.checkLinks(gamesJson)
-                runOnUiThread { if (!isFinishing && !isDestroyed) runJs("window.onLinksChecked && window.onLinksChecked($requestId, ${JSONObject.quote(json)})") }
+                runOnUiThread { if (!isFinishing && !isDestroyed) runJs("window.onLinksChecked && window.onLinksChecked($requestId, ${jsQuote(json)})") }
             }.start()
         }
 
@@ -1327,7 +1438,7 @@ class HubActivity : ComponentActivity() {
         fun refreshIcons(requestId: Int, gamesJson: String) {
             Thread {
                 val json = GameHealth.refreshIcons(gamesJson, faviconCache)
-                runOnUiThread { if (!isFinishing && !isDestroyed) runJs("window.onIconsRefreshed && window.onIconsRefreshed($requestId, ${JSONObject.quote(json)})") }
+                runOnUiThread { if (!isFinishing && !isDestroyed) runJs("window.onIconsRefreshed && window.onIconsRefreshed($requestId, ${jsQuote(json)})") }
             }.start()
         }
 
@@ -1337,7 +1448,7 @@ class HubActivity : ComponentActivity() {
         /** Clears the chosen caches (JSON array of kinds); returns about how many bytes were freed. */
         @JavascriptInterface
         fun clearStorage(kindsJson: String): Long {
-            val kinds = runCatching { org.json.JSONArray(kindsJson).let { a -> (0 until a.length()).map { a.getString(it) }.toSet() } }.getOrDefault(emptySet())
+            val kinds = runCatching { JSONArray(kindsJson).let { a -> (0 until a.length()).map { a.getString(it) }.toSet() } }.getOrDefault(emptySet())
             val before = GameHealth.storageInfo(applicationContext)
             GameHealth.clearFiles(applicationContext, kinds)
             if ("web" in kinds) {
@@ -1355,14 +1466,14 @@ class HubActivity : ComponentActivity() {
             try {
                 scrapeExecutor.execute {
                     // 1.8.3: also render the page with its scripts run (single-page apps carry almost
-                    // nothing in their plain HTML), in parallel with the plain fetch. Only for a public
-                    // host, the same check the plain fetch makes.
+                    // nothing in their plain HTML), in parallel with the plain fetch. Only when allowed
+                    // by the active SSRF policy (direct public host or allowed proxy host).
                     val url = WebsiteScraper.normalizeUrl(rawUrl)
                     val target = runCatching { java.net.URI(url) }.getOrNull()
                     val web = target?.scheme?.lowercase(Locale.US).let { it == "http" || it == "https" }
                     val renderDone = java.util.concurrent.CountDownLatch(1)
                     var renderedJson: JSONObject? = null
-                    if (web && SafeHttp.isPublicHost(target?.host)) {
+                    if (web && SafeHttp.isAllowedForScrape(url)) {
                         runOnUiThread {
                             if (isFinishing || isDestroyed) { renderDone.countDown(); return@runOnUiThread }
                             val renderer = pageRenderer ?: PageRenderer(scaffoldRoot).also { pageRenderer = it }
@@ -1382,7 +1493,7 @@ class HubActivity : ComponentActivity() {
                     val payload = res.toString()
                     runOnUiThread {
                         if (!isFinishing && !isDestroyed) {
-                            runJs("window.onWebsiteScraped && window.onWebsiteScraped($payload)")
+                            runJs("window.onWebsiteScraped && window.onWebsiteScraped(${jsSafeJson(payload)})")
                         }
                     }
                 }
@@ -1403,17 +1514,20 @@ class HubActivity : ComponentActivity() {
             a.runOnUiThread {
                 if (!a.isFinishing && !a.isDestroyed) {
                     runCatching { a.startActivity(confirm) }
-                        .onFailure { UpdateInstaller.postConfirmNotification(a.applicationContext, confirm) }
+                        .onFailure {
+                            UpdateInstaller.postConfirmNotification(a.applicationContext, confirm)
+                            reportUpdateStatus("confirming", 100, null)
+                        }
                 }
             }
             return true
         }
 
-        /** Tells the hub page how an in-app update is going (state: downloading / installing / permission / error). */
+        /** Tells the hub page how an in-app update is going (state: downloading / installing / confirming / permission / error). */
         fun reportUpdateStatus(state: String, percent: Int, message: String?) {
             val a = current?.get() ?: return
             val json = JSONObject().put("state", state).put("percent", percent).put("message", message ?: "").toString()
-            a.runOnUiThread { a.runJs("window.onUpdateStatus && window.onUpdateStatus($json)") }
+            a.runOnUiThread { a.runJs("window.onUpdateStatus && window.onUpdateStatus(${a.jsSafeJson(json)})") }
         }
 
         private const val ASSET_PREFIX = "file:///android_asset/"
@@ -1422,9 +1536,8 @@ class HubActivity : ComponentActivity() {
         /** Longest the launch screen waits for the hub to draw before showing it anyway. */
         private const val MAX_LAUNCH_HOLD_MS = 3000L
         private const val MAX_WARMUP_MS = 1500L
+        private const val HUB_RENDERER_CRASH_WINDOW_MS = 60_000L
         private const val MAX_IMPORT_BYTES = 50 * 1024 * 1024
-        private const val BACKUP_TEMP_FILE = "pending_backup_export.json"
-        private const val CSV_TEMP_FILE = "pending_history_export.csv"
         /** Characters per slice when handing an imported backup to the page. */
         private const val IMPORT_CHUNK_CHARS = 512 * 1024
     }

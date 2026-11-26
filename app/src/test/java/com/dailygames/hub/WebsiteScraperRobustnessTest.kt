@@ -134,4 +134,92 @@ class WebsiteScraperRobustnessTest {
         assertEquals("12:00", withNoonContext.time)
         assertEquals("America/New_York", withNoonContext.zone)
     }
+
+    @Test
+    fun countdownTimersAndStrayFooterUtcDoNotTriggerFalseSchedules() {
+        val countdown = WebsiteScraper.detectResetScheduleDetail("New puzzle in 08:42:15. Terms of service (UTC).")
+        assertFalse(countdown.timeFound)
+        assertFalse(countdown.zoneFound)
+        assertEquals("local", countdown.zone)
+
+        val countdownShort = WebsiteScraper.detectResetScheduleDetail("Resets in 14:22!")
+        assertFalse(countdownShort.timeFound)
+    }
+
+    @Test
+    fun decodeHtmlEntities_handlesNumericAmpersandAndCaseSensitiveNamedEntities() {
+        assertEquals("&lt;script&gt;", WebsiteScraper.decodeHtmlEntities("&#38;lt;script&#38;gt;"))
+        assertEquals("Éclair & éclair", WebsiteScraper.decodeHtmlEntities("&Eacute;clair &amp; &eacute;clair"))
+    }
+
+    @Test
+    fun stripsLargeScriptsBeforeTruncatingVisibleBodyText() {
+        val bigScript = "<script>" + "var x = 'new puzzle at 10:00 AM';".repeat(1000) + "</script>"
+        val html = "<html><head><title>Puzzle</title></head><body>$bigScript<p>Guess the word in 5 tries.</p></body></html>"
+        val meta = WebsiteScraper.parseHtmlMetadata(html, "https://example.com/")
+        assertFalse(meta.timeFound)
+        assertEquals(5, meta.par)
+    }
+
+    @Test
+    fun skipsMaskIconAndNonStringJsonLdNameAndSniffsMetaCharset() {
+        val html = """
+            <html><head>
+              <meta charset="ISO-8859-1">
+              <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#000">
+              <link rel="icon" href="/favicon.png">
+              <script type="application/ld+json">{"@type":"Game","name":{"@value":"Wrapped"},"description":"Solve it."}</script>
+              <title>Caf\u00e9</title>
+            </head></html>
+        """.trimIndent()
+        val meta = WebsiteScraper.parseHtmlMetadata(html, "https://example.com/")
+        assertEquals("https://example.com/favicon.png", meta.faviconUrl)
+        assertEquals("ISO-8859-1".lowercase(), WebsiteScraper.charsetFromResponse(null, html.toByteArray(Charsets.ISO_8859_1)).name().lowercase())
+    }
+
+    @Test
+    fun preservesHttp404EvenWhenRenderedAndRejectsBotChallengeRenderedOutput() {
+        val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/missing") { ex ->
+            val bytes = "<html><title>404 Not Found</title></html>".toByteArray()
+            ex.responseHeaders.add("Content-Type", "text/html")
+            ex.sendResponseHeaders(404, bytes.size.toLong())
+            ex.responseBody.use { it.write(bytes) }
+        }
+        server.createContext("/cf") { ex ->
+            val bytes = "<html><title>Just a moment...</title></html>".toByteArray()
+            ex.responseHeaders.add("Content-Type", "text/html")
+            ex.sendResponseHeaders(200, bytes.size.toLong())
+            ex.responseBody.use { it.write(bytes) }
+        }
+        server.start()
+        try {
+            val base = "http://127.0.0.1:${server.address.port}"
+            val res404 = WebsiteScraper.fetchAndScrape("$base/missing") {
+                org.json.JSONObject().put("title", "404 Page Not Found").put("text", "Sorry, this page does not exist on this server.")
+            }
+            assertFalse(res404.getBoolean("ok"))
+            assertEquals("http_404", res404.getString("error"))
+
+            val resCfStillBlocked = WebsiteScraper.fetchAndScrape("$base/cf") {
+                org.json.JSONObject().put("title", "Just a moment...").put("text", "Checking if the site connection is secure.")
+            }
+            assertFalse(resCfStillBlocked.getBoolean("ok"))
+            assertFalse(resCfStillBlocked.getBoolean("rendered"))
+            assertEquals("bot_challenge", resCfStillBlocked.getString("error"))
+
+            val resCfBypassed = WebsiteScraper.fetchAndScrape("$base/cf") {
+                org.json.JSONObject()
+                    .put("title", "Real Game")
+                    .put("text", "How to play\nGuess the hidden word in 6 tries.")
+                    .put("url", "https://realgame.example/play")
+            }
+            assertTrue(resCfBypassed.getBoolean("ok"))
+            assertTrue(resCfBypassed.getBoolean("rendered"))
+            assertEquals("https://realgame.example/play", resCfBypassed.getString("finalUrl"))
+        } finally {
+            server.stop(0)
+        }
+    }
 }
+

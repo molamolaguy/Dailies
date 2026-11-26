@@ -95,14 +95,15 @@ object WebsiteScraper {
     private val WHITESPACE_REGEX = Regex("""\s+""")
     private val TITLE_SPLIT_REGEX = Regex("""(?:\s+[|\-\u2013\u2014]\s+|:\s+)""")
     private val TITLE_TAG_REGEX = Regex("""<title[^>]*>([\s\S]*?)</title>""", RegexOption.IGNORE_CASE)
-    private val NUMERIC_ENTITY_REGEX = Regex("""&#(x[0-9a-fA-F]{1,6}|[0-9]{1,7});""")
+    private val ENTITY_REGEX = Regex("""&(?:#(x[0-9a-fA-F]{1,6}|[0-9]{1,7})|([A-Za-z][A-Za-z0-9]{1,10}));""")
     private val CHARSET_REGEX = Regex("""charset\s*=\s*["']?([A-Za-z0-9._-]+)""", RegexOption.IGNORE_CASE)
+    private val META_CHARSET_REGEX = Regex("""<meta\b[^>]*?(?:\bcharset\s*=\s*["']?([A-Za-z0-9._-]+)|\bhttp-equiv\s*=\s*["']content-type["'][^>]*?\bcharset\s*=\s*([A-Za-z0-9._-]+))""", RegexOption.IGNORE_CASE)
     private val CHALLENGE_TITLE_REGEX = Regex(
-        """<title[^>]*>\s*(?:just a moment|attention required|access denied|please wait|checking your browser|ddos-guard)""",
+        """(?:<title[^>]*>\s*|^\s*)(?:just a moment|attention required|access denied|please wait|checking your browser|ddos-guard)""",
         RegexOption.IGNORE_CASE
     )
     private val CHALLENGE_MARKER_REGEX = Regex(
-        """(?:/cdn-cgi/challenge-platform/|cf-chl-|cf_chl_opt|id=["']challenge-form["']|captcha-delivery\.com)""",
+        """(?:/cdn-cgi/challenge-platform/|cf-chl-|cf_chl_opt|id=["']challenge-form["']|captcha-delivery\.com|verify you are human|checking if the site connection is secure)""",
         RegexOption.IGNORE_CASE
     )
 
@@ -114,17 +115,21 @@ object WebsiteScraper {
     private val metaPatternCache = ConcurrentHashMap<String, List<Regex>>()
     private val linkPatternCache = ConcurrentHashMap<String, List<Regex>>()
 
-    private val NAMED_ENTITIES = linkedMapOf(
-        "&quot;" to "\"", "&#39;" to "'", "&apos;" to "'", "&lt;" to "<", "&gt;" to ">",
-        "&nbsp;" to " ", "&rsquo;" to "\u2019", "&lsquo;" to "\u2018", "&rdquo;" to "\u201D",
-        "&ldquo;" to "\u201C", "&ndash;" to "\u2013", "&mdash;" to "\u2014", "&hellip;" to "\u2026",
-        "&middot;" to "\u00B7", "&bull;" to "\u2022", "&copy;" to "\u00A9", "&reg;" to "\u00AE",
-        "&trade;" to "\u2122", "&eacute;" to "\u00E9"
+    private val NAMED_ENTITIES = mapOf(
+        "amp" to "&", "quot" to "\"", "apos" to "'", "lt" to "<", "gt" to ">",
+        "nbsp" to " ", "rsquo" to "\u2019", "lsquo" to "\u2018", "rdquo" to "\u201D",
+        "ldquo" to "\u201C", "ndash" to "\u2013", "mdash" to "\u2014", "hellip" to "\u2026",
+        "middot" to "\u00B7", "bull" to "\u2022", "copy" to "\u00A9", "reg" to "\u00AE",
+        "trade" to "\u2122", "eacute" to "\u00E9", "Eacute" to "\u00C9"
     )
 
     private val UTC_GMT_REGEX = Regex("""\b(utc|gmt)\b""", RegexOption.IGNORE_CASE)
+    private val RESET_NEAR_UTC_REGEX = Regex(
+        """(?:reset\w*|refresh\w*|new\s+(?:puzzle|game|word|daily|challenge)|every\s+day|daily|releas\w*|available|updates?)[^.\n]{0,60}\b(utc|gmt)\b|\b(utc|gmt)\b[^.\n]{0,40}(?:reset\w*|refresh\w*|new\s+(?:puzzle|game|word|daily|challenge))""",
+        RegexOption.IGNORE_CASE
+    )
     private val HHMM_RESET_REGEX = Regex(
-        """(?:reset|refresh|new\s+(?:puzzle|game|daily))[^0-9]{0,25}\b([01]?\d|2[0-3]):([0-5]\d)\s*(am|pm)?\b""",
+        """(?:reset\w*|refresh\w*|new\s+(?:puzzle|game|daily))[^0-9\n]{0,25}(?<!\bin\s)\b([01]?\d|2[0-3]):([0-5]\d)(?!\s*:\s*\d)\s*(am|pm)?\b""",
         RegexOption.IGNORE_CASE
     )
     /** "new puzzle every day at 9 AM ET" (hour only, with am/pm). */
@@ -203,7 +208,13 @@ object WebsiteScraper {
      * its scripts run ([PageRenderer]). A page whose plain HTML is blocked or empty (a bot check, a
      * single-page app) is still read from the rendered copy.
      */
-    fun fetchAndScrape(rawUrl: String, fetchExtras: Boolean = true, rendered: (() -> JSONObject?)? = null): JSONObject {
+    fun fetchAndScrape(
+        rawUrl: String,
+        fetchExtras: Boolean = true,
+        maxScriptUrls: Int = 3,
+        maxScriptBytes: Int = 2 * 1024 * 1024,
+        rendered: (() -> JSONObject?)? = null
+    ): JSONObject {
         val started = System.currentTimeMillis()
         val normalizedUrl = normalizeUrl(rawUrl)
         val result = JSONObject()
@@ -242,7 +253,7 @@ object WebsiteScraper {
             }
             else -> {
                 finalUrl = resp.finalUrl
-                val body = String(resp.body, charsetFromContentType(resp.contentType)).take(MAX_HTML_CHARS)
+                val body = String(resp.body, charsetFromResponse(resp.contentType, resp.body)).take(MAX_HTML_CHARS)
                 // Cloudflare / bot-check interstitials carry no game metadata ("Just a moment...").
                 if (looksLikeBotChallenge(body)) error = "bot_challenge" else html = body
             }
@@ -260,24 +271,35 @@ object WebsiteScraper {
                     if (r != null && r.code in 200..299) manifest = runCatching { JSONObject(String(r.body, Charsets.UTF_8)) }.getOrNull()
                 }
             }
-            for (src in ownScriptUrls(html, finalUrl)) {
-                if (scriptZone != null || left() < 1_500) break
-                val r = SafeHttp.get(src, headers = mapOf("User-Agent" to USER_AGENT), maxBytes = 2 * 1024 * 1024, deadlineMs = minOf(5_000L, left()))
-                if (r != null && r.code in 200..299) scriptZone = scriptZoneHint(String(r.body, Charsets.UTF_8))
+            if (maxScriptUrls > 0 && maxScriptBytes > 0) {
+                for (src in ownScriptUrls(html, finalUrl, max = maxScriptUrls)) {
+                    if (scriptZone != null || left() < 1_500) break
+                    val r = SafeHttp.get(src, headers = mapOf("User-Agent" to USER_AGENT), maxBytes = maxScriptBytes, deadlineMs = minOf(5_000L, left()))
+                    if (r != null && r.code in 200..299) scriptZone = scriptZoneHint(String(r.body, Charsets.UTF_8))
+                }
             }
         }
         val renderedJson = rendered?.invoke()
-        val extras = PageExtras.fromRendered(renderedJson).copy(manifest = manifest, scriptZone = scriptZone)
+        val rawExtras = PageExtras.fromRendered(renderedJson).copy(manifest = manifest, scriptZone = scriptZone)
+        val renderedIsChallenge = looksLikeBotChallenge(rawExtras.renderedTitle) || looksLikeBotChallenge(rawExtras.renderedText)
+        val extras = if (renderedIsChallenge) {
+            PageExtras(manifest = manifest, scriptZone = scriptZone)
+        } else {
+            rawExtras
+        }
         // Where the rendered page ended up (a redirect the plain fetch didn't get to follow).
-        if (resp == null) renderedJson?.optString("url")?.takeIf { it.startsWith("http") }?.let { finalUrl = it; result.put("finalUrl", it) }
+        if (!renderedIsChallenge && (resp == null || error == "bot_challenge" || error == "http_403")) {
+            renderedJson?.optString("url")?.takeIf { it.startsWith("http") }?.let { finalUrl = it; result.put("finalUrl", it) }
+        }
 
-        val renderedUseful = extras.renderedText.length >= 40 || extras.renderedTitle.isNotBlank()
+        val renderedUseful = !renderedIsChallenge && (extras.renderedText.length >= 40 || extras.renderedTitle.isNotBlank())
         result.put("parsed", parseHtmlMetadata(html, finalUrl, extras).toJson())
         // Games shown inside this page (1.8.13): the hub asks before adding one it already has.
         val embeds = embeddedGameLinks(html, finalUrl, extras.frames)
         if (embeds.isNotEmpty()) result.put("embeds", JSONArray(embeds))
         result.put("rendered", renderedUseful)
-        if (error != null && !renderedUseful) {
+        val recoverableError = error == "bot_challenge" || error == "fetch_failed" || error == "http_403"
+        if (error != null && !(renderedUseful && recoverableError)) {
             result.put("ok", false)
             result.put("error", error)
         } else {
@@ -287,7 +309,8 @@ object WebsiteScraper {
     }
 
     private val IFRAME_SRC = Regex("""<iframe\b[^>]*?\bsrc\s*=\s*["']([^"'<>]+)["']""", RegexOption.IGNORE_CASE)
-    private val NOT_A_GAME_FRAME = Regex("""(youtube|youtu\.be|vimeo|google\.com/maps|recaptcha|disqus|facebook|twitter|x\.com/|instagram|tiktok|spotify|soundcloud|consent|cookie)""", RegexOption.IGNORE_CASE)
+    private val NOT_A_GAME_FRAME_HOST = Regex("""(youtube|youtu\.be|vimeo|recaptcha|disqus|facebook|twitter|x\.com|instagram|tiktok|spotify|soundcloud|consent|cookiebot|onetrust|usercentrics|didomi|quantcast|trustarc)""", RegexOption.IGNORE_CASE)
+    private val NOT_A_GAME_FRAME_URL = Regex("""(google\.com/maps|youtube\.com/embed|player\.vimeo\.com|platform\.twitter\.com|connect\.facebook\.net|consent|cookie[-_]?banner|cookie[-_]?consent)""", RegexOption.IGNORE_CASE)
 
     /**
      * Frames on a page that could be a game shown inside it (1.8.13): from its HTML and, when it was
@@ -300,8 +323,9 @@ object WebsiteScraper {
             val abs = runCatching { if (base != null) base.resolve(raw.replace(" ", "%20")).toString() else raw }.getOrNull() ?: return@forEach
             val u = runCatching { URI(abs) }.getOrNull() ?: return@forEach
             val scheme = u.scheme?.lowercase(Locale.US)
-            if ((scheme != "http" && scheme != "https") || u.host.isNullOrBlank()) return@forEach
-            if (AD_SCRIPT_HOST.containsMatchIn(u.host) || NOT_A_GAME_FRAME.containsMatchIn(abs)) return@forEach
+            val host = u.host?.lowercase(Locale.US)
+            if ((scheme != "http" && scheme != "https") || host.isNullOrBlank()) return@forEach
+            if (AD_SCRIPT_HOST.containsMatchIn(host) || NOT_A_GAME_FRAME_HOST.containsMatchIn(host) || NOT_A_GAME_FRAME_URL.containsMatchIn(abs)) return@forEach
             out += abs.take(500)
         }
         return out.take(8)
@@ -344,7 +368,7 @@ object WebsiteScraper {
         )
         val faviconUrl = resolveFaviconUrl(faviconHref, safeUrl, host)
 
-        val visibleBodyText = stripScriptsStylesAndTags(html.take(25_000))
+        val visibleBodyText = stripScriptsStylesAndTags(html).take(25_000)
         val allDescriptions = descCandidates.joinToString(" ")
         val combinedText = "$cleanedName $allDescriptions $rawTitle $visibleBodyText ${extras.renderedText}"
         val schedule = detectResetScheduleDetail(combinedText)
@@ -427,24 +451,42 @@ object WebsiteScraper {
         }
     }
 
+    fun charsetFromResponse(contentType: String?, body: ByteArray): Charset {
+        val headerName = contentType?.let { CHARSET_REGEX.find(it)?.groupValues?.get(1) }
+        if (!headerName.isNullOrBlank()) {
+            return runCatching { Charset.forName(headerName) }.getOrDefault(Charsets.UTF_8)
+        }
+        val sniff = String(body, 0, minOf(body.size, 2048), Charsets.ISO_8859_1)
+        val m = META_CHARSET_REGEX.find(sniff)
+        val metaName = m?.groupValues?.get(1)?.ifEmpty { m.groupValues[2] }
+        return if (!metaName.isNullOrBlank()) {
+            runCatching { Charset.forName(metaName) }.getOrDefault(Charsets.UTF_8)
+        } else {
+            Charsets.UTF_8
+        }
+    }
+
     /**
-     * Decodes named and numeric (&#8217; / &#x27;) entities. `&amp;` is decoded last so text such as
-     * "&amp;lt;" correctly becomes "&lt;" instead of being double-decoded to "<".
+     * Single-pass decoder for named and numeric (`&#8217;` / `&#x27;`) HTML entities.
+     * Single-pass prevents double-decoding (e.g. `&amp;lt;` -> `&lt;` and `&#38;lt;` -> `&lt;`)
+     * while preserving entity case (`&Eacute;` vs `&eacute;`).
      */
     fun decodeHtmlEntities(input: String): String {
-        var out = NUMERIC_ENTITY_REGEX.replace(input) { m ->
-            val raw = m.groupValues[1]
-            val code = if (raw.startsWith("x") || raw.startsWith("X")) raw.substring(1).toIntOrNull(16) else raw.toIntOrNull()
-            if (code != null && code in 1..0x10FFFF && code !in 0xD800..0xDFFF) {
-                String(Character.toChars(code))
+        if (input.isEmpty()) return ""
+        return ENTITY_REGEX.replace(input) { m ->
+            val num = m.groupValues[1]
+            if (num.isNotEmpty()) {
+                val code = if (num.startsWith("x", ignoreCase = true)) num.substring(1).toIntOrNull(16) else num.toIntOrNull()
+                if (code != null && code in 1..0x10FFFF && code !in 0xD800..0xDFFF) {
+                    String(Character.toChars(code))
+                } else {
+                    m.value
+                }
             } else {
-                m.value
+                val name = m.groupValues[2]
+                NAMED_ENTITIES[name] ?: NAMED_ENTITIES[name.lowercase(Locale.US)] ?: m.value
             }
-        }
-        for ((entity, value) in NAMED_ENTITIES) {
-            if (out.contains(entity, ignoreCase = true)) out = out.replace(entity, value, ignoreCase = true)
-        }
-        return out.replace("&amp;", "&", ignoreCase = true).trim()
+        }.trim()
     }
 
     private fun extractMetaContent(html: String, key: String): String {
@@ -475,14 +517,17 @@ object WebsiteScraper {
             val patterns = linkPatternCache.getOrPut(rel) {
                 val escaped = Regex.escape(rel)
                 listOf(
-                    Regex("""<link\b[^>]*?\brel\s*=\s*["'][^"']*\b$escaped\b[^"']*["'][^>]*?\bhref\s*=\s*$ATTR_VALUE""", RegexOption.IGNORE_CASE),
-                    Regex("""<link\b[^>]*?\bhref\s*=\s*$ATTR_VALUE[^>]*?\brel\s*=\s*["'][^"']*\b$escaped\b[^"']*["']""", RegexOption.IGNORE_CASE)
+                    Regex("""<link\b[^>]*?\brel\s*=\s*["']([^"']*\b$escaped\b[^"']*)["'][^>]*?\bhref\s*=\s*$ATTR_VALUE""", RegexOption.IGNORE_CASE),
+                    Regex("""<link\b[^>]*?\bhref\s*=\s*$ATTR_VALUE[^>]*?\brel\s*=\s*["']([^"']*\b$escaped\b[^"']*)["']""", RegexOption.IGNORE_CASE)
                 )
             }
-            for (p in patterns) {
-                val m = p.find(html) ?: continue
-                val href = m.groupValues[1].ifEmpty { m.groupValues[2] }.trim()
-                if (href.isNotBlank()) return decodeHtmlEntities(href)
+            for ((idx, p) in patterns.withIndex()) {
+                for (m in p.findAll(html)) {
+                    val relAttr = if (idx == 0) m.groupValues[1] else m.groupValues[3]
+                    if (relAttr.contains("mask-icon", ignoreCase = true)) continue
+                    val href = if (idx == 0) m.groupValues[2].ifEmpty { m.groupValues[3] }.trim() else m.groupValues[1].ifEmpty { m.groupValues[2] }.trim()
+                    if (href.isNotBlank()) return decodeHtmlEntities(href)
+                }
             }
         }
         return ""
@@ -513,12 +558,12 @@ object WebsiteScraper {
     data class ScheduleGuess(val time: String, val zone: String, val timeFound: Boolean, val zoneFound: Boolean)
 
     fun detectResetScheduleDetail(text: String): ScheduleGuess {
-        // A zone named anywhere ("refreshes at midnight UTC" in a description) is the fallback.
-        val utcAnywhere = UTC_GMT_REGEX.containsMatchIn(text)
-        val globalZone = if (utcAnywhere) "utc" else "local"
+        // Only treat UTC/GMT as an explicit reset zone if it appears near a reset phrase (or directly after a reset time).
+        val utcNearReset = RESET_NEAR_UTC_REGEX.containsMatchIn(text)
+        val globalZone = if (utcNearReset) "utc" else "local"
         fun guess(time: String, after: Int): ScheduleGuess {
             val z = zoneAfter(text, after)
-            return ScheduleGuess(time, z ?: globalZone, true, z != null || utcAnywhere)
+            return ScheduleGuess(time, z ?: globalZone, true, z != null || utcNearReset)
         }
 
         HHMM_RESET_REGEX.find(text)?.let { m ->
@@ -540,7 +585,7 @@ object WebsiteScraper {
             val time = if (m.groupValues[1].equals("noon", ignoreCase = true)) "12:00" else "00:00"
             return guess(time, m.range.last + 1)
         }
-        return ScheduleGuess("00:00", globalZone, false, utcAnywhere)
+        return ScheduleGuess("00:00", globalZone, false, utcNearReset)
     }
 
     /** How a game is scored, or "tries" / 6 when the text gives no clue (see [detectMetric]). */
@@ -603,14 +648,15 @@ object WebsiteScraper {
                 else -> 3
             }
         }
-        val best = found.filter { it.optString("name").isNotBlank() || it.optString("description").isNotBlank() }.minByOrNull(rank)
+        fun strField(o: JSONObject, key: String): String = (o.opt(key) as? String).orEmpty()
+        val best = found.filter { strField(it, "name").isNotBlank() || strField(it, "description").isNotBlank() }.minByOrNull(rank)
             ?: return JsonLdInfo()
         val genre = when (val g = best.opt("genre") ?: best.opt("applicationCategory")) {
             is JSONArray -> (0 until g.length()).joinToString(" ") { g.optString(it) }
             null -> ""
             else -> g.toString()
         }
-        return JsonLdInfo(decodeHtmlEntities(best.optString("name")), decodeHtmlEntities(best.optString("description")), genre)
+        return JsonLdInfo(decodeHtmlEntities(strField(best, "name")), decodeHtmlEntities(strField(best, "description")), genre)
     }
 
     /** The web-app manifest's address, if the page links one. */
@@ -628,7 +674,7 @@ object WebsiteScraper {
             val src = decodeHtmlEntities(m.groupValues[1].ifEmpty { m.groupValues[2] })
             val abs = runCatching { URI(pageUrl).resolve(src).toString() }.getOrNull() ?: return@mapNotNull null
             val h = extractHost(abs)
-            if (h.isEmpty() || AD_SCRIPT_HOST.containsMatchIn(abs)) return@mapNotNull null
+            if (h.isEmpty() || AD_SCRIPT_HOST.containsMatchIn(h)) return@mapNotNull null
             if (h != pageHost && !h.endsWith(".$site") && h != site) return@mapNotNull null
             abs
         }.distinct().take(max).toList()

@@ -182,13 +182,16 @@
   // The phone's own time zone, looked at no more than once a second: a local reset depends on it (the
   // phone may travel while the hub is open).
   let localZoneSig = '';
+  let localZoneOffset = NaN;
   let localZoneAt = 0;
   function localZone() {
     const now = Date.now();
-    if (now - localZoneAt > 1000 || now < localZoneAt) {
+    const off = new Date().getTimezoneOffset();
+    if (off !== localZoneOffset || now - localZoneAt > 1000 || now < localZoneAt) {
       localZoneAt = now;
+      localZoneOffset = off;
       try { localZoneSig = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { localZoneSig = ''; }
-      localZoneSig += `@${new Date().getTimezoneOffset()}`;
+      localZoneSig += `@${off}`;
     }
     return localZoneSig;
   }
@@ -419,7 +422,7 @@
     const todayOutcome = game.dayHistory[todayKey];
     if (todayOutcome === 'completed' || todayOutcome === 'missed') {
       game.status = todayOutcome;
-    } else if (game.status !== 'completed' && game.status !== 'missed') {
+    } else {
       game.status = 'ready';
     }
 
@@ -453,6 +456,66 @@
     return map;
   }
 
+  /**
+   * Sorts history log rows newest-first by cycle `date` descending, then `loggedAt` descending.
+   * Preserves relative order of ties. Mutates and returns `logs` (or [] if not an array).
+   */
+  function sortHistoryLogs(logs) {
+    if (!Array.isArray(logs)) return [];
+    return logs.sort((a, b) => {
+      const da = a && typeof a.date === 'string' ? a.date : '';
+      const db = b && typeof b.date === 'string' ? b.date : '';
+      if (db !== da) return db.localeCompare(da);
+      return (Number(b && b.loggedAt) || 0) - (Number(a && a.loggedAt) || 0);
+    });
+  }
+
+  /**
+   * Recomputes `.streak` on every log row belonging to `game` in chronological order using
+   * `game.dayHistory` (consecutive 'completed' days ending on each row's cycle date, 0 when
+   * missed or absent), and sorts `logs` newest-first. Returns `logs`.
+   */
+  function recomputeLogStreaks(game, logs) {
+    if (!Array.isArray(logs)) return [];
+    if (!game || typeof game !== 'object') return sortHistoryLogs(logs);
+    const hist = game.dayHistory && typeof game.dayHistory === 'object' ? game.dayHistory : {};
+    const mine = logs.filter((l) => l && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
+    if (mine.length) {
+      const dates = [...new Set(mine.map((l) => l.date).filter((d) => DATE_KEY_RE.test(String(d))))].sort();
+      const streakByDate = new Map();
+      let run = 0;
+      let prevDay = null;
+      for (const d of dates) {
+        if (hist[d] !== 'completed') {
+          run = 0;
+          prevDay = null;
+          streakByDate.set(d, 0);
+          continue;
+        }
+        const dayNum = cycleKeyToDay(d);
+        if (prevDay !== null && dayNum === prevDay + 1) {
+          run += 1;
+        } else {
+          // Walk backwards through any earlier completed days in dayHistory that lack log rows.
+          let back = 1;
+          let cursor = addDaysToCycleKey(d, -1);
+          while (hist[cursor] === 'completed') {
+            back += 1;
+            cursor = addDaysToCycleKey(cursor, -1);
+          }
+          run = back;
+        }
+        prevDay = dayNum;
+        streakByDate.set(d, run);
+      }
+      mine.forEach((l) => {
+        if (streakByDate.has(l.date)) l.streak = streakByDate.get(l.date);
+        else if (l.outcome !== 'Completed') l.streak = 0;
+      });
+    }
+    return sortHistoryLogs(logs);
+  }
+
   // Emoji squares / circles used by Wordle-style share grids.
   const SHARE_GLYPH_RE = /[\u2B1B\u2B1C\u{1F7E5}-\u{1F7EB}\u{1F7E0}-\u{1F7E4}\u{1F534}\u{1F535}\u26AB\u26AA]/u;
   const SCORE_FRACTION_RE = /\b(?:[0-9]{1,2}|x)\s*\/\s*[0-9]{1,2}\b/i;
@@ -469,7 +532,7 @@
     const name = String((game && game.name) || '').trim().toLowerCase();
     if (name.length >= 3 && lower.includes(name)) return true;
     try {
-      const host = new URL(String((game && game.url) || '')).hostname.replace(/^www\./, '').toLowerCase();
+      const host = new URL(String((game && game.url) || '')).hostname.replace(/^(www|m)\./, '').toLowerCase();
       if (host && lower.includes(host)) return true;
     } catch (e) {}
     return SCORE_FRACTION_RE.test(t) && /\n|#|day|puzzle|guess/i.test(t);
@@ -581,7 +644,7 @@
   }
 
   function isStrictShareResult(text, game) {
-    const t = strictTrim(text);
+    const t = strictTrim(String(text == null ? '' : text).replace(/\r\n/g, '\n'));
     if (t.length < 3 || t.length > 4000) return false;
     const lower = asciiLower(t);
     if (SINGLE_URL_RE.test(lower)) return false;
@@ -603,19 +666,44 @@
 
   /** Whether a text names the game at all (used for clipboard text found after the fact). */
   function mentionsGame(text, game) {
-    const lower = asciiLower(strictTrim(text));
+    const lower = asciiLower(strictTrim(String(text == null ? '' : text).replace(/\r\n/g, '\n')));
     return gameMention(lower, game && game.name, game && game.url) > 0 || STRICT_PUZZLE_NO_RE.test(lower);
+  }
+
+  /**
+   * Strict attribution check for out-of-band clipboard captures: requires the text to explicitly
+   * mention this game (name, host, or site label) without falling back to a bare `#12` puzzle number.
+   */
+  function mentionsGameExplicitly(text, gameName, gameUrl) {
+    const lower = asciiLower(strictTrim(String(text == null ? '' : text).replace(/\r\n/g, '\n')));
+    return gameMention(lower, gameName, gameUrl) >= 1;
   }
 
   // A share result that says the puzzle was NOT solved ("X/6", "Next time", Connections with four
   // mistakes). Auto-logging records these as Missed (with the score) instead of Solved.
   const FAILED_FRACTION_RE = /(?<![0-9A-Za-z_/])x[ \t\u00A0]*\/[ \t\u00A0]*[0-9]{1,2}(?![0-9/])/i;
-  const FAILED_PHRASE_RE = /(?<![A-Za-z0-9_])(?:next time|better luck|not solved|unsolved|did not solve|didn[’']t solve|failed(?![ \t\u00A0]+to(?![A-Za-z]))|out of (?:guesses|tries|lives))(?![A-Za-z0-9_])/i;
+  const FAILED_PHRASE_RE = /(?<![A-Za-z0-9_])(?:next time|better luck|not solved|unsolved|did not solve|didn[’']t solve|failed(?![ \t\u00A0]+to(?![A-Za-z]))|out of (?:guesses|tries|lives)|you lost|game over|perdiste|has perdido|perdu|echec|échec|verloren|leider nicht|hai perso|não conseguiu)(?![A-Za-z0-9_])/i;
   const GROUP_SQUARES = new Set(['\u{1F7E8}', '\u{1F7E9}', '\u{1F7E6}', '\u{1F7EA}']); // yellow green blue purple
+  // Fraction games where higher N/M is better (Waffle stars, GeoGrid/PokeDoku/Immaculate Grid/NintenDoku/etc.).
+  const HIGHER_FRACTION_CONTEXT_RE = /#waffle\b|wafflegame|geogrid|boxofficega|moviegrid|immaculate\s*grid|pokedoku|nintendoku|crossover|\bscore[ \t\u00A0]*:[ \t\u00A0]*[0-9]{1,2}[ \t\u00A0]*\/[ \t\u00A0]*[0-9]{1,2}\b|\bstars?\b/i;
+  // Leading date patterns ("Played 11/13", "Date: 11/13/2026", "11/13/2026") that should not masquerade as N/M scores.
+  const LEADING_DATE_RE = /\b(?:played|date|on)[ \t\u00A0:]+[0-9]{1,2}\/[0-9]{1,2}(?:\/[0-9]{2,4})?\b|\b[0-9]{1,2}\/[0-9]{1,2}\/[0-9]{2,4}\b/gi;
+  // Guess-based 0/M (e.g. "Wordle #1234 0/6") when not in a higher-is-better score/grid context.
+  const ZERO_FRACTION_RE = /(?:^|[^\d/.\-])0\s*\/\s*(\d{1,2})(?![\d/:,])/;
+  function stripNonScoreDates(text) {
+    return String(text || '').replace(LEADING_DATE_RE, ' ');
+  }
+
   function isFailedShareResult(text) {
     const t = String(text || '').trim();
     if (!t) return false;
     if (FAILED_FRACTION_RE.test(t) || FAILED_PHRASE_RE.test(t)) return true;
+    const cleaned = stripNonScoreDates(t);
+    const zm = ZERO_FRACTION_RE.exec(cleaned);
+    if (zm) {
+      const zMax = Number(zm[1]);
+      if (zMax >= 3 && zMax <= 99 && !HIGHER_FRACTION_CONTEXT_RE.test(t)) return true;
+    }
     // Framed-style rows: every attempt red (🟥 / ❌) and no green anywhere means it was never solved.
     const cellsAll = Array.from(t);
     const reds = cellsAll.filter((c) => c === '\u{1F7E5}' || c === '❌').length;
@@ -631,18 +719,34 @@
     return mixedRows >= 4;
   }
 
-  const SCORE_RE = /(^|[^\d/.\-])(\d{1,2}|[xX])\s*\/\s*(\d{1,2})(?![\d/:])/;
+  const SCORE_RE = /(^|[^\d/.\-])(\d{1,2}|[xX])\s*\/\s*(\d{1,2})(?![\d/:,])/;
+  const SCORE_GLOBAL_RE = /(^|[^\d/.\-])(\d{1,2}|[xX])\s*\/\s*(\d{1,2})(?![\d/:,])/g;
+  // A slash fraction that is followed by a non-guess unit ("42/42 words", "12/15 points", "1/2 Found") or is clearly a date ("Squaredle 11/13:").
+  const SCORE_AFTER_NON_GUESS_RE = /^[ \t\u00A0]*(?:words?|pts|points?|%)/i;
 
   /** "3/6" -> { n: 3, max: 6 }; "X/6" -> { n: null, max: 6, fail: true }; null when there's no N/M score. */
   function parseScore(text) {
-    const m = SCORE_RE.exec(String(text || ''));
-    if (!m) return null;
-    const max = Number(m[3]);
-    if (!(max >= 3 && max <= 20)) return null;
-    if (/x/i.test(m[2])) return { n: null, max, fail: true };
-    const n = Number(m[2]);
-    if (n < 1 || n > max) return null;
-    return { n, max, fail: false };
+    const raw = String(text || '');
+    const cleaned = stripNonScoreDates(raw);
+    SCORE_GLOBAL_RE.lastIndex = 0;
+    let m;
+    while ((m = SCORE_GLOBAL_RE.exec(cleaned))) {
+      const max = Number(m[3]);
+      if (!(max >= 3 && max <= 99)) continue;
+      const after = cleaned.slice(m.index + m[0].length);
+      if (/x/i.test(m[2])) return { n: null, max, fail: true };
+      const n = Number(m[2]);
+      if (n < 0 || n > max) continue;
+      // Skip "11/13:" style header dates (not followed by guess grids/scores) and "42/42 words" / "12/15 points" progress/point tallies.
+      if (max <= 31 && n >= 1 && n <= 12 && /^:/.test(after) && !HIGHER_FRACTION_CONTEXT_RE.test(raw)) continue;
+      if (SCORE_AFTER_NON_GUESS_RE.test(after)) continue;
+      if (n === 0) {
+        if (HIGHER_FRACTION_CONTEXT_RE.test(raw)) return { n: 0, max, fail: false };
+        return { n: null, max, fail: true };
+      }
+      return { n, max, fail: false };
+    }
+    return null;
   }
 
   // ---- Scores beyond "N/M" guesses: times, points and counts (1.3.0) ----
@@ -661,7 +765,7 @@
   const GOLF_CONTEXT_RE = /\u26F3|golf|strokes?|(?<![A-Za-z])par(?![A-Za-z])/i;
   const SCORE_LABEL_RE = /(?<![A-Za-z0-9_])(?:score|points|total)[ \t\u00A0]*[:=]?[ \t\u00A0]*([-\u2212]?)([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]{1,7}(?:\.[0-9]+)?)(?![0-9])/gi;
   const NOT_THIS_SCORE_RE = /(?:high|best|top|record|max|average|avg)[ \t\u00A0]*$/i;
-  const COUNT_RE = /(?<![A-Za-z0-9_#.,])([0-9]{1,4})[ \t\u00A0]*(guess(?:es)?|tries|try|attempts?|moves?|mistakes?|swaps?|clicks?|steps?|strokes?|shots?|hints?)(?![A-Za-z0-9_])/i;
+  const COUNT_RE = /(?<![A-Za-z0-9_#.,\/])([0-9]{1,4})[ \t\u00A0]*(guess(?:es)?|tries|try|attempts?|moves?|mistakes?|swaps?|clicks?|steps?|strokes?|shots?|hints?|words?|clues?)(?![A-Za-z0-9_])/i;
   // "FE Guess 512 - guessed in 4" (not "solved in 4 min").
   const GUESSED_IN_RE = /(?<![A-Za-z0-9_])(?:guessed|solved|got it)[ \t\u00A0]+in[ \t\u00A0]+([0-9]{1,3})(?![0-9:.,\/]|[ \t\u00A0]*(?:s|secs?|seconds?|m|mins?|minutes?|h|hrs?|hours?)(?![A-Za-z]))/i;
   const BARE_NUMBER_LINE_RE = /^[ \t\u00A0]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})[ \t\u00A0]*$/;
@@ -672,6 +776,7 @@
   /**
    * What a result's score is, so like can be compared with like:
    *   guesses "3/6"          -> { kind: 'guesses', n, max, group: 'g6', rank: n (lower is better) }
+   *   higher fractions       -> { kind: 'points', value: n, max, group: 'hi:9', rank: -n (higher is better) }
    *   time "1:42", "1m 42s"  -> { kind: 'time', ms, group: 'time', rank: ms (lower is better) }
    *   count "45 guesses"     -> { kind: 'count', n, unit, group: 'c:guesses', rank: n (lower is better) }
    *   points "2,450 pts", "Score: 850", "4,250m", or a line that is only a number ("60")
@@ -681,40 +786,48 @@
   function parseResultValue(text) {
     const t = String(text || '');
     if (!t.trim()) return null;
-    const g = parseScore(t);
-    if (g) return g.fail ? null : { kind: 'guesses', n: g.n, max: g.max, group: `g${g.max}`, rank: g.n, label: `${g.n}/${g.max}` };
-    let m = TIME_COLON_RE.exec(t);
-    if (m) {
-      const ms = (m[3] !== undefined ? (Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3])) : (Number(m[1]) * 60 + Number(m[2]))) * 1000;
-      if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
-    }
-    m = TIME_UNITS_RE.exec(t);
-    if (m) {
-      const ms = Math.round(((Number(m[1]) || 0) * 3600 + (Number(m[2]) || 0) * 60 + Number(m[3])) * 1000);
-      if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
-    }
-    m = TIME_HM_RE.exec(t);
-    if (m) {
-      const ms = (Number(m[1]) * 3600 + Number(m[2]) * 60) * 1000;
-      if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
-    }
-    m = POINTS_OF_RE.exec(t);
+    const cleaned = stripNonScoreDates(t);
+    let m = POINTS_OF_RE.exec(cleaned);
     if (m && num(m[1]) <= num(m[2])) {
       const value = num(m[1]);
       return { kind: 'points', value, unit: 'pts', group: 'p:pts', rank: -value, label: pointsLabel(value, 'pts') };
     }
-    m = COUNT_RE.exec(t);
+    const g = parseScore(cleaned);
+    if (g) {
+      if (g.fail) return null;
+      if (HIGHER_FRACTION_CONTEXT_RE.test(t)) {
+        return { kind: 'points', value: g.n, max: g.max, unit: '', group: `hi:${g.max}`, rank: -g.n, label: `${g.n}/${g.max}` };
+      }
+      return { kind: 'guesses', n: g.n, max: g.max, group: `g${g.max}`, rank: g.n, label: `${g.n}/${g.max}` };
+    }
+    m = TIME_COLON_RE.exec(cleaned);
+    if (m) {
+      const ms = (m[3] !== undefined ? (Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3])) : (Number(m[1]) * 60 + Number(m[2]))) * 1000;
+      if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
+    }
+    m = TIME_UNITS_RE.exec(cleaned);
+    if (m) {
+      const ms = Math.round(((Number(m[1]) || 0) * 3600 + (Number(m[2]) || 0) * 60 + Number(m[3])) * 1000);
+      if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
+    }
+    m = TIME_HM_RE.exec(cleaned);
+    if (m) {
+      const ms = (Number(m[1]) * 3600 + Number(m[2]) * 60) * 1000;
+      if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) };
+    }
+    m = COUNT_RE.exec(cleaned);
     if (m) {
       const unit = m[2].toLowerCase().replace(/^(guess)(es)?$/, 'guesses').replace(/^(tries|try)$/, 'tries')
         .replace(/^attempts?$/, 'attempts').replace(/^moves?$/, 'moves').replace(/^mistakes?$/, 'mistakes')
         .replace(/^swaps?$/, 'swaps').replace(/^clicks?$/, 'clicks').replace(/^steps?$/, 'steps')
-        .replace(/^strokes?$/, 'strokes').replace(/^shots?$/, 'shots').replace(/^hints?$/, 'hints');
+        .replace(/^strokes?$/, 'strokes').replace(/^shots?$/, 'shots').replace(/^hints?$/, 'hints')
+        .replace(/^words?$/, 'words').replace(/^clues?$/, 'clues');
       const n = Number(m[1]);
       return { kind: 'count', n, unit, group: `c:${unit}`, rank: n, label: `${n} ${unit}` };
     }
-    m = GUESSED_IN_RE.exec(t);
+    m = GUESSED_IN_RE.exec(cleaned);
     if (m) { const n = Number(m[1]); if (n > 0) return { kind: 'count', n, unit: 'guesses', group: 'c:guesses', rank: n, label: `${n} guesses` }; }
-    m = POINTS_RE.exec(t);
+    m = POINTS_RE.exec(cleaned);
     if (m) {
       const unitRaw = m[3].toLowerCase();
       const unit = /^(pts|points?)$/.test(unitRaw) ? 'pts' : (/^(m|meters?|metres?)$/.test(unitRaw) ? 'm' : unitRaw);
@@ -727,13 +840,13 @@
       return { kind: 'points', value, unit, group: `p:${unit}`, rank: -value, label: pointsLabel(value, unit) };
     }
     SCORE_LABEL_RE.lastIndex = 0;
-    while ((m = SCORE_LABEL_RE.exec(t))) {
+    while ((m = SCORE_LABEL_RE.exec(cleaned))) {
       // "High score: 900 Score: 100" is a 100.
-      if (NOT_THIS_SCORE_RE.test(t.slice(0, m.index))) continue;
+      if (NOT_THIS_SCORE_RE.test(cleaned.slice(0, m.index))) continue;
       const value = signed(m[1], m[2]);
       return { kind: 'points', value, unit: 'pts', group: 'p:pts', rank: -value, label: pointsLabel(value, 'pts') };
     }
-    m = TIME_MINUTES_RE.exec(t);
+    m = TIME_MINUTES_RE.exec(cleaned);
     if (m) { const ms = Number(m[1]) * 60000; if (ms > 0) return { kind: 'time', ms, group: 'time', rank: ms, label: formatClock(ms) }; }
     // A line that is only a number, after the first line (Krillion: "Krillion #117 🦐\n60").
     const lines = t.split(/\r?\n/);
@@ -782,18 +895,32 @@
   }
 
   function dominantScores(rows) {
-    const vals = (Array.isArray(rows) ? rows : [])
-      .filter((r) => r && r.outcome === 'Completed')
-      .map((r) => parseResultValue(r.score))
-      .filter(Boolean);
-    if (!vals.length) return { group: null, values: [] };
+    const entries = [];
+    const list = Array.isArray(rows) ? rows : [];
+    for (let i = 0; i < list.length; i++) {
+      const r = list[i];
+      if (!r || r.outcome !== 'Completed') continue;
+      const v = parseResultValue(r.score);
+      if (!v) continue;
+      entries.push({ v, date: typeof r.date === 'string' ? r.date : '', loggedAt: Number(r.loggedAt) || 0, idx: i });
+    }
+    if (!entries.length) return { group: null, values: [] };
     const counts = new Map();
-    vals.forEach((v) => counts.set(v.group, (counts.get(v.group) || 0) + 1));
-    // A tie goes to the kind of the most recent result.
+    entries.forEach((e) => counts.set(e.v.group, (counts.get(e.v.group) || 0) + 1));
+    // A tie goes to the kind of the most recent result (largest date, then loggedAt, then earliest index in newest-first order).
     const top = maxOf(counts.values(), -Infinity);
-    let group = null;
-    for (let i = vals.length - 1; i >= 0; i--) if (counts.get(vals[i].group) === top) { group = vals[i].group; break; }
-    return { group, values: vals.filter((v) => v.group === group) };
+    let bestEntry = null;
+    for (const e of entries) {
+      if (counts.get(e.v.group) !== top) continue;
+      if (!bestEntry
+        || e.date > bestEntry.date
+        || (e.date === bestEntry.date && e.loggedAt > bestEntry.loggedAt)
+        || (e.date === bestEntry.date && e.loggedAt === bestEntry.loggedAt && e.idx < bestEntry.idx)) {
+        bestEntry = e;
+      }
+    }
+    const group = bestEntry.v.group;
+    return { group, values: entries.filter((e) => e.v.group === group).map((e) => e.v) };
   }
 
   /** Average of a list of same-group scores, as a display label ("52 pts", "1:48", "14 guesses"). */
@@ -1363,11 +1490,15 @@
 
   // ---- 1.6.0: recaps for any period, tough days, hub sorting, today's combined share, colour themes ----
 
-  /** Monday of the week holding `key` (YYYY-MM-DD), and the Sunday after it. */
+  /** Monday of the week holding `key` (YYYY-MM-DD), and the Sunday after it. Null for invalid keys. */
   function weekBounds(key) {
-    const [y, m, d] = String(key).split('-').map(Number);
-    const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(); // 0 = Sunday
-    const from = addDaysToCycleKey(key, -((dow + 6) % 7));
+    const k = String(key || '');
+    if (!DATE_KEY_RE.test(k) || cycleKeyToDay(k) === null) return null;
+    const [y, m, d] = k.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+    const dow = dt.getUTCDay(); // 0 = Sunday
+    const from = addDaysToCycleKey(k, -((dow + 6) % 7));
     return { from, to: addDaysToCycleKey(from, 6) };
   }
 
@@ -1511,7 +1642,7 @@
     const norm = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
     const same = (a, b) => norm(a).toLowerCase() === norm(b).toLowerCase();
     const isWeb = (u) => /^https?:\/\//i.test(String(u || ''));
-    const host = (u) => { try { return new URL(u).hostname.replace(/^www\./i, '').toLowerCase(); } catch (e) { return ''; } };
+    const host = (u) => { try { return new URL(u).hostname.replace(/^(www|m)\./i, '').toLowerCase(); } catch (e) { return ''; } };
     const hostName = (u) => host(u).split('.')[0].split(/[-_]/).filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
     const out = [];
     const seen = new Set();
@@ -1529,9 +1660,9 @@
         if (no[field] === recheckKey(to)) return;
         changes.push({ field, from, to });
       };
-      // A name made up from the address (the page had no title) is no news.
+      // A name made up from the address or the generic fallback ("Daily Game") is no news.
       const name = norm(p.name);
-      if (name && name.length <= 60 && !same(name, g.name) && !same(name, hostName(r.finalUrl || g.url))) add('name', g.name || '', name);
+      if (name && name.length <= 60 && !/^daily game$/i.test(name) && !same(name, g.name) && !same(name, hostName(r.finalUrl || g.url))) add('name', g.name || '', name);
       const desc = norm(p.description);
       if (desc && desc.length >= 12 && !same(desc, g.desc)) add('desc', g.desc || '', desc);
       const icon = String(p.faviconUrl || '').trim();
@@ -1889,6 +2020,7 @@
     hexToOklch,
     oklchToHex,
     scoreStats,
+    dominantScores,
     parseResultValue,
     formatClock,
     puzzleNumber,
@@ -1915,6 +2047,7 @@
     looksLikeShareResult,
     isStrictShareResult,
     mentionsGame,
+    mentionsGameExplicitly,
     gameMention,
     isValidTimeZone,
     isNamedZone,
@@ -1938,6 +2071,8 @@
     rescheduleDays,
     cleanDayHistory,
     recomputeGameStatsFromHistory,
+    recomputeLogStreaks,
+    sortHistoryLogs,
     indexHistoryLogs
   };
 });

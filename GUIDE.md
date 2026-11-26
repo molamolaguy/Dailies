@@ -26,7 +26,7 @@ new puzzle is out, opens games in a built-in ad-blocking player, and keeps your 
 | **Streaks & Log** | A completion calendar per game (best streak, current streak, plays, score stats and personal bests), weekly and monthly swipeable recaps with shareable PNG cards, searchable and filterable score history (8 results per page), and two-tier + secret achievements. |
 | **Reset alerts** | A notification when a game's new puzzle is out, optional global and per-game streak reminders before reset, per-game on/off toggles, grouped alerts, and exact timing where Android allows it. |
 | **Look** | Material 3 Expressive with Google Sans, Material Symbols icons, Dark / Light / Match phone themes, Material You wallpaper colors, custom color seeds, true-black AMOLED mode, selectable app icons (including Custom, Gold and Ruby), and compact cards. |
-| **Your data** | Stored only on your phone, with no size limit. Every save is atomic and keeps a backup copy. You can export/import `.json` backups, restore a single game, schedule weekly folder backups, export `.csv`, and undo from Recent changes or Trash. |
+| **Your data** | Stored only on your phone, with no size limit. Every save is atomic and keeps a backup copy. You can export/import `.json` backups, schedule weekly folder backups, export `.csv`, and undo from Recent changes or Trash. |
 
 ---
 
@@ -112,9 +112,8 @@ new puzzle is out, opens games in a built-in ad-blocking player, and keeps your 
 ### Tab 3: Settings
 Settings is a list of collapsible sections that open in place, one at a time, and close when you leave Settings:
 - **Display**:
-  - **Theme** dialog: Dark, Light or Match phone; Match Device Wallpaper Colors; 5 color seeds + custom accent; AMOLED Pitch-Black Surface (dark theme only)
-  - **App Icon** dialog: Default, Theme, Midnight, Sunset, Ocean, Mono, Custom (pinned shortcut), Gold (unlocked via achievements), and step-cut Ruby (unlocked via secret achievements)
-  - **Accent**: None, Gold, or Ruby (once unlocked)
+  - **Theme** dialog: Dark, Light or Match phone; Match Device Wallpaper Colors; 12 pre-made color themes (plus unlocked Gold and Ruby) + Custom accent; **Daily Random Theme** (rotates unlocked pre-made color themes daily with matching app icon); AMOLED Pitch-Black Surface (dark theme only)
+  - **App Icon** dialog: Default, Theme, Midnight, 12 matching preset icons (Iris, Ocean, Forest, Sunset, Rose, Teal, Amber, Crimson, Cobalt, Sage, Plum, Slate), Mono, Custom (pinned shortcut), Brushed Champagne Gold (unlocked via achievements), and Crystalline Prism Ruby (unlocked via secret achievements)
   - Compact Game Cards, Group Finished Games (**Done today**), Countdown Font, Text Size, High Contrast, Bottom Bar Transparency, Celebration Sparkle
 - **Gameplay & Time**:
   - 12h / 24h clock, Seconds in countdowns, Ask to Log After Playing, Auto-scrape on paste, Auto-fix reset times, Check game pages weekly for changes
@@ -125,7 +124,7 @@ Settings is a list of collapsible sections that open in place, one at a time, an
   - **Streak Reminder**: off, or 30 min to 6 hr before a reset (each game can override it in its settings, independently of reset alerts)
   - Per-game reset alert toggles
 - **Data & Backup**:
-  - **Save Backup (.json)**, **Import Backup (.json or .txt)**, **Restore one game**, **Weekly Automatic Backup** (SAF folder, newest 5 kept), **Export (.csv)**, **Share game list / QR code**, **Recent changes** (undo log up to 300 entries / 60 days), **Trash** (up to 100 items / 30 days), **Check links**, **Refresh icons**, and **Storage** manager
+  - **Save Backup (.json)**, **Import Backup (.json or .txt)**, **Weekly Automatic Backup** (SAF folder, newest 5 kept), **Export (.csv)**, **Share game list / QR code** (Android), **Recent changes** (undo log up to 300 entries / 60 days), **Trash** (up to 100 items / 30 days), **Check links**, **Refresh icons**, and **Storage** manager
 - **Archived Games**: restore or permanently delete archived games
 - **About**: version, opt-in **Check for Updates** (GitHub releases API + verified in-app APK install), **What's new**, and **Report a problem** (with local error and crash logs)
 
@@ -142,7 +141,7 @@ Settings is a list of collapsible sections that open in place, one at a time, an
 ┌────────────── HubActivity (hub) ───────────────┐        ┌──────── GameActivity (player) ────────┐
 │ WebView: assets/index.html + app.css           │  Play  │ WebView: the game's own site          │
 │   hub-core.js       (dates, resets, streaks)   │ ─────▶ │   share-hook.js → "DailesShare"       │
-│   hub-ui-helpers.js (hub sort, restore, norm)  │        │   cosmetic.js   → "DailesAdBlock"     │
+│   hub-ui-helpers.js (hub sort, sched, norm)    │        │   cosmetic.js   → "DailesAdBlock"     │
 │   known-games.js    (67-game catalog)          │        │ AdBlockEngine / CosmeticFilters       │
 │ AndroidBridge (JS ⇄ Kotlin)                    │ ◀───── │ Surrogates (stand-in ad libraries)    │
 │   HubStateStore  → files/hub_state.json        │ result │ PageCache (preloaded cycle assets)    │
@@ -155,7 +154,7 @@ Settings is a list of collapsible sections that open in place, one at a time, an
 ### The hub (`assets/`)
 - **`index.html`** is the whole hub UI, fully offline. It talks to Android through `AndroidBridge`.
 - **`hub-core.js`** holds the pure date, reset, streak, score, achievement, recap, theme and duplicate-detection logic. It's unit tested with Node.
-- **`hub-ui-helpers.js`** holds testable pure UI glue helpers (`hubOrder`, `normalizeGameObject`, `applyRestoreGameState`, `dedupeHistoryLogs`, `streakAsOfDate`, etc.), shared by the hub and Node tests.
+- **`hub-ui-helpers.js`** holds testable pure UI glue helpers (`hubOrder`, `normalizeGameObject`, `dedupeHistoryLogs`, `applyScheduleChangeState`, `streakAsOfDate`, etc.), shared by the hub and Node tests.
   - **Shared test fixtures**: `schedule_cases.json` and `share_cases.json` are run by **both** the Node and the Kotlin tests. That way the notification scheduler and the hub can never disagree about a reset time or what counts as a result.
 - **Time zones**:
   - Resets are kept in their own zone and converted for display.
@@ -506,7 +505,7 @@ The hub also runs as an installable web app on GitHub Pages; see `web/README.md`
 - **Daily challenge**: removed in 1.8.2 (see section 22).
 - **Display**: `settings.cardStyle` (`html[data-cards]`), `countdownFont` (`data-cdfont`), `textSize` (`setTextZoom` on Android, CSS zoom on the web), `highContrast` (`data-contrast`).
 - **Custom icon**: `settings.customIcon {star, bg}`; `customIconSvg` in the hub; `pinCustomIcon` / `saveCustomIcon` save a 432 px adaptive PNG (`AppIcon.saveCustom`, used for alerts) and request a pinned shortcut (`ShortcutManagerCompat`). The launcher entry stays the default.
-- **Restore one game**: `startRestoreOneGame` routes the next picked backup to `openRestoreGame`; `applyRestoreGame('merge' | 'replace')`, undoable (`kind: 'restore'`).
+- *(Single-game backup restore was removed from Settings in 1.8.7 and cleaned up completely in 1.9.6.)*
 
 ## 20. New in 1.8.0
 
@@ -655,3 +654,21 @@ Measured in the real WebView on the CI emulator (`SwipeTimingDeviceTest`, logcat
 - **Native Android & Game Player**: fixed `StreakReminders` broken-streak skip, explicit per-game `reminderMinutes` override when muted, and DST-safe `nextCheck()`; excluded 5 device-local `SharedPreferences` files from `backup_rules.xml` and `data_extraction_rules.xml`; added `SafeHttp.isPublicHost` redirect/request checks and `cancel()` to `PageRenderer`; fixed detached popup `WebView` leaks, off-main-thread SAF writes and `data:` decoding, `@Volatile gameId`, `STATE_SHARE_CONFIRMED`, `WindowInsets`, Back press, `exitFullscreen()`, and `banner.animate()` race in `GameActivity`; moved `ScreenshotReader` bitmap decode off the UI thread with `recognizer.close()` and cancel handling; wrapped `PageCache`/`GameRecheck` in `Dispatchers.IO` with atomic `PageCache` staging; added `fetchExtras = false` for `GameHealth.refreshIcons()`; fixed `WebsiteScraper` `.co.uk` PSL and `midnight`/`noon` reset context; synchronized `CrashLog` with safe truncation; fixed `GameListCodec` deflate loop and size bounds; abandoned failed `UpdateInstaller` sessions with BAL-safe confirmation; hardened `download-hook.js` (bounded `blobs` + TTL), `select-menu.js`, `share-hook.js`, and `cookie-hide.js`.
 - **Ad-blocker & tools**: loaded `PublicSuffix` before `GamePrefs` lookups on cold start; fixed `$important` vs `allow_hosts` precedence, `domain=foo.*` entity matching, and lowercase `pageHost` in `AdBlockEngine`; pre-sorted signed int64 host hashes and separated exclusion-only cosmetic rules in `tools/build_adblock.py`; added curl timeouts to `tools/fetch_adblock_lists.sh`.
 - **PWA, docs & CI**: scoped `web/sw.js` cache lookups to `CACHE`, added 5xx navigation fallback, wrapped `c.put()` in `event.waitUntil()`, and added `{ cache: 'reload' }` on precache; hashed `web/sw.js` and bundled `hub-ui-helpers.js` in `web/build.mjs` / `web/check-build.mjs`; guarded `web/web.js` `showHint()` and `openGame()`; updated `THIRD_PARTY_NOTICES.md`, `RELEASE_NOTES.md`, `README.md`, `GUIDE.md`, `design/icons/README.md`, Fastlane metadata (`30.txt`, `31.txt`, `32.txt`, `full_description.txt`), and `.github/workflows/{ci,release}.yml`.
+
+## 39. New in 1.9.5
+
+- **Radiant Star Ruby accents**: replaced the coral-pink cabochon Ruby finish with a deep faceted crimson palette (`#AD0826` / `#D90B32` primary, `#FFE0E5` / `#4A0614` containers), crisp prism rims, vivid crimson glow, high-contrast Light mode tones, and a subtle sheen sweep on primary buttons (disabled under Reduce Motion).
+- **Crystalline Prism Ruby icon**: redesigned `.IconRuby` (`ic_ruby_fg`/`bg` and `rubyIconSvg`) as a 4-plane geometric crystal with a central diamond table, crimson under-glow, and white glints across launcher densities and the hub picker.
+- **Gold accent polish**: restored unlocked achievement card gold borders and aligned Gold's completed status pill with the horizontal gold sheen used on primary buttons.
+
+## 40. New in 1.9.6
+
+- **12 pre-made Color Themes + Gold & Ruby in Theme picker**: added 7 themes (Teal, Amber, Crimson, Cobalt, Sage, Plum, Slate) alongside Iris, Ocean, Forest, Sunset, and Rose (`HubCore.THEME_PRESETS`, `COLOR_THEMES`), and moved unlocked Gold and Ruby themes directly into **Settings → Display → Theme**.
+- **Matching App Icons & Daily Random Theme**: added 10 new preset launcher aliases and adaptive vector drawables (`.IconIris`, `.IconForest`, `.IconRose`, `.IconTeal`, `.IconAmber`, `.IconCrimson`, `.IconCobalt`, `.IconSage`, `.IconPlum`, `.IconSlate`) matching every pre-made theme 1-to-1 in `ICON_STYLES`, `AppIcon.STYLES`, and `iconForTheme()`. Enabling **Daily Random Theme** (`HubCore.pickDailyTheme`) rotates unlocked pre-made themes without back-to-back repeats across days (including midnight rollovers) and automatically matches both the hub logo and launcher icon, locking fixed icon picks with an explanatory hint while active. Selecting `"Theme"` (`themed`) with a non-wallpaper pre-made theme also resolves to its matching preset icon on Android (`launcherIconStyle()`).
+- **Brushed Champagne Gold icon**: rebuilt `goldIconSvg` (`design/icons/gold-icon.js`) and launcher assets with pure-vector diagonal specular highlights, crisp hairline rim, and centered elevation shadow.
+- **UI, history, persistence & security hardening**:
+  - Updated `loadState()` to block overwriting corrupt `localStorage` or native saves (`__saveBlocked`), prefer `localStorage` over native only when written as an explicit `__nativeFallback`, and sync `lastLoggedCycle` to native `StreakReminders`.
+  - Normalized `recomputeLogStreaks()` and `sortHistoryLogs()` across manual edits (preserving existing `loggedAt`), undo, trash restore, auto-missed logs, and backup imports; guarded past-day `restoreUndo()` from overwriting today's live status/score; deduplicated conflicting Trash vs Undo entries and reopened `modalTrash` on cancel or remaining items; synced `todayScore` across rollovers, rechecks, and schedule edits (`applyScheduleChange` before renaming).
+  - Updated `onReturnFromGame()` to respect `interrupted` and `fromWebTab` flags, `handleReturnPromptAction('paste')` to use `readClipboardText()`, `onScreenshotText()` to surface native OCR errors (`unreadable_image`, `model_unavailable`, `ocr_failed`), and `sharedResultTarget()` / `onScreenshotText()` to require `HubCore.mentionsGameExplicitly()` instead of bare substring matches.
+  - Upgraded `drawRecapCard()` (Light+Gold & Dark/Light Ruby palettes, code-point truncation, value width scaling, Unicode `\u2068...\u2069` bidi isolation), CSV export (RFC 4180 formula neutralization including whitespace/control prefixes and `parseResultValue` formatting), `customIconSvg` sparkle contrast (`L > 0.62`), modal `Shift+Tab` & `themedSelectOpen` keyboard/back behavior, hub search back-button closing, section-scoped card drag-reorder with `touchcancel` reset, Dynamic Wallpaper clearing legacy accent flags, Dark+Ruby primary contrast (`#D90B32`), `<meta name="theme-color">` syncing, and removed all dead single-game backup restore code.
+

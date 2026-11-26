@@ -16,6 +16,7 @@
   const PENDING_KEY = 'dailies_web_open_game';
   const HINT_KEY = 'dailies_web_install_hint_dismissed';
   const MAX_AWAY_MS = 6 * 3600000;
+  const MIN_AWAY_MS = 8000;
 
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -30,13 +31,27 @@
   function returned(p) {
     writePending(null);
     const away = Date.now() - Number(p.openedAt || 0);
-    if (!(away > 0) || away > MAX_AWAY_MS) return;
+    if (!(away >= MIN_AWAY_MS) || away > MAX_AWAY_MS) return;
     const report = () => {
-      if (typeof window.onReturnFromGame === 'function') window.onReturnFromGame(p.id, false, away, '', p.openedAt);
+      // Do not report raw wall-clock tab-away time as active playTime (user may leave tab open for hours);
+      // pass { fromWebTab: true } so the hub still asks "Finished?" without inflating play time.
+      if (typeof window.onReturnFromGame === 'function') {
+        window.onReturnFromGame(p.id, false, 0, '', p.openedAt, { fromWebTab: true });
+      }
     };
     // The hub may still be starting (the page was reloaded while away).
     if (typeof window.onReturnFromGame === 'function') setTimeout(report, 50);
     else window.addEventListener('load', () => setTimeout(report, 300), { once: true });
+  }
+
+  function handleReturnCheck() {
+    const p = readPending();
+    if (!p) return;
+    if (document.visibilityState === 'hidden') {
+      if (!p.left) writePending(Object.assign(p, { left: true }));
+    } else if (p.left) {
+      returned(p);
+    }
   }
 
   window.DailiesWeb = {
@@ -48,14 +63,18 @@
     }
   };
 
-  document.addEventListener('visibilitychange', () => {
+  document.addEventListener('visibilitychange', handleReturnCheck);
+  window.addEventListener('focus', () => {
     const p = readPending();
-    if (!p) return;
-    if (document.visibilityState === 'hidden') {
-      if (!p.left) writePending(Object.assign(p, { left: true }));
-    } else if (p.left) {
-      returned(p);
-    }
+    if (p && (p.left || Date.now() - Number(p.openedAt || 0) >= 1500)) returned(p);
+  });
+  window.addEventListener('pageshow', () => {
+    const p = readPending();
+    if (p && p.left) returned(p);
+  });
+  window.addEventListener('pagehide', () => {
+    const p = readPending();
+    if (p && !p.left) writePending(Object.assign(p, { left: true }));
   });
   // Opened again after the browser closed the page while the game was on screen (common on iPhone).
   const atStart = readPending();
@@ -64,7 +83,7 @@
 
   // ---- Offline + keeping the data ----
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {}); });
   }
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
 

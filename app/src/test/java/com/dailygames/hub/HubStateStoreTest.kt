@@ -82,18 +82,30 @@ class HubStateStoreTest {
     }
 
     @Test
-    fun truncatedMainFileFallsBackToBackup() {
+    fun truncatedOrCorruptMainFileFallsBackToBackup() {
         val file = tempFile()
         val store = HubStateStore(file)
-        store.write("""{"v":1}""")
+        store.write("""{"games":[{"id":"w"}],"v":1}""")
         store.flush()
-        store.write("""{"v":2}""")
+        store.write("""{"games":[{"id":"w"}],"v":2}""")
         store.close()
         file.writeText("""{"v":""") // cut off mid-write by a crash / power loss
-        assertEquals("""{"v":1}""", HubStateStore(file).read())
+        assertEquals("""{"games":[{"id":"w"}],"v":1}""", HubStateStore(file).read())
         // Zero-filled main file too.
         file.writeText("\u0000".repeat(16))
-        assertEquals("""{"v":1}""", HubStateStore(file).read())
+        assertEquals("""{"games":[{"id":"w"}],"v":1}""", HubStateStore(file).read())
+        // Syntactically corrupt JSON that happens to start with '{' and end with '}' must still fall back to .bak.
+        file.writeText("""{"games": [broken}""")
+        assertEquals("""{"games":[{"id":"w"}],"v":1}""", HubStateStore(file).read())
+        // Two objects concatenated `{}{}` or empty `{}` or invalid `"games"` type also fall back to .bak.
+        file.writeText("""{"a":1}{"b":2}""")
+        assertEquals("""{"games":[{"id":"w"}],"v":1}""", HubStateStore(file).read())
+        file.writeText("""{}""")
+        assertEquals("""{"games":[{"id":"w"}],"v":1}""", HubStateStore(file).read())
+        file.writeText("""{"games":"not-an-array"}""")
+        assertEquals("""{"games":[{"id":"w"}],"v":1}""", HubStateStore(file).read())
+        // No leftover .bak.tmp file after atomic writes.
+        assertFalse(File(file.parentFile, file.name + ".bak.tmp").exists())
     }
 
     @Test
