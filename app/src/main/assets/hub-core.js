@@ -1043,61 +1043,61 @@
   // Each tier is earned when its metric reaches the target (or, with `below`, drops under it).
   const HOUR = 3600000;
   const ACHIEVEMENTS = [
-    { id: 'first', icon: '⭐', title: 'First solve', tiers: [
+    { id: 'first', icon: 'star', title: 'First solve', tiers: [
       { desc: 'Solve your first puzzle', metric: 'solves', target: 1 },
       { desc: 'Solve a puzzle in 5 different games', metric: 'gamesSolved', target: 5 }] },
-    { id: 'started', icon: '🧩', title: 'Getting started', tiers: [
+    { id: 'started', icon: 'puzzle', title: 'Getting started', tiers: [
       { desc: 'Solve 10 puzzles', metric: 'solves', target: 10 },
       { desc: 'Solve 100 puzzles', metric: 'solves', target: 100 }] },
-    { id: 'master', icon: '🏅', title: 'Puzzle master', tiers: [
+    { id: 'master', icon: 'medal', title: 'Puzzle master', tiers: [
       { desc: 'Solve 500 puzzles', metric: 'solves', target: 500 },
       { desc: 'Solve 1,000 puzzles', metric: 'solves', target: 1000 }] },
     { id: 'roll', icon: '🔥', title: 'On a roll', tiers: [
       { desc: 'Reach a 7-day streak', metric: 'streak', target: 7 },
       { desc: 'Reach a 30-day streak', metric: 'streak', target: 30 }] },
-    { id: 'centurion', icon: '🚀', title: 'Centurion', tiers: [
+    { id: 'centurion', icon: 'rocket', title: 'Centurion', tiers: [
       { desc: 'Reach a 100-day streak', metric: 'streak', target: 100 },
       { desc: 'Reach a 365-day streak', metric: 'streak', target: 365 }] },
-    { id: 'perfectWeek', icon: '✨', title: 'Perfect week', tiers: [
+    { id: 'perfectWeek', icon: 'sparkle', title: 'Perfect week', tiers: [
       { desc: 'Solve every game you track, 7 days in a row', metric: 'perfectDays', target: 7 },
       { desc: 'Solve every game you track, 30 days in a row', metric: 'perfectDays', target: 30 }] },
-    { id: 'variety', icon: '🎨', title: 'Variety pack', tiers: [
+    { id: 'variety', icon: 'palette', title: 'Variety pack', tiers: [
       { desc: 'Solve 5 different games in one day', metric: 'variety', target: 5 },
       { desc: 'Solve 10 different games in one day', metric: 'variety', target: 10 }] },
-    { id: 'lucky', icon: '🍀', title: 'Two-guess wonder', tiers: [
+    { id: 'lucky', icon: 'clover', title: 'Two-guess wonder', tiers: [
       { desc: 'Solve a guessing game in 2 or fewer guesses', metric: 'lucky', target: 1 },
       { desc: 'Solve a guessing game in 2 or fewer guesses 10 times', metric: 'lucky', target: 10 }] },
     { id: 'speed', icon: '⚡', title: 'Speed run', tiers: [
       { desc: 'Solve a puzzle in under a minute', metric: 'fastest', target: 60000, below: true },
       { desc: 'Solve a puzzle in under 20 seconds', metric: 'fastest', target: 20000, below: true }] },
-    { id: 'collector', icon: '📚', title: 'Collector', tiers: [
+    { id: 'collector', icon: 'layers', title: 'Collector', tiers: [
       { desc: 'Track 10 games', metric: 'games', target: 10 },
       { desc: 'Track 25 games', metric: 'games', target: 25 }] },
-    { id: 'earlyBird', icon: '🌅', title: 'Early bird', tiers: [
+    { id: 'earlyBird', icon: 'sunrise', title: 'Early bird', tiers: [
       { desc: 'Solve a game within an hour of its reset', metric: 'early', target: 1 },
       { desc: 'Solve a game within an hour of its reset 25 times', metric: 'early', target: 25 }] },
-    { id: 'nightOwl', icon: '🦉', title: 'Night owl', tiers: [
+    { id: 'nightOwl', icon: 'moon', title: 'Night owl', tiers: [
       { desc: 'Solve a game in the last hour before its reset', metric: 'late', target: 1 },
       { desc: 'Solve a game in the last hour before its reset 25 times', metric: 'late', target: 25 }] },
-    { id: 'holeInOne', icon: '🎯', title: 'Hole in one', tiers: [
+    { id: 'holeInOne', icon: 'bullseye', title: 'Hole in one', tiers: [
       { desc: 'Solve a guessing game on the first guess', metric: 'holeInOne', target: 1 },
       { desc: 'Solve a guessing game on the first guess 3 times', metric: 'holeInOne', target: 3 }] },
-    { id: 'records', icon: '🏆', title: 'Record breaker', tiers: [
+    { id: 'records', icon: 'trophy', title: 'Record breaker', tiers: [
       { desc: 'Set a personal best', metric: 'records', target: 1 },
       { desc: 'Set 25 personal bests', metric: 'records', target: 25 }] },
-    { id: 'cleanSweep', icon: '🧹', title: 'Clean sweep', tiers: [
+    { id: 'cleanSweep', icon: 'sweep', title: 'Clean sweep', tiers: [
       { desc: 'Solve every game you track on one day (at least 3 games)', metric: 'sweeps', target: 1 },
       { desc: 'Have 50 clean-sweep days', metric: 'sweeps', target: 50 }] },
-    { id: 'bounceBack', icon: '💪', title: 'Bounce back', tiers: [
+    { id: 'bounceBack', icon: 'rebound', title: 'Bounce back', tiers: [
       { desc: 'Solve a game the day after missing it', metric: 'bounces', target: 1 },
       { desc: 'Bounce back 10 times', metric: 'bounces', target: 10 }] },
-    { id: 'regular', icon: '📆', title: 'Regular', tiers: [
+    { id: 'regular', icon: 'calendar', title: 'Regular', tiers: [
       { desc: 'Solve something on 30 different days', metric: 'days', target: 30 },
       { desc: 'Solve something on 365 different days', metric: 'days', target: 365 }] },
-    { id: 'marathon', icon: '⏳', title: 'Marathon', tiers: [
+    { id: 'marathon', icon: 'hourglass', title: 'Marathon', tiers: [
       { desc: 'Play for 10 hours in the game player', metric: 'playMs', target: 10 * HOUR, scale: HOUR, unit: 'hours' },
       { desc: 'Play for 50 hours in the game player', metric: 'playMs', target: 50 * HOUR, scale: HOUR, unit: 'hours' }] },
-    { id: 'weekend', icon: '🗓️', title: 'Weekend warrior', tiers: [
+    { id: 'weekend', icon: 'weekend', title: 'Weekend warrior', tiers: [
       { desc: 'Solve on both days of 4 weekends', metric: 'weekends', target: 4 },
       { desc: 'Solve on both days of 26 weekends', metric: 'weekends', target: 26 }] }
   ];
@@ -1111,11 +1111,11 @@
    * tier each; their keys are "secret:<id>" (kept in state.achievements like tier keys).
    */
   const SECRET_ACHIEVEMENTS = [
-    { id: 'firstInLine', icon: '🥇', title: 'First in line', desc: 'Solve a puzzle within 5 minutes of it coming out', metric: 'firstInLine', target: 1 },
-    { id: 'nightShift', icon: '🌙', title: 'Night shift', desc: 'Solve a puzzle between 2 and 4 AM', metric: 'nightShift', target: 1 },
-    { id: 'clutch', icon: '😅', title: 'Clutch', desc: 'Solve a guessing game on its very last guess 5 times', metric: 'clutch', target: 5 },
-    { id: 'dawnPatrol', icon: '🐓', title: 'Dawn patrol', desc: 'Solve 5 different games before 8 AM on one day', metric: 'dawnPatrol', target: 5 },
-    { id: 'deepDive', icon: '🤿', title: 'Deep dive', desc: 'Play for 2 hours in one day', metric: 'deepDive', target: 2 * HOUR }
+    { id: 'firstInLine', icon: 'bolt1', title: 'First in line', desc: 'Solve a puzzle within 5 minutes of it coming out', metric: 'firstInLine', target: 1 },
+    { id: 'nightShift', icon: 'crescent', title: 'Night shift', desc: 'Solve a puzzle between 2 and 4 AM', metric: 'nightShift', target: 1 },
+    { id: 'clutch', icon: 'shield', title: 'Clutch', desc: 'Solve a guessing game on its very last guess 5 times', metric: 'clutch', target: 5 },
+    { id: 'dawnPatrol', icon: 'dawn', title: 'Dawn patrol', desc: 'Solve 5 different games before 8 AM on one day', metric: 'dawnPatrol', target: 5 },
+    { id: 'deepDive', icon: 'compass', title: 'Deep dive', desc: 'Play for 2 hours in one day', metric: 'deepDive', target: 2 * HOUR }
     // 'challenger' (finish the daily challenge 7 days in a row) went with the daily challenge in 1.8.2.
   ];
   const SECRET_KEYS = SECRET_ACHIEVEMENTS.map((a) => `secret:${a.id}`);
@@ -1767,14 +1767,14 @@
     const list = (Array.isArray(entries) ? entries : []).filter((e) => e && (e.outcome === 'completed' || e.outcome === 'missed'));
     const solved = list.filter((e) => e.outcome === 'completed').length;
     const total = Number(o.total) > 0 ? Number(o.total) : list.length;
-    const head = `🧩 Dailies${o.dateLabel ? ` · ${o.dateLabel}` : ''} — ${solved}/${total} solved`;
+    const head = `Dailies${o.dateLabel ? ` · ${o.dateLabel}` : ''} — ${solved}/${total} solved`;
     const blocks = [];
     const missedNames = [];
     list.forEach((e) => {
       let text = String(e.text || '').replace(/\r\n/g, '\n').trim();
       if (!text) {
         if (e.outcome === 'missed') missedNames.push(e.name);
-        else blocks.push(`✅ ${e.name}`);
+        else blocks.push(`✓ ${e.name}`);
         return;
       }
       let lines = text.split('\n');
@@ -1785,10 +1785,10 @@
         lines = lines.filter((l, i) => l.trim() || (i > 0 && lines[i - 1].trim() && i < lines.length - 1));
       }
       text = lines.join('\n').trim();
-      if (!mentionsGame(text, { name: e.name, url: e.url || '' })) text = `${e.outcome === 'missed' ? '❌' : '✅'} ${e.name}\n${text}`;
+      if (!mentionsGame(text, { name: e.name, url: e.url || '' })) text = `${e.outcome === 'missed' ? '✗' : '✓'} ${e.name}\n${text}`;
       blocks.push(text);
     });
-    if (missedNames.length) blocks.push(`❌ ${missedNames.join(', ')}`);
+    if (missedNames.length) blocks.push(`✗ ${missedNames.join(', ')}`);
     // 1.8.5: a spacer line between games, so where one result ends and the next starts is clear.
     return head + '\n\n' + blocks.join(`\n\n${RESULTS_SPACER}\n\n`);
   }

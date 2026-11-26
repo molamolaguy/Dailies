@@ -21,7 +21,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
       - name: Download the filter lists
         run: tools/fetch_adblock_lists.sh "$RUNNER_TEMP/lists"
       - name: Rebuild app/src/main/assets/adblock

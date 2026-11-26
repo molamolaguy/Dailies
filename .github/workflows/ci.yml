@@ -15,7 +15,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Set up Gradle (caches the Gradle download between runs)
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
       - name: Pick Gradle (the runner's own copy when it matches the wrapper, so nothing is downloaded)
         run: |
           want="$(sed -n 's/.*gradle-\([0-9.]*\)-bin\.zip.*/\1/p' gradle/wrapper/gradle-wrapper.properties)"
@@ -27,7 +27,7 @@ jobs:
           fi
       - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Install Android platform 37 (the runner already has the Android SDK)
         run: |
           SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
@@ -42,7 +42,7 @@ jobs:
         run: node web/build.mjs dist-web && node web/check-build.mjs dist-web
       - name: Ad-block list builder tests
         run: python3 tools/test_build_adblock.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Dailies-debug
           path: app/build/outputs/apk/debug/*.apk
@@ -58,7 +58,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Set up Gradle (caches the Gradle download between runs)
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
       - name: Pick Gradle (the runner's own copy when it matches the wrapper, so nothing is downloaded)
         run: |
           want="$(sed -n 's/.*gradle-\([0-9.]*\)-bin\.zip.*/\1/p' gradle/wrapper/gradle-wrapper.properties)"
@@ -103,7 +103,7 @@ jobs:
                       print(f"::error title={tc.get('classname')}.{tc.get('name')}::" + (bad.get('message') or '')[:300].replace('\n', ' '))
                       print((bad.text or '')[:3000])
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: device-test-reports

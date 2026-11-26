@@ -27,7 +27,7 @@ function rubyText(t) {
     return `rgba(${(v >> 16) & 255}${sp}${(v >> 8) & 255}${sp}${v & 255}${sp}${a})`;
   });
 }
-const BTN = ['.m4-primary-fab', '.bg-indigo-600', '.return-btn.primary', '.next-game-play', '.toast-action', '.m4-tonal-pill', '.filter-tab.on', '.hist-chip.on', '.hub-sort.tsel-btn.sorted', '.recap-btn.primary', '.recap-seg.on', '.chg-undo', '.cal-today-btn', '#btnShareRecap'];
+const BTN = ['.m4-primary-fab', '.bg-indigo-600', '.return-btn.primary', '.next-game-play', '.toast-action', '.m4-tonal-pill', '.filter-tab.on', '.hist-chip.on', '.hub-sort.tsel-btn.sorted', '.hub-search-btn[aria-pressed="true"]', '.hub-search-btn[aria-expanded="true"]', '.recap-btn.primary', '.recap-seg.on', '.chg-undo', '.cal-today-btn', '#btnShareRecap'];
 const SWEEP_BTN = ['.m4-primary-fab', '.bg-indigo-600', '.return-btn.primary', '.next-game-play', '.recap-btn.primary', '#btnShareRecap'];
 const GEM = `html[data-ruby="true"] {
   /* Radiant Star Ruby (Option C): high-brilliance faceted crimson with diagonal crystalline sheen,
@@ -99,7 +99,19 @@ html[data-ruby="true"] .border-indigo-400\\/30 { border-color: rgba(255, 46, 79,
 html[data-ruby="true"] .text-indigo-200 { color: #FFD9E0; }
 html[data-ruby="true"][data-theme="light"] .bg-indigo-500\\/25 { background-color: #FFE0E5; }
 html[data-ruby="true"][data-theme="light"] .border-indigo-400\\/30 { border-color: rgba(173, 8, 38, 0.45); }
-html[data-ruby="true"][data-theme="light"] .text-indigo-200 { color: #4A0210; }`;
+html[data-ruby="true"][data-theme="light"] .text-indigo-200 { color: #4A0210; }
+html[data-ruby="true"] .hub-sort.tsel-btn:not(.sorted),
+html[data-ruby="true"] .hub-search-btn:not([aria-pressed="true"]):not([aria-expanded="true"]) {
+  background: linear-gradient(135deg, #4A0614, #1C0309 60%, #3B0510);
+  border-color: rgba(255, 110, 136, 0.52);
+  color: #FFD9E0;
+}
+html[data-ruby="true"][data-theme="light"] .hub-sort.tsel-btn:not(.sorted),
+html[data-ruby="true"][data-theme="light"] .hub-search-btn:not([aria-pressed="true"]):not([aria-expanded="true"]) {
+  background: linear-gradient(135deg, #FFE8EC, #F9CCD5 60%, #F4BCC8);
+  border-color: rgba(173, 8, 38, 0.48);
+  color: #4A0210;
+}`;
 let css = fs.readFileSync(cssPath, 'utf8');
 // The block is rewritten where it is (1.8.13): rules after it in app.css adjust it and must stay after it.
 let before = css;

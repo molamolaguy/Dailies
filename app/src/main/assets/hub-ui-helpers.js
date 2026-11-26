@@ -323,6 +323,45 @@
     return streak;
   }
 
+  /**
+   * Groups history log rows by day (`row.date`) in order of first appearance and packs whole days
+   * onto pages up to `pageSize` (default 8). A single day's entries always stay together on the
+   * same page even when that day alone has more than `pageSize` entries.
+   */
+  function paginateHistoryByDay(rows, pageSize) {
+    const limit = Math.max(1, Number(pageSize) || 8);
+    if (!Array.isArray(rows) || rows.length === 0) return [{ rows: [], start: 0 }];
+    const dayMap = new Map();
+    const dayOrder = [];
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r || typeof r !== 'object') continue;
+      const d = typeof r.date === 'string' && r.date ? r.date : `__idx_${i}`;
+      let bucket = dayMap.get(d);
+      if (!bucket) {
+        bucket = [];
+        dayMap.set(d, bucket);
+        dayOrder.push(bucket);
+      }
+      bucket.push(r);
+    }
+    if (dayOrder.length === 0) return [{ rows: [], start: 0 }];
+    const pages = [];
+    let cur = [];
+    let offset = 0;
+    for (let i = 0; i < dayOrder.length; i++) {
+      const dayRows = dayOrder[i];
+      if (cur.length > 0 && cur.length + dayRows.length > limit) {
+        pages.push({ rows: cur, start: offset });
+        offset += cur.length;
+        cur = [];
+      }
+      for (let j = 0; j < dayRows.length; j++) cur.push(dayRows[j]);
+    }
+    if (cur.length > 0) pages.push({ rows: cur, start: offset });
+    return pages.length ? pages : [{ rows: [], start: 0 }];
+  }
+
   return {
     HUB_SORTS,
     REMINDER_MINUTES,
@@ -341,6 +380,7 @@
     normalizeGameObject,
     dedupeHistoryLogs,
     applyScheduleChangeState,
-    streakAsOfDate
+    streakAsOfDate,
+    paginateHistoryByDay
   };
 });

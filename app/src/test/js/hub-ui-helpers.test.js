@@ -180,3 +180,34 @@ test('1.9.4: streakAsOfDate computes historical streak without using today live 
   assert.equal(H.streakAsOfDate(hist, '2026-11-09'), 0);
 });
 
+test('1.10.1: paginateHistoryByDay keeps all entries of a day on the same page even past pageSize', () => {
+  assert.deepEqual(H.paginateHistoryByDay([], 8), [{ rows: [], start: 0 }]);
+
+  // Day 1 has 5 rows, Day 2 has 5 rows -> 5 + 5 > 8, so Day 2 moves intact to Page 2 (start: 5).
+  const splitClean = [
+    ...Array.from({ length: 5 }, (_, i) => ({ date: '2026-11-25', gameId: `a${i}` })),
+    ...Array.from({ length: 5 }, (_, i) => ({ date: '2026-11-24', gameId: `b${i}` })),
+    ...Array.from({ length: 2 }, (_, i) => ({ date: '2026-11-23', gameId: `c${i}` }))
+  ];
+  const pages1 = H.paginateHistoryByDay(splitClean, 8);
+  assert.equal(pages1.length, 2);
+  assert.equal(pages1[0].start, 0);
+  assert.equal(pages1[0].rows.length, 5);
+  assert.ok(pages1[0].rows.every((r) => r.date === '2026-11-25'));
+  assert.equal(pages1[1].start, 5);
+  assert.equal(pages1[1].rows.length, 7); // 5 from Nov 24 + 2 from Nov 23 <= 8
+
+  // Single day with 11 entries (> pageSize 8) stays on 1 page, and next day starts on next page.
+  const bigDay = [
+    ...Array.from({ length: 11 }, (_, i) => ({ date: '2026-11-25', gameId: `big${i}` })),
+    ...Array.from({ length: 3 }, (_, i) => ({ date: '2026-11-24', gameId: `next${i}` }))
+  ];
+  const pages2 = H.paginateHistoryByDay(bigDay, 8);
+  assert.equal(pages2.length, 2);
+  assert.equal(pages2[0].start, 0);
+  assert.equal(pages2[0].rows.length, 11);
+  assert.equal(pages2[1].start, 11);
+  assert.equal(pages2[1].rows.length, 3);
+});
+
+

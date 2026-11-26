@@ -1,8 +1,8 @@
-# Dailies 1.10.0: How the App Works
+# Dailies 1.10.1: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.10.0` (`versionCode = 35`)
+- **Version**: `1.10.1` (`versionCode = 36`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **License**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -678,4 +678,8 @@ Measured in the real WebView on the CI emulator (`SwipeTimingDeviceTest`, logcat
 - **Native `GameActivity` expressive menus & alignment audit**: added spring pill-to-squircle touch morphing (`attachPillMorph`), replaced platform `PopupMenu`s with `24dp` tonal `PopupWindow` menus (`showExpressiveMenu`), upgraded `showZoomDialog()` to a `28dp` tonal `ComponentDialog`, added `sheetStrokeColor()` `1dp` outlines for AMOLED clarity, styled all Hub checkboxes as `46×26` M3 pill switches, fixed `#viewSettings` `.set-row` multi-column layout at `>= 640px`, right-aligned compact `.tsel-menu` / `select-menu.js` popups, and unified all 21 modals to `28px` tonal sheets.
 - **Session persistence & codebase hardening**: added `InFlightGameSession` so active game sessions survive notification taps and restarts; hardened `SafeHttp` DNS/IPv6/redirect checks, `CosmeticFilters` wildcard rules, `ShareLinkText` / `share-hook.js` `#` query preservation, `ScreenshotReader` (`androidx.exifinterface`), `StreakReminders` window text, `UpdateInstaller` API guards, and atomic state/backup persistence.
 
+## 42. New in 1.10.1
 
+- **Persistent, interactive app header & seamless Hub controls**: moved `.hub-topbar` (`#appHeader.app-topbar-shell`, `52px` + `--safe-top`) above `<main id="m3Scaffold">` with `#btnCopyToday`, interactive `#btnHeaderReady` (toggles `ready`/`all` or switches to Hub with `ready`), and `#btnHeaderStreak` (jumps to **Streaks & Log** pre-selecting the highest-streak game's calendar) live across all tabs and subtle scroll elevation (`html.app-scrolled`). Made `#viewDashboard > .hub-sticky` transparent and non-sticky, placed `#btnHubSearch` inside `.hub-actions-right` alongside `#hubSort`, removed card `data-action="delete"` (`X`) buttons, hid `.reorder` arrows when `#gamesGrid[data-sort]` is not `custom`, and wrapped `.game-card.compact .gc-title` cleanly without truncation.
+- **Zero-stretch boundaries & smooth transitions**: added `OVER_SCROLL_NEVER` in `HubActivity`, `overscroll-behavior: none` across pages/dialogs/menus, and zero rubber-band clamping at main tab, Score History, and Recap swipe boundaries. Rebuilt `shiftCalendarMonth()` using a flicker-free `.cal-ghost` cross-slide across fixed 6-row (`42`-cell) grids, softened `.cal-cell.today`, and refactored Settings folds (`openSettingsSection()`) to batch reads/writes cleanly over `.fold-body` with `contain: layout style`.
+- **Monochrome SVG UI, Streaks & Gold/Ruby surface polish**: standardized Dailies UI/shared text on crisp monochrome outline SVGs (`achIconHtml`, `wnIconHtml`, lock/clock/camera/theme-swatch SVGs) and clean typographic markers (`✓`/`✗`/`•`/`★`), restricting `🔥` exclusively to streaks and `⚡` exclusively to fastest completion times. Moved **Achievements** open below **Score History**, added whole-day Score History pagination (`HubUiHelpers.paginateHistoryByDay()`), added modal top/bottom safe-area clearance, updated Gold & Ruby rules (`ruby-css.js`), and added warm obsidian **Gold** / wine-obsidian **Ruby** surface tokens synced via `dailydeck_theme_tokens_v1` first-frame boot and `AndroidBridge.setPlayerColors`.

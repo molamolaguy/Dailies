@@ -9,6 +9,7 @@
   border: 1px solid color-mix(in srgb, var(--md-primary) 45%, transparent);
   color: var(--md-on-primary-container); box-shadow: 0 12px 28px -10px rgba(0, 0, 0, 0.45);
   font-size: 12.5px; line-height: 1.4;
+  overscroll-behavior: none;
 }
 .web-install-hint .wih-text { flex: 1 1 auto; min-width: 0; }
 .web-install-hint .wih-share { display: inline-flex; vertical-align: -2px; }
@@ -25,3 +26,10 @@
 }
 .web-install-hint .wih-x:active { border-radius: 12px; }
 html[data-theme="light"] .web-install-hint { background: var(--md-container); background: color-mix(in srgb, var(--md-primary-container) 55%, var(--md-container)); }
+html[data-gold="true"] .web-install-hint, html[data-ruby="true"] .web-install-hint {
+  border-color: transparent;
+  background: linear-gradient(var(--gold-card), var(--gold-card)) padding-box, var(--gold-edge) border-box;
+}
+html[data-gold="true"] .web-install-hint .wih-go, html[data-ruby="true"] .web-install-hint .wih-go {
+  background-image: var(--gold-shine); color: var(--gold-ink);
+}

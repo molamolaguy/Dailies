@@ -486,16 +486,16 @@ test('combinedShareText: heading, results, names added where missing, grids opti
     { name: 'Strands', outcome: 'missed', text: '' }
   ];
   const withGrids = H.combinedShareText(entries, { dateLabel: 'Fri 13 Nov', total: 4 });
-  assert.ok(withGrids.startsWith('🧩 Dailies · Fri 13 Nov — 2/4 solved\n\n'));
+  assert.ok(withGrids.startsWith('Dailies · Fri 13 Nov — 2/4 solved\n\n'));
   assert.ok(withGrids.includes('🟩🟩🟩🟩🟩'));
-  assert.ok(withGrids.includes('✅ Krillion\n60'));
-  assert.ok(withGrids.endsWith('❌ Strands'));
+  assert.ok(withGrids.includes('✓ Krillion\n60'));
+  assert.ok(withGrids.endsWith('✗ Strands'));
   const noGrids = H.combinedShareText(entries, { dateLabel: 'Fri 13 Nov', total: 4, grids: false });
   assert.ok(!noGrids.includes('🟩'));
-  assert.ok(noGrids.includes('Wordle 1,234 3/6\n\n───────────\n\n✅ Krillion'));
+  assert.ok(noGrids.includes('Wordle 1,234 3/6\n\n───────────\n\n✓ Krillion'));
   // A spacer between games, not after the heading or at the end.
   assert.strictEqual(withGrids.split('───────────').length - 1, 2);
-  assert.ok(withGrids.includes('🟩🟩🟩🟩🟩\n\n───────────\n\n✅ Krillion\n60\n\n───────────\n\n❌ Strands'));
+  assert.ok(withGrids.includes('🟩🟩🟩🟩🟩\n\n───────────\n\n✓ Krillion\n60\n\n───────────\n\n✗ Strands'));
   assert.ok(H.isGridLine('🟩🟩⬛⬛⬛'));
   assert.ok(H.isGridLine('1️⃣ 2️⃣'));
   assert.ok(!H.isGridLine('60'));
