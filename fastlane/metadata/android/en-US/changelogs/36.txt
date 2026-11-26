@@ -1,0 +1,3 @@
+- Persistent top bar with tap-to-filter Ready & tap-to-jump Top streak pills, seamless Hub filters/search/sort, sort-aware reorder arrows, and crisp monochrome SVG UI icons.
+- Zero-stretch scroll/swipe limits, smooth Settings folds, flicker-free Calendar transitions, whole-day Score History pagination, and always-open Achievements.
+- Full-title Compact cards (X delete removed), safe-area modals, and warm obsidian/wine surfaces + button polish for Gold & Ruby themes.

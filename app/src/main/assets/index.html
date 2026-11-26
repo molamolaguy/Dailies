@@ -146,7 +146,17 @@
         try {
           const tt = JSON.parse(localStorage.getItem('dailydeck_theme_tokens_v1') || 'null');
           if (tt && tt.light === light && tt.tokens && typeof tt.tokens === 'object') {
-            Object.keys(tt.tokens).forEach((k) => { if (/^--md-[a-z-]+$/.test(k)) root.style.setProperty(k, String(tt.tokens[k])); });
+            if (tt.theme === 'gold' || tt.theme === 'ruby') {
+              root.setAttribute('data-m4-seed', tt.theme);
+              root.setAttribute('data-accent', tt.theme);
+              root.setAttribute('data-gold', tt.theme === 'gold' ? 'true' : 'false');
+              root.setAttribute('data-ruby', tt.theme === 'ruby' ? 'true' : 'false');
+            }
+            Object.keys(tt.tokens).forEach((k) => {
+              if (!/^--md-[a-z-]+$/.test(k)) return;
+              if (amoled && (k === '--md-surface' || k === '--md-container-low' || k === '--md-container')) return;
+              root.style.setProperty(k, String(tt.tokens[k]));
+            });
           }
         } catch (e) {}
       }
@@ -169,40 +179,43 @@
 </head>
 <body class="min-h-screen">
 
+  <!-- Persistent App-Wide Top Bar (remains visible when swiping horizontally between tabs) -->
+  <header id="appHeader" class="app-topbar-shell">
+    <div class="app-topbar-inner max-w-3xl mx-auto hub-topbar">
+      <div class="hub-brand">
+        <span id="hubLogo" class="hub-logo-wrap" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 108 108" class="hub-logo shrink-0" aria-hidden="true">
+            <!-- Matches the launcher icon: the white one with the yellow-to-green star by default, or the
+                 theme's colours (primary-container ground, primary flower, on-primary sparkle) when
+                 "App Icon Matches Theme" is on. Colours come from app.css (.hub-logo). -->
+            <defs>
+              <linearGradient id="hubLogoGradient" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">
+                <stop offset="0" stop-color="#FFD43B"/>
+                <stop offset="1" stop-color="#2FB86A"/>
+              </linearGradient>
+            </defs>
+            <rect class="logo-bg" x="0.5" y="0.5" width="107" height="107" rx="30"/>
+            <g transform="translate(54 54) scale(1.3) translate(-54 -54)">
+              <path class="logo-shape" d="M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z"/>
+              <path class="logo-mark" d="M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z"/>
+            </g>
+          </svg>
+        </span>
+        <h1 class="hub-title-text">Dailies</h1>
+      </div>
+      <div class="hub-topbar-actions">
+        <button id="btnHeaderReady" type="button" class="hero-pill hero-pill-ready" title="Show ready games"><span class="dot" aria-hidden="true"></span><strong id="kpiReadyCount" class="tabular">0</strong><span class="ready-label">ready</span></button>
+        <button id="btnHeaderStreak" type="button" class="hero-pill hero-pill-streak" title="View streaks &amp; log"><span aria-hidden="true">🔥</span><span class="sr-only">Top streak</span><strong id="kpiTopStreak" class="tabular">0d</strong></button>
+        <button id="btnCopyToday" type="button" class="copy-today hidden shrink-0 icon-label" aria-label="Today's results: copy or share" title="Today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Results</span></button>
+      </div>
+    </div>
+  </header>
+
   <!-- Edge-to-Edge Material 3 Scaffold Main Content Container -->
   <main id="m3Scaffold" class="m3-scaffold max-w-3xl mx-auto space-y-4">
 
     <!-- View 1: MINIMALISTIC DAILY HUB -->
-    <section id="viewDashboard" class="tab-page space-y-3.5" aria-hidden="false">
-      <!-- Top App Bar -->
-      <header class="hub-topbar">
-        <div class="hub-brand">
-          <span id="hubLogo" class="hub-logo-wrap" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 108 108" class="hub-logo shrink-0" aria-hidden="true">
-              <!-- Matches the launcher icon: the white one with the yellow-to-green star by default, or the
-                   theme's colours (primary-container ground, primary flower, on-primary sparkle) when
-                   "App Icon Matches Theme" is on. Colours come from app.css (.hub-logo). -->
-              <defs>
-                <linearGradient id="hubLogoGradient" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">
-                  <stop offset="0" stop-color="#FFD43B"/>
-                  <stop offset="1" stop-color="#2FB86A"/>
-                </linearGradient>
-              </defs>
-              <rect class="logo-bg" x="0.5" y="0.5" width="107" height="107" rx="30"/>
-              <g transform="translate(54 54) scale(1.3) translate(-54 -54)">
-                <path class="logo-shape" d="M54,27.96C55.56,27.96 57.28,29.5 58.68,30.46C60.08,31.42 60.96,33.11 62.4,33.71C63.85,34.31 65.67,33.73 67.33,34.04C69,34.36 71.31,34.48 72.41,35.59C73.52,36.69 73.64,39 73.96,40.67C74.27,42.33 73.69,44.15 74.29,45.6C74.89,47.04 76.58,47.92 77.54,49.32C78.5,50.72 80.04,52.44 80.04,54C80.04,55.56 78.5,57.28 77.54,58.68C76.58,60.08 74.89,60.96 74.29,62.4C73.69,63.85 74.27,65.67 73.96,67.33C73.64,69 73.52,71.31 72.41,72.41C71.31,73.52 69,73.64 67.33,73.96C65.67,74.27 63.85,73.69 62.4,74.29C60.96,74.89 60.08,76.58 58.68,77.54C57.28,78.5 55.56,80.04 54,80.04C52.44,80.04 50.72,78.5 49.32,77.54C47.92,76.58 47.04,74.89 45.6,74.29C44.15,73.69 42.33,74.27 40.67,73.96C39,73.64 36.69,73.52 35.59,72.41C34.48,71.31 34.36,69 34.04,67.33C33.73,65.67 34.31,63.85 33.71,62.4C33.11,60.96 31.42,60.08 30.46,58.68C29.5,57.28 27.96,55.56 27.96,54C27.96,52.44 29.5,50.72 30.46,49.32C31.42,47.92 33.11,47.04 33.71,45.6C34.31,44.15 33.73,42.33 34.04,40.67C34.36,39 34.48,36.69 35.59,35.59C36.69,34.48 39,34.36 40.67,34.04C42.33,33.73 44.15,34.31 45.6,33.71C47.04,33.11 47.92,31.42 49.32,30.46C50.72,29.5 52.44,27.96 54,27.96Z"/>
-                <path class="logo-mark" d="M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z"/>
-              </g>
-            </svg>
-          </span>
-          <span class="hub-title-text">Dailies</span>
-        </div>
-        <div class="hub-topbar-actions">
-          <button id="btnCopyToday" type="button" class="copy-today hidden shrink-0 icon-label" aria-label="Today's results: copy or share" title="Today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Results</span></button>
-          <button id="btnHubSearch" type="button" aria-pressed="false" aria-controls="hubSearchRow" aria-label="Search games" title="Search games" class="hub-search-btn icon-btn"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></button>
-        </div>
-      </header>
-
+    <section id="viewDashboard" class="tab-page space-y-3" aria-hidden="false">
       <!-- Expressive Hero Summary Card -->
       <div class="hub-hero glass-card">
         <div class="hub-hero-row">
@@ -213,17 +226,13 @@
               <span class="hub-hero-unit">done</span>
             </div>
           </div>
-          <div class="hub-hero-pills">
-            <span class="hero-pill hero-pill-ready"><span class="dot" aria-hidden="true"></span><strong id="kpiReadyCount" class="tabular">0</strong><span>ready</span></span>
-            <span class="hero-pill hero-pill-streak"><span aria-hidden="true">🔥</span><span class="sr-only">Top streak</span><strong id="kpiTopStreak" class="tabular">0d</strong></span>
-          </div>
+          <button id="btnPlayAll" type="button" class="play-next play-all-bar android-only hidden">
+            <span class="pa-ico" aria-hidden="true">▶</span><span class="pa-text">Play all</span><span class="pa-left" id="playAllLeft"></span>
+          </button>
         </div>
-        <button id="btnPlayAll" type="button" class="play-next play-all-bar android-only hidden">
-          <span class="pa-ico" aria-hidden="true">▶</span><span class="pa-text">Play all</span><span class="pa-left" id="playAllLeft"></span>
-        </button>
       </div>
 
-      <!-- Sticky Filter & Search Bar -->
+      <!-- Daily Hub Filter, Search & Sort Bar (scrolls naturally with content) -->
       <div class="hub-sticky">
         <div class="hub-actions-row">
           <div class="hub-filter-group" role="group" aria-label="Filter games">
@@ -231,12 +240,15 @@
             <button type="button" data-filter="ready" aria-pressed="false" class="filter-tab">Ready</button>
             <button type="button" data-filter="completed" aria-pressed="false" class="filter-tab">Done</button>
           </div>
-          <select id="hubSort" aria-label="Sort games" class="hub-sort shrink-0">
-            <option value="custom">Custom order</option>
-            <option value="reset">Next reset</option>
-            <option value="alpha">A–Z</option>
-            <option value="least">Least played</option>
-          </select>
+          <div class="hub-actions-right">
+            <button id="btnHubSearch" type="button" aria-pressed="false" aria-controls="hubSearchRow" aria-label="Search games" title="Search games" class="hub-search-btn icon-btn"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></button>
+            <select id="hubSort" aria-label="Sort games" class="hub-sort shrink-0">
+              <option value="custom">Custom order</option>
+              <option value="reset">Next reset</option>
+              <option value="alpha">A–Z</option>
+              <option value="least">Least played</option>
+            </select>
+          </div>
         </div>
         <div id="hubSearchRow" class="hub-search-row hidden">
           <span class="hub-search-ico"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></span>
@@ -285,10 +297,10 @@
     </section>
 
     <!-- View 2: STREAKS & LOG (MONTHLY CALENDAR + DAILY COMPLETION & SCORE HISTORY) -->
-    <section id="viewStats" class="tab-page hidden space-y-4" aria-hidden="true" inert>
+    <section id="viewStats" class="tab-page hidden space-y-3" aria-hidden="true" inert>
       <!-- Monthly Game Completion & Missed Calendar -->
-      <div class="glass-card rounded-2xl p-4 border border-slate-800 space-y-4">
-        <div class="space-y-2.5 border-b border-slate-800 pb-3.5">
+      <div class="glass-card rounded-2xl p-3.5 border border-slate-800 space-y-3">
+        <div class="space-y-2 border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white">Completion Calendar</h3>
           <select id="calendarGameSelect" aria-label="Game" class="cal-select w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-semibold"></select>
         </div>
@@ -341,19 +353,10 @@
       </div>
 
       <!-- Monthly recap (follows the calendar's month) -->
-      <div id="recapCard" class="glass-card rounded-2xl p-4 border border-slate-800"></div>
-
-      <!-- Achievements (folded by default) -->
-      <div data-fold="achievements" class="glass-card rounded-2xl p-4 border border-slate-800">
-        <div class="flex items-center justify-between gap-2">
-          <h3 class="text-base font-bold text-white">Achievements</h3>
-          <span id="achievementsCount" class="text-xs text-slate-400 ml-auto"></span>
-        </div>
-        <div id="achievementsGrid" class="ach-sections"></div>
-      </div>
+      <div id="recapCard" class="glass-card rounded-2xl p-3.5 border border-slate-800"></div>
 
       <!-- Daily Completion & Score History -->
-      <div class="glass-card rounded-2xl p-4 border border-slate-800">
+      <div class="glass-card rounded-2xl p-3.5 border border-slate-800">
         <div class="mb-3 flex items-start justify-between gap-2">
           <div class="min-w-0">
             <h3 class="text-base font-bold text-white">Score History</h3>
@@ -382,109 +385,120 @@
           </div>
         </div>
       </div>
+
+      <!-- Achievements (always open, below Score History) -->
+      <div class="glass-card rounded-2xl p-3.5 border border-slate-800 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="text-base font-bold text-white">Achievements</h3>
+          <span id="achievementsCount" class="text-xs text-slate-400 ml-auto"></span>
+        </div>
+        <div id="achievementsGrid" class="ach-sections"></div>
+      </div>
     </section>
 
     <!-- View 3: SETTINGS & REFRESH ALERTS TAB -->
-    <section id="viewSettings" class="tab-page hidden space-y-4" aria-hidden="true" inert>
+    <section id="viewSettings" class="tab-page hidden space-y-2.5" aria-hidden="true" inert>
       <!-- 1. Display Settings -->
       <!-- 1.9.2: each section is a box that opens in place, one at a time. -->
-      <div data-fold="display" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="display" class="glass-card rounded-2xl p-3.5 border border-slate-800">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-palette section-icon" aria-hidden="true"></span>Display</span>
           </h3>
         </div>
 
-        <div class="grid grid-cols-1 text-xs">
-          <!-- 1.9.0: Theme, wallpaper colours, colour theme and AMOLED in one row that opens them. -->
-          <button type="button" id="btnOpenTheme" class="set-row set-link">
-            <div class="min-w-0">
-              <p class="font-bold text-white">Theme</p>
-              <p class="text-[11px] text-slate-400">Dark or light, colors, and pitch-black</p>
-            </div>
-            <span id="themeSummary" class="set-value"></span><span class="set-chevron" aria-hidden="true">›</span>
-          </button>
-
-          <!-- 1.9.0: the app icon in one row that opens the choices. -->
-          <button type="button" id="btnOpenAppIcon" class="android-only set-row set-link">
-            <div class="min-w-0">
-              <p class="font-bold text-white">App Icon</p>
-              <p class="text-[11px] text-slate-400">The icon on your home screen</p>
-            </div>
-            <span id="appIconSummary" class="set-value set-icon-value"></span><span class="set-chevron" aria-hidden="true">›</span>
-          </button>
-
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Compact Game Cards</p>
-              <p class="text-[11px] text-slate-400">Hide reset times &amp; shrink cards</p>
-            </div>
-            <input id="settingCompactCards" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <div class="set-row">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <p class="font-bold text-white">Bottom Bar See-Through</p>
-                <p class="text-[11px] text-slate-400">How much of the page shows through the navigation bar</p>
+        <div class="fold-body space-y-3">
+          <div class="grid grid-cols-1 text-xs">
+            <!-- 1.9.0: Theme, wallpaper colours, colour theme and AMOLED in one row that opens them. -->
+            <button type="button" id="btnOpenTheme" class="set-row set-link">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Theme</p>
+                <p class="text-[11px] text-slate-400">Dark or light, colors, and pitch-black</p>
               </div>
-              <span id="settingNavTransparencyValue" class="range-value" aria-hidden="true">75%</span>
+              <span id="themeSummary" class="set-value"></span><span class="set-chevron" aria-hidden="true">›</span>
+            </button>
+
+            <!-- 1.9.0: the app icon in one row that opens the choices. -->
+            <button type="button" id="btnOpenAppIcon" class="android-only set-row set-link">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">App Icon</p>
+                <p class="text-[11px] text-slate-400">The icon on your home screen</p>
+              </div>
+              <span id="appIconSummary" class="set-value set-icon-value"></span><span class="set-chevron" aria-hidden="true">›</span>
+            </button>
+
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Compact Game Cards</p>
+                <p class="text-[11px] text-slate-400">Hide reset times &amp; shrink cards</p>
+              </div>
+              <input id="settingCompactCards" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+
+            <div class="set-row">
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                  <p class="font-bold text-white">Bottom Bar See-Through</p>
+                  <p class="text-[11px] text-slate-400">How much of the page shows through the navigation bar</p>
+                </div>
+                <span id="settingNavTransparencyValue" class="range-value" aria-hidden="true">75%</span>
+              </div>
+              <input id="settingNavTransparency" type="range" min="0" max="100" step="5" value="75" class="set-range" aria-label="Bottom bar see-through, percent" />
+              <div class="range-ends" aria-hidden="true"><span>Solid</span><span>Clear</span></div>
             </div>
-            <input id="settingNavTransparency" type="range" min="0" max="100" step="5" value="75" class="set-range" aria-label="Bottom bar see-through, percent" />
-            <div class="range-ends" aria-hidden="true"><span>Solid</span><span>Clear</span></div>
+
+            <div class="set-row flex items-center justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Countdown Font</p>
+                <p class="text-[11px] text-slate-400">For timers and the clock</p>
+              </div>
+              <select id="settingCountdownFont" aria-label="Countdown font" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+                <option value="mono">Mono</option>
+                <option value="sans">Rounded</option>
+                <option value="serif">Classic</option>
+              </select>
+            </div>
+
+            <div class="set-row flex items-center justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Text Size</p>
+                <p class="text-[11px] text-slate-400">Make everything easier to read</p>
+              </div>
+              <select id="settingTextSize" aria-label="Text size" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+                <option value="normal">Normal</option>
+                <option value="large">Large</option>
+                <option value="larger">Larger</option>
+              </select>
+            </div>
+
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">High Contrast</p>
+                <p class="text-[11px] text-slate-400">Brighter text and stronger outlines</p>
+              </div>
+              <input id="settingHighContrast" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Celebrate When All Done</p>
+                <p class="text-[11px] text-slate-400">Your app icon sparkles when you finish every game for the day</p>
+              </div>
+              <input id="settingCelebrate" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Group Finished Games</p>
+                <p class="text-[11px] text-slate-400">Move today's done games into a section you can fold away</p>
+              </div>
+              <input id="settingGroupDone" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
           </div>
-
-          <div class="set-row flex items-center justify-between gap-3">
-            <div>
-              <p class="font-bold text-white">Countdown Font</p>
-              <p class="text-[11px] text-slate-400">For timers and the clock</p>
-            </div>
-            <select id="settingCountdownFont" aria-label="Countdown font" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
-              <option value="mono">Mono</option>
-              <option value="sans">Rounded</option>
-              <option value="serif">Classic</option>
-            </select>
-          </div>
-
-          <div class="set-row flex items-center justify-between gap-3">
-            <div>
-              <p class="font-bold text-white">Text Size</p>
-              <p class="text-[11px] text-slate-400">Make everything easier to read</p>
-            </div>
-            <select id="settingTextSize" aria-label="Text size" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
-              <option value="normal">Normal</option>
-              <option value="large">Large</option>
-              <option value="larger">Larger</option>
-            </select>
-          </div>
-
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">High Contrast</p>
-              <p class="text-[11px] text-slate-400">Brighter text and stronger outlines</p>
-            </div>
-            <input id="settingHighContrast" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Celebrate When All Done</p>
-              <p class="text-[11px] text-slate-400">Your app icon sparkles when you finish every game for the day</p>
-            </div>
-            <input id="settingCelebrate" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Group Finished Games</p>
-              <p class="text-[11px] text-slate-400">Move today's done games into a section you can fold away</p>
-            </div>
-            <input id="settingGroupDone" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
         </div>
       </div>
 
       <!-- 2. Gameplay, Streaks & Local Time Settings -->
-      <div data-fold="gameplay" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="gameplay" class="glass-card rounded-2xl p-3.5 border border-slate-800">
         <div class="flex items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div class="min-w-0">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
@@ -494,220 +508,232 @@
           <span id="liveClockDisplay" class="live-clock shrink-0 tabular px-3 py-1 rounded-full bg-slate-900 border border-slate-800">--:--:--</span>
         </div>
 
-        <div class="grid grid-cols-1 text-xs">
-          <div class="set-row flex items-center justify-between gap-3">
-            <div>
-              <p class="font-bold text-white">Local Time Display Format</p>
-              <p class="text-[11px] text-slate-400">12-hour or 24-hour clock</p>
-            </div>
-            <select id="settingTimeFormat" aria-label="Clock format" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
-              <option value="12h">12-hour</option>
-              <option value="24h">24-hour</option>
-            </select>
-          </div>
-
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Show Seconds in Countdowns</p>
-              <p class="text-[11px] text-slate-400">Show seconds on timers</p>
-            </div>
-            <input id="settingShowSeconds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Ask to Log After Playing</p>
-              <p class="text-[11px] text-slate-400">Prompt when you come back from a game</p>
-            </div>
-            <input id="settingAskOnReturn" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Fix Reset Times Automatically</p>
-              <p class="text-[11px] text-slate-400">When a game's puzzle numbers show it now resets at a different time, update it for you (with Undo) instead of asking</p>
-            </div>
-            <input id="settingAutoFixReset" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Auto-Scrape URL on Paste</p>
-              <p class="text-[11px] text-slate-400">Auto-fill game info from link</p>
-            </div>
-            <input id="settingAutoScrape" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-
-          <div class="android-only set-row space-y-2.5">
-            <label class="flex items-center justify-between gap-3 cursor-pointer">
-              <div>
-                <p class="font-bold text-white">Check Game Pages for Changes</p>
-                <p class="text-[11px] text-slate-400">Once a week on Wi-Fi, each game's page is read again. Nothing changes until you say so: the next time you open Dailies, it shows what's new.</p>
+        <div class="fold-body space-y-3">
+          <div class="grid grid-cols-1 text-xs">
+            <div class="set-row flex items-center justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Local Time Display Format</p>
+                <p class="text-[11px] text-slate-400">12-hour or 24-hour clock</p>
               </div>
-              <input id="settingRecheckGames" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+              <select id="settingTimeFormat" aria-label="Clock format" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+                <option value="12h">12-hour</option>
+                <option value="24h">24-hour</option>
+              </select>
+            </div>
+
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Show Seconds in Countdowns</p>
+                <p class="text-[11px] text-slate-400">Show seconds on timers</p>
+              </div>
+              <input id="settingShowSeconds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
             </label>
-            <div class="flex items-center gap-2">
-              <button id="btnRecheckNow" type="button" class="recap-btn">Check now</button>
-              <span id="recheckStatus" class="text-[11px] text-slate-400" aria-live="polite"></span>
+
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Ask to Log After Playing</p>
+                <p class="text-[11px] text-slate-400">Prompt when you come back from a game</p>
+              </div>
+              <input id="settingAskOnReturn" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Fix Reset Times Automatically</p>
+                <p class="text-[11px] text-slate-400">When a game's puzzle numbers show it now resets at a different time, update it for you (with Undo) instead of asking</p>
+              </div>
+              <input id="settingAutoFixReset" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Auto-Scrape URL on Paste</p>
+                <p class="text-[11px] text-slate-400">Auto-fill game info from link</p>
+              </div>
+              <input id="settingAutoScrape" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+
+            <div class="android-only set-row space-y-2.5">
+              <label class="flex items-center justify-between gap-3 cursor-pointer">
+                <div class="min-w-0 flex-1">
+                  <p class="font-bold text-white">Check Game Pages for Changes</p>
+                  <p class="text-[11px] text-slate-400">Once a week on Wi-Fi, each game's page is read again. Nothing changes until you say so: the next time you open Dailies, it shows what's new.</p>
+                </div>
+                <input id="settingRecheckGames" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+              </label>
+              <div class="flex items-center gap-2">
+                <button id="btnRecheckNow" type="button" class="recap-btn">Check now</button>
+                <span id="recheckStatus" class="text-[11px] text-slate-400" aria-live="polite"></span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Game Player: share capture + ad blocking -->
-      <div data-fold="player" class="android-only glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
+      <div data-fold="player" class="android-only glass-card rounded-2xl p-3.5 border border-slate-800">
         <div class="border-b border-slate-800 pb-3">
           <h3 class="text-base font-bold text-white flex items-center gap-2">
             <span class="icon-label"><span class="ico ico-shield section-icon" aria-hidden="true"></span>Game Player</span>
           </h3>
         </div>
-        <div class="grid grid-cols-1 text-xs">
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Auto-Log Shared Results</p>
-              <p class="text-[11px] text-slate-400">When a game's Share / Copy button gives your result, log it for you (with Undo)</p>
-            </div>
-            <input id="settingAutoLogShare" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Find Results Automatically</p>
-              <p class="text-[11px] text-slate-400">When a game shows its end screen, quietly read the result from its Share button. Nothing is copied or shared.</p>
-            </div>
-            <input id="settingFindResults" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Dark Game Pages</p>
-              <p class="text-[11px] text-slate-400">In the dark theme, darken game sites that don't have a dark mode</p>
-            </div>
-            <input id="settingDarkPages" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Block Ads in Games</p>
-              <p id="adBlockInfo" class="text-[11px] text-slate-400">Blocks ads, trackers and pop-ups. Tap the shield in a game to allow ads there.</p>
-            </div>
-            <input id="settingBlockAds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Preload Games After Reset</p>
-              <p class="text-[11px] text-slate-400">On Wi-Fi, a game's page files are saved when its new puzzle comes out, so it opens faster. Deleted once you log it</p>
-            </div>
-            <input id="settingPreloadGames" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Hide Cookie Banners</p>
-              <p class="text-[11px] text-slate-400">Hides cookie and consent pop-ups on game sites, and lets the page scroll again. Nothing is accepted for you</p>
-            </div>
-            <input id="settingHideCookies" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
-          <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
-            <div>
-              <p class="font-bold text-white">Pull Down to Refresh</p>
-              <p class="text-[11px] text-slate-400">At the top of a game page, pull down to reload it</p>
-            </div>
-            <input id="settingPullRefresh" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-          </label>
+        <div class="fold-body space-y-3">
+          <div class="grid grid-cols-1 text-xs">
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Auto-Log Shared Results</p>
+                <p class="text-[11px] text-slate-400">When a game's Share / Copy button gives your result, log it for you (with Undo)</p>
+              </div>
+              <input id="settingAutoLogShare" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Find Results Automatically</p>
+                <p class="text-[11px] text-slate-400">When a game shows its end screen, quietly read the result from its Share button. Nothing is copied or shared.</p>
+              </div>
+              <input id="settingFindResults" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Dark Game Pages</p>
+                <p class="text-[11px] text-slate-400">In the dark theme, darken game sites that don't have a dark mode</p>
+              </div>
+              <input id="settingDarkPages" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Block Ads in Games</p>
+                <p id="adBlockInfo" class="text-[11px] text-slate-400">Blocks ads, trackers and pop-ups. Tap the shield in a game to allow ads there.</p>
+              </div>
+              <input id="settingBlockAds" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Preload Games After Reset</p>
+                <p class="text-[11px] text-slate-400">On Wi-Fi, a game's page files are saved when its new puzzle comes out, so it opens faster. Deleted once you log it</p>
+              </div>
+              <input id="settingPreloadGames" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Hide Cookie Banners</p>
+                <p class="text-[11px] text-slate-400">Hides cookie and consent pop-ups on game sites, and lets the page scroll again. Nothing is accepted for you</p>
+              </div>
+              <input id="settingHideCookies" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+            <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
+              <div class="min-w-0 flex-1">
+                <p class="font-bold text-white">Pull Down to Refresh</p>
+                <p class="text-[11px] text-slate-400">At the top of a game page, pull down to reload it</p>
+              </div>
+              <input id="settingPullRefresh" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+            </label>
+          </div>
         </div>
       </div>
 
       <!-- 3. Daily Game Refresh Notification Engine -->
-      <div data-fold="alerts" class="android-only glass-card rounded-2xl p-4 border border-slate-800 space-y-3.5">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800">
-          <div>
+      <div data-fold="alerts" class="android-only glass-card rounded-2xl p-3.5 border border-slate-800">
+        <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-800">
+          <div class="min-w-0 flex-1">
             <h3 class="text-base font-bold text-white flex items-center gap-2">
               <span class="icon-label"><span class="ico ico-bell section-icon" aria-hidden="true"></span>Reset Alerts</span>
             </h3>
             <p class="text-xs text-slate-400 mt-0.5">Notify when each game resets.</p>
           </div>
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="flex items-center gap-2 shrink-0">
             <button id="btnRequestBrowserPerm" type="button" data-state="off" class="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow">Allow Notifications</button>
           </div>
         </div>
 
-        <div class="mt-3.5 set-row flex items-center justify-between gap-3 text-xs">
-          <div>
-            <p class="font-bold text-white">Streak Reminder</p>
-            <p class="text-[11px] text-slate-400">If you haven't logged a game you have a streak in</p>
+        <div class="fold-body space-y-3">
+          <div class="set-row flex items-center justify-between gap-3 text-xs">
+            <div class="min-w-0 flex-1">
+              <p class="font-bold text-white">Streak Reminder</p>
+              <p class="text-[11px] text-slate-400">If you haven't logged a game you have a streak in</p>
+            </div>
+            <select id="settingStreakReminder" aria-label="Streak reminder" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
+              <option value="0">Off</option>
+              <option value="30">30 min before reset</option>
+              <option value="60">1 hr before reset</option>
+              <option value="120">2 hr before reset</option>
+              <option value="180">3 hr before reset</option>
+              <option value="360">6 hr before reset</option>
+            </select>
           </div>
-          <select id="settingStreakReminder" aria-label="Streak reminder" class="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs">
-            <option value="0">Off</option>
-            <option value="30">30 min before reset</option>
-            <option value="60">1 hr before reset</option>
-            <option value="120">2 hr before reset</option>
-            <option value="180">3 hr before reset</option>
-            <option value="360">6 hr before reset</option>
-          </select>
-        </div>
 
-        <!-- Per-Game Notification Schedule List -->
-        <div class="mt-3.5 space-y-2" id="notificationScheduleList"></div>
+          <!-- Per-Game Notification Schedule List -->
+          <div class="space-y-2" id="notificationScheduleList"></div>
+        </div>
       </div>
 
       <!-- 4. Data & Backup Management -->
-      <div data-fold="data" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="data" class="glass-card rounded-2xl p-3.5 border border-slate-800">
         <div>
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-save section-icon" aria-hidden="true"></span>Data &amp; Backup</h3>
           <p class="text-xs text-slate-400">Export or import your backup file.</p>
         </div>
-        <div class="flex flex-col gap-2.5 w-full">
-          <button id="btnSettingsExportJson" type="button" class="w-full px-4 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold text-center">Save Backup (.json)</button>
-          <button id="btnSettingsImportJson" type="button" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold text-center">Import Backup (.json or .txt)</button>
-          <input id="inputImportBackupFile" type="file" accept=".txt,.json,text/plain,application/json" class="hidden" />
-        </div>
-        <div class="grid grid-cols-2 gap-2.5">
-          <button id="btnExportCsv" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Export history (.csv)</button>
-          <button id="btnShareGameList" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
-          <button id="btnHistoryChanges" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold" aria-label="Recent changes (undo)">Recent changes</button>
-          <button id="btnOpenTrash" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Trash</button>
-          <button id="btnGameHealth" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Check links &amp; icons</button>
-          <button id="btnStorage" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Storage</button>
-        </div>
-        <div id="autoBackupBlock" class="android-only set-row text-xs space-y-2.5">
-          <div>
-            <p class="font-bold text-white">Weekly Automatic Backup</p>
-            <p id="autoBackupStatus" class="text-[11px] text-slate-400 mt-0.5">Off. Choose a folder and Dailies saves a backup there every week (the last 5 are kept).</p>
+        <div class="fold-body space-y-3">
+          <div class="flex flex-col gap-2.5 w-full">
+            <button id="btnSettingsExportJson" type="button" class="w-full px-4 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold text-center">Save Backup (.json)</button>
+            <button id="btnSettingsImportJson" type="button" class="w-full px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold text-center">Import Backup (.json or .txt)</button>
+            <input id="inputImportBackupFile" type="file" accept=".txt,.json,text/plain,application/json" class="hidden" />
           </div>
-          <div class="flex flex-wrap gap-2">
-            <button id="btnAutoBackupFolder" type="button" class="px-3 py-2 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold">Choose folder</button>
-            <button id="btnAutoBackupNow" type="button" class="hidden px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Back up now</button>
-            <button id="btnAutoBackupOff" type="button" class="hidden px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Turn off</button>
+          <div class="grid grid-cols-2 gap-2.5">
+            <button id="btnExportCsv" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Export history (.csv)</button>
+            <button id="btnShareGameList" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
+            <button id="btnHistoryChanges" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold" aria-label="Recent changes (undo)">Recent changes</button>
+            <button id="btnOpenTrash" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Trash</button>
+            <button id="btnGameHealth" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Check links &amp; icons</button>
+            <button id="btnStorage" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Storage</button>
+          </div>
+          <div id="autoBackupBlock" class="android-only set-row text-xs space-y-2.5">
+            <div class="min-w-0">
+              <p class="font-bold text-white">Weekly Automatic Backup</p>
+              <p id="autoBackupStatus" class="text-[11px] text-slate-400 mt-0.5">Off. Choose a folder and Dailies saves a backup there every week (the last 5 are kept).</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button id="btnAutoBackupFolder" type="button" class="px-3 py-2 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 font-semibold">Choose folder</button>
+              <button id="btnAutoBackupNow" type="button" class="hidden px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Back up now</button>
+              <button id="btnAutoBackupOff" type="button" class="hidden px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Turn off</button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Archived games -->
-      <div data-fold="archived" id="archivedCard" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="archived" id="archivedCard" class="hidden glass-card rounded-2xl p-3.5 border border-slate-800">
         <div>
           <h3 class="text-base font-bold text-white">Archived Games</h3>
           <p class="text-xs text-slate-400">Hidden from the hub, with no alerts. Their history and stats are kept.</p>
         </div>
-        <div id="archivedList" class="space-y-2"></div>
+        <div class="fold-body space-y-3">
+          <div id="archivedList" class="space-y-2"></div>
+        </div>
       </div>
 
       <!-- 5. About & updates -->
-      <div data-fold="about" class="glass-card rounded-2xl p-4 border border-slate-800 space-y-3">
+      <div data-fold="about" class="glass-card rounded-2xl p-3.5 border border-slate-800">
         <div>
           <h3 class="text-base font-bold text-white icon-label" style="justify-content:flex-start"><span class="ico ico-info section-icon" aria-hidden="true"></span>About</h3>
           <p id="aboutVersion" class="text-xs text-slate-400">Dailies</p>
         </div>
-        <label class="android-only set-row flex items-center justify-between gap-3 cursor-pointer text-xs">
-          <div>
-            <p class="font-bold text-white">Check for Updates</p>
-            <p class="text-[11px] text-slate-400">Once a day, ask GitHub if a newer version is out. Nothing about you is sent.</p>
+        <div class="fold-body space-y-3">
+          <label class="android-only set-row flex items-center justify-between gap-3 cursor-pointer text-xs">
+            <div class="min-w-0 flex-1">
+              <p class="font-bold text-white">Check for Updates</p>
+              <p class="text-[11px] text-slate-400">Once a day, ask GitHub if a newer version is out. Nothing about you is sent.</p>
+            </div>
+            <input id="settingUpdateCheck" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
+          </label>
+          <div class="android-only flex items-center gap-2 text-xs">
+            <button id="btnCheckUpdateNow" type="button" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Check now</button>
+            <p id="updateCheckResult" class="text-[11px] text-slate-400" role="status" aria-live="polite"></p>
           </div>
-          <input id="settingUpdateCheck" type="checkbox" class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
-        </label>
-        <div class="android-only flex items-center gap-2 text-xs">
-          <button id="btnCheckUpdateNow" type="button" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Check now</button>
-          <p id="updateCheckResult" class="text-[11px] text-slate-400" role="status" aria-live="polite"></p>
-        </div>
-        <div class="grid grid-cols-2 gap-2.5 text-xs">
-          <button id="btnWhatsNew" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">What's new</button>
-          <button id="btnErrorLog" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Report a problem</button>
+          <div class="grid grid-cols-2 gap-2.5 text-xs">
+            <button id="btnWhatsNew" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">What's new</button>
+            <button id="btnErrorLog" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Report a problem</button>
+          </div>
         </div>
       </div>
     </section>
@@ -848,7 +874,7 @@
           <div class="flex items-center justify-between gap-2 mb-1.5">
             <label for="inputLogScoreText" class="block text-xs font-semibold text-slate-300 nowrap">Score / share text</label>
             <div class="flex items-center gap-1.5">
-              <button id="btnScreenshotScore" type="button" class="hidden px-3.5 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold nowrap icon-label"><span aria-hidden="true">📷</span><span>Screenshot</span></button>
+              <button id="btnScreenshotScore" type="button" class="hidden px-3.5 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold nowrap icon-label"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Screenshot</span></button>
               <button id="btnPasteScore" type="button" class="px-3.5 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold nowrap icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Paste</button>
             </div>
           </div>
@@ -1238,7 +1264,7 @@
   </div>
 
   <!-- TOAST NOTIFICATION BANNER -->
-  <div id="toastContainer" role="status" aria-live="polite" style="top: calc(var(--safe-top, 0px) + 0.75rem);" class="fixed z-50 flex flex-col gap-2 max-w-md pointer-events-none"></div>
+  <div id="toastContainer" role="status" aria-live="polite" style="top: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + var(--app-topbar-h, 52px) + 0.5rem);" class="fixed z-50 flex flex-col gap-2 max-w-md pointer-events-none"></div>
 
   <!-- "FINISHED PLAYING?" SHEET (shown when returning from a game that isn't logged yet) -->
   <div id="returnPrompt" class="return-sheet hidden" role="dialog" aria-labelledby="returnPromptTitle">
@@ -1384,7 +1410,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.10.0';
+    const APP_VERSION = '1.10.1';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -1817,7 +1843,7 @@
         const s = state.settings || {};
         localStorage.setItem('dailydeck_launch_prefs_v1', JSON.stringify({
           amoledDark: Boolean(s.amoledDark),
-          dynamicWallpaper: s.dynamicWallpaper !== false,
+          dynamicWallpaper: s.dynamicWallpaper !== false && !s.dailyRandomTheme,
           themeMode: s.themeMode || 'dark'
         }));
       } catch (e) {}
@@ -2130,11 +2156,11 @@
         if (t.id === 'gold') {
           swatch = 'background: linear-gradient(125deg, #F2E6BC 0%, #C5AE6C 48%, #8C7E57 100%)';
           swatchCls += ' theme-swatch-special';
-          inner = '<span class="theme-edit" aria-hidden="true">👑</span>';
+          inner = '<span class="theme-edit" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18"/><path d="M4 15l2-9 6 4 6-4 2 9z"/></svg></span>';
         } else if (t.id === 'ruby') {
           swatch = 'background: linear-gradient(125deg, #FF4262 0%, #B30826 48%, #7D0318 100%)';
           swatchCls += ' theme-swatch-special';
-          inner = '<span class="theme-edit" aria-hidden="true">💎</span>';
+          inner = '<span class="theme-edit" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M12 21L8 9l4-6 4 6z"/></svg></span>';
         } else {
           const seed = t.id === 'custom' ? (validHex(s.customAccent) ? s.customAccent : '#888888') : t.seed;
           const tk = HubCore.themeTokens(seed, light);
@@ -2243,15 +2269,10 @@
       const seedHex = useWallpaper && palette ? null : themeSeedHex();
       const themeTokens = seedHex ? HubCore.themeTokens(seedHex, light) : null;
       if (themeTokens) Object.keys(themeTokens).forEach((k) => root.style.setProperty(k, themeTokens[k]));
-      root.setAttribute('data-accent', themeTokens ? activeTheme : (useWallpaper && palette ? 'wallpaper' : (activeTheme === 'gold' || activeTheme === 'ruby' ? activeTheme : 'iris')));
-      // Remembered for the next launch, so the first frame already has these colours.
-      try {
-        if (themeTokens) localStorage.setItem('dailydeck_theme_tokens_v1', JSON.stringify({ light, tokens: themeTokens }));
-        else localStorage.removeItem('dailydeck_theme_tokens_v1');
-      } catch (e) {}
       // Gold & Ruby themes (picked in Color Theme or rolled via Daily Random).
       const ruby = activeTheme === 'ruby' && rubyUnlocked();
       const gold = !ruby && activeTheme === 'gold' && goldAccentsUnlocked();
+      root.setAttribute('data-accent', themeTokens ? activeTheme : (useWallpaper && palette ? 'wallpaper' : (ruby ? 'ruby' : (gold ? 'gold' : 'iris'))));
       root.setAttribute('data-gold', gold ? 'true' : 'false');
       root.setAttribute('data-ruby', ruby ? 'true' : 'false');
       // 1.7.0 display options.
@@ -2261,22 +2282,45 @@
       root.setAttribute('data-contrast', s.highContrast ? 'high' : 'normal');
       applyNavTransparency(s.navTransparency);
       applyTextSize(s.textSize);
+      let specialTokens = null;
       if (ruby) {
-        const r = light
-          ? { '--md-primary': '#AD0826', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#FFE0E5', '--md-on-primary-container': '#4A0210',
-            '--md-secondary-container': '#FCE4E8', '--md-tertiary': '#AD0826', '--md-tertiary-container': '#FFE3E8', '--md-glow': 'rgba(196, 12, 44, 0.24)' }
-          : { '--md-primary': '#D90B32', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#4A0614', '--md-on-primary-container': '#FFD9E0',
-            '--md-secondary-container': '#3D0813', '--md-tertiary': '#FF6E88', '--md-tertiary-container': '#520818', '--md-glow': 'rgba(245, 22, 60, 0.36)' };
-        Object.keys(r).forEach((k) => root.style.setProperty(k, r[k]));
+        specialTokens = light
+          ? { '--md-surface': '#FFF8F9', '--md-container-low': '#FCEEEF', '--md-container': '#F7E3E6',
+            '--md-container-high': '#F1D8DC', '--md-container-highest': '#EACDD2',
+            '--md-primary': '#AD0826', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#FFE0E5', '--md-on-primary-container': '#4A0210',
+            '--md-secondary-container': '#FCE4E8', '--md-tertiary': '#AD0826', '--md-tertiary-container': '#FFE3E8',
+            '--md-outline': 'rgba(173, 8, 38, 0.26)', '--md-glow': 'rgba(196, 12, 44, 0.24)' }
+          : Object.assign(
+            amoledOn ? {} : { '--md-surface': '#151012', '--md-container-low': '#1E1518', '--md-container': '#261B1F' },
+            { '--md-container-high': '#322328', '--md-container-highest': '#3E2C32',
+              '--md-primary': '#D90B32', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#4A0614', '--md-on-primary-container': '#FFD9E0',
+              '--md-secondary-container': '#3D0813', '--md-tertiary': '#FF6E88', '--md-tertiary-container': '#520818',
+              '--md-outline': 'rgba(255, 110, 136, 0.28)', '--md-glow': 'rgba(245, 22, 60, 0.36)' }
+          );
+        Object.keys(specialTokens).forEach((k) => root.style.setProperty(k, specialTokens[k]));
       }
       if (gold) {
-        const g = light
-          ? { '--md-primary': '#726542', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#CBB67A', '--md-on-primary-container': '#1B160A',
-            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#726542', '--md-tertiary-container': '#F3E2C4', '--md-glow': 'rgba(139, 125, 84, 0.28)' }
-          : { '--md-primary': '#C5AE6C', '--md-on-primary': '#1B160A', '--md-primary-container': '#473E28', '--md-on-primary-container': '#D6C38C',
-            '--md-secondary-container': '#3D331B', '--md-tertiary': '#D9C792', '--md-tertiary-container': '#473C20', '--md-glow': 'rgba(197, 174, 108, 0.30)' };
-        Object.keys(g).forEach((k) => root.style.setProperty(k, g[k]));
+        specialTokens = light
+          ? { '--md-surface': '#FCF9F0', '--md-container-low': '#F5F0E2', '--md-container': '#EFE7D4',
+            '--md-container-high': '#E7DEC6', '--md-container-highest': '#DFD4B8',
+            '--md-primary': '#726542', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#CBB67A', '--md-on-primary-container': '#1B160A',
+            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#726542', '--md-tertiary-container': '#F3E2C4',
+            '--md-outline': 'rgba(114, 101, 66, 0.30)', '--md-glow': 'rgba(139, 125, 84, 0.28)' }
+          : Object.assign(
+            amoledOn ? {} : { '--md-surface': '#14120E', '--md-container-low': '#1C1913', '--md-container': '#242018' },
+            { '--md-container-high': '#2E291F', '--md-container-highest': '#393327',
+              '--md-primary': '#C5AE6C', '--md-on-primary': '#1B160A', '--md-primary-container': '#473E28', '--md-on-primary-container': '#D6C38C',
+              '--md-secondary-container': '#3D331B', '--md-tertiary': '#D9C792', '--md-tertiary-container': '#473C20',
+              '--md-outline': 'rgba(197, 174, 108, 0.28)', '--md-glow': 'rgba(197, 174, 108, 0.30)' }
+          );
+        Object.keys(specialTokens).forEach((k) => root.style.setProperty(k, specialTokens[k]));
       }
+      // Remembered for the next launch, so the first frame already has these colours (including Gold & Ruby).
+      try {
+        const cachedTokens = (!useWallpaper || !palette) ? (specialTokens || themeTokens) : null;
+        if (cachedTokens) localStorage.setItem('dailydeck_theme_tokens_v1', JSON.stringify({ light, theme: activeTheme, tokens: cachedTokens }));
+        else localStorage.removeItem('dailydeck_theme_tokens_v1');
+      } catch (e) {}
       lastRenderedThemeDay = localTodayKey();
       try {
         const metaTheme = document.querySelector('meta[name="theme-color"]');
@@ -2293,7 +2337,8 @@
           const pick = (n) => (used ? used.getPropertyValue(n).trim() : '');
           const colors = used ? {
             light,
-            container: themeTokens ? pick('--md-container') : '',
+            surface: pick('--md-surface'),
+            container: pick('--md-container'),
             primary: pick('--md-primary'), onPrimary: pick('--md-on-primary'),
             primaryContainer: pick('--md-primary-container'), onPrimaryContainer: pick('--md-on-primary-container')
           } : null;
@@ -2954,24 +2999,24 @@
       // A finished game with today's entry logged hides ✓; the entry is edited from the game's settings.
       const todayRow = findLogRow(g, getCycleDateKey(g.resetTime, g.resetZone));
       const loggedToday = status === 'completed' && Boolean(todayRow);
-      // (1.9.0: no personal-best tag on the card; bests show on Streaks & Log, under the calendar.)
-      const actions = `
-        ${loggedToday ? '' : `<button type="button" data-action="log" data-id="${id}" class="icon-btn" aria-label="Log result" title="Log result">${img('check', '')}</button>`}
-        <button type="button" data-action="edit" data-id="${id}" class="icon-btn ghost" aria-label="Edit game" title="Edit game">${img('settings', '')}</button>
-        <button type="button" data-action="delete" data-id="${id}" class="icon-btn ghost danger" aria-label="Remove game" title="Remove game"><span class="ico ico-close ico-lg" aria-hidden="true"></span></button>
-        <button type="button" data-action="play" data-id="${id}" class="play-btn m4-primary-fab">Play</button>`;
+      const logBtn = loggedToday ? '' : `<button type="button" data-action="log" data-id="${id}" class="icon-btn" aria-label="Log result" title="Log result">${img('check', '')}</button>`;
+      const playBtn = `<button type="button" data-action="play" data-id="${id}" class="play-btn m4-primary-fab">Play</button>`;
 
       if (isCompact) {
         return `
           <article data-card-game-id="${id}" class="glass-card game-card compact">
             <div class="m3-shape-avatar-compact m3-shape-app shrink-0 overflow-hidden">${renderGameIconHtml(g.icon, g.name, 'w-4 h-4')}</div>
             <h3 class="gc-title" dir="auto" title="Edit ${escapeHtml(g.name)}" aria-label="Edit ${escapeHtml(g.name)}" data-action="edit" data-id="${id}" role="button" tabindex="0">${escapeHtml(g.name)}</h3>
-            <span data-role="card-streak" class="gc-streak"><span class="sr-only">Streak ${plural(g.streak, 'day')}</span><span aria-hidden="true">🔥 ${g.streak}d</span></span>
             <span data-role="card-status-pill" class="status-dot status-${status}" role="img" aria-label="${statusLabel}" title="${statusLabel}"></span>
-            <div class="gc-actions">${reorder}${actions}</div>
+            <div class="gc-actions">${reorder}${logBtn}${playBtn}</div>
           </article>`;
       }
 
+      // (1.9.0: no personal-best tag on the card; bests show on Streaks & Log, under the calendar.)
+      const actions = `
+        ${logBtn}
+        <button type="button" data-action="edit" data-id="${id}" class="icon-btn ghost" aria-label="Edit game" title="Edit game">${img('settings', '')}</button>
+        ${playBtn}`;
       const timerText = formatDurationHMS(getMsUntilNextReset(g.resetTime, g.resetZone));
       const localResetStr = formatLocalResetTime(g.resetTime, g.resetZone);
       return `
@@ -2989,7 +3034,7 @@
             <span data-role="card-status-pill" class="status-pill status-${status}">${status === 'completed' ? '<span class="dot-star" aria-hidden="true">★</span>' : '<span class="dot"></span>'}${statusLabel}</span>
           </div>
           <div class="gc-bottom">
-            <div class="gc-countdown"><span class="label">Next in</span><span class="time game-countdown" data-game-id="${id}">${timerText}</span></div>
+            <div class="gc-countdown"><svg class="cd-ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span class="label">Next in</span><span class="time game-countdown" data-game-id="${id}">${timerText}</span></div>
             <div class="gc-actions">${reorder}${actions}</div>
           </div>
         </article>`;
@@ -3007,10 +3052,11 @@
       grid.className = isCompact ? 'space-y-1.5' : 'space-y-2.5';
 
       // Preserve the user-configured order in state.games (no forced status sort)
+      const mode = hubSortMode();
+      grid.dataset.sort = mode;
       const sortSel = document.getElementById('hubSort');
       const sortBtn = sortSel && sortSel.nextElementSibling;
       if (sortBtn && sortBtn.classList.contains('tsel-btn')) {
-        const mode = hubSortMode();
         sortBtn.classList.toggle('sorted', mode !== 'custom');
         const o = [...sortSel.options].find((x) => x.value === mode);
         sortBtn.setAttribute('aria-label', `Sort games: ${o ? o.textContent : mode}`);
@@ -3447,9 +3493,9 @@
         haptic('start');
         const loop = () => {
           if (!drag) return;
-          // Below the hub's header, which stays at the top of the screen.
-          const sticky = document.querySelector('#viewDashboard > .hub-sticky');
-          const edgeTop = (sticky ? sticky.getBoundingClientRect().bottom : 0) + 50;
+          // Below the persistent app-wide top bar.
+          const hdr = document.getElementById('appHeader');
+          const edgeTop = (hdr ? hdr.getBoundingClientRect().bottom : 0) + 48;
           const edgeBottom = window.innerHeight - 150; // keep clear of the floating nav dock
           if (drag.lastY < edgeTop) window.scrollBy(0, -Math.ceil((edgeTop - drag.lastY) / 6));
           else if (drag.lastY > edgeBottom) window.scrollBy(0, Math.ceil((drag.lastY - edgeBottom) / 6));
@@ -3922,8 +3968,18 @@
      * After a scroll (1.8.8): the parked pages move to where they'd slide in from at the new scroll position,
      * and are drawn again there when the scroll went more than half a screen from where they were drawn.
      */
+    // Subtle header shadow once the page scrolls beneath #appHeader (passive listener, zero layout reads).
+    let lastAppScrolled = false;
+    function syncAppScrolled() {
+      const scrolled = window.scrollY > 4;
+      if (scrolled === lastAppScrolled) return;
+      lastAppScrolled = scrolled;
+      document.documentElement.classList.toggle('app-scrolled', scrolled);
+    }
+
     let realignTimer = 0;
     window.addEventListener('scroll', () => {
+      syncAppScrolled();
       clearTimeout(realignTimer);
       realignTimer = setTimeout(() => whenIdle(() => {
         if (REDUCED_MOTION || Pager.neighbour || tabAnimating) return;
@@ -3953,22 +4009,39 @@
       }, 1500), 400);
     }
 
+    function cancelFoldAnimations(card) {
+      if (!card || typeof card.getAnimations !== 'function') return;
+      const body = card.querySelector(':scope > .fold-body');
+      if (body && typeof body.getAnimations === 'function') body.getAnimations().forEach((a) => a.cancel());
+      card.getAnimations().forEach((a) => a.cancel());
+    }
+
+    function animateFoldBody(card) {
+      if (REDUCED_MOTION) return;
+      const body = card.querySelector(':scope > .fold-body');
+      const targets = body ? [body] : [...card.children].slice(1);
+      targets.forEach((el) => {
+        if (!el.animate) return;
+        el.getAnimations().forEach((a) => a.cancel());
+        el.animate(
+          [{ opacity: 0, transform: 'translate3d(0,-6px,0)' }, { opacity: 1, transform: 'translate3d(0,0,0)' }],
+          { duration: 170, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+        );
+      });
+    }
+
     function setFold(card, open, animate) {
       if (open && foldDirty.has(card.dataset.fold)) { const f = foldDirty.get(card.dataset.fold); foldDirty.delete(card.dataset.fold); f(); }
       const change = () => {
+        if (!open) cancelFoldAnimations(card);
         card.classList.toggle('fold-open', open);
         const head = card.querySelector(':scope > .fold-head');
         if (head) head.setAttribute('aria-expanded', String(open));
       };
       if (animate && !REDUCED_MOTION) {
-        // 1.8.6: the cards below glide to their new place, and an opened card's contents fade in
-        // (both on the GPU). They used to jump.
+        // Two-phase FLIP without interleaved reads/writes, plus single .fold-body animation.
         glideSiblingsAfter(card, change);
-        if (open) {
-          [...card.children].slice(1).forEach((el) => {
-            if (el.animate) el.animate([{ opacity: 0, transform: 'translate3d(0,-8px,0)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(0.05, 0.7, 0.1, 1)' });
-          });
-        }
+        if (open) animateFoldBody(card);
       } else {
         change();
       }
@@ -3982,14 +4055,24 @@
       const after = [];
       for (let n = el.nextElementSibling; n; n = n.nextElementSibling) after.push(n);
       const h = window.innerHeight;
-      const before = after.map((n) => n.getBoundingClientRect().top);
+      // Read phase 1: measure all visible siblings before mutating DOM.
+      const before = after.map((n) => (n.offsetParent !== null ? n.getBoundingClientRect().top : null));
+      // Write phase: apply DOM change once.
       change();
+      // Read phase 2: measure all visible siblings after DOM change in a single layout pass.
+      const deltas = after.map((n, i) => {
+        const prevTop = before[i];
+        if (prevTop === null || !n.animate || n.offsetParent === null) return 0;
+        const nextTop = n.getBoundingClientRect().top;
+        if (Math.min(prevTop, nextTop) > h) return 0;
+        return prevTop - nextTop;
+      });
+      // Animate phase: start GPU-only animations after all reads are complete.
       after.forEach((n, i) => {
-        const top = n.getBoundingClientRect().top;
-        const dy = before[i] - top;
-        // Only what's on screen before or after (and not hidden).
-        if (!dy || !n.animate || (Math.min(before[i], top) > h) || n.offsetParent === null) return;
-        n.animate([{ transform: `translate3d(0,${dy}px,0)` }, { transform: 'none' }], { duration: 280, easing: 'cubic-bezier(0.2, 0, 0, 1)' });
+        const dy = deltas[i];
+        if (!dy) return;
+        n.getAnimations().forEach((a) => a.cancel());
+        n.animate([{ transform: `translate3d(0,${dy}px,0)` }, { transform: 'translate3d(0,0,0)' }], { duration: 180, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
       });
     }
     function initFolds() {
@@ -4015,7 +4098,7 @@
           // Settings (1.9.2): one section open at a time.
           if (isSettingsCard(card)) {
             if (card.classList.contains('fold-open')) closeSettingsSection(); else openSettingsSection(card.dataset.fold);
-            haptic('tick');
+            setTimeout(() => haptic('tick'), 0);
             return;
           }
           setFold(card, !card.classList.contains('fold-open'), true);
@@ -4057,40 +4140,113 @@
       about: 'Version, updates and help'
     };
     let settingsSection = '';
+    let settingsScrollTimer = 0;
     const settingsCards = () => [...document.querySelectorAll('#viewSettings > [data-fold]')];
     const isSettingsCard = (card) => Boolean(card && card.parentElement && card.parentElement.id === 'viewSettings');
     /**
-     * Opens one Settings section in its box, closing the one that was open. The tapped heading stays where
-     * it was on screen (a section closing above it would otherwise pull it up), and a section opened low on
-     * the screen is scrolled up so its options show.
+     * Opens one Settings section in its box, closing the one that was open. Uses strictly batched
+     * Read -> Write -> Read -> Animate phases so there is only 1 layout calculation and zero jank.
      */
     function openSettingsSection(name, opts) {
-      const card = settingsCards().find((c) => c.dataset.fold === name);
+      const cards = settingsCards();
+      const card = cards.find((c) => c.dataset.fold === name);
       if (!card) return;
+      if (settingsScrollTimer) { clearTimeout(settingsScrollTimer); settingsScrollTimer = 0; }
       const onScreen = activeTab === 'settings';
-      const keepScroll = opts && opts.keepScroll;
-      const before = onScreen ? card.getBoundingClientRect().top : 0;
-      settingsCards().forEach((c) => { if (c !== card && c.classList.contains('fold-open')) setFold(c, false); });
-      if (onScreen && !keepScroll) {
-        const moved = card.getBoundingClientRect().top - before;
-        if (moved) window.scrollBy(0, moved);
+      const keepScroll = Boolean(opts && opts.keepScroll);
+      const after = [];
+      for (let n = card.nextElementSibling; n; n = n.nextElementSibling) after.push(n);
+      const vh = window.innerHeight;
+      const wasOpen = card.classList.contains('fold-open');
+
+      if (!onScreen || REDUCED_MOTION) {
+        cards.forEach((c) => { if (c !== card && c.classList.contains('fold-open')) setFold(c, false, false); });
+        if (!wasOpen) setFold(card, true, false);
+        settingsSection = name;
+        setTimeout(syncBackInterceptState, 0);
+        return;
       }
-      if (!card.classList.contains('fold-open')) setFold(card, true, onScreen);
+
+      // Single Read Phase 1 (before any DOM mutations).
+      const cardBeforeTop = card.getBoundingClientRect().top;
+      const scrollY0 = window.scrollY;
+      const siblingBeforeTops = after.map((n) => (n.offsetParent !== null ? n.getBoundingClientRect().top : null));
+
+      // Single Write Phase 1: close other open cards and open target card together.
+      cards.forEach((c) => {
+        if (c !== card && c.classList.contains('fold-open')) {
+          cancelFoldAnimations(c);
+          c.classList.remove('fold-open');
+          const h = c.querySelector(':scope > .fold-head');
+          if (h) h.setAttribute('aria-expanded', 'false');
+          foldState.set(c.dataset.fold, false);
+        }
+      });
+      if (!wasOpen) {
+        if (foldDirty.has(name)) { const f = foldDirty.get(name); foldDirty.delete(name); f(); }
+        card.classList.add('fold-open');
+        const head = card.querySelector(':scope > .fold-head');
+        if (head) head.setAttribute('aria-expanded', 'true');
+        foldState.set(name, true);
+      }
       settingsSection = name;
-      if (onScreen && !keepScroll) {
-        const top = card.getBoundingClientRect().top;
-        if (top > window.innerHeight * 0.55) window.scrollTo({ top: window.scrollY + top - 16, behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
+
+      // Single Read Phase 2 (1 layout pass total).
+      const cardAfterTop = card.getBoundingClientRect().top;
+      const cardHeight = card.offsetHeight;
+      const siblingAfterTops = after.map((n, i) => (siblingBeforeTops[i] !== null && n.offsetParent !== null ? n.getBoundingClientRect().top : null));
+
+      // Scroll anchoring if a card above collapsed and shifted the tapped card up/down.
+      let actualScroll = 0;
+      if (!keepScroll) {
+        const moved = cardAfterTop - cardBeforeTop;
+        if (moved !== 0) {
+          actualScroll = Math.max(-scrollY0, moved);
+          if (actualScroll !== 0) window.scrollBy(0, actualScroll);
+        }
       }
-      syncBackInterceptState();
+
+      // Single Animation Phase (compositor-only, zero layout reads).
+      if (!wasOpen) animateFoldBody(card);
+      after.forEach((n, i) => {
+        const prevTop = siblingBeforeTops[i];
+        const nextTop = siblingAfterTops[i];
+        if (prevTop === null || nextTop === null || !n.animate) return;
+        const visualNextTop = nextTop - actualScroll;
+        if (Math.min(prevTop, visualNextTop) > vh) return;
+        const dy = prevTop - visualNextTop;
+        if (!dy) return;
+        n.getAnimations().forEach((a) => a.cancel());
+        n.animate([{ transform: `translate3d(0,${dy}px,0)` }, { transform: 'translate3d(0,0,0)' }], { duration: 180, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+      });
+
+      // Defer gentle scroll-into-view until after the 180ms FLIP animation finishes.
+      if (!keepScroll) {
+        const finalCardTop = cardAfterTop - actualScroll;
+        const dockTop = vh - 96;
+        if (finalCardTop + Math.min(cardHeight, 260) > dockTop || finalCardTop > vh * 0.55) {
+          const hdr = document.getElementById('appHeader');
+          const hdrBottom = hdr ? hdr.getBoundingClientRect().bottom : 56;
+          const targetTop = Math.max(0, window.scrollY + finalCardTop - hdrBottom - 10);
+          settingsScrollTimer = setTimeout(() => {
+            settingsScrollTimer = 0;
+            if (settingsSection === name && activeTab === 'settings') {
+              window.scrollTo({ top: targetTop, behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
+            }
+          }, 185);
+        }
+      }
+      setTimeout(syncBackInterceptState, 0);
     }
     /** Closes the open Settings section; true if one was open. */
     function closeSettingsSection(opts) {
+      if (settingsScrollTimer) { clearTimeout(settingsScrollTimer); settingsScrollTimer = 0; }
       const open = settingsCards().filter((c) => c.classList.contains('fold-open'));
       settingsSection = '';
       if (!open.length) return false;
       const animate = activeTab === 'settings' && !(opts && opts.instant);
       open.forEach((c) => setFold(c, false, animate));
-      syncBackInterceptState();
+      setTimeout(syncBackInterceptState, 0);
       return true;
     }
 
@@ -4308,7 +4464,7 @@
       if (!game || isAnyModalOpen()) return;
       lastOpenedGameId = gameId;
       const next = nextGameToPlay();
-      if (!next) { showToast("🎉 That's every game for today", 'Come back after the next reset.', 'emerald'); return; }
+      if (!next) { showToast("That's every game for today", 'Come back after the next reset.', 'emerald'); return; }
       const m = document.getElementById('modalNextGame');
       m.dataset.next = next.id;
       document.getElementById('nextGameTitle').textContent = `✓ ${game.name} logged`;
@@ -4559,113 +4715,152 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.10.1': [
+        ['pin', 'Persistent app bar & interactive pills', 'The Dailies header stays pinned across tabs; tap Ready to filter or Streak to jump to your top streak game, while filter, sort, and search scroll smoothly with reorder arrows hidden outside Custom order.'],
+        ['swipe', 'Smooth motion & zero-stretch limits', 'Swiping between tabs, calendar months, recaps, and history stops cleanly at limits, while Settings sections and calendar months transition smoothly without layout jitter.'],
+        ['palette', 'Warm Gold & Ruby surfaces + monochrome icons', 'Gold and Ruby now tint surfaces with warm obsidian and wine undertones, Score History paginates by whole calendar day, and crisp monochrome SVG icons replace pictorial emojis throughout the UI.']
+      ],
       '1.10.0': [
-        ['✨', 'Material 3 Expressive redesign', 'Rounded Google Sans Flex typography, a Today\'s Progress hero summary card, standalone tonal game cards, a split floating tab bar with a + Add Game button, and spring-morphing native game menus.'],
-        ['🎨', 'Matching app icons for every theme', 'All 14 color themes now have a matching preset launcher icon, rotating automatically alongside Daily Random Theme.'],
-        ['🛠️', 'Reliability, security & alignment polish', 'Active game sessions persist across notification taps, buttons and pill switches align cleanly across every screen size, and result detection, ad-blocking, and backups are faster and more resilient.']
+        ['sparkle', 'Material 3 Expressive redesign', 'Rounded Google Sans Flex typography, a Today\'s Progress hero summary card, standalone tonal game cards, a split floating tab bar with a + Add Game button, and spring-morphing native game menus.'],
+        ['palette', 'Matching app icons for every theme', 'All 14 color themes now have a matching preset launcher icon, rotating automatically alongside Daily Random Theme.'],
+        ['wrench', 'Reliability, security & alignment polish', 'Active game sessions persist across notification taps, buttons and pill switches align cleanly across every screen size, and result detection, ad-blocking, and backups are faster and more resilient.']
       ],
       '1.9.6': [
-        ['🎨', '7 new Color Themes & Daily Random', 'Pick from 12 pre-made themes (plus Gold & Ruby right inside the Theme picker), or turn on Daily Random Theme to rotate colors and match the app icon every day.'],
-        ['👑', 'Brushed Champagne Gold icon & polish', 'The Gold app icon has crisp vector edges and a centered shadow, calendar glows no longer clip at the edges, and Reset Alerts matches the rest of Settings.']
+        ['palette', '7 new Color Themes & Daily Random', 'Pick from 12 pre-made themes (plus Gold & Ruby right inside the Theme picker), or turn on Daily Random Theme to rotate colors and match the app icon every day.'],
+        ['crown', 'Brushed Champagne Gold icon & polish', 'The Gold app icon has crisp vector edges and a centered shadow, calendar glows no longer clip at the edges, and Reset Alerts matches the rest of Settings.']
       ],
       '1.9.5': [
-        ['💎', 'Radiant Star Ruby & Crystalline Prism icon', 'Ruby accents now use a deep faceted crimson palette with crisp prism rims and a subtle sheen sweep, paired with a new 4-plane crystalline Ruby app icon.'],
-        ['👑', 'Gold accent polish', 'Unlocked achievement cards now show their gold border, and the Done pill matches the horizontal gold sheen on buttons.']
+        ['gem', 'Radiant Star Ruby & Crystalline Prism icon', 'Ruby accents now use a deep faceted crimson palette with crisp prism rims and a subtle sheen sweep, paired with a new 4-plane crystalline Ruby app icon.'],
+        ['crown', 'Gold accent polish', 'Unlocked achievement cards now show their gold border, and the Done pill matches the horizontal gold sheen on buttons.']
       ],
       '1.9.4': [
-        ['🛠️', 'Next-reset sort & reliability fixes', 'Sorting by Next reset no longer crashes, duplicate-game links survive restarts, single-game restore and undo update today\'s card right away, and changes sync cleanly when leaving the app.'],
-        ['🔔', 'Smarter reminders & smoother playback', 'Streak reminders stop once a streak is broken, per-game reminders work even when reset alerts are muted, and large exports, screenshots, and ad-block rules run faster and safer.']
+        ['wrench', 'Next-reset sort & reliability fixes', 'Sorting by Next reset no longer crashes, duplicate-game links survive restarts, single-game restore and undo update today\'s card right away, and changes sync cleanly when leaving the app.'],
+        ['bell', 'Smarter reminders & smoother playback', 'Streak reminders stop once a streak is broken, per-game reminders work even when reset alerts are muted, and large exports, screenshots, and ad-block rules run faster and safer.']
       ],
       '1.9.3': [
-        ['💎', 'A step-cut ruby icon', 'The Ruby app icon is a step-cut gem now: smooth bands that follow the star\'s shape, instead of the wedges that looked like a pinwheel up close.'],
-        ['📅', 'Today stands out', 'Today on the calendar has a brighter ring and a soft glow round it.']
+        ['gem', 'A step-cut ruby icon', 'The Ruby app icon is a step-cut gem now: smooth bands that follow the star\'s shape, instead of the wedges that looked like a pinwheel up close.'],
+        ['calendar', 'Today stands out', 'Today on the calendar has a brighter ring and a soft glow round it.']
       ],
       '1.9.2': [
-        ['⚙️', 'Settings open in place', 'Tap a section in Settings and its box opens right there, with no separate page. Opening another closes the first, and leaving Settings closes them all.']
+        ['gear', 'Settings open in place', 'Tap a section in Settings and its box opens right there, with no separate page. Opening another closes the first, and leaving Settings closes them all.']
       ],
       '1.9.1': [
-        ['⚙️', 'Settings in pages', 'Settings is a short list of sections now. Tap one to open it on its own page, and Back (or Settings again) to return to the list. The ⓘ is gone: each setting\'s explanation shows under its name again.']
+        ['gear', 'Settings in pages', 'Settings is a short list of sections now. Tap one to open it on its own page, and Back (or Settings again) to return to the list. The ⓘ is gone: each setting\'s explanation shows under its name again.']
       ],
       '1.9.0': [
-        ['⚙️', 'A shorter Settings page', 'Theme and App Icon are one row each that opens their choices, Gold and Ruby are one Accent choice, and each setting\'s explanation is behind the ⓘ by its name.'],
-        ['🏆', 'No PB tag on the hub', 'Personal bests show on Streaks & Log, under the calendar.']
+        ['gear', 'A shorter Settings page', 'Theme and App Icon are one row each that opens their choices, Gold and Ruby are one Accent choice, and each setting\'s explanation is behind the ⓘ by its name.'],
+        ['trophy', 'No PB tag on the hub', 'Personal bests show on Streaks & Log, under the calendar.']
       ],
       '1.8.13': [
-        ['💎', 'Polished ruby', 'Ruby buttons are a smooth polished stone now, with no hard lines, and their outlines sit evenly all the way round.'],
-        ['🔗', 'No double games', 'Adding a link to a game you already have (a menu page of its site, another site showing it, a link that leads to it) is caught, so it isn\'t added twice.'],
-        ['✨', 'A quieter all done', 'Finishing every game no longer plays a full-screen animation. The little sparkle on the app icon stays.']
+        ['gem', 'Polished ruby', 'Ruby buttons are a smooth polished stone now, with no hard lines, and their outlines sit evenly all the way round.'],
+        ['link', 'No double games', 'Adding a link to a game you already have (a menu page of its site, another site showing it, a link that leads to it) is caught, so it isn\'t added twice.'],
+        ['sparkle', 'A quieter all done', 'Finishing every game no longer plays a full-screen animation. The little sparkle on the app icon stays.']
       ],
       '1.8.12': [
-        ['⏱️', 'Timers aren\'t scores', 'A countdown to the next puzzle or a game\'s own clock is no longer offered as your result when you open a game.'],
-        ['🔎', 'Late end screens', 'A result that appears a while after your last move is found too.'],
-        ['⚡', 'Quicker with a long history', 'Achievements and stats take about half the work, and the first check waits until after your first swipes.']
+        ['clock', 'Timers aren\'t scores', 'A countdown to the next puzzle or a game\'s own clock is no longer offered as your result when you open a game.'],
+        ['search', 'Late end screens', 'A result that appears a while after your last move is found too.'],
+        ['gauge', 'Quicker with a long history', 'Achievements and stats take about half the work, and the first check waits until after your first swipes.']
       ],
       '1.8.11': [
-        ['👆', 'Smooth from the first swipe', 'The first swipes after opening the app no longer catch. The app now does them once itself, out of sight, while it opens.']
+        ['swipe', 'Smooth from the first swipe', 'The first swipes after opening the app no longer catch. The app now does them once itself, out of sight, while it opens.']
       ],
       '1.8.10': [
-        ['⚡', 'Quick swipes, no jump', 'A fast flick between pages now moves from its very first frame. The page used to be got ready as your finger started moving, so a quick swipe jumped ahead once it caught up.']
+        ['swipe', 'Quick swipes, no jump', 'A fast flick between pages now moves from its very first frame. The page used to be got ready as your finger started moving, so a quick swipe jumped ahead once it caught up.']
       ],
       '1.8.9': [
-        ['👆', 'Swipes without the hitch', 'A page now carries on at your finger\'s speed when you let go (it used to stop for a moment, then lurch), and follows your finger with about half the work per frame.']
+        ['swipe', 'Swipes without the hitch', 'A page now carries on at your finger\'s speed when you let go (it used to stop for a moment, then lurch), and follows your finger with about half the work per frame.']
       ],
       '1.8.8': [
-        ['👆', 'Smoother swipes', 'Pages slide between the hub, Streaks & Log and Settings with less to draw, wherever you\'ve scrolled to.'],
-        ['📋', 'App menus in games', 'Drop-down lists on game pages now open the app\'s own menu on a tap.'],
-        ['🫧', 'Truly clear bar', 'At its clearest, the bottom bar has no colour at all, with gold and ruby too.'],
-        ['🎯', 'Even outlines', 'Gold and ruby buttons have the same edge at the top and the bottom.']
+        ['swipe', 'Smoother swipes', 'Pages slide between the hub, Streaks & Log and Settings with less to draw, wherever you\'ve scrolled to.'],
+        ['list', 'App menus in games', 'Drop-down lists on game pages now open the app\'s own menu on a tap.'],
+        ['layers', 'Truly clear bar', 'At its clearest, the bottom bar has no colour at all, with gold and ruby too.'],
+        ['bullseye', 'Even outlines', 'Gold and ruby buttons have the same edge at the top and the bottom.']
       ],
       '1.8.7': [
-        ['🧾', 'Tidier Score History', 'Each result is one line until you open it, and Recent changes has moved to Settings → Data & Backup.'],
-        ['🎨', 'Cleaner look', 'Settings without a box around every option, one icon shape on the hub, and a bottom bar that turns to clear glass as you slide it to Clear.'],
-        ['📋', 'App menus in games', 'Drop-down lists on game pages open the app\'s own menu.'],
-        ['✨', 'No more flashes', 'The background no longer flashes when you change tabs, and changing the theme updates everything at once.']
+        ['list', 'Tidier Score History', 'Each result is one line until you open it, and Recent changes has moved to Settings → Data & Backup.'],
+        ['palette', 'Cleaner look', 'Settings without a box around every option, one icon shape on the hub, and a bottom bar that turns to clear glass as you slide it to Clear.'],
+        ['list', 'App menus in games', 'Drop-down lists on game pages open the app\'s own menu.'],
+        ['sparkle', 'No more flashes', 'The background no longer flashes when you change tabs, and changing the theme updates everything at once.']
       ],
       '1.8.6': [
-        ['✨', 'Smoother everywhere', 'Folding "Done today" and the Settings and Achievements sections now glides instead of jumping, paging Score History and the calendar starts at once, and saving no longer interrupts an animation.'],
-        ['↩️', 'Quicker back from a game', 'Coming back to the hub from a game only redraws what changed.']
+        ['sparkle', 'Smoother everywhere', 'Folding "Done today" and the Settings and Achievements sections now glides instead of jumping, paging Score History and the calendar starts at once, and saving no longer interrupts an animation.'],
+        ['undo', 'Quicker back from a game', 'Coming back to the hub from a game only redraws what changed.']
       ],
       '1.8.5': [
-        ['🔄', 'Game pages checked for changes', 'Turn on Settings → Check Game Pages for Changes, and each week Dailies reads your games\' pages again on Wi-Fi. When something changed (a name, description, icon, reset time or a new address), it shows you what and asks first.'],
-        ['🧭', 'See-through bottom bar', 'The bottom bar is more see-through, and you can set exactly how much in Settings → Bottom Bar See-Through.'],
-        ['📋', 'Tidier copied results', 'Copying or sharing all of today\'s results puts a line between each game.'],
-        ['👆', 'Smoother still', 'No more stutter the first time you swipe to Settings, or when stretching the hub sideways right after opening the app. The recaps have more room, and the gold and ruby glow sits evenly around buttons.']
+        ['refresh', 'Game pages checked for changes', 'Turn on Settings → Check Game Pages for Changes, and each week Dailies reads your games\' pages again on Wi-Fi. When something changed (a name, description, icon, reset time or a new address), it shows you what and asks first.'],
+        ['compass', 'See-through bottom bar', 'The bottom bar is more see-through, and you can set exactly how much in Settings → Bottom Bar See-Through.'],
+        ['list', 'Tidier copied results', 'Copying or sharing all of today\'s results puts a line between each game.'],
+        ['swipe', 'Smoother still', 'No more stutter the first time you swipe to Settings, or when stretching the hub sideways right after opening the app. The recaps have more room, and the gold and ruby glow sits evenly around buttons.']
       ],
       '1.8.4': [
-        ['👆', 'Smoother swipes', 'Swiping to Settings no longer stutters with Glass cards, and the first swipe to a page after opening the app is smooth too.']
+        ['swipe', 'Smoother swipes', 'Swiping to Settings no longer stutters with Glass cards, and the first swipe to a page after opening the app is smooth too.']
       ],
       '1.8.3': [
-        ['🔎', 'Smarter game adding', 'Pasting a link now reads the game\'s page as it really looks, for a better name, a short how-to-play description and its reset time.'],
-        ['🎯', 'Finds more results', 'Dailies now opens a game\'s "See results" screen to find its Share button, reads results shared by link, and offers a result shown on screen.'],
-        ['📏', 'Learns the score type', 'After a few results, a game\'s score format (guesses, time or points) is set for you, with Undo.'],
-        ['🧭', 'Smoother Settings and Streaks', 'Swipe the recap boxes to change week or month, and Settings swipes in without stutter.'],
-        ['✨', 'Tidier everywhere', 'Only Play all on the hub, the app\'s own menus for every list, clearer card styles and a more see-through bar.']
+        ['search', 'Smarter game adding', 'Pasting a link now reads the game\'s page as it really looks, for a better name, a short how-to-play description and its reset time.'],
+        ['bullseye', 'Finds more results', 'Dailies now opens a game\'s "See results" screen to find its Share button, reads results shared by link, and offers a result shown on screen.'],
+        ['ruler', 'Learns the score type', 'After a few results, a game\'s score format (guesses, time or points) is set for you, with Undo.'],
+        ['compass', 'Smoother Settings and Streaks', 'Swipe the recap boxes to change week or month, and Settings swipes in without stutter.'],
+        ['sparkle', 'Tidier everywhere', 'Only Play all on the hub, the app\'s own menus for every list, clearer card styles and a more see-through bar.']
       ],
       '1.8.2': [
-        ['🔔', 'Reset alerts are back', 'When several games reset together you get one "games are ready" alert again; it was being cleared the moment it appeared.'],
-        ['🚀', 'Opens straight to your hub', 'No more blank screen at launch: the hub appears with your games already on it.'],
-        ['👆', 'Smoother swipes', 'Swiping between Daily Hub, Streaks & Log and Settings no longer stutters, and the calendar no longer drops into place.'],
-        ['🎯', 'Daily challenge removed', 'The challenge banner is gone. Ruby now unlocks with the other five secrets.']
+        ['bell', 'Reset alerts are back', 'When several games reset together you get one "games are ready" alert again; it was being cleared the moment it appeared.'],
+        ['rocket', 'Opens straight to your hub', 'No more blank screen at launch: the hub appears with your games already on it.'],
+        ['swipe', 'Smoother swipes', 'Swiping between Daily Hub, Streaks & Log and Settings no longer stutters, and the calendar no longer drops into place.'],
+        ['bullseye', 'Daily challenge removed', 'The challenge banner is gone. Ruby now unlocks with the other five secrets.']
       ],
       '1.8.1': [
-        ['📜', 'A tidier Score History', 'Results are grouped by day, one short row each with a preview of the result. Tap a row for the full result and Copy.'],
-        ['⚡', 'Faster and smoother', 'The hub opens sooner, and sliding between Daily Hub, Streaks & Log and Settings no longer jumps.']
+        ['list', 'A tidier Score History', 'Results are grouped by day, one short row each with a preview of the result. Tap a row for the full result and Copy.'],
+        ['gauge', 'Faster and smoother', 'The hub opens sooner, and sliding between Daily Hub, Streaks & Log and Settings no longer jumps.']
       ],
       '1.8.0': [
-        ['🔎', 'Search your games', 'Tap the magnifier on the hub to find a game by name, site or category.'],
-        ['👆', 'Quick actions', 'Long-press a game card (and let go without moving) for Play, notes, stats, reset time, archive and more.'],
-        ['📝', 'Game notes', 'Keep a tip or strategy for each game from its quick actions.'],
-        ['🗑', 'Trash', 'Removed games stay in Settings → Data & Backup → Trash for 30 days.'],
-        ['↶', 'Undo from any day', 'Recent changes now goes back 60 days and can be searched.'],
-        ['✨', 'All done!', 'Your app icon sparkles when you finish every game for the day.'],
-        ['🕛', 'Reset times that fix themselves', 'Dailies checks every game\'s puzzle numbers and can correct a reset time for you.'],
-        ['🍪', 'Fewer pop-ups', 'Cookie and consent banners are hidden on game pages, and you can pull down to refresh a game.'],
-        ['🔗', 'Links & icons', 'Check every game\'s link and fetch sharper icons from Settings → Data & Backup.'],
-        ['🧹', 'Storage', 'See what Dailies keeps on your phone and clear caches.'],
-        ['🐞', 'Report a problem', 'Settings → About collects recent errors to attach to a GitHub issue.'],
-        ['⚡', 'Faster start', 'The hub opens sooner.']
+        ['search', 'Search your games', 'Tap the magnifier on the hub to find a game by name, site or category.'],
+        ['swipe', 'Quick actions', 'Long-press a game card (and let go without moving) for Play, notes, stats, reset time, archive and more.'],
+        ['notes', 'Game notes', 'Keep a tip or strategy for each game from its quick actions.'],
+        ['trash', 'Trash', 'Removed games stay in Settings → Data & Backup → Trash for 30 days.'],
+        ['undo', 'Undo from any day', 'Recent changes now goes back 60 days and can be searched.'],
+        ['sparkle', 'All done!', 'Your app icon sparkles when you finish every game for the day.'],
+        ['clock', 'Reset times that fix themselves', 'Dailies checks every game\'s puzzle numbers and can correct a reset time for you.'],
+        ['shield', 'Fewer pop-ups', 'Cookie and consent banners are hidden on game pages, and you can pull down to refresh a game.'],
+        ['link', 'Links & icons', 'Check every game\'s link and fetch sharper icons from Settings → Data & Backup.'],
+        ['sweep', 'Storage', 'See what Dailies keeps on your phone and clear caches.'],
+        ['bug', 'Report a problem', 'Settings → About collects recent errors to attach to a GitHub issue.'],
+        ['gauge', 'Faster start', 'The hub opens sooner.']
       ]
     };
+    const WN_SVG_PATHS = {
+      pin: '<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>',
+      sparkle: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 3v3M20.5 4.5h-3"/><path d="M5 17v3M6.5 18.5h-3"/>',
+      palette: '<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="11.5" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/>',
+      wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+      crown: '<path d="M3 18h18"/><path d="M4 15l2-9 6 4 6-4 2 9z"/>',
+      gem: '<path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M12 21L8 9l4-6 4 6z"/>',
+      bell: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+      calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+      gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+      trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/>',
+      link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+      clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+      search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/>',
+      gauge: '<path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+      swipe: '<path d="M8 7l-5 5 5 5"/><path d="M16 7l5 5-5 5"/><path d="M3 12h18"/>',
+      list: '<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>',
+      layers: '<path d="M12 2L2 7l10 5 10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>',
+      bullseye: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+      undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/>',
+      refresh: '<path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/>',
+      compass: '<circle cx="12" cy="12" r="9"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+      ruler: '<path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.4 2.4 0 0 1 0-3.4l2.6-2.6a2.4 2.4 0 0 1 3.4 0z"/><path d="M7.5 10.5l2-2M10.5 13.5l2-2M13.5 16.5l2-2"/>',
+      rocket: '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
+      notes: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+      trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+      shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+      sweep: '<path d="M5 20h14"/><path d="M14 4l-7 7 4 4 7-7"/><path d="M6.5 12.5L4 20"/>',
+      bug: '<rect x="8" y="6" width="8" height="14" rx="4"/><path d="M19 7l-3 2M5 7l3 2M19 19l-3-2M5 19l3-2M20 13h-4M4 13h4M10 4l1 2M14 4l-1 2"/>'
+    };
+    function wnIconHtml(key) {
+      const p = WN_SVG_PATHS[key] || WN_SVG_PATHS.sparkle;
+      return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+    }
     const versionParts = (v) => String(v || '0').split('.').map((n) => parseInt(n, 10) || 0);
     const versionBefore = (a, b) => { const x = versionParts(a); const y = versionParts(b); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0); } return false; };
     function openWhatsNew(version) {
@@ -4674,7 +4869,7 @@
       document.getElementById('whatsNewTitle').textContent = `What's new in ${v}`;
       document.getElementById('whatsNewSub').textContent = items.length ? 'Here\'s what changed in this update.' : 'Bug fixes and small improvements.';
       document.getElementById('whatsNewList').innerHTML = items.map(([ic, t, d]) =>
-        `<div class="wn-row"><span class="wn-ic" aria-hidden="true">${ic}</span><div class="min-w-0"><p class="wn-title">${escapeHtml(t)}</p><p class="wn-desc">${escapeHtml(d)}</p></div></div>`).join('');
+        `<div class="wn-row"><span class="wn-ic" aria-hidden="true">${wnIconHtml(ic)}</span><div class="min-w-0"><p class="wn-title">${escapeHtml(t)}</p><p class="wn-desc">${escapeHtml(d)}</p></div></div>`).join('');
       openModal('modalWhatsNew');
     }
     function maybeShowWhatsNew() {
@@ -5161,7 +5356,7 @@
         // caller shows its own message
       } else if (validStatus === 'completed' && prevStatus !== 'completed') {
         showToast(
-          `🔥 ${game.name} Completed!`,
+          `${game.name} completed`,
           `Streak is now ${plural(game.streak, 'day')}. Next puzzle resets at ${localResetLabel}.`,
           'emerald', null, undoOpts
         );
@@ -5194,7 +5389,7 @@
       const lines = records.map((r) => r.kind === 'score' ? `Best ${game.name} ever: ${r.value}`
         : r.kind === 'time' ? `Fastest ${game.name}: ${r.value}`
         : `Longest ${game.name} streak: ${plural(r.value, 'day')}`);
-      setTimeout(() => showToast('🏆 New personal best', lines.join(' · '), 'emerald'), 350);
+      setTimeout(() => showToast('New personal best', lines.join(' · '), 'emerald'), 350);
       haptic('drop');
     }
 
@@ -5434,7 +5629,7 @@
         const on = st.id === current;
         return `<button type="button" class="icon-choice${on ? ' on' : ''}${visualLock ? ' locked' : ''}" data-icon-style="${st.id}" role="radio" aria-checked="${on}" aria-disabled="${visualLock}"`
           + ` aria-label="${escapeHtml(st.label)}${locked ? ', locked' : randLocked ? ', controlled by Daily Random Theme' : ''}">${appIconSvg(st.id, 44, 'pick')}`
-          + `${locked ? '<span class="icon-lock" aria-hidden="true">🔒</span>' : ''}<span class="icon-name">${escapeHtml(st.label)}</span></button>`;
+          + `${locked ? '<span class="icon-lock" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>' : ''}<span class="icon-name">${escapeHtml(st.label)}</span></button>`;
       }).join('');
       // How Gold unlocks is an easter egg: the locked tile says nothing more.
       const hint = document.getElementById('iconGoldHint');
@@ -5672,7 +5867,7 @@
       freshKeys.forEach((k) => {
         if (k.startsWith('secret:')) {
           const sa = HubCore.SECRET_ACHIEVEMENTS.find((x) => `secret:${x.id}` === k);
-          if (sa) setTimeout(() => showToast(`🤫 Secret found: ${sa.icon} ${sa.title}`, `${sa.desc}.`, 'emerald'), delay);
+          if (sa) setTimeout(() => showToast(`Secret found: ${sa.title}`, `${sa.desc}.`, 'emerald'), delay);
           delay += 400;
           return;
         }
@@ -5680,19 +5875,20 @@
         const a = HubCore.ACHIEVEMENTS.find((x) => x.id === id);
         const t = a && a.tiers[Number(tier) - 1];
         if (!t) return;
-        setTimeout(() => showToast(`${a.icon} ${a.title}${tier === '2' ? ' II' : ''} unlocked`, `${t.desc}.`, 'indigo'), delay);
+        const achPrefix = (a.icon === '🔥' || a.icon === '⚡') ? `${a.icon} ` : '';
+        setTimeout(() => showToast(`${achPrefix}${a.title}${tier === '2' ? ' II' : ''} unlocked`, `${t.desc}.`, 'indigo'), delay);
         delay += 400;
       });
       if (gold && !wasGold) {
-        setTimeout(() => showToast('✨ Gold icon unlocked', 'You earned the first tier of every achievement. Choose the gold app icon in Settings → Display.', 'emerald'), delay + 600);
+        setTimeout(() => showToast('Gold icon unlocked', 'You earned the first tier of every achievement. Choose the gold app icon in Settings → Display.', 'emerald'), delay + 600);
         delay += 1000;
       }
       if (accents && !wasAccents) {
-        setTimeout(() => showToast('👑 Gold theme unlocked', 'You earned every achievement tier. Choose Gold in Settings → Display → Theme.', 'emerald'), delay + 600);
+        setTimeout(() => showToast('Gold theme unlocked', 'You earned every achievement tier. Choose Gold in Settings → Display → Theme.', 'emerald'), delay + 600);
         delay += 1000;
       }
       if (ruby && !wasRuby) {
-        setTimeout(() => showToast('💎 Ruby unlocked', 'You found every secret. Choose Ruby in Settings → Display → Theme and App Icon.', 'emerald'), delay + 600);
+        setTimeout(() => showToast('Ruby unlocked', 'You found every secret. Choose Ruby in Settings → Display → Theme and App Icon.', 'emerald'), delay + 600);
       }
     }
 
@@ -5773,7 +5969,8 @@
       row.innerHTML = names.map((n) => `<div class="cal-dow">${escapeHtml(n)}</div>`).join('');
     }
 
-    function renderGameCalendar() {
+    function renderGameCalendar(opts) {
+      const skipRecompute = Boolean(opts && opts.skipRecompute);
       const selectEl = document.getElementById('calendarGameSelect');
       const monthLabelEl = document.getElementById('calendarMonthLabel');
       const gridEl = document.getElementById('calendarDaysGrid');
@@ -5820,7 +6017,7 @@
       selectEl.value = selectedCalendarGameId;
 
       const game = calGames.find((g) => g.id === selectedCalendarGameId) || calGames[0];
-      recomputeGameStatsFromHistory(game);
+      if (!skipRecompute) recomputeGameStatsFromHistory(game);
       const isActiveGame = activeIds.has(game.id);
 
       if (monthLabelEl) {
@@ -5864,6 +6061,12 @@
           ? ` data-action="cal-day" data-id="${escapeHtml(game.id)}" data-date="${dateKey}" role="button" tabindex="0"`
           : '';
         cellsHtml += `<div class="${cls}"${editAttrs} title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><span>${d}</span>${mark}</div>`;
+      }
+
+      // Pad to 6 rows (42 cells) so month height stays constant across 4/5/6-week months.
+      const trailing = Math.max(0, 42 - (firstDayWeekIdx + daysInMonth));
+      for (let i = 0; i < trailing; i++) {
+        cellsHtml += '<div class="cal-empty" aria-hidden="true"></div>';
       }
 
       gridEl.innerHTML = cellsHtml;
@@ -5928,12 +6131,12 @@
     const signed = (n, unit) => `${n > 0 ? '▲' : n < 0 ? '▼' : '='} ${n > 0 ? '+' : ''}${n}${unit || ''}`;
     function recapText() {
       const { r, change, title, range, vs } = recapData();
-      const lines = [`${title} in Dailies (${range})`, `🧩 ${plural(r.solved, 'puzzle')} solved of ${r.results} (${r.winRate}% win rate) over ${plural(r.days, 'day')}`];
-      if (change) lines.push(`📈 ${signed(change.solved)} solved${change.winRate !== null ? `, win rate ${signed(change.winRate, ' pts')}` : ''} vs ${vs}`);
-      if (r.bestGame) lines.push(`⭐ Best game: ${r.bestGame.name} (${r.bestGame.solved}/${r.bestGame.results})`);
+      const lines = [`${title} in Dailies (${range})`, `• ${plural(r.solved, 'puzzle')} solved of ${r.results} (${r.winRate}% win rate) over ${plural(r.days, 'day')}`];
+      if (change) lines.push(`• ${signed(change.solved)} solved${change.winRate !== null ? `, win rate ${signed(change.winRate, ' pts')}` : ''} vs ${vs}`);
+      if (r.bestGame) lines.push(`• Best game: ${r.bestGame.name} (${r.bestGame.solved}/${r.bestGame.results})`);
       if (r.bestStreak) lines.push(`🔥 Longest streak: ${plural(r.bestStreak, 'day')}`);
-      if (r.bestResult) lines.push(`🏆 Best result: ${r.bestResult.game} ${r.bestResult.score}`);
-      if (r.timeMs) lines.push(`⏱ Time puzzling: ${HubCore.formatDuration(r.timeMs)}`);
+      if (r.bestResult) lines.push(`• Best result: ${r.bestResult.game} ${r.bestResult.score}`);
+      if (r.timeMs) lines.push(`• Time puzzling: ${HubCore.formatDuration(r.timeMs)}`);
       return lines.join('\n');
     }
     // Kept for older callers: the month recap's text.
@@ -5959,7 +6162,7 @@
         + tile('Win rate', `${r.winRate}%`, change && change.winRate !== null ? `${delta(change.winRate, ' pts')}` : `${r.solved}/${r.results}`)
         + tile('Best streak', `${r.bestStreak}d`, r.bestResult ? `Best ${escapeHtml(r.bestResult.score)}` : plural(r.days, 'day'))
         + '</div>'
-        + `<p class="score-head recap-highlights">${r.bestGame ? `<span>⭐ Best game <strong>${escapeHtml(r.bestGame.name)}</strong> (${r.bestGame.solved}/${r.bestGame.results})</span>` : ''}${r.topGame && (!r.bestGame || r.topGame.name !== r.bestGame.name) ? `<span aria-hidden="true">·</span><span>Most played <strong>${escapeHtml(r.topGame.name)}</strong></span>` : ''}${r.timeMs ? `<span aria-hidden="true">·</span><span>⏱ <strong>${HubCore.formatDuration(r.timeMs)}</strong> puzzling</span>` : ''}</p>`
+        + `<p class="score-head recap-highlights">${r.bestGame ? `<span>Best game <strong>${escapeHtml(r.bestGame.name)}</strong> (${r.bestGame.solved}/${r.bestGame.results})</span>` : ''}${r.topGame && (!r.bestGame || r.topGame.name !== r.bestGame.name) ? `<span aria-hidden="true">·</span><span>Most played <strong>${escapeHtml(r.topGame.name)}</strong></span>` : ''}${r.timeMs ? `<span aria-hidden="true">·</span><span><strong>${HubCore.formatDuration(r.timeMs)}</strong> puzzling</span>` : ''}</p>`
         + `<p class="recap-vs text-[11px] text-slate-500">${change ? `Compared with ${vs}.` : `Nothing logged ${vs} to compare with.`}</p>`
         + `<div class="recap-actions"><button type="button" id="btnShareRecapText" class="recap-btn">Share text</button><button type="button" id="btnShareRecap" class="recap-btn primary">Share card</button></div>`;
     }
@@ -6066,7 +6269,7 @@
         ['Solved', String(r.solved), change ? `${signed(change.solved)} vs ${vs}` : `of ${r.results} results`],
         ['Win rate', `${r.winRate}%`, change && change.winRate !== null ? `${signed(change.winRate, ' pts')}` : `${r.solved}/${r.results}`],
         ['Best streak', `${r.bestStreak}d`, plural(r.days, 'day') + ' played'],
-        ['Games', String(r.games), r.timeMs ? `⏱ ${HubCore.formatDuration(r.timeMs)}` : 'played']
+        ['Games', String(r.games), r.timeMs ? `${HubCore.formatDuration(r.timeMs)}` : 'played']
       ];
       tiles.forEach(([k, v, sub], i) => {
         const X = 80 + (i % 2) * 470, Y = 420 + Math.floor(i / 2) * 304, w = 440, h = 274;
@@ -6086,10 +6289,10 @@
       // Highlights
       rr(80, 1052, 910, 196, 44); x.fillStyle = low; x.fill();
       const lines = [];
-      if (r.bestGame) lines.push(`⭐  Best game: ${iso(r.bestGame.name)} (${r.bestGame.solved}/${r.bestGame.results})`);
-      if (r.bestResult) lines.push(`🏆  Best result: ${iso(r.bestResult.game)} ${iso(r.bestResult.score)}`);
-      if (r.topGame && lines.length < 2) lines.push(`🎯  Most played: ${iso(r.topGame.name)}`);
-      if (!lines.length) lines.push(`🧩  ${plural(r.results, 'result')} logged`);
+      if (r.bestGame) lines.push(`•  Best game: ${iso(r.bestGame.name)} (${r.bestGame.solved}/${r.bestGame.results})`);
+      if (r.bestResult) lines.push(`•  Best result: ${iso(r.bestResult.game)} ${iso(r.bestResult.score)}`);
+      if (r.topGame && lines.length < 2) lines.push(`•  Most played: ${iso(r.topGame.name)}`);
+      if (!lines.length) lines.push(`•  ${plural(r.results, 'result')} logged`);
       spacing(0.5); x.font = F(600, 36); x.fillStyle = ink;
       const shown = lines.slice(0, 2);
       const y0 = shown.length === 1 ? 1163 : 1130;
@@ -6102,6 +6305,36 @@
     }
 
     let achievementsShown = [];
+    const ACH_SVG_PATHS = {
+      star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+      puzzle: '<path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 2c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02Z"/>',
+      medal: '<circle cx="12" cy="14" r="6"/><path d="M8.5 8.5 7 3h10l-1.5 5.5"/><path d="M12 11.5v5"/><path d="M9.5 14h5"/>',
+      rocket: '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09Z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2Z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
+      sparkle: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/>',
+      palette: '<path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.6 1.6-1.6H16c3.3 0 6-2.7 6-6 0-4.9-4.5-8.6-10-8.6Z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="11" cy="7.5" r="1"/><circle cx="15.5" cy="8.5" r="1"/>',
+      clover: '<path d="M12 12c-1.5-2.5-4.5-3-6-1s-1 5 1.5 6S12 14.5 12 12Z"/><path d="M12 12c2.5-1.5 3-4.5 1-6s-5-1-6 1.5S9.5 12 12 12Z"/><path d="M12 12c1.5 2.5 4.5 3 6 1s1-5-1.5-6S12 9.5 12 12Z"/><path d="M12 12v8"/>',
+      layers: '<path d="m12 2 9 4.5-9 4.5-9-4.5L12 2Z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 17.5 9 4.5 9-4.5"/>',
+      sunrise: '<path d="M12 3v5"/><path d="m5.2 9.2 1.4 1.4"/><path d="m18.8 9.2-1.4 1.4"/><path d="M3 16h18"/><path d="M7 16a5 5 0 0 1 10 0"/><path d="M5 20h14"/>',
+      moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>',
+      bullseye: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+      trophy: '<path d="M6 9H4a2 2 0 0 1-2-2V5h4"/><path d="M18 9h2a2 2 0 0 0 2-2V5h-4"/><path d="M6 4h12v6a6 6 0 0 1-12 0V4Z"/><path d="M12 16v5"/><path d="M8 21h8"/>',
+      sweep: '<path d="m4 14 6-6 4 4-6 6H4v-4Z"/><path d="m14 8 4-4 2 2-4 4"/><path d="M4 20h16"/>',
+      rebound: '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="m9 12 2 2 4-4"/>',
+      calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4"/><path d="M8 3v4"/><path d="M3 10h18"/>',
+      hourglass: '<path d="M6 2h12"/><path d="M6 22h12"/><path d="M7 2v4.5a5 5 0 0 0 2.5 4.3L12 12l2.5-1.2A5 5 0 0 0 17 6.5V2"/><path d="M7 22v-4.5a5 5 0 0 1 2.5-4.3L12 12l2.5 1.2a5 5 0 0 1 2.5 4.3V22"/>',
+      weekend: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18"/><path d="M9 14l2 2 4-4"/>',
+      bolt1: '<path d="M13 2 4 14h7l-1 8 10-12h-7l0-8Z"/>',
+      crescent: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/><path d="M17 5v3"/><path d="M15.5 6.5h3"/>',
+      shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
+      dawn: '<path d="M12 2v4"/><path d="M5 10h2"/><path d="M17 10h2"/><path d="M7.5 14a4.5 4.5 0 0 1 9 0"/><path d="M3 18h18"/>',
+      compass: '<circle cx="12" cy="12" r="9"/><polygon points="15.5 8.5 13.5 13.5 8.5 15.5 10.5 10.5 15.5 8.5"/>',
+      secretUnknown: '<circle cx="12" cy="12" r="9" stroke-dasharray="3 2"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.8.8c0 1.7-2.3 2.1-2.3 3.7"/><circle cx="12" cy="17" r="0.7" fill="currentColor"/>'
+    };
+    function achIconHtml(iconKey) {
+      if (iconKey === '🔥' || iconKey === '⚡') return iconKey;
+      const body = ACH_SVG_PATHS[iconKey] || ACH_SVG_PATHS.star;
+      return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+    }
     function renderAchievements() {
       const grid = document.getElementById('achievementsGrid');
       if (!grid) return;
@@ -6127,15 +6360,15 @@
         return `
         <button type="button" class="ach ${a.tier >= 1 ? 'on' : ''} ${a.tier >= 2 ? 'max' : ''}" data-ach-index="${i}" aria-label="${escapeHtml(`${a.title}, ${state}. Show details`)}">
           ${a.tier >= 2 ? '<span class="ach-star" aria-hidden="true">★</span>' : ''}
-          <span class="ach-icon" aria-hidden="true">${a.icon}</span>
+          <span class="ach-icon" aria-hidden="true">${achIconHtml(a.icon)}</span>
           <span class="ach-title">${escapeHtml(a.title)}</span>
           <span class="ach-bar" aria-hidden="true"><span style="width:${a.tier >= 2 ? 100 : pct}%"></span></span>
         </button>`;
       }).join('') + '</div>'
-        + `<p class="ach-secret-head"><span aria-hidden="true">🤫</span> Secret achievements</p>`
+        + `<p class="ach-secret-head">Secret achievements</p>`
         + '<div class="ach-grid">' + secrets.map((x, j) => `
         <button type="button" class="ach secret ${x.earned ? 'on' : ''}" data-ach-index="${all.length + j}" aria-label="${escapeHtml(x.earned ? `${x.title}, secret achievement found. Show details` : 'Secret achievement, not found yet')}">
-          <span class="ach-icon" aria-hidden="true">${x.earned ? x.icon : '❔'}</span>
+          <span class="ach-icon" aria-hidden="true">${achIconHtml(x.earned ? x.icon : 'secretUnknown')}</span>
           <span class="ach-title">${escapeHtml(x.earned ? x.title : '???')}</span>
           <span class="ach-bar" aria-hidden="true"><span style="width:${x.earned ? 100 : 0}%"></span></span>
         </button>`).join('') + '</div>';
@@ -6144,16 +6377,23 @@
     function openAchievementDetails(i) {
       const a = achievementsShown[i];
       if (!a) return;
+      const detailIcon = document.getElementById('achDetailIcon');
       if (a.secret) {
-        document.getElementById('achDetailIcon').textContent = a.earned ? a.icon : '❔';
+        if (detailIcon) {
+          detailIcon.innerHTML = achIconHtml(a.earned ? a.icon : 'secretUnknown');
+          detailIcon.classList.toggle('locked', !a.earned);
+        }
         document.getElementById('achDetailTitle').textContent = a.earned ? a.title : 'Secret achievement';
-        document.getElementById('achDetailSub').textContent = a.earned ? '🤫 Secret found' : 'Not found yet';
+        document.getElementById('achDetailSub').textContent = a.earned ? 'Secret found' : 'Not found yet';
         document.getElementById('achDetailTiers').innerHTML = `<div class="ach-tier-row ${a.earned ? 'done' : ''}">`
           + `<p class="ach-tier-desc">${escapeHtml(a.earned ? `${a.desc}.` : "It's a secret. Keep playing, and it'll turn up.")}</p></div>`;
         openModal('modalAchievement');
         return;
       }
-      document.getElementById('achDetailIcon').textContent = a.icon;
+      if (detailIcon) {
+        detailIcon.innerHTML = achIconHtml(a.icon);
+        detailIcon.classList.toggle('locked', a.tier < 1);
+      }
       document.getElementById('achDetailTitle').textContent = a.title;
       document.getElementById('achDetailSub').textContent = a.tier >= 2 ? '★ Both tiers earned' : (a.tier === 1 ? 'Tier 1 earned' : 'Not earned yet');
       const fmt = (v) => Number(v).toLocaleString('en-US');
@@ -6218,8 +6458,8 @@
       else chips.push('<span class="day-chip">Not played</span>');
       if (row) {
         const time = normalizeLogTimeLabel(row.localTime);
-        if (time) chips.push(`<span class="day-chip">🕒 ${escapeHtml(time)}</span>`);
-        if (Number(row.timeMs) > 0) chips.push(`<span class="day-chip">⏱ ${escapeHtml(HubCore.formatDuration(row.timeMs))}</span>`);
+        if (time) chips.push(`<span class="day-chip">${escapeHtml(time)}</span>`);
+        if (Number(row.timeMs) > 0) chips.push(`<span class="day-chip">${escapeHtml(HubCore.formatDuration(row.timeMs))}</span>`);
         if (row.streak !== undefined && row.streak !== null && row.streak !== '') chips.push(`<span class="day-chip streak">🔥 ${escapeHtml(plural(row.streak, 'day'))}</span>`);
       }
       document.getElementById('dayEntryChips').innerHTML = chips.join('');
@@ -6251,7 +6491,7 @@
       if (st.fastestMs) head.push(`<span>average <strong>${HubCore.formatDuration(st.avgMs)}</strong></span>`);
       const pb = HubCore.personalBests(rows, Math.max(Number(game.bestStreak) || 0, Number(game.streak) || 0));
       const bests = [];
-      if (pb.bestScore) bests.push(`<span class="pb-chip">🏆 Best ${escapeHtml(pb.bestScore)}</span>`);
+      if (pb.bestScore) bests.push(`<span class="pb-chip">★ Best ${escapeHtml(pb.bestScore)}</span>`);
       if (pb.fastestMs) bests.push(`<span class="pb-chip">⚡ ${escapeHtml(HubCore.formatDuration(pb.fastestMs))}</span>`);
       if (pb.bestStreak) bests.push(`<span class="pb-chip">🔥 ${escapeHtml(plural(pb.bestStreak, 'day'))}</span>`);
       el.innerHTML = `<p class="text-xs font-bold text-white mb-0.5">Score stats</p><p class="score-head">${head.join('<span aria-hidden="true">·</span>')}</p>`
@@ -6360,10 +6600,10 @@
 
     function renderStatsAndCharts() {
       statsRenderedKey = statsRenderKey();
+      renderKPIs();
       renderGameCalendar();
       renderRecap();
-      // Folded sections: drawn when there's a spare moment (or when opened), so the tab appears at once.
-      renderWhenShown('achievements', renderAchievements);
+      renderAchievements();
       renderHistoryList();
     }
 
@@ -6377,10 +6617,12 @@
       renderHistoryFilterOptions();
       const shown = filteredHistoryLogs();
       const total = shown.length;
-      const pageCount = Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE));
+      const pages = HubUiHelpers.paginateHistoryByDay(shown, HISTORY_PAGE_SIZE);
+      const pageCount = pages.length;
       historyPage = Math.min(Math.max(0, historyPage), pageCount - 1);
-      const start = historyPage * HISTORY_PAGE_SIZE;
-      const pageRows = shown.slice(start, start + HISTORY_PAGE_SIZE);
+      const curPage = pages[historyPage] || { rows: [], start: 0 };
+      const pageRows = curPage.rows;
+      const start = curPage.start;
       // The pager only appears once there's more than one page.
       const pager = document.getElementById('historyPager');
       if (pager) pager.classList.toggle('hidden', pageCount <= 1);
@@ -7036,6 +7278,7 @@
       },
       /** Places both pages for a finger offset of `dx` px (no animation). */
       follow(dx) {
+        if ((activeTab === 'dashboard' && dx > 0) || (activeTab === 'settings' && dx < 0)) dx = 0;
         const cur = document.getElementById(TAB_VIEW_IDS[activeTab]);
         const n = this.neighbour;
         const w = this.width();
@@ -7373,6 +7616,7 @@
       if (previous !== normalized) {
         if (anim && typeof anim.scroll === 'number') jumpScroll(anim.scroll);
         else jumpScroll(frac * Math.max(0, document.documentElement.scrollHeight - window.innerHeight));
+        syncAppScrolled();
       }
     }
 
@@ -7634,7 +7878,7 @@
         todayBox.classList.toggle('hidden', !row);
         if (row) {
           const bits = [row.outcome === 'Completed' ? '✓ Solved' : (row.outcome === 'Missed' ? '✗ Missed' : String(row.outcome || ''))];
-          if (Number(row.timeMs) > 0) bits.push(`⏱ ${HubCore.formatDuration(row.timeMs)}`);
+          if (Number(row.timeMs) > 0) bits.push(`${HubCore.formatDuration(row.timeMs)}`);
           const first = String(row.score || '').split('\n')[0].trim();
           if (first) bits.push(first.slice(0, 40));
           document.getElementById('editTodayEntrySummary').textContent = bits.join(' · ');
@@ -8025,7 +8269,7 @@
       // Earlier games of one player session are reported together (see onReturnFromEarlierGames).
       if (opts && opts.batch) { opts.batch.push({ game, snap, outcome }); return true; }
       const firstLine = text.split('\n')[0].slice(0, 60);
-      showToast(outcome === 'missed' ? `${game.name} logged as missed` : `🔥 ${game.name} logged automatically`,
+      showToast(outcome === 'missed' ? `${game.name} logged as missed` : `${game.name} logged automatically`,
         firstLine, outcome === 'missed' ? 'indigo' : 'emerald', null,
         { actionLabel: 'Undo', onAction: () => restoreUndo(snap) });
       return true;
@@ -8060,8 +8304,8 @@
       // One toast with one Undo for all of them (the toast area only holds three).
       const names = batch.map((b) => b.game.name);
       const title = batch.length === 1
-        ? (batch[0].outcome === 'missed' ? `${names[0]} logged as missed` : `🔥 ${names[0]} logged automatically`)
-        : `🔥 ${batch.length} earlier games logged`;
+        ? (batch[0].outcome === 'missed' ? `${names[0]} logged as missed` : `${names[0]} logged automatically`)
+        : `${batch.length} earlier games logged`;
       showToast(title, batch.length === 1 ? '' : names.join(', '), 'emerald', null,
         { actionLabel: 'Undo', onAction: () => batch.slice().reverse().forEach((b) => restoreUndo(b.snap)) });
     };
@@ -8408,7 +8652,7 @@
 
       // Score History pages: ‹ › buttons, and a sideways swipe that the list follows (like the calendar).
       const goHistoryPage = (delta, fromSwipe) => {
-        const pageCount = Math.max(1, Math.ceil(filteredHistoryLogs().length / HISTORY_PAGE_SIZE));
+        const pageCount = HubUiHelpers.paginateHistoryByDay(filteredHistoryLogs(), HISTORY_PAGE_SIZE).length;
         const next = Math.min(Math.max(0, historyPage + delta), pageCount - 1);
         if (next === historyPage) return false;
         historyPage = next;
@@ -8434,7 +8678,7 @@
       let hs = null;
       const histList = () => document.getElementById('historyTableBody');
       historyBlock.addEventListener('touchstart', (e) => {
-        hs = e.touches && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false, t: performance.now() } : null;
+        hs = e.touches && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false, moved: false, t: performance.now() } : null;
       }, { passive: true });
       historyBlock.addEventListener('touchmove', (e) => {
         if (!hs || !e.touches || e.touches.length !== 1) return;
@@ -8445,12 +8689,14 @@
           if (Math.abs(dx) < 10) return;
           hs.locked = true;
           // Counted once per swipe, not on every move.
-          hs.pages = Math.max(1, Math.ceil(filteredHistoryLogs().length / HISTORY_PAGE_SIZE));
+          hs.pages = HubUiHelpers.paginateHistoryByDay(filteredHistoryLogs(), HISTORY_PAGE_SIZE).length;
         }
-        // Rubber band when there's no page that way.
+        // Stop cleanly at the first and last page (no rubber-band stretch).
         const pageCount = hs.pages;
         const blocked = (dx < 0 && historyPage >= pageCount - 1) || (dx > 0 && historyPage <= 0);
-        hs.dx = blocked ? dx * 0.2 : dx;
+        hs.dx = blocked ? 0 : dx;
+        if (hs.dx === 0 && !hs.moved) return;
+        if (hs.dx !== 0) hs.moved = true;
         const l = histList();
         if (l && !REDUCED_MOTION) {
           l.style.transition = 'none';
@@ -8463,6 +8709,10 @@
         hs = null;
         if (!c || !c.locked) return;
         const l = histList();
+        if (c.dx === 0 && !c.moved) {
+          if (l) { l.style.transition = ''; l.style.transform = ''; l.style.opacity = ''; }
+          return;
+        }
         const w = historyBlock.offsetWidth || 320;
         const fast = Math.abs(c.dx) / Math.max(1, performance.now() - c.t) > 0.5;
         // A cancelled touch (the system took it) only snaps back.
@@ -8567,7 +8817,7 @@
         const idx = TAB_ORDER.indexOf(activeTab);
         const nextIdx = raw < 0 ? idx + 1 : idx - 1;
         const blocked = nextIdx < 0 || nextIdx >= TAB_ORDER.length;
-        swipe.dx = blocked ? raw * 0.2 : raw; // rubber band at the first and last tab
+        swipe.dx = blocked ? 0 : raw; // stop cleanly at the first and last tab (no stretch)
         const now = performance.now();
         swipe.samples = (swipe.samples || []).filter((p) => now - p.t < 100);
         swipe.samples.push({ t: now, x: raw });
@@ -8595,6 +8845,12 @@
           (Math.abs(sw.dx) > w * 0.35 || (Math.abs(velocity) > 0.35 && Math.abs(sw.dx) > 24));
         if (REDUCED_MOTION) {
           if (go) switchNavigation(TAB_ORDER[next], { settled: true });
+          return;
+        }
+        if (sw.dx === 0 && !go && !Pager.neighbour) {
+          Pager.unprime(0);
+          Pager.detach();
+          NavIndicator.place(activeTab);
           return;
         }
         Pager.settle(sw.dx, velocity, go, (tab, scroll) => switchNavigation(tab, { settled: true, prepared: true, scroll }));
@@ -8883,29 +9139,89 @@
           renderGameCalendar();
         });
       }
-      // Month paging: ‹ › buttons, and a sideways swipe on the calendar (the grid follows the finger).
-      const shiftCalendarMonth = (delta, fromSwipe) => {
+      // Month paging: ‹ › buttons, and a sideways swipe on the calendar (outgoing month ghost fades out while incoming grid glides in).
+      let calGhostTimer = 0;
+      const shiftCalendarMonth = (delta, fromDragDx) => {
+        const grid = document.getElementById('calendarDaysGrid');
+        const swipeWrap = grid && grid.parentElement;
+        if (swipeWrap) {
+          swipeWrap.querySelectorAll(':scope > .cal-ghost').forEach((n) => n.remove());
+        }
+        clearTimeout(calGhostTimer);
+
+        let ghost = null;
+        const dir = delta > 0 ? 1 : -1;
+        if (!REDUCED_MOTION && grid && swipeWrap && typeof grid.animate === 'function') {
+          ghost = grid.cloneNode(true);
+          ghost.removeAttribute('id');
+          ghost.className = `${grid.className} cal-ghost`;
+          ghost.setAttribute('aria-hidden', 'true');
+          ghost.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
+          if (typeof fromDragDx === 'number' && fromDragDx !== 0) {
+            ghost.style.transform = `translate3d(${fromDragDx}px,0,0)`;
+            ghost.style.opacity = grid.style.opacity || '1';
+          }
+          swipeWrap.appendChild(ghost);
+        }
+
+        if (grid) {
+          grid.getAnimations().forEach((a) => a.cancel());
+          grid.style.transition = '';
+          grid.style.transform = '';
+          grid.style.opacity = '';
+        }
+
         calendarMonth += delta;
         if (calendarMonth < 0) { calendarMonth = 11; calendarYear -= 1; }
         if (calendarMonth > 11) { calendarMonth = 0; calendarYear += 1; }
-        renderGameCalendar();
-        renderRecap();
+        renderGameCalendar({ skipRecompute: true });
+        if (recapPeriod === 'month') renderRecap();
+        statsRenderedKey = statsRenderKey();
         if (REDUCED_MOTION) return;
-        // The grid and the month name slide in together; the tiles and the recap below cross-fade.
-        const from = delta > 0 ? 1 : -1;
-        const ease = 'cubic-bezier(0.2, 0, 0, 1)';
-        const grid = document.getElementById('calendarDaysGrid');
+
+        const ease = 'cubic-bezier(0.22, 1, 0.36, 1)';
         if (grid && typeof grid.animate === 'function') {
-          grid.animate([{ transform: `translate3d(${from * (fromSwipe ? 40 : 28)}%,0,0)`, opacity: fromSwipe ? 0.4 : 0 }, { transform: 'none', opacity: 1 }],
-            { duration: 300, easing: ease });
+          const startX = dir * 44;
+          grid.style.opacity = '0.92';
+          grid.style.transform = `translate3d(${startX}px,0,0)`;
+          requestAnimationFrame(() => {
+            if (ghost) {
+              const ghostStartX = typeof fromDragDx === 'number' ? fromDragDx : 0;
+              const ghostEndX = ghostStartX - dir * 32;
+              const gAnim = ghost.animate(
+                [
+                  { transform: `translate3d(${ghostStartX}px,0,0)`, opacity: ghost.style.opacity || 1 },
+                  { transform: `translate3d(${ghostEndX}px,0,0)`, opacity: 0 }
+                ],
+                { duration: 190, easing: ease, fill: 'forwards' }
+              );
+              const dropGhost = () => { if (ghost && ghost.parentNode) ghost.remove(); };
+              if (gAnim && gAnim.finished) gAnim.finished.then(dropGhost, dropGhost);
+              calGhostTimer = setTimeout(dropGhost, 220);
+            }
+            const inAnim = grid.animate(
+              [
+                { transform: `translate3d(${startX}px,0,0)`, opacity: 0.92 },
+                { transform: 'translate3d(0,0,0)', opacity: 1 }
+              ],
+              { duration: 220, easing: ease }
+            );
+            grid.style.transform = '';
+            grid.style.opacity = '';
+            const cleanIn = () => { grid.style.transform = ''; grid.style.opacity = ''; };
+            if (inAnim && inAnim.finished) inAnim.finished.then(cleanIn, cleanIn);
+          });
+        } else if (ghost && ghost.parentNode) {
+          ghost.remove();
         }
+
         const label = document.getElementById('calendarMonthLabel');
         if (label && typeof label.animate === 'function') {
-          label.animate([{ transform: `translate3d(${from * 24}px,0,0)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: ease });
+          label.animate(
+            [{ transform: `translate3d(${dir * 10}px,0,0)`, opacity: 0.85 }, { transform: 'translate3d(0,0,0)', opacity: 1 }],
+            { duration: 200, easing: ease }
+          );
         }
-        const calCard = grid && grid.closest('.glass-card');
-        [calCard && calCard.querySelector('.stat-tiles'), document.getElementById('gameScoreStats'), document.getElementById('recapCard')]
-          .forEach((el) => { if (el && typeof el.animate === 'function') el.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' }); });
       };
       const btnCalPrev = document.getElementById('btnCalPrevMonth');
       if (btnCalPrev) btnCalPrev.addEventListener('click', () => shiftCalendarMonth(-1));
@@ -8943,14 +9259,13 @@
           const w = calArea.offsetWidth || 320;
           const fast = Math.abs(c.dx) / Math.max(1, performance.now() - c.t) > 0.5;
           if (Math.abs(c.dx) > w * 0.2 || (fast && Math.abs(c.dx) > 30)) {
-            if (g) { g.style.transition = ''; g.style.transform = ''; g.style.opacity = ''; }
             haptic('tick');
-            shiftCalendarMonth(c.dx < 0 ? 1 : -1, true);
+            shiftCalendarMonth(c.dx < 0 ? 1 : -1, c.dx);
           } else if (g) {
-            g.style.transition = 'transform 240ms cubic-bezier(0.2, 0, 0, 1), opacity 200ms';
+            g.style.transition = 'transform 220ms cubic-bezier(0.2, 0, 0, 1), opacity 180ms';
             g.style.transform = '';
             g.style.opacity = '';
-            setTimeout(() => { g.style.transition = ''; }, 260);
+            setTimeout(() => { g.style.transition = ''; }, 240);
           }
         };
         calArea.addEventListener('touchend', calEnd, { passive: true });
@@ -8959,7 +9274,7 @@
 
       // Recap (1.8.3): swipe the three big boxes left or right, like the calendar, for the next or the
       // previous week / month. A month moves the calendar too (the month recap follows it); a week
-      // stops at this week (rubber band). The card is redrawn on every change, so listen on the card.
+      // stops cleanly at this week (no stretch). The card is redrawn on every change, so listen on the card.
       const recapCardEl = document.getElementById('recapCard');
       if (recapCardEl) {
         let rs = null;
@@ -8967,7 +9282,7 @@
         const canGo = (dir) => recapPeriod === 'month' || dir < 0 || recapWeekOffset < 0;
         recapCardEl.addEventListener('touchstart', (e) => {
           const onBoxes = e.target && e.target.closest && e.target.closest('.recap-swipe');
-          rs = onBoxes && e.touches && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false, t: performance.now() } : null;
+          rs = onBoxes && e.touches && e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false, moved: false, t: performance.now() } : null;
         }, { passive: true });
         recapCardEl.addEventListener('touchmove', (e) => {
           if (!rs || !e.touches || e.touches.length !== 1) return;
@@ -8979,7 +9294,9 @@
             rs.locked = true;
           }
           const dir = dx < 0 ? 1 : -1;
-          rs.dx = canGo(dir) ? dx : dx * 0.2;
+          rs.dx = canGo(dir) ? dx : 0;
+          if (rs.dx === 0 && !rs.moved) return;
+          if (rs.dx !== 0) rs.moved = true;
           const b = swipeEl();
           if (b && !REDUCED_MOTION) {
             b.style.transition = 'none';
@@ -8992,12 +9309,16 @@
           rs = null;
           if (!c || !c.locked) return;
           const b = swipeEl();
+          if (c.dx === 0 && !c.moved) {
+            if (b) { b.style.transition = ''; b.style.transform = ''; b.style.opacity = ''; }
+            return;
+          }
           const w = recapCardEl.offsetWidth || 320;
           const dir = c.dx < 0 ? 1 : -1;
           const fast = Math.abs(c.dx) / Math.max(1, performance.now() - c.t) > 0.5;
           if (canGo(dir) && (Math.abs(c.dx) > w * 0.2 || (fast && Math.abs(c.dx) > 30))) {
             haptic('tick');
-            if (recapPeriod === 'month') shiftCalendarMonth(dir, true);
+            if (recapPeriod === 'month') shiftCalendarMonth(dir, c.dx);
             else { recapWeekOffset = Math.min(0, recapWeekOffset + dir); renderRecap(); }
             const nb = swipeEl();
             if (nb && !REDUCED_MOTION && typeof nb.animate === 'function') {
@@ -9146,6 +9467,52 @@
       document.getElementById('btnTodayResultsCopy').addEventListener('click', () => copyText(todaysCombinedText(), "Today's results copied."));
       document.getElementById('btnTodayResultsShare').addEventListener('click', () => shareText(todaysCombinedText(), "Today's Dailies"));
       document.getElementById('btnPlayAll').addEventListener('click', playAll);
+      const scrollHeaderToTop = () => {
+        const behavior = REDUCED_MOTION ? 'auto' : 'smooth';
+        window.scrollTo({ top: 0, behavior });
+        if (tabSlidePending || tabAnimating) {
+          setTimeout(() => window.scrollTo({ top: 0, behavior }), REDUCED_MOTION ? 0 : 420);
+        }
+      };
+      const btnHeaderReady = document.getElementById('btnHeaderReady');
+      if (btnHeaderReady) {
+        btnHeaderReady.addEventListener('click', () => {
+          if (activeTab !== 'dashboard') {
+            state.activeFilter = 'ready';
+            renderFilterTabs();
+            renderGamesGrid();
+            saveState({ sync: false });
+            switchNavigation('dashboard');
+            scrollHeaderToTop();
+            return;
+          }
+          state.activeFilter = state.activeFilter === 'ready' ? 'all' : 'ready';
+          renderFilterTabs();
+          renderGamesGrid();
+          saveState({ sync: false });
+          scrollHeaderToTop();
+        });
+      }
+      const btnHeaderStreak = document.getElementById('btnHeaderStreak');
+      if (btnHeaderStreak) {
+        btnHeaderStreak.addEventListener('click', () => {
+          const topGame = visibleGames().reduce((best, g) => {
+            const st = Number(g && g.streak) || 0;
+            return st > 0 && (!best || st > (Number(best.streak) || 0)) ? g : best;
+          }, null);
+          if (topGame) {
+            selectedCalendarGameId = topGame.id;
+            const cycleParts = getCycleDateKey(topGame.resetTime, topGame.resetZone).split('-');
+            calendarYear = parseInt(cycleParts[0], 10) || new Date().getFullYear();
+            calendarMonth = (parseInt(cycleParts[1], 10) || (new Date().getMonth() + 1)) - 1;
+            historyPage = 0;
+            statsRenderedKey = '';
+          }
+          if (activeTab !== 'stats') switchNavigation('stats');
+          else renderStatsAndCharts();
+          scrollHeaderToTop();
+        });
+      }
       const ieColor = document.getElementById('iconEditorColor');
       const onIeSwatch = (e) => {
         const b = e.target.closest('[data-ie-color]');

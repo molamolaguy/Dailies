@@ -15,7 +15,7 @@ $Description = "One home for every daily web puzzle: reset alerts, streaks, auto
 $Root = Split-Path -Parent $PSScriptRoot
 $GradleFile = Join-Path $Root "app\build.gradle.kts"
 $VersionMatch = Select-String -Path $GradleFile -Pattern '^\s*versionName\s*=\s*"([^"]+)"' | Select-Object -First 1
-$Version = if ($VersionMatch) { $VersionMatch.Matches[0].Groups[1].Value } else { "1.10.0" }
+$Version = if ($VersionMatch) { $VersionMatch.Matches[0].Groups[1].Value } else { "1.10.1" }
 if (-not $Apk) { $Apk = Join-Path (Split-Path -Parent $Root) "Dailies-$Version.apk" }
 
 function Say($m) { Write-Host "`n$m" -ForegroundColor Cyan }

@@ -52,7 +52,7 @@ object ThemePrefs {
         val o = runCatching { org.json.JSONObject(raw) }.getOrNull() ?: return emptyMap()
         if (o.optBoolean("light") != isLight(ctx)) return emptyMap()
         val out = HashMap<String, Int>()
-        for (k in listOf("container", "primary", "onPrimary", "primaryContainer", "onPrimaryContainer")) {
+        for (k in listOf("surface", "container", "primary", "onPrimary", "primaryContainer", "onPrimaryContainer")) {
             parseColor(o.optString(k))?.let { out[k] = it }
         }
         return out
@@ -85,10 +85,10 @@ object ThemePrefs {
         val light = isLight(ctx)
         return when {
             light && isDynamic(ctx) -> ctx.getColor(android.R.color.system_neutral1_10)
-            light -> DEFAULT_LIGHT_SURFACE
+            light -> playerColors(ctx)["surface"] ?: DEFAULT_LIGHT_SURFACE
             isAmoled(ctx) -> Color.BLACK
             isDynamic(ctx) -> ctx.getColor(android.R.color.system_neutral1_900)
-            else -> DEFAULT_SURFACE
+            else -> playerColors(ctx)["surface"] ?: DEFAULT_SURFACE
         }
     }
 }

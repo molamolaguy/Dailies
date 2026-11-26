@@ -220,7 +220,10 @@ class HubActivity : ComponentActivity() {
         // has correct edge-to-edge padding instead of a guess that is corrected later.
         seedInitialInsets()
 
-        scaffoldRoot = FrameLayout(this).apply { setBackgroundColor(surfaceColor) }
+        scaffoldRoot = FrameLayout(this).apply {
+            setBackgroundColor(surfaceColor)
+            overScrollMode = View.OVER_SCROLL_NEVER
+        }
         createAndAttachWebView()
 
         // System bars/cutouts AND the IME so text inputs are never covered (K2).
@@ -275,6 +278,7 @@ class HubActivity : ComponentActivity() {
         pageReady = false
         webView = WebView(this).apply {
             setBackgroundColor(surfaceColor)
+            overScrollMode = View.OVER_SCROLL_NEVER
             settings.javaScriptEnabled = true
             // No Android scroll bar on the right while scrolling (1.5.1).
             isVerticalScrollBarEnabled = false

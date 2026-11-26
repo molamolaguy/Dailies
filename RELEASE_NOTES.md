@@ -1,3 +1,17 @@
+# Dailies 1.10.1
+
+UI, motion, layout, and theme refinements tuned for Google Pixel 11 Pro XL (and smooth down to 360 px). It installs over 1.10.0 and keeps everything, every setting included. If you're on 1.10.0, you can install it from **Settings → About → Check now**.
+
+## Changes
+- **Persistent, interactive header & cleaner Daily Hub.** Pinned the **Dailies** header (`#appHeader`) across all three tabs with interactive **Ready** (tap to filter or jump back to ready games) and **Top streak** (tap to jump to your highest-streak game's calendar on **Streaks & Log**) pills alongside **Results**; made the Filter / Search / Sort row non-sticky and seamless; removed card `X` delete buttons; hid `↑`/`↓` reorder arrows outside **Custom order** sort; and allowed **Compact** game cards to wrap full names cleanly without truncation.
+- **Zero-stretch boundaries & smoother transitions.** Eliminated elastic over-stretch at scroll and horizontal swipe limits across Android views, main tabs, Calendar, Recap, and Score History; rebuilt Calendar month transitions with a flicker-free ghost cross-slide across constant 6-row grids; and batched Settings accordion expand/collapse into a single smooth layout pass.
+- **Monochrome SVG icons, Streaks & Gold/Ruby surface polish.** Kept `🔥` exclusively for streaks and `⚡` exclusively for fastest completion times while replacing every other UI emoji across Achievements, What's New, Recap, cards, toasts, and shared digests with crisp monochrome outline SVGs and clean markers; kept **Achievements** open below **Score History**; paginated **Score History** by whole calendar day (`HubUiHelpers.paginateHistoryByDay`); added modal safe-area clearance; and added warm obsidian **Gold** and wine-obsidian **Ruby** surface undertones synchronized across the native game player and first-frame boot.
+
+## Requirements
+- Android 7.0 or newer.
+
+---
+
 # Dailies 1.10.0
 
 A Material 3 Expressive design overhaul, matching preset launcher icons for every color theme, and comprehensive reliability and security hardening. It installs over 1.9.6 and keeps everything, every setting included. If you're on 1.9.6, you can install it from **Settings → About → Check now**.
