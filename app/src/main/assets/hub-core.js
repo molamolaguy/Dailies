@@ -1052,7 +1052,7 @@
     { id: 'master', icon: 'medal', title: 'Puzzle master', tiers: [
       { desc: 'Solve 500 puzzles', metric: 'solves', target: 500 },
       { desc: 'Solve 1,000 puzzles', metric: 'solves', target: 1000 }] },
-    { id: 'roll', icon: '🔥', title: 'On a roll', tiers: [
+    { id: 'roll', icon: 'flame', title: 'On a roll', tiers: [
       { desc: 'Reach a 7-day streak', metric: 'streak', target: 7 },
       { desc: 'Reach a 30-day streak', metric: 'streak', target: 30 }] },
     { id: 'centurion', icon: 'rocket', title: 'Centurion', tiers: [
@@ -1067,7 +1067,7 @@
     { id: 'lucky', icon: 'clover', title: 'Two-guess wonder', tiers: [
       { desc: 'Solve a guessing game in 2 or fewer guesses', metric: 'lucky', target: 1 },
       { desc: 'Solve a guessing game in 2 or fewer guesses 10 times', metric: 'lucky', target: 10 }] },
-    { id: 'speed', icon: '⚡', title: 'Speed run', tiers: [
+    { id: 'speed', icon: 'bolt', title: 'Speed run', tiers: [
       { desc: 'Solve a puzzle in under a minute', metric: 'fastest', target: 60000, below: true },
       { desc: 'Solve a puzzle in under 20 seconds', metric: 'fastest', target: 20000, below: true }] },
     { id: 'collector', icon: 'layers', title: 'Collector', tiers: [

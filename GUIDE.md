@@ -23,7 +23,7 @@ new puzzle is out, opens games in a built-in ad-blocking player, and keeps your 
 | **Game player** | Full-screen player with Hub, a game switcher on the title, Next, an ad-block shield (with a blocked count), a ⋮ menu (Reload, Open in browser, Zoom) and Log. Supports fullscreen video and canvas, file uploads (Photo Picker), downloads, cookie-banner hiding, pull-to-refresh, dark game pages, asset preloading and safe `intent://` links. |
 | **Auto-logging** | When you tap a game's **Share** or **Copy** button — or when a game reaches its end screen — the result is captured. Going back to the hub logs it as Solved (or Missed for a failed result such as "X/6"), with the share text as your score and an **Undo** button. You can also read results from screenshots via on-device OCR. |
 | **Ad blocking** | About 316,000 ad, tracker and malware domains, 21,500 URL rules and 42,900 element-hiding rules, built from EasyList, EasyPrivacy, AdGuard Base, HaGeZi Pro and StevenBlack. You can switch it off per site or everywhere. |
-| **Streaks & Log** | A completion calendar per game (best streak, current streak, plays, score stats and personal bests), weekly and monthly swipeable recaps with shareable PNG cards, searchable and filterable score history (8 results per page), and two-tier + secret achievements. |
+| **Streaks & Log** | A completion calendar per game (best streak, current streak, plays, score stats and personal bests), weekly and monthly swipeable recaps, searchable and filterable score history (grouped by whole day), and always-open two-tier + secret monochrome achievements. |
 | **Reset alerts** | A notification when a game's new puzzle is out, optional global and per-game streak reminders before reset, per-game on/off toggles, grouped alerts, and exact timing where Android allows it. |
 | **Look** | Material 3 Expressive with Google Sans, Material Symbols icons, Dark / Light / Match phone themes, Material You wallpaper colors, custom color seeds, true-black AMOLED mode, selectable app icons (including Custom, Gold and Ruby), and compact cards. |
 | **Your data** | Stored only on your phone, with no size limit. Every save is atomic and keeps a backup copy. You can export/import `.json` backups, schedule weekly folder backups, export `.csv`, and undo from Recent changes or Trash. |
@@ -100,14 +100,14 @@ new puzzle is out, opens games in a built-in ad-blocking player, and keeps your 
   - Tap a day to see its result (outcome, time, play time, streak and the result text) with **Copy** and **Edit**.
   - The tiles show **Best streak**, **Current** and **Plays**.
   - **Score stats** below them: win rate, the average score, play times and personal bests. Scores are read as guesses ("3/6"), game times ("1:42", "1m 05s"), points ("2,450 pts", "4,250m", or a line that's just a number, like Krillion's "60") or counts ("45 guesses"); each game is compared in the kind it uses most.
-- **Weekly & monthly recaps**: swipe between periods and share a 1080×1350 PNG recap card.
+- **Weekly & monthly recaps**: swipe between weeks or months to compare puzzles solved, win rate, best streak, best game and puzzling time.
 - **Score history**:
-  - Every result is listed newest first, grouped by day, 8 per page: game, date, time, play time, outcome and streak.
+  - Every result is listed newest first, grouped by day (keeping all entries from the same day on the same page): game, date, time, play time, outcome and streak.
   - Search every result (all words must match the result text, game name or date; matches are highlighted), and filter by game (the dropdown) and by **All / Completed / Missed**.
   - Tap an entry to expand the text the game shared, and **Copy result** to copy it with its line breaks and emoji.
-  - From the 9th result, a pager appears: tap ‹ › or swipe on the list (it follows your finger, like the calendar).
+  - When results span multiple pages, a pager appears: tap ‹ › or swipe on the list (it follows your finger, like the calendar).
   - Logging the same day again replaces that day's entry. Once today is logged as done, the card's ✓ is hidden; use **Edit entry** in the game's settings (⚙). Stats are recalculated from the history, so they go down as well as up.
-- **Achievements**: collapsible card with 19 two-tier achievements and 5 secret achievements, unlocking the Gold and Ruby icons and accents.
+- **Achievements**: always-open section below Score History with 19 two-tier monochrome badges and 5 secret badges, unlocking the Gold and Ruby icons and themes.
 
 ### Tab 3: Settings
 Settings is a list of collapsible sections that open in place, one at a time, and close when you leave Settings:

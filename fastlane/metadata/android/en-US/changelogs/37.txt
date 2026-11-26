@@ -1,0 +1,3 @@
+- Restored Daily Hub spacing between Today's Progress, filters, game cards, and dock, and set the Hub to always open on All.
+- Matched Gold theme colors to the Brushed Champagne Gold app icon, aligned Ruby & Gold button rims concentrically on all edges, and kept bottom nav text colors constant when swiping.
+- Unified all 24 achievements onto monochrome SVG badges, gave streak/stat numerals uniform proportional kerning, and removed Weekly Recap share buttons.

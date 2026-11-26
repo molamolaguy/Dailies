@@ -945,3 +945,8 @@ test('1.9.7: recomputeLogStreaks and sortHistoryLogs recompute downstream streak
   ]);
 });
 
+test('all regular and secret achievements use monochrome SVG icon keys (no emojis)', () => {
+  for (const a of core.ACHIEVEMENTS.concat(core.SECRET_ACHIEVEMENTS)) {
+    assert.match(a.icon, /^[a-zA-Z0-9]+$/, `Achievement ${a.id} must use an SVG icon key, got: ${a.icon}`);
+  }
+});

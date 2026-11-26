@@ -78,7 +78,7 @@ object AppIcon {
         "plum" -> 0xFF9C36B5.toInt()
         "slate" -> 0xFF5C728A.toInt()
         "mono" -> 0xFF757575.toInt()
-        "gold" -> 0xFFBAA465.toInt()
+        "gold" -> 0xFFCBA854.toInt()
         "ruby" -> 0xFFC8163F.toInt()
         "custom" -> customStar(ctx)
         else -> ThemePrefs.playerColors(ctx)["primary"]

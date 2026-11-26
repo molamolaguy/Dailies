@@ -204,8 +204,8 @@
         <h1 class="hub-title-text">Dailies</h1>
       </div>
       <div class="hub-topbar-actions">
-        <button id="btnHeaderReady" type="button" class="hero-pill hero-pill-ready" title="Show ready games"><span class="dot" aria-hidden="true"></span><strong id="kpiReadyCount" class="tabular">0</strong><span class="ready-label">ready</span></button>
-        <button id="btnHeaderStreak" type="button" class="hero-pill hero-pill-streak" title="View streaks &amp; log"><span aria-hidden="true">🔥</span><span class="sr-only">Top streak</span><strong id="kpiTopStreak" class="tabular">0d</strong></button>
+        <button id="btnHeaderReady" type="button" class="hero-pill hero-pill-ready" title="Show ready games"><span class="dot" aria-hidden="true"></span><strong id="kpiReadyCount">0</strong><span class="ready-label">ready</span></button>
+        <button id="btnHeaderStreak" type="button" class="hero-pill hero-pill-streak" title="View streaks &amp; log"><span aria-hidden="true">🔥</span><span class="sr-only">Top streak</span><strong id="kpiTopStreak">0d</strong></button>
         <button id="btnCopyToday" type="button" class="copy-today hidden shrink-0 icon-label" aria-label="Today's results: copy or share" title="Today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Results</span></button>
       </div>
     </div>
@@ -215,14 +215,14 @@
   <main id="m3Scaffold" class="m3-scaffold max-w-3xl mx-auto space-y-4">
 
     <!-- View 1: MINIMALISTIC DAILY HUB -->
-    <section id="viewDashboard" class="tab-page space-y-3" aria-hidden="false">
+    <section id="viewDashboard" class="tab-page space-y-3.5" aria-hidden="false">
       <!-- Expressive Hero Summary Card -->
       <div class="hub-hero glass-card">
         <div class="hub-hero-row">
           <div class="hub-hero-left">
             <p class="hub-hero-eyebrow">Today's Progress</p>
             <div class="hub-hero-metric">
-              <strong id="kpiDoneCount" class="hub-hero-num tabular">0 / 0</strong>
+              <strong id="kpiDoneCount" class="hub-hero-num">0 / 0</strong>
               <span class="hub-hero-unit">done</span>
             </div>
           </div>
@@ -293,7 +293,7 @@
       </div>
 
       <!-- Clean Minimal Games List -->
-      <div id="gamesGrid" class="space-y-2.5"></div>
+      <div id="gamesGrid" class="space-y-3"></div>
     </section>
 
     <!-- View 2: STREAKS & LOG (MONTHLY CALENDAR + DAILY COMPLETION & SCORE HISTORY) -->
@@ -1306,7 +1306,7 @@
           </span>
           <span>Daily Hub</span>
         </button>
-        <button type="button" data-nav="stats" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]">
+        <button type="button" data-nav="stats" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full font-medium text-[11px]">
           <span class="m3-floating-icon mb-0.5" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <path d="M3 3v18h18" />
@@ -1317,7 +1317,7 @@
           </span>
           <span>Streaks &amp; Log</span>
         </button>
-        <button type="button" data-nav="settings" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]">
+        <button type="button" data-nav="settings" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full font-medium text-[11px]">
           <span class="m3-floating-icon mb-0.5" aria-hidden="true">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="3.2" />
@@ -1410,7 +1410,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.10.1';
+    const APP_VERSION = '1.10.2';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -1729,7 +1729,7 @@
       });
       return {
         schemaVersion: STATE_SCHEMA_VERSION,
-        activeFilter: ['all', 'ready', 'completed'].includes(parsed.activeFilter) ? parsed.activeFilter : 'all',
+        activeFilter: 'all',
         activeGameId: String(parsed.activeGameId || (validGames[0] ? validGames[0].id : '')),
         settings: Object.assign(getDefaultSettings(), parsed.settings || {}, { autoMarkMissed: true }),
         games: validGames,
@@ -2154,7 +2154,7 @@
         let swatchCls = 'theme-swatch';
         let inner = '';
         if (t.id === 'gold') {
-          swatch = 'background: linear-gradient(125deg, #F2E6BC 0%, #C5AE6C 48%, #8C7E57 100%)';
+          swatch = 'background: linear-gradient(125deg, #FFF8DF 0%, #CBA854 48%, #8C6D28 100%)';
           swatchCls += ' theme-swatch-special';
           inner = '<span class="theme-edit" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18"/><path d="M4 15l2-9 6 4 6-4 2 9z"/></svg></span>';
         } else if (t.id === 'ruby') {
@@ -2301,17 +2301,17 @@
       }
       if (gold) {
         specialTokens = light
-          ? { '--md-surface': '#FCF9F0', '--md-container-low': '#F5F0E2', '--md-container': '#EFE7D4',
-            '--md-container-high': '#E7DEC6', '--md-container-highest': '#DFD4B8',
-            '--md-primary': '#726542', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#CBB67A', '--md-on-primary-container': '#1B160A',
-            '--md-secondary-container': '#F3E6C2', '--md-tertiary': '#726542', '--md-tertiary-container': '#F3E2C4',
-            '--md-outline': 'rgba(114, 101, 66, 0.30)', '--md-glow': 'rgba(139, 125, 84, 0.28)' }
+          ? { '--md-surface': '#FDF9EE', '--md-container-low': '#F7F0DC', '--md-container': '#F0E6CB',
+            '--md-container-high': '#E8DBB8', '--md-container-highest': '#DFCFA5',
+            '--md-primary': '#8C6D28', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#EBD796', '--md-on-primary-container': '#1F1707',
+            '--md-secondary-container': '#F5E8BE', '--md-tertiary': '#8C6D28', '--md-tertiary-container': '#F5E4B5',
+            '--md-outline': 'rgba(140, 109, 40, 0.28)', '--md-glow': 'rgba(176, 143, 68, 0.28)' }
           : Object.assign(
-            amoledOn ? {} : { '--md-surface': '#14120E', '--md-container-low': '#1C1913', '--md-container': '#242018' },
-            { '--md-container-high': '#2E291F', '--md-container-highest': '#393327',
-              '--md-primary': '#C5AE6C', '--md-on-primary': '#1B160A', '--md-primary-container': '#473E28', '--md-on-primary-container': '#D6C38C',
-              '--md-secondary-container': '#3D331B', '--md-tertiary': '#D9C792', '--md-tertiary-container': '#473C20',
-              '--md-outline': 'rgba(197, 174, 108, 0.28)', '--md-glow': 'rgba(197, 174, 108, 0.30)' }
+            amoledOn ? {} : { '--md-surface': '#12100A', '--md-container-low': '#1B170F', '--md-container': '#241E13' },
+            { '--md-container-high': '#2E2618', '--md-container-highest': '#3A301F',
+              '--md-primary': '#CBA854', '--md-on-primary': '#1F1707', '--md-primary-container': '#403112', '--md-on-primary-container': '#EBD796',
+              '--md-secondary-container': '#382B12', '--md-tertiary': '#EBD796', '--md-tertiary-container': '#4A3916',
+              '--md-outline': 'rgba(217, 189, 108, 0.28)', '--md-glow': 'rgba(217, 189, 108, 0.32)' }
           );
         Object.keys(specialTokens).forEach((k) => root.style.setProperty(k, specialTokens[k]));
       }
@@ -3049,7 +3049,7 @@
       renderPlayNext();
       cardTimerElements.clear();
       const isCompact = Boolean(state.settings && state.settings.compactCards);
-      grid.className = isCompact ? 'space-y-1.5' : 'space-y-2.5';
+      grid.className = isCompact ? 'space-y-2' : 'space-y-3';
 
       // Preserve the user-configured order in state.games (no forced status sort)
       const mode = hubSortMode();
@@ -3093,7 +3093,7 @@
             <span class="icon-label"><span class="ico ico-check" aria-hidden="true"></span>Done today · ${n}</span>
             <span class="done-toggle"><span class="done-toggle-label">${collapsed ? 'Show' : 'Hide'}</span><span class="chev" aria-hidden="true"></span></span>
           </button>
-          <div id="doneSection" class="done-section ${isCompact ? 'space-y-1.5' : 'space-y-2.5'}"${collapsed ? ' hidden' : ''}>${collapsed ? '' : cardsHtml(sections.done)}</div>`;
+          <div id="doneSection" class="done-section ${isCompact ? 'space-y-2' : 'space-y-3'}"${collapsed ? ' hidden' : ''}>${collapsed ? '' : cardsHtml(sections.done)}</div>`;
       }
       if (!isCompact) {
         grid.querySelectorAll('.game-countdown').forEach((el) => {
@@ -4715,6 +4715,11 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.10.2': [
+        ['layers', 'Balanced Daily Hub & default All view', 'Restored clean breathing room between Today\'s Progress, filters, game cards, and the floating dock, and set the Daily Hub to always open on All.'],
+        ['crown', 'Brushed Champagne Gold & crisp Ruby rims', 'Matched the Gold theme directly to the Gold app icon\'s Brushed Champagne palette, aligned Gold and Ruby button rims concentrically around all edges, and kept bottom navigation text invariant when swiping.'],
+        ['trophy', 'Monochrome achievements & crisp numerals', 'Unified all 24 achievements onto monochrome outline SVG badges, gave streak and stat numerals natural proportional kerning with uniform brightness, and streamlined the Weekly Recap card.']
+      ],
       '1.10.1': [
         ['pin', 'Persistent app bar & interactive pills', 'The Dailies header stays pinned across tabs; tap Ready to filter or Streak to jump to your top streak game, while filter, sort, and search scroll smoothly with reorder arrows hidden outside Custom order.'],
         ['swipe', 'Smooth motion & zero-stretch limits', 'Swiping between tabs, calendar months, recaps, and history stops cleanly at limits, while Settings sections and calendar months transition smoothly without layout jitter.'],
@@ -5415,7 +5420,7 @@
       { id: 'slate', label: 'Slate', bg: ['#131B24', '#1E293B'], star: [[0, '#CBD5E1'], [1, '#475569']], mark: '#FFFFFF' },
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
       { id: 'custom', label: 'Custom', custom: true },
-      { id: 'gold', label: 'Gold', bg: ['#14130E', '#070706'], star: [[0, '#F2E8C4'], [0.2, '#D6C38A'], [0.4, '#F0E3B6'], [0.58, '#B8A469'], [0.78, '#8F8159'], [1, '#6A6044']], mark: '#2A2417', sparks: '#2A2417', bevel: true, locked: true },
+      { id: 'gold', label: 'Gold', bg: ['#12100A', '#080706'], star: [[0, '#B08F44'], [0.3, '#EBD796'], [0.5, '#FFF8DF'], [0.72, '#CBA854'], [1, '#8C6D28']], mark: '#1F1707', sparks: '#1F1707', bevel: true, locked: true },
       { id: 'ruby', label: 'Ruby', bg: ['#0C090A', '#0C090A'], star: [[0, '#F0627E'], [1, '#7E0B24']], mark: '#0C090A', gem: true, locked: true }
     ];
     const PRESET_THEME_ICON_IDS = new Set(['iris', 'ocean', 'forest', 'sunset', 'rose', 'teal', 'amber', 'crimson', 'cobalt', 'sage', 'plum', 'slate']);
@@ -5875,8 +5880,7 @@
         const a = HubCore.ACHIEVEMENTS.find((x) => x.id === id);
         const t = a && a.tiers[Number(tier) - 1];
         if (!t) return;
-        const achPrefix = (a.icon === '🔥' || a.icon === '⚡') ? `${a.icon} ` : '';
-        setTimeout(() => showToast(`${achPrefix}${a.title}${tier === '2' ? ' II' : ''} unlocked`, `${t.desc}.`, 'indigo'), delay);
+        setTimeout(() => showToast(`${a.title}${tier === '2' ? ' II' : ''} unlocked`, `${t.desc}.`, 'indigo'), delay);
         delay += 400;
       });
       if (gold && !wasGold) {
@@ -6163,8 +6167,7 @@
         + tile('Best streak', `${r.bestStreak}d`, r.bestResult ? `Best ${escapeHtml(r.bestResult.score)}` : plural(r.days, 'day'))
         + '</div>'
         + `<p class="score-head recap-highlights">${r.bestGame ? `<span>Best game <strong>${escapeHtml(r.bestGame.name)}</strong> (${r.bestGame.solved}/${r.bestGame.results})</span>` : ''}${r.topGame && (!r.bestGame || r.topGame.name !== r.bestGame.name) ? `<span aria-hidden="true">·</span><span>Most played <strong>${escapeHtml(r.topGame.name)}</strong></span>` : ''}${r.timeMs ? `<span aria-hidden="true">·</span><span><strong>${HubCore.formatDuration(r.timeMs)}</strong> puzzling</span>` : ''}</p>`
-        + `<p class="recap-vs text-[11px] text-slate-500">${change ? `Compared with ${vs}.` : `Nothing logged ${vs} to compare with.`}</p>`
-        + `<div class="recap-actions"><button type="button" id="btnShareRecapText" class="recap-btn">Share text</button><button type="button" id="btnShareRecap" class="recap-btn primary">Share card</button></div>`;
+        + `<p class="recap-vs text-[11px] text-slate-500">${change ? `Compared with ${vs}.` : `Nothing logged ${vs} to compare with.`}</p>`;
     }
 
     /** The recap as a 1080×1350 picture in the app's colours, shared as a PNG (text if that fails). */
@@ -6225,7 +6228,7 @@
       if (ruby) {
         glow.addColorStop(0, light ? 'rgba(173,8,38,0.18)' : 'rgba(217,11,50,0.34)');
       } else if (gold) {
-        glow.addColorStop(0, light ? 'rgba(139,125,84,0.22)' : 'rgba(197,174,108,0.35)');
+        glow.addColorStop(0, light ? 'rgba(176,143,68,0.22)' : 'rgba(217,189,108,0.35)');
       } else {
         glow.addColorStop(0, primary);
       }
@@ -6243,8 +6246,8 @@
         if (gold) {
           const g = x.createLinearGradient(X, Y, X + w, Y + h);
           const stops = light
-            ? [[0, '#8B7D54'], [0.4, '#726542'], [0.75, '#5F5336'], [1, '#8C7E57']]
-            : [[0, '#D6C38F'], [0.3, '#BAA465'], [0.6, '#8B7D54'], [1, '#CEBA81']];
+            ? [[0, '#B08F44'], [0.4, '#8C6D28'], [0.75, '#6B511B'], [1, '#9A7930']]
+            : [[0, '#FFF8DF'], [0.3, '#EBD796'], [0.65, '#CBA854'], [1, '#DFC373']];
           stops.forEach(([o, col]) => g.addColorStop(o, col));
           return g;
         }
@@ -6307,7 +6310,9 @@
     let achievementsShown = [];
     const ACH_SVG_PATHS = {
       star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
-      puzzle: '<path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 2c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02Z"/>',
+      flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5Z"/>',
+      bolt: '<path d="M13 2 4 14h7l-1 8 10-12h-7l0-8Z"/>',
+      puzzle: '<path d="M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 0 1-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 1 0-3.214 3.214c.446.166.855.497.925.968a.979.979 0 0 1-.276.837l-1.61 1.61a2.404 2.404 0 0 1-1.705.707 2.402 2.402 0 0 1-1.704-.706l-1.568-1.568a1.026 1.026 0 0 0-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 1 1-3.237-3.237c.464-.18.894-.527-.967-1.02a1.026 1.026 0 0 0-.289-.877l-1.568-1.568A2.402 2.402 0 0 1 1.998 12c0-.617.236-1.234.706-1.704L4.23 8.77c.24-.24.581-.353.917-.303.515.077.877.528 1.073 1.01a2.5 2.5 0 1 0 3.259-3.259c-.482-.196-.933-.558-1.01-1.073-.05-.336.062-.676.303-.917l1.525-1.525A2.402 2.402 0 0 1 12 2c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 1 1 3.237 3.237c-.464.18-.894.527-.967 1.02Z"/>',
       medal: '<circle cx="12" cy="14" r="6"/><path d="M8.5 8.5 7 3h10l-1.5 5.5"/><path d="M12 11.5v5"/><path d="M9.5 14h5"/>',
       rocket: '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09Z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2Z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>',
       sparkle: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z"/>',
@@ -6331,7 +6336,6 @@
       secretUnknown: '<circle cx="12" cy="12" r="9" stroke-dasharray="3 2"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.8.8c0 1.7-2.3 2.1-2.3 3.7"/><circle cx="12" cy="17" r="0.7" fill="currentColor"/>'
     };
     function achIconHtml(iconKey) {
-      if (iconKey === '🔥' || iconKey === '⚡') return iconKey;
       const body = ACH_SVG_PATHS[iconKey] || ACH_SVG_PATHS.star;
       return `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
     }
@@ -7602,7 +7606,7 @@
           btn.className = 'nav-btn nav-on relative flex flex-col items-center justify-center py-1 rounded-full font-bold text-[11px]';
         } else {
           btn.removeAttribute('aria-current');
-          btn.className = 'nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]';
+          btn.className = 'nav-btn relative flex flex-col items-center justify-center py-1 rounded-full font-medium text-[11px]';
         }
       });
 
@@ -9386,13 +9390,12 @@
         });
       }
 
-      // Filter tabs
+      // Filter tabs (session-only: opening the app always starts on "All")
       document.querySelectorAll('.filter-tab').forEach((tab) => {
         tab.addEventListener('click', () => {
           state.activeFilter = tab.getAttribute('data-filter') || 'all';
           renderFilterTabs();
           renderGamesGrid();
-          saveState({ sync: false });
         });
       });
 
@@ -9481,7 +9484,6 @@
             state.activeFilter = 'ready';
             renderFilterTabs();
             renderGamesGrid();
-            saveState({ sync: false });
             switchNavigation('dashboard');
             scrollHeaderToTop();
             return;
@@ -9489,7 +9491,6 @@
           state.activeFilter = state.activeFilter === 'ready' ? 'all' : 'ready';
           renderFilterTabs();
           renderGamesGrid();
-          saveState({ sync: false });
           scrollHeaderToTop();
         });
       }
@@ -9551,9 +9552,7 @@
         const seg = e.target.closest('[data-recap-period]');
         if (seg) { recapPeriod = seg.getAttribute('data-recap-period'); renderRecap(); return; }
         const wk = e.target.closest('[data-recap-week]');
-        if (wk && !wk.disabled) { recapWeekOffset = Math.min(0, recapWeekOffset + Number(wk.getAttribute('data-recap-week'))); renderRecap(); return; }
-        if (e.target.closest('#btnShareRecap')) { shareRecapCard(); return; }
-        if (e.target.closest('#btnShareRecapText')) { const d = recapData(); shareText(recapText(), `${d.title} in Dailies`); }
+        if (wk && !wk.disabled) { recapWeekOffset = Math.min(0, recapWeekOffset + Number(wk.getAttribute('data-recap-week'))); renderRecap(); }
       });
       document.getElementById('themeChoices').addEventListener('click', (e) => {
         const b = e.target.closest('[data-color-theme]');
