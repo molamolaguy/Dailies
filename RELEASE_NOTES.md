@@ -1,3 +1,17 @@
+# Dailies 1.10.2
+
+Daily Hub spacing, Gold & Ruby theme polish, navigation bar stability, numeral kerning, and monochrome achievement badges tuned on Google Pixel 11 Pro XL. It installs over 1.10.1 and keeps everything, every setting included. If you're on 1.10.1, you can install it from **Settings → About → Check now**.
+
+## Changes
+- **Balanced Daily Hub spacing & default All view.** Restored clean vertical and horizontal breathing room between the **Today's Progress** hero card, the **All / Ready / Done / Search / Sort** row, game cards, inline action buttons, and the split floating bottom dock, and ensured the Daily Hub always opens on **All**.
+- **Brushed Champagne Gold match, concentric Ruby & Gold rims, and steady nav labels.** Synchronized the **Gold** theme palette directly to the Gold app icon's Brushed Champagne tones (`#CBA854` / `#EBD796` / `#FFF8DF` / `#8C6D28`), unified all filled **Ruby** and **Gold** buttons onto a concentric `1px` `border-box` rim with centered glow (eliminating top-edge crescents), and switched the sliding tab indicator to translucent burnished-gold / star-ruby glass so bottom navigation text never flips color while swiping.
+- **Crisp proportional numerals, monochrome achievements & streamlined Recap.** Replaced gradient-clipped and fixed-width `tabular-nums` streak/stat counters with uniformly lit proportional `Google Sans Flex` numerals (fixing the `"1"` in `21d` while keeping live countdown clocks tabular), converted *On a roll* and *Speed run* achievements to monochrome outline SVG badges so all 24 achievements match, and removed the **Share text** / **Share card** buttons from **Weekly Recap**.
+
+## Requirements
+- Android 7.0 or newer.
+
+---
+
 # Dailies 1.10.1
 
 UI, motion, layout, and theme refinements tuned for Google Pixel 11 Pro XL (and smooth down to 360 px). It installs over 1.10.0 and keeps everything, every setting included. If you're on 1.10.0, you can install it from **Settings → About → Check now**.
