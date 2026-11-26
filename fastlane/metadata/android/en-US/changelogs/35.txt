@@ -1,0 +1,4 @@
+- Material 3 Expressive overhaul: rounded Google Sans Flex font, Today's Progress hero card, tonal game cards, split floating tab dock + Add Game button, and morphing native game menus.
+- Matching preset launcher icons for all 14 color themes, synced with Daily Random Theme.
+- Aligned buttons, pill switches, dropdowns and modals across all screen sizes and themes.
+- Persistent in-flight game sessions, plus ad-block, auto-logging, notification and backup fixes.

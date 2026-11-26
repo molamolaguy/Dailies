@@ -1,3 +1,19 @@
+# Dailies 1.10.0
+
+A Material 3 Expressive design overhaul, matching preset launcher icons for every color theme, and comprehensive reliability and security hardening. It installs over 1.9.6 and keeps everything, every setting included. If you're on 1.9.6, you can install it from **Settings → About → Check now**.
+
+## Changes
+- **Material 3 Expressive redesign.** Bundled authentic rounded `Google Sans Flex` (`ROND=100`) fonts across the hub, web app, and native game player; added a **Today's Progress** hero summary card with integrated **Play all**, standalone `26px` tonal game cards with `32%` squircle icons, and a split floating 3-tab pill dock paired with a `+` **Add game** button.
+- **Expressive native game player.** Toolbar and sheet pills gently morph on touch; the **Game** switcher, **More** menu, and **Page zoom** dialog now use rounded tonal sheets instead of rectangular system menus; and in-game `<select>` menus match the expressive styling across Dark, Light, AMOLED, High Contrast, Gold, and Ruby.
+- **Button, switch & menu alignment overhaul.** Aligned game card actions onto a uniform horizontal centerline, upgraded Settings checkboxes to Material 3 pill toggle switches, fixed multi-column Settings alignment on wider screens, right-aligned compact dropdowns so they never overhang card edges, and unified all 21 hub modals.
+- **Matching app icons for all 14 themes.** Added adaptive and legacy preset launcher icons for Iris, Forest, Rose, Teal, Amber, Crimson, Cobalt, Sage, Plum, and Slate alongside Ocean, Sunset, Gold, and Ruby — automatically rotating in sync when **Daily Random Theme** is enabled.
+- **Session persistence, auto-logging, ad-blocking & stability fixes.** Active in-flight game sessions now persist across notification taps and activity restarts; `#` puzzle numbers in shared links (such as `Queens #540`) are preserved; and ad-blocking wildcard rules, headless scraping, SafeHttp DNS/redirect checks, streak reminders, and atomic state backups are faster and more resilient.
+
+## Requirements
+- Android 7.0 or newer.
+
+---
+
 # Dailies 1.9.6
 
 More color themes, daily random theme rotation, a remade Gold icon, and UI polish. It installs over 1.9.5 and keeps everything, every setting included. If you're on 1.9.5, you can install it from **Settings → About → Check now**.

@@ -1,8 +1,8 @@
-# Dailies 1.9.6: How the App Works
+# Dailies 1.10.0: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.9.6` (`versionCode = 34`)
+- **Version**: `1.10.0` (`versionCode = 35`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **License**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -671,4 +671,11 @@ Measured in the real WebView on the CI emulator (`SwipeTimingDeviceTest`, logcat
   - Normalized `recomputeLogStreaks()` and `sortHistoryLogs()` across manual edits (preserving existing `loggedAt`), undo, trash restore, auto-missed logs, and backup imports; guarded past-day `restoreUndo()` from overwriting today's live status/score; deduplicated conflicting Trash vs Undo entries and reopened `modalTrash` on cancel or remaining items; synced `todayScore` across rollovers, rechecks, and schedule edits (`applyScheduleChange` before renaming).
   - Updated `onReturnFromGame()` to respect `interrupted` and `fromWebTab` flags, `handleReturnPromptAction('paste')` to use `readClipboardText()`, `onScreenshotText()` to surface native OCR errors (`unreadable_image`, `model_unavailable`, `ocr_failed`), and `sharedResultTarget()` / `onScreenshotText()` to require `HubCore.mentionsGameExplicitly()` instead of bare substring matches.
   - Upgraded `drawRecapCard()` (Light+Gold & Dark/Light Ruby palettes, code-point truncation, value width scaling, Unicode `\u2068...\u2069` bidi isolation), CSV export (RFC 4180 formula neutralization including whitespace/control prefixes and `parseResultValue` formatting), `customIconSvg` sparkle contrast (`L > 0.62`), modal `Shift+Tab` & `themedSelectOpen` keyboard/back behavior, hub search back-button closing, section-scoped card drag-reorder with `touchcancel` reset, Dynamic Wallpaper clearing legacy accent flags, Dark+Ruby primary contrast (`#D90B32`), `<meta name="theme-color">` syncing, and removed all dead single-game backup restore code.
+
+## 41. New in 1.10.0
+
+- **Material 3 Expressive typography & Hub layout**: bundled authentic `ROND=100` `GoogleSansFlex.woff2` + `GoogleSansFlex-LatinExt.woff2` (`opsz 8..72`, `wght 400..800`) and `res/font/google_sans_bold.ttf`. Replaced the legacy Hub header with `.hub-topbar` (`#hubLogo` + `Dailies` wordmark + tonal `Results` & `Search` pills) and `.hub-hero` (`28px` tonal summary card with `#kpiDoneCount` display count, `#kpiReadyCount` & `#kpiTopStreak` ticker pills, and integrated `#btnPlayAll`), backed by a global status-bar scrim (`body::after`) and clean sticky `.hub-sticky` filter/sort bar. Upgraded `.game-card` (`26px` tonal cards, `46×46` `32%`-squircle icons, uniform `38px` `.gc-actions` row) and replaced the 4-item bottom dock with `.m3-bottom-bar-row` (3-tab `.m4-floating-dock` with `#navIndicator` paired with `56×56` `#btnOpenAddModal` `.m3-dock-fab`).
+- **Native `GameActivity` expressive menus & alignment audit**: added spring pill-to-squircle touch morphing (`attachPillMorph`), replaced platform `PopupMenu`s with `24dp` tonal `PopupWindow` menus (`showExpressiveMenu`), upgraded `showZoomDialog()` to a `28dp` tonal `ComponentDialog`, added `sheetStrokeColor()` `1dp` outlines for AMOLED clarity, styled all Hub checkboxes as `46×26` M3 pill switches, fixed `#viewSettings` `.set-row` multi-column layout at `>= 640px`, right-aligned compact `.tsel-menu` / `select-menu.js` popups, and unified all 21 modals to `28px` tonal sheets.
+- **Session persistence & codebase hardening**: added `InFlightGameSession` so active game sessions survive notification taps and restarts; hardened `SafeHttp` DNS/IPv6/redirect checks, `CosmeticFilters` wildcard rules, `ShareLinkText` / `share-hook.js` `#` query preservation, `ScreenshotReader` (`androidx.exifinterface`), `StreakReminders` window text, `UpdateInstaller` API guards, and atomic state/backup persistence.
+
 
