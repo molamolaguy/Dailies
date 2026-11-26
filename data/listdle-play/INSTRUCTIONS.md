@@ -41,6 +41,10 @@ command, keep the share text exact, including line breaks and emoji):
      "share_text": "exact text, or empty", "score": "how the result is scored, e.g. '3/6 guesses', 'time 1:42', '840 points', 'X/6 (lost)'",
      "notes": "one short sentence: how to play/finish, anything odd (e.g. reset time shown on page)"}
 Write each line as soon as that game is finished, so nothing is lost.
+Other agents work in the same folder at the same time, each with its own results file. Only ever APPEND
+to your own file (Python: `open('results/<your batch name>.jsonl', 'a')`), one line per game. Never
+rewrite, sort, clean up or even open another batch's results file, and never write to a file by a
+pattern or glob. Don't use other games' work/<id> folders either.
 
 When your batch is done, reply with only: counts by status, and any game where something notable
 happened (one line each). Do not paste the share texts in the reply.
