@@ -35,12 +35,23 @@ object GameHealth {
         }
     }.getOrDefault(emptyList())
 
-    private fun <T> inParallel(items: List<Game>, work: (Game) -> T): List<T?> {
+    private const val PASS_DEADLINE_MS = 60_000L
+
+    private fun <T> inParallel(items: List<Game>, passBudgetMs: Long = PASS_DEADLINE_MS, work: (Game) -> T): List<T?> {
         if (items.isEmpty()) return emptyList()
         val pool = Executors.newFixedThreadPool(minOf(4, items.size))
+        val deadlineNs = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(passBudgetMs)
         return try {
             val futures = items.map { g -> pool.submit(Callable { runCatching { work(g) }.getOrNull() }) }
-            futures.map { f -> runCatching { f.get(25, TimeUnit.SECONDS) }.getOrNull() }
+            futures.map { f ->
+                val remainingMs = TimeUnit.NANOSECONDS.toMillis(deadlineNs - System.nanoTime())
+                if (remainingMs <= 0L) {
+                    f.cancel(true)
+                    null
+                } else {
+                    runCatching { f.get(minOf(25_000L, remainingMs), TimeUnit.MILLISECONDS) }.getOrNull()
+                }
+            }
         } finally {
             pool.shutdownNow()
         }
@@ -60,8 +71,10 @@ object GameHealth {
         return "ok" to null
     }
 
-    /** The registrable-ish site of a URL without "www." (m.example.com and example.com differ, which is fine here). */
-    fun siteOf(url: String): String? = runCatching { URI(url).host?.lowercase(Locale.US)?.removePrefix("www.") }.getOrNull()
+    /** The site of a URL without leading "www." or "m.". */
+    fun siteOf(url: String): String? = runCatching {
+        URI(url).host?.lowercase(Locale.US)?.removePrefix("www.")?.removePrefix("m.")
+    }.getOrNull()
 
     fun checkLinks(json: String): String {
         val games = parseGames(json)
@@ -80,9 +93,13 @@ object GameHealth {
 
     // ---- Icons ----
 
-    /** Pixel width of an image (SVG counts as large: it scales), or 0 if it can't be read. */
+    /** Pixel width of an image (valid SVG counts as large: it scales), or 0 if it can't be read. */
     fun iconWidth(bytes: ByteArray, mime: String): Int {
-        if (mime.contains("svg")) return 512
+        if (bytes.isEmpty()) return 0
+        if (mime.contains("svg", ignoreCase = true)) {
+            val head = String(bytes, 0, minOf(bytes.size, 2048), Charsets.UTF_8)
+            return if (head.contains("<svg", ignoreCase = true) && FaviconCache.isSafeSvg(bytes)) 512 else 0
+        }
         val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
         return maxOf(0, minOf(opts.outWidth, opts.outHeight))
@@ -94,15 +111,27 @@ object GameHealth {
         return if (best.second > currentWidth) best.first else null
     }
 
+    fun isGoogleS2Fallback(url: String): Boolean = url.contains("google.com/s2/favicons", ignoreCase = true)
+
+    fun originOf(url: String): String? = runCatching {
+        val u = URI(url)
+        val scheme = u.scheme?.lowercase(Locale.US) ?: return@runCatching null
+        val host = u.host ?: return@runCatching null
+        val defaultPort = if (scheme == "https") 443 else 80
+        val portPart = if (u.port > 0 && u.port != defaultPort) ":${u.port}" else ""
+        "$scheme://$host$portPart"
+    }.getOrNull()
+
     fun refreshIcons(json: String, cache: FaviconCache?): String {
         val games = parseGames(json)
         val results = inParallel(games) { g ->
             val width = { url: String -> FaviconCache.download(url)?.let { (b, m) -> iconWidth(b, m) } ?: 0 }
-            val current = if (g.icon.startsWith("http", true)) width(g.icon) else 0
+            val isS2 = isGoogleS2Fallback(g.icon)
+            val current = if (g.icon.startsWith("http", true) && !isS2) width(g.icon) else 0
             val scraped = runCatching { WebsiteScraper.fetchAndScrape(g.url, fetchExtras = false).optJSONObject("parsed")?.optString("faviconUrl") }.getOrNull().orEmpty()
-            val origin = runCatching { URI(g.url).let { "${it.scheme}://${it.host}" } }.getOrNull()
+            val origin = originOf(g.url)
             val candidates = listOfNotNull(
-                scraped.takeIf { it.startsWith("http", true) && !it.contains("google.com/s2/favicons") },
+                scraped.takeIf { it.startsWith("http", true) && !isGoogleS2Fallback(it) },
                 origin?.let { "$it/apple-touch-icon.png" }
             ).distinct().filter { it != g.icon }.map { it to width(it) }
             val better = pickBetter(current, candidates)

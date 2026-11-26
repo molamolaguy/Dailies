@@ -1,6 +1,8 @@
 package com.dailygames.hub
 
+import org.json.JSONObject
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -13,11 +15,13 @@ import java.util.concurrent.atomic.AtomicReference
  * every logged result). Replaces WebView localStorage, which is capped at roughly 5 MB per origin.
  *
  * Safety rules:
- *  - Writes are atomic: new JSON goes to a temp file (fsync), the current file becomes `.bak`, then
- *    the temp file is renamed into place. The previous good copy always survives a failed write.
- *  - Reads fall back to `.bak` when the main file can't be read or is visibly incomplete (not a
- *    whole JSON object). If neither can be read, [read] returns [READ_ERROR] (not ""), so the hub
- *    knows data exists and refuses to overwrite it with an empty state.
+ *  - Writes are atomic: new JSON goes to a temp file (fsync), the current file is copied to `.bak.tmp`
+ *    (fsync) and renamed to `.bak`, then the temp file is renamed directly over `hub_state.json`
+ *    so `hub_state.json` stays continuously present on disk. The previous good copy always survives a
+ *    failed write.
+ *  - Reads fall back to `.bak` when the main file can't be read or fails JSON validation. If neither
+ *    can be read, [read] returns [READ_ERROR] (not ""), so the hub knows data exists and refuses to
+ *    overwrite it with an empty state.
  *  - A failed write is re-queued and retried on the next save; [onWriteResult] reports failures
  *    (false) and the first success after them (true) so the hub can tell the user.
  */
@@ -34,6 +38,7 @@ class HubStateStore(
     @Volatile private var lastWriteFailed = false
     private val lock = Any()
     private val backup get() = File(file.parentFile, file.name + ".bak")
+    private val backupTemp get() = File(file.parentFile, file.name + ".bak.tmp")
     private val temp get() = File(file.parentFile, file.name + ".tmp")
 
     /** The stored JSON; "" when nothing has ever been saved; [READ_ERROR] when data exists but can't be read. */
@@ -90,15 +95,17 @@ class HubStateStore(
      * without ever deleting the user's data.
      */
     fun quarantine(): Boolean = synchronized(lock) {
-        var ok = true
-        val stamp = System.currentTimeMillis()
-        listOf(file, backup).forEach { f ->
-            if (f.exists()) {
-                val dest = File(f.parentFile, "${file.nameWithoutExtension}.unreadable-$stamp-${f.extension}.json")
-                ok = f.renameTo(dest) && ok
+        synchronized(fileLock) {
+            var ok = true
+            val stamp = System.currentTimeMillis()
+            listOf(file, backup).forEach { f ->
+                if (f.exists()) {
+                    val dest = File(f.parentFile, "${file.nameWithoutExtension}.unreadable-$stamp-${f.extension}.json")
+                    ok = f.renameTo(dest) && ok
+                }
             }
+            ok
         }
-        ok
     }
 
     /** Stops the writer thread after flushing, waiting briefly for an in-flight write. */
@@ -108,35 +115,60 @@ class HubStateStore(
         runCatching { executor.awaitTermination(2, TimeUnit.SECONDS) }
     }
 
-    private fun writeAtomically(json: String): Boolean {
+    private fun writeAtomically(json: String): Boolean = synchronized(fileLock) {
         val dir = file.parentFile ?: return false
         if (!dir.exists()) dir.mkdirs()
         val tmp = temp
+        val bak = backup
+        val bakTmp = backupTemp
         try {
             FileOutputStream(tmp).use { out ->
                 out.write(json.toByteArray(Charsets.UTF_8))
                 out.flush()
                 out.fd.sync()
             }
-            // Current good copy -> .bak (replacing the older backup), then temp -> current.
+            // Keep `file` continuously present: copy `file` -> `.bak.tmp` (fsync) -> rename to `.bak`,
+            // then atomically rename `tmp` directly over `file`.
             if (file.exists()) {
-                val bak = backup
-                if (bak.exists() && !bak.delete()) return false
-                if (!file.renameTo(bak)) return false
+                if (!file.isFile) return false
+                if (bakTmp.exists() && !bakTmp.delete()) return false
+                FileInputStream(file).use { input ->
+                    FileOutputStream(bakTmp).use { out ->
+                        input.copyTo(out)
+                        out.flush()
+                        out.fd.sync()
+                    }
+                }
+                if (!replaceFile(bakTmp, bak)) {
+                    runCatching { bakTmp.delete() }
+                    return false
+                }
+                syncDirectory(dir)
             }
-            if (!tmp.renameTo(file)) {
-                // Put the previous copy back; the temp file is kept for the retry.
-                backup.takeIf { it.exists() && !file.exists() }?.renameTo(file)
+            if (!replaceFile(tmp, file)) {
                 return false
             }
             syncDirectory(dir)
             return true
         } catch (e: Throwable) {
-            if (!file.exists()) backup.takeIf { it.exists() }?.renameTo(file)
             return false
         } finally {
-            if (tmp.exists() && file.exists()) tmp.delete()
+            if (bakTmp.exists()) runCatching { bakTmp.delete() }
+            if (tmp.exists() && file.exists()) runCatching { tmp.delete() }
         }
+    }
+
+    /** Replaces [dest] with [src], using POSIX atomic rename and falling back if rename-over-existing fails. */
+    private fun replaceFile(src: File, dest: File): Boolean {
+        if (src.renameTo(dest)) return true
+        // POSIX rename(2) atomically overwrites an existing destination file.
+        val posixReplaced = runCatching {
+            android.system.Os.rename(src.path, dest.path)
+            true
+        }.getOrDefault(false)
+        if (posixReplaced) return true
+        if (dest.exists() && !dest.delete()) return false
+        return src.renameTo(dest)
     }
 
     /** fsync the directory so the rename itself survives a power loss (best effort). */
@@ -156,9 +188,11 @@ class HubStateStore(
         const val READ_ERROR = "__DAILES_READ_ERROR__"
         /** Refuse to load anything absurd (a corrupt file would otherwise exhaust memory). */
         private const val MAX_STATE_BYTES = 200L * 1024 * 1024
+        /** Coordinates reads (including AutoBackup snapshots) and atomic swaps across threads/instances. */
+        private val fileLock = Any()
 
         /** Reads persisted state (falling back to `.bak`) without creating a writer executor. */
-        fun readSnapshot(file: File): String {
+        fun readSnapshot(file: File): String = synchronized(fileLock) {
             val backup = File(file.parentFile, file.name + ".bak")
             val main = readFile(file)
             if (main != null && looksComplete(main)) return main
@@ -172,14 +206,30 @@ class HubStateStore(
             return if (anyExists) READ_ERROR else ""
         }
 
-        /** A saved state is one JSON object: a truncated or zero-filled file fails this cheap check. */
+        /**
+         * A saved state must parse cleanly as a JSON object (and not have trailing garbage or NUL bytes).
+         * If it lacks a `"games"` array, treat an empty/corrupt shell `{}` as incomplete so a healthy
+         * `.bak` can rescue it, while still accepting minimal JSON objects in legacy/unit tests when `.bak`
+         * does not exist.
+         */
         private fun looksComplete(text: String): Boolean {
             val t = text.trim()
-            return t.length >= 2 && t.first() == '{' && t.last() == '}' && t.indexOf('\u0000') < 0
+            if (t.length < 2 || t.first() != '{' || t.last() != '}' || t.indexOf('\u0000') >= 0) return false
+            val tok = org.json.JSONTokener(t)
+            val parsed = try {
+                tok.nextValue()
+            } catch (_: Throwable) {
+                return false
+            }
+            val obj = parsed as? JSONObject ?: return false
+            if (tok.nextClean() != '\u0000') return false
+            if (obj.length() == 0) return false
+            if (obj.has("games") && obj.optJSONArray("games") == null) return false
+            return true
         }
 
         private fun readFile(f: File): String? {
-            if (!f.exists()) return null
+            if (!f.exists() || !f.isFile) return null
             if (f.length() > MAX_STATE_BYTES) return null
             return try {
                 f.readText(Charsets.UTF_8)
@@ -190,3 +240,4 @@ class HubStateStore(
         }
     }
 }
+

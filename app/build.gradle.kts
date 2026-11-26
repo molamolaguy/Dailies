@@ -129,11 +129,11 @@ afterEvaluate {
     }
 }
 
-// Unit tests for the hub's JS logic (app/src/main/assets/hub-core.js). Requires Node.js 18+ on PATH:
+// Unit tests for the hub's JS logic (app/src/main/assets/hub-core.js + helpers). Requires Node.js 18+ on PATH:
 //   ./gradlew testHubJs
 tasks.register<Exec>("testHubJs") {
     group = "verification"
-    description = "Runs the Node unit tests for hub-core.js against the shared schedule fixtures."
+    description = "Runs the Node unit tests for hub-core.js, hub-ui-helpers.js and known-games.js."
     workingDir = rootProject.projectDir
-    commandLine("node", "--test", "app/src/test/js/hub-core.test.js", "app/src/test/js/known-games.test.js")
+    commandLine("node", "--test", "app/src/test/js/hub-core.test.js", "app/src/test/js/hub-ui-helpers.test.js", "app/src/test/js/known-games.test.js")
 }

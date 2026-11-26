@@ -9,12 +9,23 @@
   var START = 14, TRIGGER = 86, MAX = 130;
   var host = null, ring = null, arrow = null, pull = null;
 
+  function zoomFactor() {
+    try {
+      var z = parseFloat((document.documentElement && document.documentElement.style && document.documentElement.style.zoom) || window.getComputedStyle(document.documentElement).zoom);
+      return z > 0 && isFinite(z) ? z : 1;
+    } catch (e) { return 1; }
+  }
   function ui() {
-    if (host) return true;
+    if (host) {
+      var z = zoomFactor();
+      host.style.zoom = z !== 1 ? String(1 / z) : '';
+      return true;
+    }
     if (!document.documentElement) return false;
     host = document.createElement('div');
     host.setAttribute('aria-hidden', 'true');
-    host.style.cssText = 'position:fixed;left:0;right:0;top:0;height:0;z-index:2147483647;pointer-events:none;';
+    var z0 = zoomFactor();
+    host.style.cssText = 'position:fixed;left:0;right:0;top:0;height:0;z-index:2147483647;pointer-events:none;' + (z0 !== 1 ? 'zoom:' + (1 / z0) + ';' : '');
     var root = host.attachShadow ? host.attachShadow({ mode: 'closed' }) : host;
     root.innerHTML = '<style>.r{position:absolute;left:50%;top:0;width:40px;height:40px;margin-left:-20px;border-radius:50%;'
       + 'background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;'
@@ -63,7 +74,7 @@
   }
   window.addEventListener('touchstart', function (e) {
     pull = null;
-    if (!e.touches || e.touches.length !== 1 || !atTop() || blocked(e.target)) return;
+    if (e.defaultPrevented || !e.touches || e.touches.length !== 1 || !atTop() || blocked(e.target)) return;
     pull = { x: e.touches[0].clientX, y: e.touches[0].clientY, d: 0, on: false };
   }, { passive: true });
   // Bubble phase on window: runs after the game's own handlers, so a drag it handles is seen as taken.
@@ -72,7 +83,7 @@
     if (e.defaultPrevented || !e.touches || e.touches.length !== 1 || !atTop()) { pull = null; hide(); return; }
     var dx = e.touches[0].clientX - pull.x, dy = e.touches[0].clientY - pull.y;
     if (!pull.on) {
-      if (Math.abs(dx) > Math.abs(dy) || dy < -4) { pull = null; return; }
+      if (dy < -4 || (Math.hypot(dx, dy) >= 8 && Math.abs(dx) > Math.abs(dy))) { pull = null; return; }
       if (dy < START) return;
       pull.on = true;
     }

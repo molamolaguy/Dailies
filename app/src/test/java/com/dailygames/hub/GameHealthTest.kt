@@ -45,4 +45,20 @@ class GameHealthTest {
         assertTrue(d.contains("Caused by: java.lang.RuntimeException: inner"))
         assertTrue(d.contains("\n    at "))
     }
+
+    @Test
+    fun siteOfNormalizesMobilePrefixAndOriginPreservesPort() {
+        assertEquals("ok", GameHealth.classify("https://example.com/game", 200, "https://m.example.com/game", false).first)
+        assertEquals("https://example.com:8443", GameHealth.originOf("https://example.com:8443/play"))
+        assertEquals("https://example.com", GameHealth.originOf("https://example.com:443/play"))
+        assertTrue(GameHealth.isGoogleS2Fallback("https://www.google.com/s2/favicons?domain=x.com&sz=128"))
+    }
+
+    @Test
+    fun iconWidthValidatesSvgContent() {
+        assertEquals(512, GameHealth.iconWidth("<svg xmlns='http://www.w3.org/2000/svg'></svg>".toByteArray(), "image/svg+xml"))
+        assertEquals(0, GameHealth.iconWidth("<html><body>404</body></html>".toByteArray(), "image/svg+xml"))
+        assertEquals(0, GameHealth.iconWidth("<svg><script>alert(1)</script></svg>".toByteArray(), "image/svg+xml"))
+    }
 }
+

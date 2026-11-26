@@ -236,7 +236,7 @@
       let s = String(url || '').trim();
       if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
       const u = new URL(s);
-      return { host: u.hostname.replace(/^www\./i, '').toLowerCase(), path: u.pathname.toLowerCase() };
+      return { host: u.hostname.replace(/^(www|m)\./i, '').toLowerCase(), path: u.pathname.toLowerCase() };
     } catch (e) {
       return null;
     }

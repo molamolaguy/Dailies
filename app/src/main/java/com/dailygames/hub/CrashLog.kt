@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 object CrashLog {
     private const val FILE = "crash_log.txt"
     private const val MAX_BYTES = 24 * 1024
+    private val URL_RE = Regex("""https?://\S+""", RegexOption.IGNORE_CASE)
     private val installed = AtomicBoolean(false)
 
     /** Records uncaught exceptions, then lets Android handle them as usual. Safe to call more than once. */
@@ -32,6 +33,8 @@ object CrashLog {
         }
     }
 
+    internal fun scrubUrls(text: String): String = URL_RE.replace(text, "<url>")
+
     /** "IllegalStateException: message" plus the first stack lines, and the cause's. */
     fun describe(error: Throwable): String {
         val sb = StringBuilder()
@@ -39,7 +42,7 @@ object CrashLog {
         var depth = 0
         while (e != null && depth < 3) {
             if (depth > 0) sb.append("\nCaused by: ")
-            sb.append(e.javaClass.name).append(": ").append(e.message.orEmpty().take(300))
+            sb.append(e.javaClass.name).append(": ").append(scrubUrls(e.message.orEmpty()).take(300))
             e.stackTrace.take(if (depth == 0) 14 else 6).forEach { sb.append("\n    at ").append(it.toString()) }
             e = e.cause?.takeIf { it !== e }
             depth += 1
@@ -48,8 +51,22 @@ object CrashLog {
     }
 
     internal fun trimToLimit(text: String, maxBytes: Int = MAX_BYTES): String {
-        if (text.length <= maxBytes) return text
-        val cut = text.takeLast(maxBytes)
+        if (maxBytes <= 0) return ""
+        if (text.toByteArray(Charsets.UTF_8).size <= maxBytes) return text
+        var bytes = 0
+        var start = text.length
+        while (start > 0) {
+            val cpStart = if (start >= 2 && Character.isLowSurrogate(text[start - 1]) && Character.isHighSurrogate(text[start - 2])) {
+                start - 2
+            } else {
+                start - 1
+            }
+            val cpBytes = text.substring(cpStart, start).toByteArray(Charsets.UTF_8).size
+            if (bytes + cpBytes > maxBytes) break
+            bytes += cpBytes
+            start = cpStart
+        }
+        val cut = text.substring(start)
         val nl = cut.indexOf('\n')
         return if (nl in 0 until cut.lastIndex) cut.substring(nl + 1) else cut
     }
@@ -76,7 +93,7 @@ object CrashLog {
     @Synchronized
     fun clear(ctx: Context) {
         runCatching { File(ctx.filesDir, FILE).delete() }
-        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putLong(KEY_EXITS_CLEARED, System.currentTimeMillis()) }
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit(commit = true) { putLong(KEY_EXITS_CLEARED, System.currentTimeMillis()) }
     }
 
     private const val PREFS = "dailies_crash_log"
@@ -97,7 +114,7 @@ object CrashLog {
                         ApplicationExitInfo.REASON_CRASH_NATIVE -> "Native crash"
                         else -> "Crash"
                     }
-                    "[${fmt.format(Date(info.timestamp))}] $why: ${info.description.orEmpty().take(200)}"
+                    "[${fmt.format(Date(info.timestamp))}] $why: ${scrubUrls(info.description.orEmpty()).take(200)}"
                 }
         }.getOrDefault("")
     }

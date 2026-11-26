@@ -45,7 +45,7 @@ object ShareResultDetector {
         Regex("(?<![a-z0-9])" + Regex.escape(key) + "(?!$after)").containsMatchIn(lower)
 
     fun isStrictShareResult(text: String?, gameName: String?, gameUrl: String?): Boolean {
-        val t = strictTrim(text)
+        val t = strictTrim(text?.replace("\r\n", "\n"))
         if (t.length < 3 || t.length > 4000) return false
         val lower = asciiLower(t)
         if (SINGLE_URL.containsMatchIn(lower)) return false
@@ -65,8 +65,17 @@ object ShareResultDetector {
 
     /** Whether a text names the game at all, or has a puzzle number (for clipboard text found after the fact). */
     fun mentionsGame(text: String?, gameName: String?, gameUrl: String?): Boolean {
-        val lower = asciiLower(strictTrim(text))
+        val lower = asciiLower(strictTrim(text?.replace("\r\n", "\n")))
         return gameMention(lower, gameName, gameUrl) > 0 || PUZZLE_NO.containsMatchIn(lower)
+    }
+
+    /**
+     * Strict attribution check for out-of-band clipboard captures: requires the text to explicitly
+     * mention this game (name, host, or site label) without falling back to a bare `#12` puzzle number.
+     */
+    fun mentionsGameExplicitly(text: String?, gameName: String?, gameUrl: String?): Boolean {
+        val lower = asciiLower(strictTrim(text?.replace("\r\n", "\n")))
+        return gameMention(lower, gameName, gameUrl) >= 1
     }
 
     /** A guess fraction that could be a result: "3/6", "x/6" (not "24/7", "1/2 cup" or a date like "11/13/2026"). */
@@ -129,12 +138,13 @@ object ShareResultDetector {
         val u = url?.trim().orEmpty()
         val m = URL_PARTS.find(u) ?: return "" to ""
         val rawHost = m.groupValues[2]
-        val host = runCatching { java.net.URLDecoder.decode(rawHost.replace("+", "%2B"), "UTF-8") }.getOrDefault(rawHost)
+        val decoded = runCatching { java.net.URLDecoder.decode(rawHost.replace("+", "%2B"), "UTF-8") }.getOrDefault(rawHost)
         // No IP-literal hosts ("[::1]"): no game lives there, and the two parsers read them differently.
-        if (host.isEmpty() || host.startsWith("[") || host.any { it == ' ' || it == '%' }) return "" to ""
+        if (decoded.isEmpty() || decoded.startsWith("[") || decoded.any { it == ' ' || it == '%' }) return "" to ""
+        val asciiHost = runCatching { java.net.IDN.toASCII(decoded) }.getOrNull()?.takeIf { it.isNotEmpty() } ?: return "" to ""
         val path = m.groupValues[3].replace('\\', '/').ifEmpty { "/" }
-        return asciiLower(host).removePrefix("www.") to asciiLower(path).trimEnd('/')
+        return asciiLower(asciiHost).removePrefix("www.") to asciiLower(path).trimEnd('/')
     }
 
-    private val URL_PARTS = Regex("""^([hH][tT][tT][pP][sS]?):[/\\]*(?:[^/?#@\\]*@)?([^/?#:\\]+)(?::[0-9]*)?([^?#]*)""")
+    private val URL_PARTS = Regex("""^([hH][tT][tT][pP][sS]?):[/\\]*(?:[^/?#@\\]*@)?([^/?#:\\]+)(?::[0-9]*)?([/?#\\].*)?\z""")
 }

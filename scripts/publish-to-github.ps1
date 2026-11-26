@@ -15,7 +15,7 @@ $Description = "One home for every daily web puzzle: reset alerts, streaks, auto
 $Root = Split-Path -Parent $PSScriptRoot
 $GradleFile = Join-Path $Root "app\build.gradle.kts"
 $VersionMatch = Select-String -Path $GradleFile -Pattern '^\s*versionName\s*=\s*"([^"]+)"' | Select-Object -First 1
-$Version = if ($VersionMatch) { $VersionMatch.Matches[0].Groups[1].Value } else { "1.9.4" }
+$Version = if ($VersionMatch) { $VersionMatch.Matches[0].Groups[1].Value } else { "1.9.6" }
 if (-not $Apk) { $Apk = Join-Path (Split-Path -Parent $Root) "Dailies-$Version.apk" }
 
 function Say($m) { Write-Host "`n$m" -ForegroundColor Cyan }
@@ -42,6 +42,10 @@ if (-not $email) {
   $name = gh api user --jq '.name // .login'
   git config user.name "$name"
   git config user.email "$id+$Login@users.noreply.github.com"
+}
+foreach ($pattern in @("local.properties", "*.jks", "*.keystore", "signing.properties")) {
+  $tracked = git ls-files $pattern
+  if ($tracked) { Die "$tracked is tracked by git; remove it before publishing." }
 }
 git add -A
 git diff --cached --quiet

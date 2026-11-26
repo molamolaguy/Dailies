@@ -126,4 +126,42 @@ class GameStoreTest {
         val pmLabel = GameStore.formatLocalResetTime("15:30", "local", utcZone)
         assertEquals("3:30 PM", pmLabel)
     }
+
+    @Test
+    fun resolveZone_matchesCaseInsensitiveIanaIds() {
+        val local = TimeZone.getTimeZone("UTC")
+        assertEquals("America/New_York", GameStore.resolveZone("america/new_york", local).id)
+        assertEquals("America/New_York", GameStore.resolveZone("AMERICA/NEW_YORK", local).id)
+        assertEquals(local.id, GameStore.resolveZone("Not/A_Zone", local).id)
+    }
+
+    @Test
+    fun repository_reanchorForward_advancesOnlyBehindAnchorsAndNeverRewinds() {
+        // 2026-03-15 12:00:00 UTC
+        val nowMs = 1773576000000L
+        val utc = TimeZone.getTimeZone("UTC")
+        val storage = InMemoryGameStorage(
+            mapOf(
+                GameStore.NOTIFIED_PREFIX + "behind" to "2026-03-14",
+                GameStore.NOTIFIED_PREFIX + "ahead" to "2026-03-16",
+                GameStore.NOTIFIED_PREFIX + "corrupt" to "bad-key"
+            )
+        )
+        val repo = GameRepository(storage, { nowMs }, utc)
+        storage.putString(
+            GameStore.KEY_GAMES,
+            """
+            [
+              {"id": "behind", "resetTime": "00:00", "resetZone": "utc", "notifyEnabled": true},
+              {"id": "ahead", "resetTime": "00:00", "resetZone": "utc", "notifyEnabled": true},
+              {"id": "corrupt", "resetTime": "00:00", "resetZone": "utc", "notifyEnabled": true}
+            ]
+            """.trimIndent()
+        )
+        repo.reanchorForward(nowMs)
+        assertEquals("2026-03-15", repo.lastNotifiedKey("behind"))
+        assertEquals("2026-03-16", repo.lastNotifiedKey("ahead"))
+        assertEquals("2026-03-15", repo.lastNotifiedKey("corrupt"))
+        assertFalse(repo.hasUnannouncedReset(nowMs))
+    }
 }

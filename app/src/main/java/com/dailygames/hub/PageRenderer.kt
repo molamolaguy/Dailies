@@ -12,10 +12,13 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.FrameLayout
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Renders a pasted game link with its scripts run, to read what a single-page app only builds in
@@ -24,7 +27,7 @@ import java.util.Locale
  *
  * The page loads in a WebView placed behind the hub (covered by it, so it lays out and runs normally
  * but is never seen). It has no JavaScript bridge, no file or content access, loads no images, never
- * leaves public http(s) hosts and is destroyed after one read. Main thread only.
+ * leaves public http(s) hosts, blocks WebSocket/WebRTC probing, and is destroyed after one read. Main thread only.
  */
 class PageRenderer(private val host: ViewGroup) {
     private val main = Handler(Looper.getMainLooper())
@@ -45,6 +48,7 @@ class PageRenderer(private val host: ViewGroup) {
     fun render(url: String, timeoutMs: Long, done: (JSONObject?) -> Unit) {
         var finished = false
         val token = Any()
+        val hostCache = ConcurrentHashMap<String, Boolean>()
         lateinit var wv: WebView
         lateinit var cancelThis: () -> Unit
         fun finish(json: JSONObject?) {
@@ -58,6 +62,12 @@ class PageRenderer(private val host: ViewGroup) {
                 (wv.parent as? ViewGroup)?.removeView(wv)
                 wv.destroy()
             }
+        }
+        fun isAllowedUrl(rawUrl: String?, hostStr: String?): Boolean {
+            if (rawUrl.isNullOrBlank()) return false
+            val key = hostStr?.trim('[', ']')?.lowercase(Locale.US)?.trimEnd('.').orEmpty()
+            if (key.isEmpty()) return false
+            return hostCache.getOrPut(key) { SafeHttp.isAllowedForScrape(rawUrl) }
         }
         cancelThis = { finish(null) }
         fun read() {
@@ -90,22 +100,25 @@ class PageRenderer(private val host: ViewGroup) {
         }
         wv.isFocusable = false
         wv.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        val docStartInstalled = if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            runCatching { WebViewCompat.addDocumentStartJavaScript(wv, DISABLE_NET_APIS_JS, setOf("*")) }.isSuccess
+        } else {
+            false
+        }
         wv.webViewClient = object : WebViewClient() {
             private var loads = 0
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val u = request?.url ?: return true
                 val scheme = u.scheme?.lowercase(Locale.US)
                 if (scheme != "http" && scheme != "https") return true
-                val h = u.host?.trim('[', ']')?.lowercase(Locale.US)?.trimEnd('.').orEmpty()
-                if (h.isEmpty() || h == "localhost" || h.endsWith(".localhost") || h.endsWith(".local") || h.endsWith(".internal")) return true
-                return false
+                return !isAllowedUrl(u.toString(), u.host)
             }
 
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 val u = request?.url ?: return blockedResponse()
                 val scheme = u.scheme?.lowercase(Locale.US)
                 if (scheme != "http" && scheme != "https") return blockedResponse()
-                if (!SafeHttp.isPublicHost(u.host)) {
+                if (!isAllowedUrl(u.toString(), u.host)) {
                     if (request.isForMainFrame) main.post { finish(null) }
                     return blockedResponse()
                 }
@@ -114,6 +127,9 @@ class PageRenderer(private val host: ViewGroup) {
 
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 loads += 1
+                if (!docStartInstalled) {
+                    runCatching { view?.evaluateJavascript(DISABLE_NET_APIS_JS, null) }
+                }
             }
 
             /** The page crashed its renderer (or it was stopped for memory): give up on it, never crash. */
@@ -143,6 +159,15 @@ class PageRenderer(private val host: ViewGroup) {
     companion object {
         /** Wait after the page finished loading, for a single-page app to build its screen. */
         const val SETTLE_MS = 2_000L
+
+        private const val DISABLE_NET_APIS_JS = """(function(){try{
+var nope=function(){throw new Error('Blocked');};
+if(typeof window!=='undefined'){
+try{Object.defineProperty(window,'WebSocket',{value:nope,configurable:false});}catch(e){window.WebSocket=nope;}
+try{Object.defineProperty(window,'RTCPeerConnection',{value:nope,configurable:false});}catch(e){window.RTCPeerConnection=nope;}
+try{Object.defineProperty(window,'webkitRTCPeerConnection',{value:nope,configurable:false});}catch(e){window.webkitRTCPeerConnection=nope;}
+}
+}catch(e){}})();"""
 
         /**
          * Runs in the rendered page: its title and address, meta tags (first of each), JSON-LD blocks,

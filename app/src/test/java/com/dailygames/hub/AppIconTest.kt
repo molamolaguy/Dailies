@@ -16,6 +16,25 @@ class AppIconTest {
         assertEquals(".IconAutoClassic", AppIcon.wanted("themed", "system", false))
         assertEquals(".IconGold", AppIcon.wanted("gold", "dark", true))
         assertEquals(".IconMidnight", AppIcon.wanted("midnight", "light", false))
+        val presetIcons = mapOf(
+            "iris" to ".IconIris",
+            "forest" to ".IconForest",
+            "rose" to ".IconRose",
+            "teal" to ".IconTeal",
+            "amber" to ".IconAmber",
+            "crimson" to ".IconCrimson",
+            "cobalt" to ".IconCobalt",
+            "sage" to ".IconSage",
+            "plum" to ".IconPlum",
+            "slate" to ".IconSlate"
+        )
+        presetIcons.forEach { (style, entry) ->
+            assertEquals(style, AppIcon.normalize(style))
+            assertEquals(entry, AppIcon.wanted(style, "dark", true))
+            assertEquals(entry, AppIcon.wanted(style, "light", false))
+            assertEquals(entry, AppIcon.wanted(style, "system", true))
+            assertTrue("$entry must be in AppIcon.ALL", entry in AppIcon.ALL)
+        }
         // Unknown styles fall back to the default; ".MainActivity" (1.x's launcher name) stays the default.
         assertEquals(AppIcon.DEFAULT, AppIcon.wanted("sparkly", "dark", true))
         assertEquals("default", AppIcon.normalize("sparkly"))

@@ -67,6 +67,18 @@ def opts_to_str(opts):
     return ','.join(('~' if n else '') + k + ('=' + v if v else '') for n, k, v in opts)
 
 
+def _valid_cosmetic_domain(d, allow_star=False):
+    if not d:
+        return False
+    if allow_star and d == '*':
+        return True
+    return '.' in d and not d.startswith('.') and not d.endswith('.')
+
+
+def _has_css_braces(sel):
+    return '{' in sel or '}' in sel
+
+
 class Builder:
     def __init__(self):
         self.block_hosts, self.block_hosts_3p, self.important_hosts = set(), set(), set()
@@ -104,23 +116,26 @@ class Builder:
         if '#@#' in line:
             doms, sel = line.split('#@#', 1)
             sel = sel.strip()
-            if BAD_SELECTOR.search(sel): return
+            if BAD_SELECTOR.search(sel) or _has_css_braces(sel): return
             for d in doms.split(',') if doms else ['*']:
-                d = d.strip().lower()
-                if d and not d.startswith('~'): self.hide_except.add((d, sel))
+                d = d.strip().lower().rstrip('.')
+                if d and not d.startswith('~') and _valid_cosmetic_domain(d, allow_star=True):
+                    if d == '*' or '*' not in d or (d.endswith('.*') and '*' not in d[:-2]):
+                        self.hide_except.add((d, sel))
             return
         doms, sel = line.split('##', 1)
         sel = sel.strip()
-        if BAD_SELECTOR.search(sel) or sel.startswith('^'): return
+        if BAD_SELECTOR.search(sel) or sel.startswith('^') or _has_css_braces(sel): return
         if not doms.strip():
             self.generic_hide.add(sel)
             return
-        parts = [d.strip().lower() for d in doms.split(',') if d.strip()]
-        pos = [d for d in parts if not d.startswith('~') and '*' not in d]
-        neg = tuple(sorted(d[1:] for d in parts if d.startswith('~') and '*' not in d))
-        had_pos = any(not d.startswith('~') for d in parts)
-        if had_pos and not pos:
-            return  # only wildcard domains (example.*): not supported
+        parts = [d.strip().lower().rstrip('.') for d in doms.split(',') if d.strip()]
+        def valid_part(d):
+            if not _valid_cosmetic_domain(d, allow_star=False):
+                return False
+            return '*' not in d or (d.endswith('.*') and '*' not in d[:-2])
+        pos = [d for d in parts if not d.startswith('~') and valid_part(d)]
+        neg = tuple(sorted(d[1:] for d in parts if d.startswith('~') and valid_part(d[1:])))
         if not pos and not neg:
             return
         self.specific_hide.setdefault((sel, neg, bool(pos)), set()).update(pos)
@@ -142,7 +157,8 @@ class Builder:
         if not body or body in ('*', '|', '||'):
             return
         host_only = HOST_ONLY_RE.match(body)
-        has_types = bool(names & TYPE_OPTS)
+        # `$all` covers every resource type including first-party document/subresources, so it must stay in url_rules.txt
+        has_types = bool(names & TYPE_OPTS) or 'all' in names
         neg_of = {k: n for n, k, _ in opts}
         third_only = neg_of.get('third-party') is False or neg_of.get('first-party') is True
         first_only = neg_of.get('first-party') is False or neg_of.get('third-party') is True
@@ -171,6 +187,7 @@ class Builder:
         names = {k for n, k, _ in opts if not n}
         if 'document' in names:
             self.document_allow.add(site)
+            self.nohide[site] = 'all'
         elif 'elemhide' in names:
             self.nohide[site] = 'all'
         elif 'generichide' in names and self.nohide.get(site) != 'all':
@@ -218,12 +235,25 @@ def normalise(body, opts):
     return (body, frozenset((n, k, v.lower()) for n, k, v in opts))
 
 
+def _psl_to_ascii(entry):
+    prefix = ''
+    if entry.startswith('!'):
+        prefix = '!'
+        entry = entry[1:]
+    elif entry.startswith('*.'):
+        prefix = '*.'
+        entry = entry[2:]
+    labels = [lbl.encode('idna').decode('ascii').lower() for lbl in entry.split('.')]
+    return prefix + '.'.join(labels)
+
+
 def parse_psl(lines):
     out = []
     for ln in lines:
         ln = ln.strip()
         if not ln or ln.startswith('//'): continue
-        out.append(ln.split()[0].lower())
+        entry = ln.split()[0].lower()
+        out.append(_psl_to_ascii(entry))
     return out
 
 
@@ -270,20 +300,23 @@ def main(src, out):
         print(f'error: no adblock rules loaded from {src!r}', file=sys.stderr)
         sys.exit(1)
 
+    psl = read('public_suffix_list.dat')
+    if psl is None:
+        print(f'error: public_suffix_list.dat missing in {src!r}', file=sys.stderr)
+        sys.exit(1)
+
     os.makedirs(out, exist_ok=True)
 
-    psl = read('public_suffix_list.dat')
-    if psl is not None:
-        rules = parse_psl(psl)
-        with open(os.path.join(out, 'psl.txt'), 'w') as f: f.write('\n'.join(rules) + '\n')
-        sources.append({'file': 'public_suffix_list.dat', 'licence': 'MPL-2.0 (publicsuffix.org)', 'rules': len(rules)})
+    rules = parse_psl(psl)
+    with open(os.path.join(out, 'psl.txt'), 'w', encoding='utf-8') as f: f.write('\n'.join(rules) + '\n')
+    sources.append({'file': 'public_suffix_list.dat', 'licence': 'MPL-2.0 (publicsuffix.org)', 'rules': len(rules)})
 
     n_hosts = write_hashes(os.path.join(out, 'hosts.bin'), b.block_hosts)
     n_hosts3 = write_hashes(os.path.join(out, 'hosts_3p.bin'), b.block_hosts_3p)
     n_imp = write_hashes(os.path.join(out, 'hosts_important.bin'), b.important_hosts)
 
     def write_lines(name, lines):
-        with open(os.path.join(out, name), 'w') as f: f.write('\n'.join(lines) + ('\n' if lines else ''))
+        with open(os.path.join(out, name), 'w', encoding='utf-8') as f: f.write('\n'.join(lines) + ('\n' if lines else ''))
 
     write_lines('allow_hosts.txt', sorted(b.allow_hosts))
     write_lines('document_allow.txt', sorted(b.document_allow))
@@ -298,7 +331,7 @@ def main(src, out):
                'url_rules': len(b.url_rules), 'badfilters': len(b.badfilters), 'generic_hide': len(b.generic_hide),
                'specific_hide': len(b.specific_hide), 'hide_exceptions': len(b.hide_except), 'nohide_sites': len(b.nohide),
                'sources': sources}
-    with open(os.path.join(out, 'sources.json'), 'w') as f: json.dump(summary, f, indent=1)
+    with open(os.path.join(out, 'sources.json'), 'w', encoding='utf-8') as f: json.dump(summary, f, indent=1)
     print(json.dumps({k: v for k, v in summary.items() if k != 'sources'}, indent=1))
 
 

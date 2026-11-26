@@ -34,8 +34,8 @@ jobs:
           [ -x "$SDKM" ] || SDKM="$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)"
           yes | "$SDKM" --licenses > /dev/null || true
           "$SDKM" --install "platforms;android-37.0" "build-tools;37.0.0" || true
-      - name: Unit tests, JS tests, lint and debug build
-        run: $GRADLE --no-daemon testDebugUnitTest testHubJs lintDebug assembleDebug
+      - name: Unit tests, JS tests, lint, debug and release builds
+        run: $GRADLE --no-daemon testDebugUnitTest testHubJs lintDebug assembleDebug -PallowDebugSignedRelease=true assembleRelease
       - name: Hub JS tests (all suites)
         run: node --test app/src/test/js/*.test.js
       - name: Web app build

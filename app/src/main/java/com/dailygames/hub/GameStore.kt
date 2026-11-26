@@ -29,13 +29,13 @@ class SharedPrefsGameStorage(context: Context) : GameStorage {
     override fun getString(key: String): String? = prefs.getString(key, null)
 
     override fun putString(key: String, value: String) {
-        prefs.edit { putString(key, value) }
+        prefs.edit(commit = true) { putString(key, value) }
     }
 
     override fun contains(key: String): Boolean = prefs.contains(key)
 
     override fun remove(key: String) {
-        prefs.edit { remove(key) }
+        prefs.edit(commit = true) { remove(key) }
     }
 
     override fun keys(): Set<String> = prefs.all.keys.toSet()
@@ -135,6 +135,30 @@ class GameRepository(
             .forEach { storage.remove(it) }
     }
 
+    /**
+     * Re-anchors `notified_<id>` forward to `currentKey` (when `currentKey > lastKey` or corrupt/missing)
+     * without firing alerts. Used when device clock or time zone changes so suppressed travel resets
+     * don't fire later when the hub opens.
+     */
+    fun reanchorForward(nowMs: Long = clock()) = synchronized(ScheduleLock) {
+        val games = load()
+        for (i in 0 until games.length()) {
+            val g = games.optJSONObject(i) ?: continue
+            val id = g.optString("id")
+            if (id.isEmpty()) continue
+            val currentKey = GameStore.cycleKey(
+                g.optString("resetTime", "00:00"),
+                g.optString("resetZone", "local"),
+                nowMs,
+                localTimeZone
+            )
+            val lastKey = lastNotifiedKey(id)
+            if (lastKey == null || !CYCLE_KEY_RE.matches(lastKey) || currentKey > lastKey) {
+                setNotifiedKey(id, currentKey)
+            }
+        }
+    }
+
     fun lastNotifiedKey(id: String): String? =
         storage.getString(GameStore.NOTIFIED_PREFIX + id)
 
@@ -146,7 +170,7 @@ class GameRepository(
             val id = g.optString("id")
             if (id.isEmpty() || !g.optBoolean("notifyEnabled", true)) continue
             val last = lastNotifiedKey(id) ?: continue
-            if (!Regex("""\d{4}-\d{2}-\d{2}""").matches(last)) continue
+            if (!CYCLE_KEY_RE.matches(last)) continue
             val current = GameStore.cycleKey(g.optString("resetTime", "00:00"), g.optString("resetZone", "local"), nowMs, localTimeZone)
             if (current > last) return true
         }
@@ -159,6 +183,10 @@ class GameRepository(
 
     fun saveGames(games: JSONArray) {
         storage.putString(GameStore.KEY_GAMES, games.toString())
+    }
+
+    private companion object {
+        val CYCLE_KEY_RE = Regex("""\d{4}-\d{2}-\d{2}""")
     }
 }
 
@@ -174,20 +202,33 @@ object GameStore {
     fun repository(ctx: Context): GameRepository =
         GameRepository(SharedPrefsGameStorage(ctx))
 
-    fun load(ctx: Context): JSONArray = repository(ctx).load()
+    fun load(ctx: Context): JSONArray = synchronized(ScheduleLock) { repository(ctx).load() }
 
     /** Saves the list. Newly seen games or schedule changes are anchored to the current cycle. */
     fun sync(ctx: Context, json: String) {
         repository(ctx).sync(json)
+        runCatching {
+            val arr = JSONArray(json)
+            val activeIds = HashSet<String>()
+            for (i in 0 until arr.length()) {
+                val id = arr.optJSONObject(i)?.optString("id").orEmpty()
+                if (id.isNotEmpty()) activeIds += id
+            }
+            StreakReminders.prune(ctx, activeIds)
+        }
+    }
+
+    fun reanchorForward(ctx: Context, nowMs: Long = System.currentTimeMillis()) {
+        repository(ctx).reanchorForward(nowMs)
     }
 
     fun lastNotifiedKey(ctx: Context, id: String): String? =
-        repository(ctx).lastNotifiedKey(id)
+        synchronized(ScheduleLock) { repository(ctx).lastNotifiedKey(id) }
 
     fun hasUnannouncedReset(ctx: Context): Boolean = synchronized(ScheduleLock) { repository(ctx).hasUnannouncedReset() }
 
     fun setNotifiedKey(ctx: Context, id: String, key: String) {
-        repository(ctx).setNotifiedKey(id, key)
+        synchronized(ScheduleLock) { repository(ctx).setNotifiedKey(id, key) }
     }
 
     /**
@@ -289,7 +330,13 @@ object GameStore {
         if (!raw.contains('/')) return localTimeZone
         val tz = TimeZone.getTimeZone(raw)
         // getTimeZone() silently returns GMT for ids it doesn't know.
-        return if (tz.id == raw) tz else localTimeZone
+        if (tz.id == raw) return tz
+        val canonicalId = AVAILABLE_ZONES_BY_LOWER[raw.lowercase(Locale.US)]
+        return if (canonicalId != null) TimeZone.getTimeZone(canonicalId) else localTimeZone
+    }
+
+    private val AVAILABLE_ZONES_BY_LOWER: Map<String, String> by lazy {
+        TimeZone.getAvailableIDs().associateBy { it.lowercase(Locale.US) }
     }
 
     private val UTC_ALIASES = setOf("utc", "gmt", "z", "zulu", "etc/utc", "etc/gmt", "etc/uct", "uct", "etc/zulu", "universal", "etc/universal")

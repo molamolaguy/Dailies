@@ -34,6 +34,8 @@ class CosmeticFilters(
     private val globalExceptions = HashSet<String>()
     private val noGeneric = HashSet<String>()
     private val noHide = HashSet<String>()
+    private val wildcardSpecificRules = ArrayList<Pair<String, SiteRule>>()
+    private val wildcardExceptions = HashMap<String, MutableSet<String>>()
 
     init {
         for (raw in genericLines) {
@@ -46,8 +48,10 @@ class CosmeticFilters(
             if (tab <= 0) continue
             val sel = raw.substring(tab + 1).trim()
             if (sel.isEmpty()) continue
-            val doms = raw.substring(0, tab).split(',').map { it.trim().lowercase(Locale.US) }.filter { it.isNotEmpty() }
-            val excluded = doms.filter { it.startsWith("~") }.map { it.substring(1) }
+            val doms = raw.substring(0, tab).split(',')
+                .map { it.trim().lowercase(Locale.US).trimEnd('.') }
+                .filter { it.isNotEmpty() }
+            val excluded = doms.filter { it.startsWith("~") }.map { it.substring(1).trimEnd('.') }
             val included = doms.filter { !it.startsWith("~") }
             if (included.isEmpty()) {
                 if (excluded.isEmpty()) continue
@@ -56,30 +60,44 @@ class CosmeticFilters(
                 continue
             }
             val rule = SiteRule(sel, excluded)
-            included.forEach { d -> specificByDomain.getOrPut(d) { ArrayList(2) }.add(rule) }
+            included.forEach { d ->
+                if (d.endsWith(".*")) wildcardSpecificRules.add(d to rule)
+                else specificByDomain.getOrPut(d) { ArrayList(2) }.add(rule)
+            }
         }
         for (raw in exceptionLines) {
             val tab = raw.indexOf('\t')
             if (tab <= 0) continue
-            val dom = raw.substring(0, tab).trim().lowercase(Locale.US)
+            val dom = raw.substring(0, tab).trim().lowercase(Locale.US).trimEnd('.')
             val sel = raw.substring(tab + 1).trim()
-            if (dom == "*") globalExceptions.add(sel) else exceptionsByDomain.getOrPut(dom) { HashSet() }.add(sel)
+            if (sel.isEmpty()) continue
+            when {
+                dom == "*" -> globalExceptions.add(sel)
+                dom.endsWith(".*") -> wildcardExceptions.getOrPut(dom) { HashSet() }.add(sel)
+                else -> exceptionsByDomain.getOrPut(dom) { HashSet() }.add(sel)
+            }
         }
         for (raw in noHideLines) {
             val tab = raw.indexOf('\t')
             if (tab <= 0) continue
-            val site = raw.substring(0, tab).trim().lowercase(Locale.US)
+            val site = raw.substring(0, tab).trim().lowercase(Locale.US).trimEnd('.')
+            if (site.isEmpty()) continue
             if (raw.substring(tab + 1).trim() == "all") noHide.add(site) else noGeneric.add(site)
         }
     }
 
     val ruleCount: Int
         get() = simpleGeneric.size + complexGeneric.size + simpleGenericExcept.size + complexGenericExcept.size +
-            specificByDomain.values.sumOf { it.size }
+            specificByDomain.values.sumOf { it.size } + wildcardSpecificRules.size
 
     private fun exceptionsFor(host: String): Set<String> {
         val out = HashSet<String>(globalExceptions)
         forEachDomainSuffix(host) { d -> exceptionsByDomain[d]?.let { out.addAll(it) } }
+        if (wildcardExceptions.isNotEmpty() && host.isNotEmpty()) {
+            for ((pattern, sels) in wildcardExceptions) {
+                if (AdBlockEngine.domainMatches(host, pattern)) out.addAll(sels)
+            }
+        }
         return out
     }
 
@@ -91,12 +109,12 @@ class CosmeticFilters(
     }
 
     private fun excludedHere(host: String, excluded: List<String>): Boolean =
-        excluded.any { host == it || host.endsWith(".$it") }
+        excluded.any { AdBlockEngine.domainMatches(host, it) }
 
     /** CSS sent when a page starts: complex generic rules (if [includeComplexGeneric]) + rules for this site. */
     fun pageCss(host: String, includeComplexGeneric: Boolean = true): String {
-        val h = host.lowercase(Locale.US)
-        if (anySuffixIn(h, noHide)) return ""
+        val h = host.lowercase(Locale.US).trimEnd('.')
+        if (h.isEmpty() || anySuffixIn(h, noHide)) return ""
         val generic = includeComplexGeneric && !anySuffixIn(h, noGeneric)
         val except = exceptionsFor(h)
         val sb = StringBuilder()
@@ -110,14 +128,23 @@ class CosmeticFilters(
                 if (r.selector !in except && !excludedHere(h, r.excluded) && added.add(r.selector)) appendRule(sb, r.selector)
             }
         }
+        if (wildcardSpecificRules.isNotEmpty()) {
+            for ((pattern, r) in wildcardSpecificRules) {
+                if (AdBlockEngine.domainMatches(h, pattern) &&
+                    r.selector !in except && !excludedHere(h, r.excluded) && added.add(r.selector)
+                ) {
+                    appendRule(sb, r.selector)
+                }
+            }
+        }
         return sb.toString()
     }
 
     /** CSS for the `.class` / `#id` tokens a page reported (only those with a generic hiding rule). */
     fun cssForTokens(host: String, tokens: Collection<String>): String {
         if (tokens.isEmpty()) return ""
-        val h = host.lowercase(Locale.US)
-        if (anySuffixIn(h, noHide) || anySuffixIn(h, noGeneric)) return ""
+        val h = host.lowercase(Locale.US).trimEnd('.')
+        if (h.isEmpty() || anySuffixIn(h, noHide) || anySuffixIn(h, noGeneric)) return ""
         val except = exceptionsFor(h)
         val sb = StringBuilder()
         for (t in tokens) {
@@ -138,16 +165,13 @@ class CosmeticFilters(
         private val SIMPLE_RE = Regex("""^[.#][A-Za-z_][A-Za-z0-9_-]*$""")
 
         fun forEachDomainSuffix(host: String, fn: (String) -> Unit) {
-            var h = host.lowercase(Locale.US)
+            var h = host.lowercase(Locale.US).trimEnd('.')
+            if (h.isEmpty()) return
             while (true) {
                 fn(h)
                 val dot = h.indexOf('.')
-                if (dot < 0) return
+                if (dot < 0 || h.indexOf('.', dot + 1) < 0) return
                 h = h.substring(dot + 1)
-                if (!h.contains('.')) {
-                    fn(h) // also allow "example" TLD-less forms some lists use for entity rules
-                    return
-                }
             }
         }
     }

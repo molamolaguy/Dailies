@@ -108,7 +108,7 @@
       if (!c) return '';
       if (!/^https?:\/\//i.test(c)) c = 'https://' + c;
       const u = new URL(c);
-      return u.hostname.replace(/^www\./i, '').toLowerCase()
+      return u.hostname.replace(/^(www|m)\./i, '').toLowerCase()
         + u.pathname.replace(/\/index\.html?$/i, '').replace(/\/+$/, '');
     } catch (e) {
       return '';
@@ -129,6 +129,10 @@
     }
   }
 
+  function localTimeZoneId() {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; }
+  }
+
   /**
    * Cached ms until next reset for `g` at `now` (coerces numeric timestamps to Date).
    * Pass an optional Map `cache` to isolate cache state; defaults to a module-level Map.
@@ -136,7 +140,7 @@
   function msUntilNextResetCached(g, now, cache) {
     const d = now === undefined ? new Date() : (now instanceof Date ? now : new Date(now));
     const store = cache || defaultNextResetCache;
-    const sig = `${g.resetTime}|${g.resetZone}|${d.getTimezoneOffset()}`;
+    const sig = `${g.resetTime}|${g.resetZone}|${d.getTimezoneOffset()}|${localTimeZoneId()}`;
     let c = store.get(g.id);
     if (!c || c.sig !== sig || d.getTime() >= c.at) {
       c = { sig, at: HubCore.getNextResetDate(g.resetTime, g.resetZone, d).getTime() };
@@ -259,23 +263,32 @@
   }
 
   /**
-   * Moves a game's day keys when its reset schedule changes, and deduplicates colliding log rows.
+   * Moves a game's day keys when its reset schedule changes, deduplicates colliding log rows,
+   * recomputes log streaks, and keeps `todayScore` in sync with the new current cycle row.
    * Mutates `g` in place and returns `{ shift, changed, logs }`.
    */
   function applyScheduleChangeState(g, from, to, logs, now) {
-    const at = now || new Date();
-    const shift = HubCore.scheduleKeyShift(from, to, at);
-    g.resetTime = to.resetTime;
-    g.resetZone = to.resetZone;
     const list = Array.isArray(logs) ? logs : [];
+    if (!g || typeof g !== 'object' || !from || typeof from !== 'object' || !to || typeof to !== 'object') {
+      return { shift: 0, changed: false, logs: list };
+    }
+    if (!HubCore.HHMM_RE.test(String(to.resetTime || '')) || !HubCore.HHMM_RE.test(String(from.resetTime || ''))) {
+      return { shift: 0, changed: false, logs: list };
+    }
+    const cleanFrom = { resetTime: HubCore.sanitizeResetTime(from.resetTime), resetZone: HubCore.normalizeZone(from.resetZone) };
+    const cleanTo = { resetTime: HubCore.sanitizeResetTime(to.resetTime), resetZone: HubCore.normalizeZone(to.resetZone) };
+    const at = now || new Date();
+    const shift = HubCore.scheduleKeyShift(cleanFrom, cleanTo, at);
+    g.resetTime = cleanTo.resetTime;
+    g.resetZone = cleanTo.resetZone;
     const mineRows = list.filter((l) => l && (l.gameId ? l.gameId === g.id : l.gameName === g.name));
-    const moved = HubCore.rescheduleDays(g.dayHistory, mineRows, from, to, at);
+    const moved = HubCore.rescheduleDays(g.dayHistory, mineRows, cleanFrom, cleanTo, at);
     const changed = moved.dates.some((d, i) => d !== mineRows[i].date)
       || JSON.stringify(moved.dayHistory) !== JSON.stringify(g.dayHistory || {});
     let nextLogs = list;
+    const todayKey = HubCore.getCycleDateKey(cleanTo.resetTime, cleanTo.resetZone, at);
     if (shift || changed) {
       g.dayHistory = moved.dayHistory;
-      const todayKey = HubCore.getCycleDateKey(to.resetTime, to.resetZone, at);
       const clamp = (k) => (k > todayKey ? todayKey : k);
       if (HubCore.DATE_KEY_RE.test(String(g.lastCycleKey || ''))) {
         g.lastCycleKey = clamp(HubCore.addDaysToCycleKey(g.lastCycleKey, shift));
@@ -285,90 +298,16 @@
       }
       mineRows.forEach((l, i) => { l.date = moved.dates[i]; });
       nextLogs = dedupeHistoryLogs(list);
+      HubCore.recomputeLogStreaks(g, nextLogs);
+    }
+    const todayRow = nextLogs.find((l) => l && (l.gameId ? l.gameId === g.id : l.gameName === g.name) && l.date === todayKey);
+    const todayOutcome = g.dayHistory && g.dayHistory[todayKey];
+    if ((todayOutcome === 'completed' || todayOutcome === 'missed') && todayRow && typeof todayRow.score === 'string') {
+      g.todayScore = todayRow.score;
+    } else {
+      g.todayScore = '';
     }
     return { shift, changed: Boolean(shift || changed), logs: nextLogs };
-  }
-
-  /**
-   * Pure state transition for single-game backup Restore ('replace' | 'merge').
-   * Mutates `state.games` and `state.historyLogs` and returns `{ target, before, added, newGame }` or null.
-   */
-  function applyRestoreGameState(state, backupGame, backupLogs, mode, refDate) {
-    if (!state || !backupGame) return null;
-    const rows = (Array.isArray(backupLogs) ? backupLogs : [])
-      .filter((l) => l && (l.gameId ? l.gameId === backupGame.id : l.gameName === backupGame.name));
-    let target = state.games.find((x) => x.id === backupGame.id)
-      || state.games.find((x) => normalizeUrlKey(x.url) === normalizeUrlKey(backupGame.url));
-    const before = {
-      rows: state.historyLogs
-        .filter((l) => target && l && (l.gameId ? l.gameId === target.id : l.gameName === target.name))
-        .map((r) => Object.assign({}, r)),
-      game: target ? JSON.parse(JSON.stringify(target)) : null
-    };
-    let added = 0;
-    if (!target) {
-      target = normalizeGameObject(JSON.parse(JSON.stringify(backupGame)), state.games.length, refDate);
-      if (!target) return null;
-      if (state.games.some((x) => x.id === target.id)) {
-        target.id = HubCore.uniqueId(target.id, new Set(state.games.map((x) => x.id)));
-      }
-      state.games.push(target);
-    }
-    const mine = (l) => Boolean(l && (l.gameId ? l.gameId === target.id : l.gameName === target.name));
-    if (mode === 'replace') {
-      state.historyLogs = state.historyLogs.filter((l) => !mine(l));
-      target.dayHistory = {};
-    }
-    const have = new Set(state.historyLogs.filter(mine).map((l) => l.date));
-    rows.forEach((r) => {
-      if (have.has(r.date)) return;
-      state.historyLogs.push(Object.assign({}, r, { gameId: target.id, gameName: target.name }));
-      have.add(r.date);
-      added += 1;
-    });
-    if (!target.dayHistory || typeof target.dayHistory !== 'object') target.dayHistory = {};
-    Object.entries(backupGame.dayHistory || {}).forEach(([k, v]) => {
-      if (HubCore.DATE_KEY_RE.test(k) && (v === 'completed' || v === 'missed') && (mode === 'replace' || !target.dayHistory[k])) {
-        target.dayHistory[k] = v;
-      }
-    });
-    state.historyLogs.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-    const todayKey = HubCore.getCycleDateKey(target.resetTime, target.resetZone, refDate);
-    if (mode === 'replace') {
-      target.status = target.dayHistory[todayKey] || 'ready';
-      const todayRow = state.historyLogs.find((l) => mine(l) && l.date === todayKey);
-      target.todayScore = (target.status === 'completed' || target.status === 'missed') && todayRow && typeof todayRow.score === 'string'
-        ? todayRow.score : '';
-    } else if (!target.todayScore && (target.dayHistory[todayKey] === 'completed' || target.dayHistory[todayKey] === 'missed')) {
-      const todayRow = state.historyLogs.find((l) => mine(l) && l.date === todayKey);
-      if (todayRow && typeof todayRow.score === 'string') target.todayScore = todayRow.score;
-    }
-    HubCore.recomputeGameStatsFromHistory(target, refDate);
-    return { target, before, added, newGame: !before.game };
-  }
-
-  /**
-   * Pure state transition for undoing a single-game backup Restore.
-   * Restores `historyLogs`, `dayHistory`, `status`, and `todayScore` from `change.before.game`.
-   */
-  function restoreRestoredGameState(state, change, refDate) {
-    if (!state || !change) return false;
-    const game = state.games.find((x) => x.id === change.gameId);
-    if (!game) return false;
-    state.historyLogs = state.historyLogs
-      .filter((l) => l && (l.gameId ? l.gameId !== game.id : l.gameName !== game.name))
-      .concat((change.before && change.before.rows) || []);
-    state.historyLogs.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-    if (change.newGame) {
-      state.games = state.games.filter((x) => x.id !== game.id);
-    } else if (change.before && change.before.game) {
-      const prev = change.before.game;
-      game.dayHistory = JSON.parse(JSON.stringify(prev.dayHistory || {}));
-      game.status = (prev.status === 'completed' || prev.status === 'missed') ? prev.status : 'ready';
-      game.todayScore = typeof prev.todayScore === 'string' ? prev.todayScore : '';
-      HubCore.recomputeGameStatsFromHistory(game, refDate);
-    }
-    return true;
   }
 
   /** Computes the consecutive 'completed' streak ending on `dateKey` from `dayHistory`. */
@@ -402,8 +341,6 @@
     normalizeGameObject,
     dedupeHistoryLogs,
     applyScheduleChangeState,
-    applyRestoreGameState,
-    restoreRestoredGameState,
     streakAsOfDate
   };
 });

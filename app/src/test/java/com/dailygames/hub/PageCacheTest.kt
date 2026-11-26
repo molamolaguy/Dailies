@@ -53,4 +53,19 @@ class PageCacheTest {
         assertEquals("font/woff2" to null, PageCache.splitType(null, "https://e.com/a.woff2?v=2"))
         assertEquals("application/javascript" to "utf-8", PageCache.splitType("application/javascript", "x"))
     }
+
+    @Test
+    fun corsAllowsValidatesOriginAgainstCachedHeader() {
+        val dummy = java.io.File("dummy")
+        val noCors = PageCache.Entry(dummy, "text/javascript", "utf-8", emptyMap())
+        val wildcard = PageCache.Entry(dummy, "text/javascript", "utf-8", mapOf("access-control-allow-origin" to "*"))
+        val specific = PageCache.Entry(dummy, "text/javascript", "utf-8", mapOf("access-control-allow-origin" to "https://Game.Example"))
+
+        org.junit.Assert.assertTrue(PageCache.corsAllows(noCors, null))
+        org.junit.Assert.assertFalse(PageCache.corsAllows(noCors, mapOf("Origin" to "https://game.example")))
+        org.junit.Assert.assertTrue(PageCache.corsAllows(wildcard, mapOf("Origin" to "https://game.example")))
+        org.junit.Assert.assertTrue(PageCache.corsAllows(specific, mapOf("origin" to "https://game.example")))
+        org.junit.Assert.assertFalse(PageCache.corsAllows(specific, mapOf("Origin" to "https://other.example")))
+    }
 }
+

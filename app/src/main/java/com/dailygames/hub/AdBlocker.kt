@@ -21,6 +21,7 @@ object AdBlocker {
         if (!started.compareAndSet(false, true)) return
         val app = ctx.applicationContext
         Thread({
+            PublicSuffix.ensureLoaded(app)
             try {
                 val am = app.assets
                 val hosts = am.open("adblock/hosts.bin").use { AdBlockEngine.readHashes(it) }
@@ -28,7 +29,6 @@ object AdBlocker {
                 val important = runCatching { am.open("adblock/hosts_important.bin").use { AdBlockEngine.readHashes(it) } }.getOrDefault(LongArray(0))
                 val allow = lineSet(am, "adblock/allow_hosts.txt")
                 val docAllow = lineSet(am, "adblock/document_allow.txt")
-                PublicSuffix.ensureLoaded(app)
                 engine = am.open("adblock/url_rules.txt").bufferedReader().useLines { lines ->
                     AdBlockEngine(hosts, hosts3p, allow, lines, important, docAllow)
                 }
@@ -69,6 +69,12 @@ object AdBlocker {
     fun cosmetics(timeoutMs: Long = 3000): CosmeticFilters? {
         if (cosmetic == null) runCatching { cosmeticReady.await(timeoutMs, TimeUnit.MILLISECONDS) }
         return cosmetic
+    }
+
+    /** Returns cosmetic filters unless [host] is exempt by `$document` (`document_allow.txt`). */
+    fun cosmeticsForPage(host: String, timeoutMs: Long = 3000): CosmeticFilters? {
+        if (network(0)?.isDocumentAllowed(host) == true) return null
+        return cosmetics(timeoutMs)
     }
 }
 

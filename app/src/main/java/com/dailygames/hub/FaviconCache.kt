@@ -68,16 +68,25 @@ class FaviconCache(
 
     private fun fetchAndStore(sourceUrl: String, key: String): Icon? {
         val fetched = runCatching { fetcher(sourceUrl) }.getOrNull() ?: return null
-        val (bytes, mime) = fetched
+        val (bytes, rawMime) = fetched
+        val mime = rawMime.substringBefore(';').trim().lowercase(Locale.US)
         if (bytes.isEmpty() || bytes.size > MAX_BYTES || !mime.startsWith("image/")) return null
+        if (mime.contains("svg") && !isSafeSvg(bytes)) return null
         save(key, bytes, mime)
         return Icon(bytes, mime)
     }
 
     private fun refreshLater(sourceUrl: String, key: String) {
+        val failedAt = failures[key]
+        if (failedAt != null && clock() - failedAt < FAILURE_BACKOFF_MS) return
         runCatching {
             refresher.execute {
-                synchronized(locks[(key.hashCode() and 0x7fffffff) % locks.size]) { fetchAndStore(sourceUrl, key) }
+                synchronized(locks[(key.hashCode() and 0x7fffffff) % locks.size]) {
+                    val prevFail = failures[key]
+                    if (prevFail != null && clock() - prevFail < FAILURE_BACKOFF_MS) return@synchronized
+                    val icon = fetchAndStore(sourceUrl, key)
+                    if (icon == null) failures[key] = clock() else failures.remove(key)
+                }
             }
         }
     }
@@ -99,12 +108,17 @@ class FaviconCache(
     private fun save(key: String, bytes: ByteArray, mime: String) {
         try {
             if (!dir.exists()) dir.mkdirs()
-            val tmp = File(dir, "$key.tmp")
+            val tmp = File(dir, "$key.img.tmp")
             FileOutputStream(tmp).use { it.write(bytes) }
-            File(dir, "$key.type").writeText(mime)
             val dest = dataFile(key)
-            if (dest.exists()) dest.delete()
-            if (!tmp.renameTo(dest)) tmp.delete()
+            if (!tmp.renameTo(dest)) {
+                if (dest.exists()) dest.delete()
+                if (!tmp.renameTo(dest)) {
+                    FileOutputStream(dest).use { it.write(bytes) }
+                    tmp.delete()
+                }
+            }
+            File(dir, "$key.type").writeText(mime)
             File(dir, "$key.used").writeText("")
             trim()
         } catch (e: Exception) {
@@ -136,6 +150,7 @@ class FaviconCache(
         private const val MAX_CACHE_BYTES = 20L * 1024 * 1024
         private const val MAX_AGE_MS = 30L * 24 * 3600 * 1000
         private const val FAILURE_BACKOFF_MS = 10L * 60 * 1000
+        private val UNSAFE_SVG_REGEX = Regex("""<\s*script\b|on[a-z]+\s*=|javascript\s*:|<\s*foreignObject\b""", RegexOption.IGNORE_CASE)
 
         fun isFetchable(url: String): Boolean {
             val scheme = runCatching { URI(url).scheme?.lowercase(Locale.US) }.getOrNull()
@@ -157,17 +172,27 @@ class FaviconCache(
             ) ?: return null
             if (resp.code !in 200..299 || resp.body.size > MAX_BYTES) return null
             val mime = resp.contentType?.substringBefore(';')?.trim()?.lowercase(Locale.US).orEmpty()
-            return resp.body to (if (mime.startsWith("image/")) mime else sniffMime(resp.body))
+            val resolved = if (mime.startsWith("image/")) mime else sniffMime(resp.body)
+            if (resolved.contains("svg") && !isSafeSvg(resp.body)) return null
+            return resp.body to resolved
+        }
+
+        fun isSafeSvg(bytes: ByteArray): Boolean {
+            val text = String(bytes, Charsets.UTF_8)
+            return text.contains("<svg", ignoreCase = true) && !UNSAFE_SVG_REGEX.containsMatchIn(text)
         }
 
         /** Some servers send icons as application/octet-stream; recognise the common formats. */
         fun sniffMime(bytes: ByteArray): String = when {
-            bytes.size >= 4 && bytes[0] == 0x89.toByte() && bytes[1] == 'P'.code.toByte() -> "image/png"
-            bytes.size >= 3 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte() -> "image/jpeg"
-            bytes.size >= 4 && bytes[0] == 'G'.code.toByte() && bytes[1] == 'I'.code.toByte() -> "image/gif"
-            bytes.size >= 4 && bytes[0] == 0.toByte() && bytes[1] == 0.toByte() && bytes[2] == 1.toByte() -> "image/x-icon"
-            bytes.size >= 12 && String(bytes, 8, 4, Charsets.US_ASCII) == "WEBP" -> "image/webp"
-            String(bytes.copyOfRange(0, minOf(bytes.size, 256)), Charsets.UTF_8).contains("<svg") -> "image/svg+xml"
+            bytes.size >= 4 && bytes[0] == 0x89.toByte() && bytes[1] == 'P'.code.toByte() && bytes[2] == 'N'.code.toByte() && bytes[3] == 'G'.code.toByte() -> "image/png"
+            bytes.size >= 3 && bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte() && bytes[2] == 0xFF.toByte() -> "image/jpeg"
+            bytes.size >= 4 && bytes[0] == 'G'.code.toByte() && bytes[1] == 'I'.code.toByte() && bytes[2] == 'F'.code.toByte() && bytes[3] == '8'.code.toByte() -> "image/gif"
+            bytes.size >= 4 && bytes[0] == 0.toByte() && bytes[1] == 0.toByte() && bytes[2] == 1.toByte() && bytes[3] == 0.toByte() -> "image/x-icon"
+            bytes.size >= 12 &&
+                String(bytes, 0, 4, Charsets.US_ASCII) == "RIFF" &&
+                String(bytes, 8, 4, Charsets.US_ASCII) == "WEBP" -> "image/webp"
+            String(bytes, 0, minOf(bytes.size, 2048), Charsets.UTF_8).contains("<svg", ignoreCase = true) ->
+                if (isSafeSvg(bytes)) "image/svg+xml" else ""
             else -> ""
         }
     }

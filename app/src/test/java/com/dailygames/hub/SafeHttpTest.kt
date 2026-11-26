@@ -79,4 +79,84 @@ class SafeHttpTest {
             proxy.stop(0)
         }
     }
+
+    @Test
+    fun additionalSpecialUseRangesAndLocalTldsAreRefused() {
+        assertFalse(SafeHttp.isPublicAddress(addr("192.88.99.1")))
+        assertFalse(SafeHttp.isPublicAddress(addr("64:ff9b:1::1")))
+        assertFalse(SafeHttp.isPublicAddress(addr("::ffff:127.0.0.1")))
+
+        val prevPrivate = SafeHttp.allowPrivateHostsForTests
+        SafeHttp.allowPrivateHostsForTests = false
+        try {
+            assertNull(SafeHttp.resolvePublic("localhost."))
+            assertNull(SafeHttp.resolvePublic("intranet.corp."))
+            assertFalse(SafeHttp.proxiedHostAllowed("intranet"))
+            assertFalse(SafeHttp.proxiedHostAllowed("router.lan"))
+            assertFalse(SafeHttp.proxiedHostAllowed("nas.home"))
+            assertFalse(SafeHttp.proxiedHostAllowed("box.corp"))
+            assertFalse(SafeHttp.proxiedHostAllowed("1.168.192.in-addr.arpa"))
+            assertFalse(SafeHttp.isAllowedForScrape("http://localhost./play"))
+            assertFalse(SafeHttp.isAllowedForScrape("ftp://games.example/"))
+        } finally {
+            SafeHttp.allowPrivateHostsForTests = prevPrivate
+        }
+    }
+
+    @Test
+    fun redirectsStripSensitiveHeadersCrossOriginAndIgnore304() {
+        val seenDestHeaders = mutableListOf<String?>()
+        val dest = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0).apply {
+            createContext("/target") { ex ->
+                seenDestHeaders += ex.requestHeaders.getFirst("Cookie")
+                seenDestHeaders += ex.requestHeaders.getFirst("Authorization")
+                val body = "ok".toByteArray()
+                ex.sendResponseHeaders(200, body.size.toLong())
+                ex.responseBody.use { it.write(body) }
+            }
+            start()
+        }
+        val src = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0).apply {
+            createContext("/redir") { ex ->
+                ex.responseHeaders.add("Location", "http://127.0.0.1:${dest.address.port}/target?q=with space")
+                ex.sendResponseHeaders(302, -1)
+            }
+            createContext("/same") { ex ->
+                val body = "same".toByteArray()
+                ex.sendResponseHeaders(200, body.size.toLong())
+                ex.responseBody.use { it.write(body) }
+            }
+            createContext("/same-redir") { ex ->
+                ex.responseHeaders.add("Location", "/same")
+                ex.sendResponseHeaders(302, -1)
+            }
+            createContext("/not-modified") { ex ->
+                ex.responseHeaders.add("Location", "http://127.0.0.1:${dest.address.port}/target")
+                ex.sendResponseHeaders(304, -1)
+            }
+            start()
+        }
+        val prevPrivate = SafeHttp.allowPrivateHostsForTests
+        SafeHttp.allowPrivateHostsForTests = true
+        try {
+            val r = SafeHttp.get(
+                "http://127.0.0.1:${src.address.port}/redir",
+                headers = mapOf("Cookie" to "sid=secret", "Authorization" to "Bearer tok", "User-Agent" to "Dailies"),
+                maxBytes = 1000
+            )
+            assertNotNull(r)
+            assertEquals("ok", String(r!!.body))
+            assertEquals(listOf<String?>(null, null), seenDestHeaders)
+
+            val r304 = SafeHttp.get("http://127.0.0.1:${src.address.port}/not-modified", maxBytes = 1000)
+            assertNotNull(r304)
+            assertEquals(304, r304!!.code)
+            assertEquals("http://127.0.0.1:${src.address.port}/not-modified", r304.finalUrl)
+        } finally {
+            SafeHttp.allowPrivateHostsForTests = prevPrivate
+            src.stop(0)
+            dest.stop(0)
+        }
+    }
 }
+

@@ -20,18 +20,25 @@ import android.os.Build
 object ResetAlarms {
     private const val REQUEST_CODE = 4101
     const val ACTION_RESET_ALARM = "com.dailygames.hub.action.RESET_ALARM"
-    private const val FINAL_STAGE_MS = 10 * 60_000L
+    private const val FINAL_STAGE_MS = 15 * 60_000L
+    private const val MIN_HEADROOM_MS = 12 * 60_000L
 
     fun canScheduleExact(ctx: Context): Boolean {
         val am = ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return false
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.S || runCatching { am.canScheduleExactAlarms() }.getOrDefault(false)
     }
 
-    /** When to fire next for a reset at [resetAtMs]: the reset itself, or a staging point before it. */
+    /**
+     * When to fire next for a reset at [resetAtMs]: the reset itself, or a staging point before it.
+     * Avoids landing intermediate inexact `setAndAllowWhileIdle` alarms inside Android Doze's ~9-minute
+     * cooldown before [resetAtMs].
+     */
     fun nextTrigger(resetAtMs: Long, nowMs: Long, exact: Boolean): Long {
         val remaining = resetAtMs - nowMs
         if (exact || remaining <= FINAL_STAGE_MS) return resetAtMs
-        return nowMs + remaining / 2
+        val halfRemaining = remaining / 2
+        val targetRemaining = maxOf(halfRemaining, MIN_HEADROOM_MS)
+        return resetAtMs - targetRemaining
     }
 
     fun schedule(ctx: Context, resetAtMs: Long, nowMs: Long = System.currentTimeMillis()) {
@@ -78,7 +85,7 @@ class ResetAlarmReceiver : BroadcastReceiver() {
 
 /**
  * Re-arms the reset schedule after events that invalidate it: reboot (alarms are cleared), app update,
- * time-zone change (travel / DST rules) and manual clock changes.
+ * exact-alarm permission changes, time-zone change (travel / DST rules) and manual clock changes.
  */
 class ScheduleChangeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -87,14 +94,23 @@ class ScheduleChangeReceiver : BroadcastReceiver() {
         val pending = goAsync()
         Thread {
             try {
-                if (mode == Mode.PROCESS_MISSED) {
-                    // The phone was off (or the app was being replaced) and its alarms were cleared:
-                    // post any reset that happened meanwhile, then arm the next one. (Arming alone
-                    // would also REPLACE the overdue WorkManager backup, so the alert would be lost.)
-                    DailyRefreshWorker.runRefresh(app)
-                } else {
-                    // Clock / zone changes: don't notify, just re-anchor timing to the new clock.
-                    DailyRefreshWorker.scheduleNextReset(app)
+                when (mode) {
+                    Mode.PROCESS_MISSED -> {
+                        // The phone was off (or the app was being replaced) and its alarms were cleared:
+                        // post any reset that happened meanwhile, then arm the next one. (Arming alone
+                        // would also REPLACE the overdue WorkManager backup, so the alert would be lost.)
+                        DailyRefreshWorker.runRefresh(app)
+                    }
+                    Mode.CATCH_UP_AND_SCHEDULE -> {
+                        // Exact-alarm permission changed: catch up any unannounced reset without
+                        // dropping it, then arm the next exact/inexact alarm.
+                        DailyRefreshWorker.refreshAndSchedule(app)
+                    }
+                    Mode.RESCHEDULE_ONLY -> {
+                        // Clock / zone changes: don't notify, re-anchor forward to current cycle so
+                        // suppressed travel resets don't fire later, and arm the next reset.
+                        DailyRefreshWorker.rescheduleAfterClockOrZoneChange(app)
+                    }
                 }
             } finally {
                 pending.finish()
@@ -102,7 +118,7 @@ class ScheduleChangeReceiver : BroadcastReceiver() {
         }.start()
     }
 
-    enum class Mode { PROCESS_MISSED, RESCHEDULE_ONLY }
+    enum class Mode { PROCESS_MISSED, CATCH_UP_AND_SCHEDULE, RESCHEDULE_ONLY }
 
     companion object {
         /** Exact-alarm permission granted / changed (API 31+; a literal so it compiles for minSdk 24). */
@@ -111,9 +127,9 @@ class ScheduleChangeReceiver : BroadcastReceiver() {
         fun modeFor(action: String?): Mode? = when (action) {
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED -> Mode.PROCESS_MISSED
+            ACTION_EXACT_ALARM_PERMISSION_CHANGED -> Mode.CATCH_UP_AND_SCHEDULE
             Intent.ACTION_TIMEZONE_CHANGED,
-            Intent.ACTION_TIME_CHANGED,
-            ACTION_EXACT_ALARM_PERMISSION_CHANGED -> Mode.RESCHEDULE_ONLY
+            Intent.ACTION_TIME_CHANGED -> Mode.RESCHEDULE_ONLY
             else -> null
         }
     }

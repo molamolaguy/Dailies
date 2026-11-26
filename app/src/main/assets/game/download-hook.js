@@ -27,6 +27,11 @@
 
   function post(obj) { try { channel.postMessage(JSON.stringify(obj)); } catch (e) {} }
 
+  function isBlobLike(obj) {
+    return obj && (obj instanceof Blob || Object.prototype.toString.call(obj) === '[object Blob]' ||
+      (typeof obj.size === 'number' && typeof obj.slice === 'function' && typeof obj.arrayBuffer === 'function'));
+  }
+
   function deleteBlob(url) {
     var entry = blobs.get(url);
     if (!entry) return;
@@ -44,7 +49,7 @@
   U.createObjectURL = function createObjectURL(obj) {
     var url = origCreate.apply(this, arguments);
     try {
-      if (obj instanceof Blob && typeof url === 'string') {
+      if (isBlobLike(obj) && typeof url === 'string') {
         if (blobs.has(url)) deleteBlob(url);
         while (blobs.size >= MAX_BLOBS) {
           var oldest = blobs.keys().next().value;
@@ -62,7 +67,8 @@
     U.revokeObjectURL = function revokeObjectURL(url) {
       var r = origRevoke.apply(this, arguments);
       try {
-        if (blobs.has(url)) scheduleEvict(url, KEEP_AFTER_REVOKE_MS);
+        var key = typeof url === 'string' ? url.split('#')[0] : url;
+        if (blobs.has(key)) scheduleEvict(key, KEEP_AFTER_REVOKE_MS);
       } catch (e) {}
       return r;
     };
@@ -72,7 +78,8 @@
     var m;
     try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (!m || m.t !== 'get' || typeof m.url !== 'string' || typeof m.token !== 'string') return;
-    var entry = blobs.get(m.url);
+    var cleanUrl = m.url.split('#')[0];
+    var entry = blobs.get(m.url) || blobs.get(cleanUrl);
     var blob = entry && entry.blob;
     var found;
     if (blob) found = Promise.resolve(blob);
@@ -81,8 +88,12 @@
     found.then(function (b) {
       if (typeof m.max === 'number' && b.size > m.max) { post({ token: m.token, error: 'size' }); return; }
       var fr = new FileReader();
-      fr.onload = function () { post({ token: m.token, type: b.type, data: fr.result }); };
+      fr.onload = function () {
+        if (typeof fr.result === 'string') post({ token: m.token, type: b.type, data: fr.result });
+        else post({ token: m.token, error: 'read' });
+      };
       fr.onerror = function () { post({ token: m.token, error: 'read' }); };
+      fr.onabort = function () { post({ token: m.token, error: 'read' }); };
       fr.readAsDataURL(b);
     }, function () {
       // Not readable here; another frame of this origin may still hold it (the app times out otherwise).

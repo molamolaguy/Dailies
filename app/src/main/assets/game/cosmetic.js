@@ -11,6 +11,9 @@
   try { Object.defineProperty(window, '__dailesCosmetic', { value: true }); } catch (e) { window.__dailesCosmetic = true; }
   var channel = window.DailesAdBlock;
   if (!channel || typeof channel.postMessage !== 'function') return;
+  var postMessage = Function.prototype.call.bind(channel.postMessage, channel);
+  var jsonParse = JSON.parse;
+  var jsonStringify = JSON.stringify;
 
   var host = location.hostname;
   var style = null;
@@ -50,7 +53,7 @@
   }
   channel.onmessage = function (ev) {
     try {
-      var m = JSON.parse(ev.data);
+      var m = jsonParse(ev.data);
       if (m && m.disabled) {
         // Blocking is off for this site: stop scanning and remove anything we added.
         disabled = true;
@@ -67,7 +70,7 @@
     flushTimer = 0;
     if (disabled || !pending.length) return;
     var batch = pending.splice(0, 2000);
-    try { channel.postMessage(JSON.stringify({ t: 'tokens', host: host, tokens: batch })); } catch (e) {}
+    try { postMessage(jsonStringify({ t: 'tokens', host: host, tokens: batch })); } catch (e) {}
     if (pending.length) flushTimer = setTimeout(flush, 0);
   }
   function note(tok) {
@@ -92,7 +95,7 @@
   // A per-document nonce: the app answers each document's hello once (a reload or the next page on
   // the same host is a new document and gets its CSS again).
   var nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  try { channel.postMessage(JSON.stringify({ t: 'hello', host: host, n: nonce })); } catch (e) {}
+  try { postMessage(jsonStringify({ t: 'hello', host: host, n: nonce })); } catch (e) {}
   try {
     observer = new MutationObserver(function (records) {
       if (cssText && !(style && style.isConnected)) restore();

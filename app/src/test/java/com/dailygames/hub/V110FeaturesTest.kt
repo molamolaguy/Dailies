@@ -50,7 +50,8 @@ class V110FeaturesTest {
         // Next check with the setting off: 22:00 for the 2 hr game (already passed, so now).
         assertEquals(now, planner.nextCheck(list, now, 0) { null })
         assertNull(planner.nextCheck(games(withLead("off", 0)), now, hour) { null })
-        assertTrue(planner.message(planner.due(list, now, 0) { null }, 0).second.contains("2 hr"))
+        assertTrue(planner.message(planner.due(list, now, 0) { null }, 0).second.contains("1 hr 30 min"))
+        assertTrue(planner.message(planner.due(list, ms("2026-11-08T22:00:00Z"), 0) { null }, 0).second.contains("2 hr"))
     }
 
     @Test
@@ -85,6 +86,15 @@ class V110FeaturesTest {
         assertEquals(now, planner.nextCheck(games(mutedOwn), now, hour) { null })
         // Muted game inheriting default gets no alarm.
         assertNull(planner.nextCheck(games(mutedDefault), now, hour) { null })
+
+        // When index.html sends lastLoggedCycle alongside empty today's loggedCycle, broken streak is still caught.
+        val brokenViaLastLogged = """{"id":"broken2","name":"Broken2","resetTime":"00:00","resetZone":"utc","streak":5,"loggedCycle":"","lastLoggedCycle":"2026-11-06","notifyEnabled":true}"""
+        val aliveViaLastLogged = """{"id":"alive2","name":"Alive2","resetTime":"00:00","resetZone":"utc","streak":5,"loggedCycle":"","lastLoggedCycle":"2026-11-07","notifyEnabled":true}"""
+        assertEquals(
+            listOf("alive2"),
+            planner.due(games(brokenViaLastLogged, aliveViaLastLogged), now, hour) { null }.map { it.id }
+        )
+        assertNull(planner.nextCheck(games(brokenViaLastLogged), now, hour) { null })
     }
 
     @Test
@@ -108,16 +118,43 @@ class V110FeaturesTest {
     }
 
     @Test
-    fun reminderTextNamesTheGamesAndLeadTime() {
-        val now = ms("2026-11-08T23:15:00Z")
+    fun reminderTextNamesTheGamesAndAccurateTimeRemaining() {
+        val now = ms("2026-11-08T23:15:00Z") // 45 min until 00:00 UTC reset
         val one = planner.due(games(game("wordle", 5)), now, hour) { null }
         val (t1, b1) = planner.message(one, hour)
         assertEquals("Keep your Wordle streak", t1)
-        assertTrue(b1, b1.contains("5-day streak") && b1.contains("1 hr"))
+        assertTrue(b1, b1.contains("5-day streak") && b1.contains("45 min"))
         val two = planner.due(games(game("wordle", 5), game("nerdle", 2)), now, 2 * hour) { null }
         assertEquals("Keep your 2 streaks going", planner.message(two, 2 * hour).first)
+        // Mixed reset times must not claim a 50-min game resets "within 6 hr".
+        val mixedSoon = StreakReminderPlanner.Candidate("a", "Soon", 4, 50 * 60_000L, "2026-11-08", 6 * hour)
+        val mixedLater = StreakReminderPlanner.Candidate("b", "Later", 3, 5 * hour, "2026-11-08", 6 * hour)
+        val (_, bMixed) = planner.message(listOf(mixedSoon, mixedLater), 6 * hour)
+        assertTrue(bMixed, bMixed.contains("50 min") && bMixed.contains("5 hr") && !bMixed.contains("within 6 hr"))
         assertEquals("30 min", StreakReminderPlanner.formatLead(30 * 60_000L))
         assertEquals("1 hr 30 min", StreakReminderPlanner.formatLead(90 * 60_000L))
+    }
+
+    @Test
+    fun streakReminderShadeItemsMergeAndReconcileLoggedGames() {
+        val now = ms("2026-11-08T23:15:00Z")
+        val list = games(
+            game("wordle", 5, logged = "2026-11-08"), // just logged!
+            game("nerdle", 3, logged = "2026-11-07"), // still open
+            game("globle", 4, logged = "2026-11-07")  // newly due
+        )
+        val stillOpen = planner.openDue(list, now, hour)
+        val inShade = listOf(
+            StreakReminderPlanner.Candidate("wordle", "Wordle", 5, 45 * 60_000L, "2026-11-08", hour),
+            StreakReminderPlanner.Candidate("nerdle", "Nerdle", 3, 45 * 60_000L, "2026-11-08", hour)
+        )
+        val fresh = listOf(
+            StreakReminderPlanner.Candidate("globle", "Globle", 4, 45 * 60_000L, "2026-11-08", hour)
+        )
+        val encoded = StreakReminders.encodeItems(inShade)
+        assertEquals(listOf("wordle", "nerdle"), StreakReminders.decodeItems(encoded).map { it.id })
+        val merged = StreakReminders.mergeShadeItems(inShade, fresh, stillOpen)
+        assertEquals(listOf("nerdle", "globle"), merged.map { it.id })
     }
 
     @Test
@@ -140,9 +177,20 @@ class V110FeaturesTest {
         assertNull(AutoBackup.payload("", "1.1.0", Date()))
         assertNull(AutoBackup.payload("{\"settings\":{}}", "1.1.0", Date()))
 
-        val names = (1..7).map { "dailies_autobackup_2026-11-0${it}_1200.json" } + listOf("dailies_backup_2026-11-01.json", "notes.txt")
-        assertEquals(listOf("dailies_autobackup_2026-11-02_1200.json", "dailies_autobackup_2026-11-01_1200.json"), AutoBackup.namesToPrune(names))
-        assertTrue(AutoBackup.fileName(Date()).startsWith(AutoBackup.FILE_PREFIX))
+        val names = (1..7).map { "dailies_autobackup_2026-11-0${it}_120000.json" } +
+            listOf("dailies_autobackup_2026-10-30_1200.json", "dailies_backup_2026-11-01.json", "notes.txt")
+        assertEquals(
+            listOf(
+                "dailies_autobackup_2026-11-02_120000.json",
+                "dailies_autobackup_2026-11-01_120000.json",
+                "dailies_autobackup_2026-10-30_1200.json"
+            ),
+            AutoBackup.namesToPrune(names)
+        )
+        // Duplicate display names with distinct docIds are still pruned cleanly.
+        val entries = (1..6).map { "dailies_autobackup_2026-11-01_120000.json" to "doc-$it" }
+        assertEquals(1, AutoBackup.entriesToPrune(entries).size)
+        assertTrue(Regex("""^dailies_autobackup_\d{4}-\d{2}-\d{2}_\d{6}\.json$""").matches(AutoBackup.fileName(Date())))
 
         val week = AutoBackup.INTERVAL_MS
         val now = ms("2026-11-09T10:00:00Z")
@@ -168,6 +216,12 @@ class V110FeaturesTest {
         assertFalse(pre.getBoolean("newer"))
         assertFalse(JSONObject(UpdateCheck.resultJson(null, 0, "1.1.0")).getBoolean("ok"))
         assertFalse(JSONObject(UpdateCheck.resultJson("rate limited", 403, "1.1.0")).getBoolean("ok"))
+
+        assertTrue(UpdateInstaller.isAllowedHost("github.com"))
+        assertTrue(UpdateInstaller.isAllowedHost("objects.githubusercontent.com"))
+        assertTrue(UpdateInstaller.isAllowedHost("release-assets.githubusercontent.com"))
+        assertFalse(UpdateInstaller.isAllowedHost("evil.githubusercontent.com"))
+        assertFalse(UpdateInstaller.isAllowedHost("attacker.example"))
     }
 
     @Test

@@ -6,6 +6,8 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
@@ -84,18 +86,25 @@ class DailyRefreshWorker(
     workerParams: WorkerParameters
 ) : CoroutineWorker(appContext, workerParams) {
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         runRefresh(applicationContext)
-        return Result.success()
+        Result.success()
     }
 
     companion object {
         const val NEXT_RESET_WORK_NAME = "daily_game_next_reset"
         const val LEGACY_PERIODIC_WORK_NAME = "daily_game_refresh_check"
         private const val BACKUP_DELAY_MS = 5 * 60_000L
+        private val REFRESH_LOCK = Any()
 
         /** Posts notifications for every game whose cycle has rolled over, then arms the next reset. */
         fun runRefresh(ctx: Context) {
+            synchronized(REFRESH_LOCK) {
+                runRefreshLocked(ctx)
+            }
+        }
+
+        private fun runRefreshLocked(ctx: Context) {
             // Collected for the whole pass: one game gets its own alert, several share one (1.5.0).
             val names = GameStore.load(ctx).let { arr ->
                 (0 until arr.length()).mapNotNull { arr.optJSONObject(it) }.associate { it.optString("id") to it.optString("name") }
@@ -126,7 +135,7 @@ class DailyRefreshWorker(
             } finally {
                 // Always arm the next reset, even if posting this pass's alert failed: otherwise one
                 // error would silence every later alert until the app was opened again.
-                scheduleNextReset(ctx)
+                scheduleNextResetLocked(ctx, System.currentTimeMillis())
             }
         }
 
@@ -141,12 +150,29 @@ class DailyRefreshWorker(
             // The hub runs this off the main thread at start-up (1.8.0) and again when it syncs games:
             // one at a time, so a missed reset is never announced twice.
             synchronized(REFRESH_LOCK) {
-                if (GameStore.hasUnannouncedReset(ctx)) runRefresh(ctx) else scheduleNextReset(ctx)
+                if (GameStore.hasUnannouncedReset(ctx)) runRefreshLocked(ctx)
+                else scheduleNextResetLocked(ctx, System.currentTimeMillis())
             }
         }
-        private val REFRESH_LOCK = Any()
+
+        /**
+         * Re-anchors forward and re-arms schedules after a device clock or time zone change without
+         * firing alerts for the travel/clock shift.
+         */
+        fun rescheduleAfterClockOrZoneChange(ctx: Context, nowMs: Long = System.currentTimeMillis()) {
+            synchronized(REFRESH_LOCK) {
+                GameStore.reanchorForward(ctx, nowMs)
+                scheduleNextResetLocked(ctx, nowMs)
+            }
+        }
 
         fun scheduleNextReset(ctx: Context, nowMs: Long = System.currentTimeMillis()) {
+            synchronized(REFRESH_LOCK) {
+                scheduleNextResetLocked(ctx, nowMs)
+            }
+        }
+
+        private fun scheduleNextResetLocked(ctx: Context, nowMs: Long) {
             // Streak reminders follow the same games list (and the same reboot / clock-change hooks).
             runCatching { StreakReminders.schedule(ctx, nowMs) }
             val wm = WorkManager.getInstance(ctx)

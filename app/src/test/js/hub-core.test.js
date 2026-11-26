@@ -786,4 +786,162 @@ test('pickDailyTheme is deterministic for a date and avoids repeating yesterday'
   assert.equal(core.pickDailyTheme('2026-11-22', ['ocean']), 'ocean');
 });
 
+test('1.9.7: recomputeGameStatsFromHistory resets stale status to ready when today has no outcome', () => {
+  inZone('UTC', () => {
+    const now = new Date('2026-03-10T12:00:00Z');
+    const game = {
+      resetTime: '00:00', resetZone: 'utc', status: 'completed',
+      dayHistory: { '2026-03-09': 'completed' }
+    };
+    core.recomputeGameStatsFromHistory(game, now);
+    assert.equal(game.status, 'ready');
+    assert.equal(game.streak, 1);
+
+    game.status = 'missed';
+    core.recomputeGameStatsFromHistory(game, now);
+    assert.equal(game.status, 'ready');
+  });
+});
+
+test('1.9.7: parseScore, parseResultValue, and isFailedShareResult handle large denominators, 0/N, dates, words/clues, and higher-is-better grids', () => {
+  // Larger denominators (Sedecordle 18/21, Duotrigordle 35/37).
+  assert.deepEqual(core.parseScore('Sedecordle #100 18/21'), { n: 18, max: 21, fail: false });
+  assert.deepEqual(core.parseScore('Duotrigordle #100 35/37'), { n: 35, max: 37, fail: false });
+  assert.equal(core.parseResultValue('Sedecordle #100 18/21').label, '18/21');
+  assert.equal(core.parseResultValue('Duotrigordle #100 35/37').label, '35/37');
+  assert.equal(core.isFailedShareResult('Sedecordle #100 18/21'), false);
+
+  // Leading date patterns stripped before fraction/score matching; POINTS_OF_RE checked before parseScore.
+  const tg = core.parseResultValue('TimeGuessr #540 38,456/50,000\nPlayed 11/13');
+  assert.deepEqual([tg.kind, tg.label], ['points', '38,456 pts']);
+  const mini = core.parseResultValue('Played 11/13 - Mini 0:42');
+  assert.deepEqual([mini.kind, mini.label], ['time', '0:42']);
+  const fullDate = core.parseResultValue('Played on 11/13/2026 - Mini 0:42');
+  assert.deepEqual([fullDate.kind, fullDate.label], ['time', '0:42']);
+
+  // COUNT_RE handles words and clues before GUESSED_IN_RE.
+  const lb = core.parseResultValue('Letter Boxed\nSolved in 3 words');
+  assert.deepEqual([lb.kind, lb.unit, lb.label], ['count', 'words', '3 words']);
+  const pp = core.parseResultValue('Pinpoint #540\nSolved in 3 clues');
+  assert.deepEqual([pp.kind, pp.unit, pp.label], ['count', 'clues', '3 clues']);
+
+  // 0/N in ordinary guess-based games -> failed/missed (but 0/50,000 points is not).
+  assert.deepEqual(core.parseScore('Wordle #1234 0/6'), { n: null, max: 6, fail: true });
+  assert.equal(core.parseResultValue('Wordle #1234 0/6'), null);
+  assert.equal(core.isFailedShareResult('Wordle #1234 0/6'), true);
+  assert.equal(core.isFailedShareResult('TimeGuessr #890 0/50,000'), false);
+  assert.equal(core.parseScore('TimeGuessr #890 0/50,000'), null);
+
+  // Higher-is-better fraction games (Waffle, GeoGrid, PokeDoku, Immaculate Grid, Score: N/M).
+  assert.deepEqual(core.parseScore('GeoGrid 🌍\nScore: 0/9'), { n: 0, max: 9, fail: false });
+  assert.equal(core.isFailedShareResult('GeoGrid 🌍\nScore: 0/9'), false);
+  const gg0 = core.parseResultValue('GeoGrid 🌍\nScore: 0/9');
+  assert.deepEqual([gg0.kind, gg0.group, gg0.rank, gg0.label], ['points', 'hi:9', -0, '0/9']);
+  const gg7 = core.parseResultValue('GeoGrid 🌍\nScore: 7/9');
+  assert.deepEqual([gg7.kind, gg7.group, gg7.rank, gg7.label], ['points', 'hi:9', -7, '7/9']);
+  assert.equal(core.personalBests([
+    { outcome: 'Completed', score: 'GeoGrid 🌍\nScore: 4/9' },
+    { outcome: 'Completed', score: 'GeoGrid 🌍\nScore: 8/9' }
+  ], 0).bestScore, '8/9');
+  assert.equal(core.personalBests([
+    { outcome: 'Completed', score: '#waffle1390 2/5\nwafflegame.net' },
+    { outcome: 'Completed', score: '#waffle1390 5/5\nwafflegame.net' }
+  ], 0).bestScore, '5/5');
+  assert.deepEqual(core.parseScore('#waffle1390 0/5\nwafflegame.net'), { n: 0, max: 5, fail: false });
+  assert.equal(core.isFailedShareResult('#waffle1390 0/5\nwafflegame.net'), false);
+  assert.equal(core.isFailedShareResult('#waffle1390 X/5'), true);
+
+  // Localized and standard failure phrases.
+  for (const phrase of [
+    'Wordle #1200 You lost!',
+    'Game over - Framed #900',
+    'Wordle #1200 Perdiste',
+    'Has perdido hoy',
+    'Sutomo: perdu!',
+    'Verloren heute',
+    'Leider nicht erraten',
+    'Hai perso',
+    'Você não conseguiu'
+  ]) {
+    assert.equal(core.isFailedShareResult(phrase), true, phrase);
+  }
+  assert.equal(core.isFailedShareResult('Wordle #1200 3/6\n🟩🟩🟩🟩🟩'), false);
+});
+
+test('1.9.7: dominantScores breaks ties in favor of the most recent result', () => {
+  // Chronological newest-first order in state.historyLogs.
+  const rowsNewestFirst = [
+    { outcome: 'Completed', date: '2026-11-12', loggedAt: 2000, score: 'Score: 850' },
+    { outcome: 'Completed', date: '2026-11-11', loggedAt: 1000, score: 'Mini 1:05' }
+  ];
+  assert.equal(core.dominantScores(rowsNewestFirst).group, 'p:pts');
+
+  // Even when passed oldest-first, date/loggedAt picks the genuinely most recent result.
+  const rowsOldestFirst = [
+    { outcome: 'Completed', date: '2026-11-11', loggedAt: 1000, score: 'Mini 1:05' },
+    { outcome: 'Completed', date: '2026-11-12', loggedAt: 2000, score: 'Score: 850' }
+  ];
+  assert.equal(core.dominantScores(rowsOldestFirst).group, 'p:pts');
+
+  // Ties without explicit dates still pick index 0 (newest-first).
+  const rowsNoDate = [
+    { outcome: 'Completed', score: 'Score: 850' },
+    { outcome: 'Completed', score: 'Mini 1:05' }
+  ];
+  assert.equal(core.dominantScores(rowsNoDate).group, 'p:pts');
+});
+
+test('1.9.7: weekBounds returns null on malformed keys, CRLF + mentionsGameExplicitly, recheckChanges m./Daily Game', () => {
+  assert.equal(core.weekBounds('bad'), null);
+  assert.equal(core.weekBounds(''), null);
+  assert.equal(core.weekBounds('2026-13-45'), null);
+  assert.deepStrictEqual(core.weekBounds('2026-11-13'), { from: '2026-11-09', to: '2026-11-15' });
+
+  // CRLF handling and mentionsGameExplicitly
+  assert.equal(core.isStrictShareResult('Wordle 1,612 3/6\r\n\r\n⬛🟨⬛⬛⬛\r\n🟩🟩🟩🟩🟩', { name: 'Wordle', url: 'https://nytimes.com/games/wordle' }), true);
+  assert.equal(core.mentionsGameExplicitly('Wordle 1,612 3/6\r\n🟩🟩🟩🟩🟩', 'Wordle', 'https://nytimes.com/games/wordle'), true);
+  assert.equal(core.mentionsGameExplicitly('#512 3/6\r\n🟩🟩🟩🟩🟩', 'Wordle', 'https://nytimes.com/games/wordle'), false);
+
+  // recheckChanges strips m. and ignores "Daily Game" fallback rename
+  const games = [
+    { id: 'a', name: 'My Puzzle', url: 'https://m.example.com/', icon: '🟩', desc: 'Old description.', resetTime: '00:00', resetZone: 'local', maxTries: 'Daily Puzzle', category: 'Custom Daily' }
+  ];
+  const parsed = (p) => Object.assign({ name: '', description: '', faviconUrl: '', resetTime: '00:00', resetZone: 'local', timeFound: false, zoneFound: false, metricType: '', par: 0, category: '' }, p);
+  const res = core.recheckChanges(games, [
+    { id: 'a', url: 'https://m.example.com/', finalUrl: 'https://www.example.com/', parsed: parsed({ name: 'Daily Game', description: 'Old description.' }) }
+  ]);
+  assert.deepStrictEqual(res, []);
+});
+
+test('1.9.7: recomputeLogStreaks and sortHistoryLogs recompute downstream streaks after past edits', () => {
+  const game = {
+    id: 'g1',
+    name: 'Wordle',
+    dayHistory: {
+      '2026-11-10': 'completed',
+      '2026-11-11': 'completed',
+      '2026-11-12': 'completed',
+      '2026-11-13': 'missed',
+      '2026-11-14': 'completed'
+    }
+  };
+  const logs = [
+    { gameId: 'g1', date: '2026-11-12', outcome: 'Completed', streak: 1, loggedAt: 300 },
+    { gameId: 'g1', date: '2026-11-10', outcome: 'Completed', streak: 1, loggedAt: 100 },
+    { gameId: 'g1', date: '2026-11-14', outcome: 'Completed', streak: 99, loggedAt: 500 },
+    { gameId: 'g1', date: '2026-11-11', outcome: 'Completed', streak: 0, loggedAt: 200 },
+    { gameId: 'g1', date: '2026-11-13', outcome: 'Missed', streak: 3, loggedAt: 400 },
+    { gameId: 'other', date: '2026-11-12', outcome: 'Completed', streak: 7, loggedAt: 250 }
+  ];
+  const sorted = core.recomputeLogStreaks(game, logs);
+  assert.equal(sorted, logs);
+  assert.deepEqual(logs.map((l) => `${l.gameId}:${l.date}:${l.streak}`), [
+    'g1:2026-11-14:1',
+    'g1:2026-11-13:0',
+    'g1:2026-11-12:3',
+    'other:2026-11-12:7',
+    'g1:2026-11-11:2',
+    'g1:2026-11-10:1'
+  ]);
+});
 

@@ -11,6 +11,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
 import java.text.SimpleDateFormat
@@ -33,6 +35,7 @@ object AutoBackup {
     const val FILE_PREFIX = "dailies_autobackup_"
     const val KEEP = 5
     const val INTERVAL_MS = 7L * 24 * 60 * 60_000L
+    private val BACKUP_NAME_RE = Regex("""^dailies_autobackup_\d{4}-\d{2}-\d{2}_\d{4,6}\.json$""")
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -60,19 +63,31 @@ object AutoBackup {
 
     /** Saves the folder (keeping access across reboots) and turns weekly backups on. */
     fun enable(ctx: Context, tree: Uri) {
-        runCatching {
+        val permError = try {
             ctx.contentResolver.takePersistableUriPermission(
                 tree, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             )
+            null
+        } catch (e: SecurityException) {
+            // Some providers don't support persistable grants or rejected write permission: check persisted list.
+            val hasPersisted = runCatching {
+                ctx.contentResolver.persistedUriPermissions.any {
+                    it.uri == tree && it.isReadPermission && it.isWritePermission
+                }
+            }.getOrDefault(false)
+            if (hasPersisted) null else "Dailies didn't receive ongoing access to that folder. Choose it again if backups fail."
         }
         folder(ctx)?.takeIf { it != tree }?.let { old -> releaseAccess(ctx, old) }
-        prefs(ctx).edit { putString(KEY_TREE, tree.toString()); remove(KEY_LAST_ERROR) }
+        prefs(ctx).edit(commit = true) {
+            putString(KEY_TREE, tree.toString())
+            if (permError != null) putString(KEY_LAST_ERROR, permError) else remove(KEY_LAST_ERROR)
+        }
         schedule(ctx)
     }
 
     fun disable(ctx: Context) {
         folder(ctx)?.let { releaseAccess(ctx, it) }
-        prefs(ctx).edit { clear() }
+        prefs(ctx).edit(commit = true) { clear() }
         WorkManager.getInstance(ctx).cancelUniqueWork(WORK_NAME)
     }
 
@@ -115,11 +130,17 @@ object AutoBackup {
             .toString(2)
     }
 
-    fun fileName(now: Date): String = FILE_PREFIX + SimpleDateFormat("yyyy-MM-dd_HHmm", Locale.US).format(now) + ".json"
+    fun fileName(now: Date): String = FILE_PREFIX + SimpleDateFormat("yyyy-MM-dd_HHmmss", Locale.US).format(now) + ".json"
 
     /** Names to delete so only the newest [keep] automatic backups stay (names sort by date). */
     fun namesToPrune(names: List<String>, keep: Int = KEEP): List<String> =
-        names.filter { it.startsWith(FILE_PREFIX) && it.endsWith(".json") }.sortedDescending().drop(keep)
+        names.filter { BACKUP_NAME_RE.matches(it) }.sortedDescending().drop(keep.coerceAtLeast(0))
+
+    /** Entries to delete so only the newest [keep] automatic backup documents stay (handles duplicates). */
+    internal fun entriesToPrune(entries: List<Pair<String, String>>, keep: Int = KEEP): List<Pair<String, String>> =
+        entries.filter { (name, _) -> BACKUP_NAME_RE.matches(name) }
+            .sortedByDescending { (name, _) -> name }
+            .drop(keep.coerceAtLeast(0))
 
     /** Writes a backup now if one is due (or [force]). Returns true when a file was written. */
     @Synchronized
@@ -136,20 +157,29 @@ object AutoBackup {
             return false
         }
         val name = fileName(now)
+        val resolver = ctx.contentResolver
+        var createdDoc: Uri? = null
         return try {
-            val resolver = ctx.contentResolver
             val dir = DocumentsContract.buildDocumentUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
             val doc = DocumentsContract.createDocument(resolver, dir, "application/json", name)
                 ?: throw IllegalStateException("The folder refused a new file")
-            resolver.openOutputStream(doc, "wt")?.use { it.write(content.toByteArray()) }
+            createdDoc = doc
+            val out = runCatching { resolver.openOutputStream(doc, "wt") }.getOrNull()
+                ?: resolver.openOutputStream(doc, "w")
                 ?: throw IllegalStateException("Couldn't write the file")
+            out.use {
+                it.write(content.toByteArray(Charsets.UTF_8))
+                it.flush()
+            }
+            createdDoc = null
             prune(ctx, tree)
-            p.edit { putLong(KEY_LAST_AT, nowMs); putString(KEY_LAST_NAME, name); remove(KEY_LAST_ERROR) }
+            p.edit(commit = true) { putLong(KEY_LAST_AT, nowMs); putString(KEY_LAST_NAME, name); remove(KEY_LAST_ERROR) }
             true
         } catch (e: Exception) {
+            createdDoc?.let { doc -> runCatching { DocumentsContract.deleteDocument(resolver, doc) } }
             val msg = if (e is SecurityException) "Dailies lost access to the backup folder. Choose it again."
             else "The last automatic backup failed. Check the folder still exists."
-            p.edit { putString(KEY_LAST_ERROR, msg) }
+            p.edit(commit = true) { putString(KEY_LAST_ERROR, msg) }
             false
         }
     }
@@ -157,21 +187,33 @@ object AutoBackup {
     private fun prune(ctx: Context, tree: Uri) {
         val resolver = ctx.contentResolver
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(tree, DocumentsContract.getTreeDocumentId(tree))
-        val byName = HashMap<String, String>()
+        val entries = ArrayList<Pair<String, String>>()
         runCatching {
-            resolver.query(children, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID, DocumentsContract.Document.COLUMN_DISPLAY_NAME), null, null, null)?.use { c ->
-                while (c.moveToNext()) byName[c.getString(1) ?: continue] = c.getString(0)
+            val proj = arrayOf(
+                DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                DocumentsContract.Document.COLUMN_MIME_TYPE
+            )
+            resolver.query(children, proj, null, null, null)?.use { c ->
+                while (c.moveToNext()) {
+                    val docId = c.getString(0) ?: continue
+                    val displayName = c.getString(1) ?: continue
+                    val mime = c.getString(2)
+                    if (mime == DocumentsContract.Document.MIME_TYPE_DIR) continue
+                    entries += displayName to docId
+                }
             }
         }
-        namesToPrune(byName.keys.toList()).forEach { n ->
-            runCatching { DocumentsContract.deleteDocument(resolver, DocumentsContract.buildDocumentUriUsingTree(tree, byName[n])) }
+        entriesToPrune(entries).forEach { (_, docId) ->
+            runCatching { DocumentsContract.deleteDocument(resolver, DocumentsContract.buildDocumentUriUsingTree(tree, docId)) }
         }
     }
 }
 
 class AutoBackupWorker(appContext: Context, params: WorkerParameters) : CoroutineWorker(appContext, params) {
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         AutoBackup.runIfDue(applicationContext)
-        return Result.success()
+        Result.success()
     }
 }
+

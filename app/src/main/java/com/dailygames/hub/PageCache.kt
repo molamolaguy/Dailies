@@ -47,7 +47,10 @@ object PageCache {
 
     fun setEnabled(ctx: Context, on: Boolean) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(KEY_ENABLED, on) }
-        if (!on) clearAll(ctx)
+        if (!on) {
+            runCatching { WorkManager.getInstance(ctx).cancelUniqueWork(WORK_NAME) }
+            clearAll(ctx)
+        }
     }
 
     private fun root(ctx: Context) = File(ctx.cacheDir, DIR)
@@ -87,6 +90,7 @@ object PageCache {
             val games = GameStore.load(applicationContext)
             val now = System.currentTimeMillis()
             for (i in 0 until games.length()) {
+                if (!enabled(applicationContext)) break
                 val g = games.optJSONObject(i) ?: continue
                 val id = g.optString("id")
                 if (id !in ids) continue
@@ -118,14 +122,15 @@ object PageCache {
         var n = 0
         val seen = HashSet<String>()
         while (queue.isNotEmpty() && n < MAX_FILES && total < MAX_GAME_BYTES) {
+            if (!enabled(ctx)) { stage.deleteRecursively(); return }
             val res = queue.removeFirst()
             if (!seen.add(res)) continue
             val type = AdBlockEngine.inferType(res, null, false, null)
             if (engine != null && engine.shouldBlock(res, pageHost, type)) continue
             val crossOrigin = originOf(res) != pageOrigin
             val headers = baseHeaders + (if (crossOrigin && pageOrigin != null) mapOf("Origin" to pageOrigin, "Referer" to page.finalUrl) else mapOf("Referer" to page.finalUrl))
-            val r = SafeHttp.get(res, headers, maxBytes = MAX_FILE_BYTES, deadlineMs = 12_000) ?: continue
-            if (r.code != 200 || r.headers["x-dailies-truncated"] != null) continue
+            val r = SafeHttp.get(res, headers, maxBytes = MAX_FILE_BYTES + 1, deadlineMs = 12_000) ?: continue
+            if (r.code != 200 || r.body.size > MAX_FILE_BYTES || r.headers["x-dailies-truncated"] != null) continue
             val cc = r.headers["cache-control"].orEmpty().lowercase(Locale.US)
             if ("no-store" in cc || "private" in cc) continue
             val (mime, enc) = splitType(r.contentType, res)
@@ -140,7 +145,7 @@ object PageCache {
             // Fonts a stylesheet uses are needed straight away too.
             if (mime == "text/css") cssFonts(String(r.body, Charsets.UTF_8), res).forEach { queue.addLast(it) }
         }
-        if (n == 0) { stage.deleteRecursively(); return }
+        if (n == 0 || !enabled(ctx)) { stage.deleteRecursively(); return }
         val indexJson = JSONObject().put("game", gameId).put("expires", expiresAt).put("files", index).toString()
         val indexTmp = File(stage, "index.json.tmp")
         val indexFile = File(stage, "index.json")
@@ -149,10 +154,16 @@ object PageCache {
             indexFile.writeText(indexJson)
             indexTmp.delete()
         }
+        if (!enabled(ctx)) { stage.deleteRecursively(); return }
         val oldDir = File(root(ctx), "${finalDir.name}.old").apply { deleteRecursively() }
         val hadExisting = finalDir.exists()
         if (hadExisting && !finalDir.renameTo(oldDir)) {
             finalDir.deleteRecursively()
+        }
+        if (!enabled(ctx)) {
+            stage.deleteRecursively()
+            oldDir.deleteRecursively()
+            return
         }
         if (!stage.renameTo(finalDir)) {
             stage.deleteRecursively()
@@ -162,9 +173,13 @@ object PageCache {
         }
     }
 
-    /** Drops the oldest games' files while everything together is over the limit. */
-    private fun trimTotal(ctx: Context) {
-        val dirs = root(ctx).listFiles()?.filter { it.isDirectory && !it.name.endsWith(".tmp") && !it.name.endsWith(".old") }?.sortedBy { it.lastModified() } ?: return
+    /** Drops stale .tmp/.old dirs (>1h) and the oldest games' files while over the total limit. */
+    fun trimTotal(ctx: Context, nowMs: Long = System.currentTimeMillis()) {
+        val entries = root(ctx).listFiles() ?: return
+        val staleCutoff = nowMs - 3_600_000L
+        entries.filter { it.isDirectory && (it.name.endsWith(".tmp") || it.name.endsWith(".old")) && it.lastModified() < staleCutoff }
+            .forEach { it.deleteRecursively() }
+        val dirs = entries.filter { it.isDirectory && !it.name.endsWith(".tmp") && !it.name.endsWith(".old") }.sortedBy { it.lastModified() }
         var total = dirs.sumOf { d -> d.listFiles()?.sumOf { it.length() } ?: 0L }
         for (d in dirs) {
             if (total <= MAX_TOTAL_BYTES) break
@@ -195,14 +210,20 @@ object PageCache {
         Index(gameId, expires, map)
     }.getOrNull()
 
+    /** Checks whether a cached entry's CORS header permits [requestHeaders]. */
+    fun corsAllows(entry: Entry, requestHeaders: Map<String, String>?): Boolean {
+        val reqOrigin = requestHeaders.orEmpty().entries.firstOrNull { it.key.equals("Origin", true) }?.value?.trim()
+            ?: return true
+        val acao = entry.headers["access-control-allow-origin"]?.trim() ?: return false
+        return acao == "*" || acao.equals(reqOrigin, ignoreCase = true)
+    }
+
     /** The preloaded copy of a sub-resource request, or null to load it from the network. */
     fun respond(index: Index?, request: WebResourceRequest): WebResourceResponse? {
         if (index == null || request.isForMainFrame || !request.method.equals("GET", true)) return null
         if (System.currentTimeMillis() >= index.expiresAt) return null
         val entry = index.entries[request.url.toString()] ?: return null
-        // A cross-origin (CORS) request needs the server's permission header; without it, use the network.
-        val hasOrigin = request.requestHeaders.orEmpty().keys.any { it.equals("Origin", true) }
-        if (hasOrigin && entry.headers["access-control-allow-origin"] == null) return null
+        if (!corsAllows(entry, request.requestHeaders)) return null
         if (!entry.file.exists()) return null
         val headers = HashMap(entry.headers).apply { put("Cache-Control", "no-cache") }
         return runCatching { WebResourceResponse(entry.mime, entry.encoding, 200, "OK", headers, FileInputStream(entry.file)) }.getOrNull()

@@ -49,4 +49,33 @@ class SharedLinkParserTest {
             )
         )
     }
+
+    @Test
+    fun extractSharedUrl_stripsTrailingSentencePunctuationButKeepsBalancedParens() {
+        assertEquals(
+            "https://example.com/game",
+            SharedLinkParser.extractSharedUrl(
+                "android.intent.action.SEND",
+                "text/plain",
+                "Check (https://example.com/game)."
+            )
+        )
+        assertEquals(
+            "https://en.wikipedia.org/wiki/Word_(game)",
+            SharedLinkParser.extractSharedUrl(
+                "android.intent.action.SEND",
+                "text/plain",
+                "See https://en.wikipedia.org/wiki/Word_(game)!"
+            )
+        )
+        assertEquals(
+            "https://en.wikipedia.org/wiki/Word_(game)",
+            SharedLinkParser.extractSharedUrl(
+                "android.intent.action.SEND",
+                "text/plain",
+                "(https://en.wikipedia.org/wiki/Word_(game)),"
+            )
+        )
+    }
 }
+

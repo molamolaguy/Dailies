@@ -64,3 +64,11 @@ test('1.8.3: more popular games', () => {
   assert.equal(known.find('https://www.sedecordle.com/').maxTries, '21 guesses');
   assert.equal(known.find('https://www.merriam-webster.com/dictionary/game'), null);
 });
+
+test('1.9.7: mobile m. URLs match catalogue entries alongside www.', () => {
+  assert.equal(known.find('https://m.contexto.me/').name, 'Contexto');
+  assert.equal(known.find('https://m.nerdlegame.com/').name, 'Nerdle');
+  assert.equal(known.find('https://m.nytimes.com/games/wordle/index.html').name, 'Wordle');
+  assert.equal(known.find('http://m.wafflegame.net/daily').name, 'Waffle');
+});
+

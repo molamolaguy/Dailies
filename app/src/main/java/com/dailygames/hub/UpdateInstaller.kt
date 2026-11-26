@@ -42,8 +42,8 @@ object UpdateInstaller {
         Build.VERSION.SDK_INT < Build.VERSION_CODES.O || ctx.packageManager.canRequestPackageInstalls()
 
     fun isAllowedHost(host: String?): Boolean {
-        val h = host?.lowercase(Locale.US) ?: return false
-        return h in ALLOWED_HOSTS || h.endsWith(".githubusercontent.com")
+        val h = host?.lowercase(Locale.US)?.trimEnd('.') ?: return false
+        return h in ALLOWED_HOSTS
     }
 
     /** Fetches and checks the latest APK; [progress] gets 0-100 (or -1 when the size is unknown). */
@@ -82,7 +82,8 @@ object UpdateInstaller {
                     return@repeat
                 }
                 if (code !in 200..299) return "Download failed (HTTP $code)."
-                val total = conn.contentLengthLong.takeIf { it > 0 } ?: expected
+                val contentLen = conn.contentLengthLong
+                val total = contentLen.takeIf { it > 0 } ?: expected
                 if (total > MAX_APK_BYTES) return "The update is too large to download."
                 var read = 0L
                 var lastPct = -2
@@ -100,7 +101,8 @@ object UpdateInstaller {
                         }
                     }
                 }
-                if (expected > 0 && read != expected) return "The download was incomplete. Try again."
+                val expectedBytes = if (expected > 0) expected else contentLen
+                if (expectedBytes > 0 && read != expectedBytes) return "The download was incomplete. Try again."
                 return null
             } catch (e: Exception) {
                 return "Download failed. Check your connection and try again."
@@ -120,12 +122,36 @@ object UpdateInstaller {
         if (archive.packageName != ctx.packageName) return "The downloaded file is a different app."
         val installed = runCatching { pm.getPackageInfo(ctx.packageName, flags) }.getOrNull() ?: return "Couldn't read this app's details."
         if (versionCode(archive) <= versionCode(installed)) return "You're already on the latest version."
-        val mine = certDigests(installed)
-        val theirs = certDigests(archive)
-        if (mine.isEmpty() || theirs.isEmpty() || mine != theirs) {
+        if (!isCompatibleSignature(installed, archive)) {
             return "The update is signed with a different key than this copy, so Android can't install it over it. Download it from GitHub instead."
         }
         return null
+    }
+
+    internal fun isCompatibleSignature(installed: PackageInfo, archive: PackageInfo): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val instInfo = installed.signingInfo
+            val archInfo = archive.signingInfo
+            if (instInfo != null && archInfo != null) {
+                if (!instInfo.hasMultipleSigners() && !archInfo.hasMultipleSigners()) {
+                    val instCurrent = digestsOf(instInfo.apkContentsSigners)
+                    val instHistory = digestsOf(instInfo.signingCertificateHistory).ifEmpty { instCurrent }
+                    val archHistory = digestsOf(archInfo.signingCertificateHistory)
+                    val archCurrent = digestsOf(archInfo.apkContentsSigners).ifEmpty { archHistory }
+                    if (instCurrent.isEmpty() || archCurrent.isEmpty()) return false
+                    // Same current signer, or archive's v3 signing history contains the installed signer (rotation).
+                    return instCurrent == archCurrent ||
+                        (archHistory.isNotEmpty() && instCurrent.all { it in archHistory }) ||
+                        (instHistory.isNotEmpty() && instHistory == archHistory)
+                }
+                val instMulti = digestsOf(instInfo.apkContentsSigners)
+                val archMulti = digestsOf(archInfo.apkContentsSigners)
+                return instMulti.isNotEmpty() && instMulti == archMulti
+            }
+        }
+        val mine = certDigests(installed)
+        val theirs = certDigests(archive)
+        return mine.isNotEmpty() && mine == theirs
     }
 
     @Suppress("DEPRECATION")
@@ -136,10 +162,16 @@ object UpdateInstaller {
     private fun certDigests(p: PackageInfo): Set<String> {
         val sigs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             val info = p.signingInfo ?: return emptySet()
-            if (info.hasMultipleSigners()) info.apkContentsSigners else info.signingCertificateHistory
+            if (info.hasMultipleSigners()) info.apkContentsSigners
+            else info.signingCertificateHistory?.takeIf { it.isNotEmpty() } ?: info.apkContentsSigners
         } else {
             p.signatures
-        } ?: return emptySet()
+        }
+        return digestsOf(sigs)
+    }
+
+    private fun digestsOf(sigs: Array<android.content.pm.Signature>?): Set<String> {
+        if (sigs.isNullOrEmpty()) return emptySet()
         val md = MessageDigest.getInstance("SHA-256")
         return sigs.map { s -> md.digest(s.toByteArray()).joinToString("") { "%02x".format(it) } }.toSet()
     }
@@ -149,6 +181,13 @@ object UpdateInstaller {
     /** Starts an install session; Android then shows its "Update this app?" confirmation. */
     fun install(ctx: Context, apk: File) {
         val installer = ctx.packageManager.packageInstaller
+        // Abandon any stale uncommitted sessions owned by us so we never leak towards OS session caps.
+        runCatching {
+            installer.mySessions.forEach { info ->
+                val uncommitted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) !info.isCommitted else !info.isActive
+                if (uncommitted) runCatching { installer.abandonSession(info.sessionId) }
+            }
+        }
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL).apply {
             setAppPackageName(ctx.packageName)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)

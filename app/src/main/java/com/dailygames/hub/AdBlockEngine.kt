@@ -38,8 +38,8 @@ class AdBlockEngine(
         val startAnchor: Boolean,
         val endAnchor: Boolean,
         val thirdParty: Boolean?,     // true = 3p only, false = 1p only, null = any
-        val types: Set<RequestType>?, // null = any type
-        val excludedTypes: Set<RequestType>,
+        val typesMask: Int,           // TYPE_ALL_MASK = any type; otherwise bitmask of RequestType.ordinal
+        val excludedTypesMask: Int,   // bitmask of RequestType.ordinal
         val includeDomains: List<String>,
         val excludeDomains: List<String>,
         val important: Boolean,
@@ -147,10 +147,11 @@ class AdBlockEngine(
             if (c.pageHost == null) return false
             if (r.thirdParty != c.thirdParty) return false
         }
-        if (r.types != null && !typeMatches(r.types, c.type, c.thirdParty)) return false
-        if (c.type in r.excludedTypes) return false
+        if (r.typesMask != TYPE_ALL_MASK && !typeMatches(r.typesMask, c.type, c.thirdParty)) return false
+        val typeBit = 1 shl c.type.ordinal
+        if ((r.excludedTypesMask and typeBit) != 0) return false
         // An unknown-type request might be an XHR: `$~xmlhttprequest` rules must not hit it.
-        if (c.type == RequestType.OTHER && RequestType.XHR in r.excludedTypes) return false
+        if (c.type == RequestType.OTHER && (r.excludedTypesMask and XHR_MASK) != 0) return false
         if (r.includeDomains.isNotEmpty() || r.excludeDomains.isNotEmpty()) {
             val ph = c.pageHost ?: return false
             if (r.excludeDomains.any { domainMatches(ph, it) }) return false
@@ -165,23 +166,47 @@ class AdBlockEngine(
      * xhr/other, plus `$script` rules when the request is third-party. That keeps script-only rules
      * from breaking a game's own API calls.
      */
-    private fun typeMatches(types: Set<RequestType>, type: RequestType, thirdParty: Boolean): Boolean {
-        if (type in types) return true
+    private fun typeMatches(typesMask: Int, type: RequestType, thirdParty: Boolean): Boolean {
+        val bit = 1 shl type.ordinal
+        if ((typesMask and bit) != 0) return true
         if (type != RequestType.OTHER) return false
-        return RequestType.XHR in types || RequestType.OTHER in types || (thirdParty && RequestType.SCRIPT in types)
+        return (typesMask and OTHER_FALLBACK_MASK) != 0 || (thirdParty && (typesMask and SCRIPT_MASK) != 0)
     }
 
     private fun matchesPattern(r: UrlRule, s: String, host: String): Boolean {
         val p = r.pattern
         if (r.hostAnchor) {
-            // Must start at the beginning of the host or right after a dot inside it.
             val hostStart = hostStartIndex(s)
-            val hostEnd = hostStart + host.length
+            val hostEnd = hostEndIndex(s, hostStart)
+            // Strip any trailing FQDN dot(s) in the host portion so `||ads.net^` and `||ads.net/path`
+            // still match `https://ads.net./path` and `https://ads.net.:8443/path`.
+            val cleanHostEnd = hostStart + host.length
+            val subject = if (cleanHostEnd < hostEnd && s[cleanHostEnd] == '.') {
+                val dotEnd = skipDots(s, cleanHostEnd, hostEnd)
+                s.substring(0, cleanHostEnd) + s.substring(dotEnd)
+            } else {
+                s
+            }
+            val effectiveHostEnd = if (cleanHostEnd < hostEnd && s[cleanHostEnd] == '.') cleanHostEnd else hostEnd
+            // If `p` starts with `*` (e.g. `||*.exaapi.com^` or `||*optout`), the leading `*`
+            // must only match within the host label prefix rather than crossing `/` into the path
+            // (so `||*.exaapi.com^` does not match `https://evil.com/exaapi.com`).
+            if (p.startsWith("*")) {
+                val tail = p.substring(1)
+                if (tail.isEmpty()) return false
+                var i = hostStart
+                while (i <= effectiveHostEnd) {
+                    if (glob(tail, 0, subject, i, r.endAnchor)) return true
+                    i++
+                }
+                return false
+            }
+            // Must start at the beginning of the host or right after a dot inside it.
             var i = hostStart
-            while (i <= hostEnd) {
-                if ((i == hostStart || s[i - 1] == '.') && glob(p, 0, s, i, r.endAnchor)) return true
-                val next = s.indexOf('.', i)
-                if (next < 0 || next >= hostEnd) break
+            while (i <= effectiveHostEnd) {
+                if ((i == hostStart || subject[i - 1] == '.') && glob(p, 0, subject, i, r.endAnchor)) return true
+                val next = subject.indexOf('.', i)
+                if (next < 0 || next >= effectiveHostEnd) break
                 i = next + 1
             }
             return false
@@ -198,6 +223,22 @@ class AdBlockEngine(
             i++
         }
         return first == '^' && glob(p, 0, s, s.length, r.endAnchor)
+    }
+
+    private fun hostEndIndex(url: String, hostStart: Int): Int {
+        if (hostStart < url.length && url[hostStart] == '[') {
+            val close = url.indexOf(']', hostStart)
+            return if (close > hostStart) close + 1 else hostStart
+        }
+        var end = hostStart
+        while (end < url.length && url[end] != '/' && url[end] != '?' && url[end] != '#' && url[end] != ':') end++
+        return end
+    }
+
+    private fun skipDots(s: String, from: Int, limit: Int): Int {
+        var i = from
+        while (i < limit && s[i] == '.') i++
+        return i
     }
 
     /** ABP glob: `*` any run, `^` separator (non [A-Za-z0-9_.%-]) or end of URL. */
@@ -239,10 +280,12 @@ class AdBlockEngine(
             body = body.substring(0, dollar)
         }
         var thirdParty: Boolean? = null
-        var types: MutableSet<RequestType>? = null
-        val excludedTypes = HashSet<RequestType>()
-        val include = ArrayList<String>()
-        val exclude = ArrayList<String>()
+        var typesMask = 0
+        var hasType = false
+        var hasAll = false
+        var excludedTypesMask = 0
+        var include: ArrayList<String>? = null
+        var exclude: ArrayList<String>? = null
         var important = false
         var matchCase = false
         if (opts.isNotEmpty()) {
@@ -254,20 +297,31 @@ class AdBlockEngine(
                 when (name) {
                     "third-party", "3p" -> thirdParty = !neg
                     "first-party", "1p" -> thirdParty = neg
-                    "important" -> important = true
-                    "match-case" -> matchCase = true
-                    "all" -> types = null
+                    "important" -> if (!neg) important = true
+                    "match-case" -> if (!neg) matchCase = true
+                    "all" -> if (!neg) hasAll = true
                     "domain", "from" -> o.substringAfter('=', "").split('|').forEach { d ->
                         val dd = d.trim().lowercase(Locale.US)
-                        if (dd.startsWith("~")) exclude.add(dd.substring(1)) else if (dd.isNotEmpty()) include.add(dd)
+                        if (dd.startsWith("~")) {
+                            val sub = dd.substring(1)
+                            if (sub.isNotEmpty()) (exclude ?: ArrayList<String>(2).also { exclude = it }).add(sub)
+                        } else if (dd.isNotEmpty()) {
+                            (include ?: ArrayList<String>(2).also { include = it }).add(dd)
+                        }
                     }
                     else -> {
                         val t = TYPE_NAMES[name] ?: return null
-                        if (neg) excludedTypes.add(t) else (types ?: HashSet<RequestType>().also { types = it }).add(t)
+                        val bit = 1 shl t.ordinal
+                        if (neg) excludedTypesMask = excludedTypesMask or bit
+                        else {
+                            typesMask = typesMask or bit
+                            hasType = true
+                        }
                     }
                 }
             }
         }
+        val effectiveTypesMask = if (hasAll || !hasType) TYPE_ALL_MASK else typesMask
         // ABP: a pattern that starts and ends with "/" is a regular expression. Not supported (too slow
         // per request on a phone); the build tool drops them as well.
         if (body.length > 2 && body.startsWith("/") && body.endsWith("/")) return null
@@ -280,8 +334,11 @@ class AdBlockEngine(
         if (body.endsWith("|")) { endAnchor = true; body = body.dropLast(1) }
         if (body.isEmpty() || body == "*") return null
         val pattern = if (matchCase) body else body.lowercase(Locale.US)
-        return UrlRule(allow, pattern, hostAnchor, startAnchor, endAnchor, thirdParty, types, excludedTypes,
-            include, exclude, important, matchCase)
+        return UrlRule(
+            allow, pattern, hostAnchor, startAnchor, endAnchor, thirdParty,
+            effectiveTypesMask, excludedTypesMask,
+            include ?: emptyList(), exclude ?: emptyList(), important, matchCase
+        )
     }
 
     /** Longest [a-z0-9%] run of >= 3 chars that can't be extended by a neighbouring wildcard. */
@@ -318,6 +375,11 @@ class AdBlockEngine(
     private fun isTokenChar(c: Char) = (c in 'a'..'z') || (c in '0'..'9') || c == '%'
 
     companion object {
+        private const val TYPE_ALL_MASK = -1
+        private val SCRIPT_MASK = 1 shl RequestType.SCRIPT.ordinal
+        private val XHR_MASK = 1 shl RequestType.XHR.ordinal
+        private val OTHER_FALLBACK_MASK = (1 shl RequestType.XHR.ordinal) or (1 shl RequestType.OTHER.ordinal)
+
         private val OPTS_RE = Regex("""[~a-zA-Z0-9_=|.,\-*]+""")
         private val TYPE_NAMES = mapOf(
             "script" to RequestType.SCRIPT, "image" to RequestType.IMAGE, "stylesheet" to RequestType.STYLESHEET,
@@ -377,14 +439,18 @@ class AdBlockEngine(
         }
 
         fun domainMatches(host: String, domain: String): Boolean {
-            if (domain.endsWith(".*")) {
-                val base = domain.dropLast(2)
+            val h = host.lowercase(Locale.US).trimEnd('.')
+            val d = domain.lowercase(Locale.US).trimEnd('.')
+            if (h.isEmpty() || d.isEmpty()) return false
+            if (d.endsWith(".*")) {
+                val base = d.dropLast(2)
                 if (base.isEmpty()) return false
-                val site = PublicSuffix.registrableDomain(host)
-                val dot = site.indexOf('.')
-                return dot > 0 && site.substring(0, dot) == base
+                val suffix = PublicSuffix.publicSuffixOf(h)
+                if (suffix.isEmpty() || h == suffix) return false
+                val target = "$base.$suffix"
+                return h == target || h.endsWith(".$target")
             }
-            return host == domain || host.endsWith(".$domain")
+            return h == d || h.endsWith(".$d")
         }
 
         /** Same site: same registrable domain (Public Suffix List). */
@@ -394,8 +460,24 @@ class AdBlockEngine(
         fun siteOf(host: String): String = PublicSuffix.registrableDomain(host)
 
         /** Best-effort resource type from the URL extension and request headers. */
-        fun inferType(url: String, accept: String?, isMainFrame: Boolean, requestedWith: String? = null): RequestType {
+        fun inferType(
+            url: String,
+            accept: String?,
+            isMainFrame: Boolean,
+            requestedWith: String? = null,
+            secFetchDest: String? = null
+        ): RequestType {
             if (isMainFrame) return RequestType.DOCUMENT
+            when (secFetchDest?.trim()?.lowercase(Locale.US)) {
+                "document" -> return RequestType.DOCUMENT
+                "script" -> return RequestType.SCRIPT
+                "style" -> return RequestType.STYLESHEET
+                "image" -> return RequestType.IMAGE
+                "font" -> return RequestType.FONT
+                "iframe", "frame" -> return RequestType.SUBDOCUMENT
+                "audio", "video", "track" -> return RequestType.MEDIA
+                // "empty" (fetch/XHR/beacon) or unknown values fall back to URL/header heuristics below.
+            }
             val path = url.substringBefore('?').substringBefore('#').lowercase(Locale.US)
             val a = accept?.lowercase(Locale.US).orEmpty()
             return when {
@@ -422,12 +504,20 @@ class AdBlockEngine(
  * built-in list of common multi-part suffixes is used.
  */
 object PublicSuffix {
-    @Volatile private var rules: Set<String> = setOf(
-        "co.uk", "org.uk", "ac.uk", "gov.uk", "com.au", "net.au", "org.au", "co.nz", "co.jp", "ne.jp", "or.jp",
-        "com.br", "com.mx", "com.ar", "co.in", "co.za", "com.tr", "com.cn", "com.hk", "com.sg", "co.kr", "github.io"
+    private class Snapshot(
+        val rules: Set<String>,
+        val wildcards: Set<String>,
+        val exceptions: Set<String>
     )
-    @Volatile private var wildcards: Set<String> = emptySet()
-    @Volatile private var exceptions: Set<String> = emptySet()
+
+    @Volatile private var snapshot = Snapshot(
+        rules = setOf(
+            "co.uk", "org.uk", "ac.uk", "gov.uk", "com.au", "net.au", "org.au", "co.nz", "co.jp", "ne.jp", "or.jp",
+            "com.br", "com.mx", "com.ar", "co.in", "co.za", "com.tr", "com.cn", "com.hk", "com.sg", "co.kr", "github.io"
+        ),
+        wildcards = emptySet(),
+        exceptions = emptySet()
+    )
     @Volatile var loaded = false
         private set
 
@@ -437,7 +527,6 @@ object PublicSuffix {
         synchronized(this) {
             if (loaded) return
             runCatching { ctx.applicationContext.assets.open("adblock/psl.txt").bufferedReader().useLines { load(it) } }
-            loaded = true
         }
     }
 
@@ -455,31 +544,40 @@ object PublicSuffix {
                 else -> r.add(l)
             }
         }
-        rules = r; wildcards = w; exceptions = e
+        snapshot = Snapshot(r, w, e)
         loaded = true
     }
 
     /** Length (in labels) of the public suffix of [labels]. */
-    private fun suffixLabels(labels: List<String>): Int {
+    private fun suffixLabels(labels: List<String>, snap: Snapshot): Int {
         var best = 1 // "*" default rule: the last label is a public suffix
         for (i in labels.indices) {
             val cand = labels.subList(i, labels.size).joinToString(".")
             val n = labels.size - i
-            if (cand in exceptions) return n - 1
-            if (cand in rules && n > best) best = n
+            if (cand in snap.exceptions) return n - 1
+            if (cand in snap.rules && n > best) best = n
             if (i + 1 < labels.size) {
                 val parent = labels.subList(i + 1, labels.size).joinToString(".")
-                if (parent in wildcards && n > best) best = n
+                if (parent in snap.wildcards && n > best) best = n
             }
         }
         return best
+    }
+
+    /** Public suffix portion of [host], e.g. `a.b.example.co.uk` -> `co.uk`, or empty string for IPs/empty. */
+    fun publicSuffixOf(host: String): String {
+        val h = host.lowercase(Locale.US).trimEnd('.')
+        if (h.isEmpty() || h.all { it.isDigit() || it == '.' } || h.contains(':')) return "" // IPs
+        val labels = h.split('.')
+        val n = suffixLabels(labels, snapshot)
+        return labels.takeLast(minOf(n, labels.size)).joinToString(".")
     }
 
     fun registrableDomain(host: String): String {
         val h = host.lowercase(Locale.US).trimEnd('.')
         if (h.isEmpty() || h.all { it.isDigit() || it == '.' } || h.contains(':')) return h // IPs
         val labels = h.split('.')
-        val n = suffixLabels(labels)
+        val n = suffixLabels(labels, snapshot)
         return if (labels.size <= n) h else labels.takeLast(n + 1).joinToString(".")
     }
 }

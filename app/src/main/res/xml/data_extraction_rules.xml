@@ -8,8 +8,11 @@
         <exclude domain="sharedpref" path="dailes_auto_backup.xml" />
         <exclude domain="sharedpref" path="dailes_permissions.xml" />
         <exclude domain="sharedpref" path="dailes_notifier.xml" />
+        <exclude domain="sharedpref" path="dailes_reminders.xml" />
         <exclude domain="sharedpref" path="dailies_crash_log.xml" />
         <exclude domain="sharedpref" path="dailies_game_recheck.xml" />
+        <exclude domain="sharedpref" path="androidx.work.util.preferences.xml" />
+        <exclude domain="sharedpref" path="androidx.work.util.id.xml" />
     </cloud-backup>
     <device-transfer>
         <include domain="file" path="hub_state.json" />
@@ -17,7 +20,10 @@
         <exclude domain="sharedpref" path="dailes_auto_backup.xml" />
         <exclude domain="sharedpref" path="dailes_permissions.xml" />
         <exclude domain="sharedpref" path="dailes_notifier.xml" />
+        <exclude domain="sharedpref" path="dailes_reminders.xml" />
         <exclude domain="sharedpref" path="dailies_crash_log.xml" />
         <exclude domain="sharedpref" path="dailies_game_recheck.xml" />
+        <exclude domain="sharedpref" path="androidx.work.util.preferences.xml" />
+        <exclude domain="sharedpref" path="androidx.work.util.id.xml" />
     </device-transfer>
 </data-extraction-rules>

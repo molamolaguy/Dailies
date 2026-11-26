@@ -32,11 +32,21 @@
   // the text is captured but nothing is copied, shared or opened.
   var probing = false;
   var probeTimer = null;
+  var probeEndTimer = null;
   function setProbing(on) {
     probing = Boolean(on);
     if (probeTimer) { clearTimeout(probeTimer); probeTimer = null; }
+    if (!probing && probeEndTimer) { clearTimeout(probeEndTimer); probeEndTimer = null; }
     // Games build the text right away or after a short animation; probe mode ends after that.
     if (probing) probeTimer = setTimeout(function () { probing = false; probeTimer = null; }, 1500);
+  }
+  try {
+    Object.defineProperty(window, '__dailiesResetShareProbe', {
+      value: function () { sentAny = false; last = ''; },
+      configurable: true
+    });
+  } catch (e) {
+    window.__dailiesResetShareProbe = function () { sentAny = false; last = ''; };
   }
 
   // Wrapped functions report themselves as native code, so pages that check doesn't see a difference.
@@ -56,15 +66,27 @@
       Function.prototype.toString = patchedToString;
     }
   } catch (e) {}
+  var BARE_URL_RE = /^https?:\/\/\S+$/i;
+  var PLAUSIBLE_RESULT_RE = /[0-9\n]|[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u2B1B\u2B1C\u2B50\u2705\u274C]/u;
+  function looksPlausibleShare(t) {
+    var trimmed = t.trim();
+    if (!trimmed || BARE_URL_RE.test(trimmed)) return false;
+    return PLAUSIBLE_RESULT_RE.test(trimmed);
+  }
   function send(via, text) {
     try {
       var t = text == null ? '' : String(text);
       if (!t.trim() || t === last) return;
       last = t;
-      sentAny = true;
-      post('{"via":' + quote(probing ? 'probe' : via) + ',"n":' + quote(NONCE) + ',"text":' + quote(t.slice(0, 8000)) + '}');
-      // Got it: anything the game does after this is real again.
-      if (probing) setTimeout(function () { setProbing(false); }, 0);
+      var wasProbing = probing;
+      var plausible = looksPlausibleShare(t);
+      if (plausible) sentAny = true;
+      post('{"via":' + quote(wasProbing ? 'probe' : via) + ',"n":' + quote(NONCE) + ',"text":' + quote(t.slice(0, 8000)) + '}');
+      // Keep probing alive briefly so chained microtasks (e.g. writeText().then(() => navigator.share())) stay suppressed.
+      if (wasProbing && plausible) {
+        if (probeEndTimer) clearTimeout(probeEndTimer);
+        probeEndTimer = setTimeout(function () { probeEndTimer = null; setProbing(false); }, 80);
+      }
     } catch (e) {}
   }
 
@@ -89,14 +111,16 @@
     if (cp && typeof cp.writeText === 'function') {
       var origWriteText = cp.writeText;
       cp.writeText = mask(function writeText(data) {
+        var wasProbing = probing;
         send('clipboard', data);
-        if (probing) return Promise.resolve();
+        if (wasProbing) return Promise.resolve();
         return origWriteText.apply(this, arguments);
       }, origWriteText);
     }
     if (cp && typeof cp.write === 'function') {
       var origWrite = cp.write;
       cp.write = mask(function write(items) {
+        var wasProbing = probing;
         try {
           Array.prototype.forEach.call(items || [], function (item) {
             if (item && item.types && Array.prototype.indexOf.call(item.types, 'text/plain') >= 0) {
@@ -104,7 +128,7 @@
             }
           });
         } catch (e) {}
-        if (probing) return Promise.resolve();
+        if (wasProbing) return Promise.resolve();
         return origWrite.apply(this, arguments);
       }, origWrite);
     }
@@ -115,8 +139,9 @@
     var origExec = Document.prototype.execCommand;
     Document.prototype.execCommand = mask(function execCommand(cmd) {
       var isCopy = false;
+      var wasProbing = probing;
       try { isCopy = String(cmd).toLowerCase() === 'copy'; if (isCopy) send('execCommand', selectedText()); } catch (e) {}
-      if (probing && isCopy) return true;
+      if (wasProbing && isCopy) return true;
       return origExec.apply(this, arguments);
     }, origExec);
   } catch (e) {}
@@ -128,7 +153,9 @@
     if (dt && typeof dt.setData === 'function') {
       var origSetData = dt.setData;
       dt.setData = mask(function setData(format, data) {
+        var wasProbing = probing;
         try { if (/^text(\/plain)?$/i.test(String(format))) send('setData', data); } catch (e) {}
+        if (wasProbing) return true;
         return origSetData.apply(this, arguments);
       }, origSetData);
     }
@@ -151,10 +178,11 @@
     if (typeof navigator.share === 'function') {
       var origShare = navigator.share;
       navigator.share = mask(function share(data) {
+        var wasProbing = probing;
         try {
           send('share', [data && data.title, data && data.text, data && data.url].filter(Boolean).join('\n'));
         } catch (e) {}
-        if (probing) return Promise.resolve();
+        if (wasProbing) return Promise.resolve();
         return origShare.apply(this, arguments);
       }, origShare);
     }
@@ -172,6 +200,13 @@
     [/^threads\.(net|com)\/intent\/post/i, ['text']],
     [/^(mastodonshare\.com|toot\.kytta\.dev)\//i, ['text']]
   ];
+  function safeDecode(s) {
+    try { return decodeURIComponent(s); } catch (e) {
+      return s.replace(/(?:%[0-9a-fA-F]{2})+/g, function (m) {
+        try { return decodeURIComponent(m); } catch (x) { return m; }
+      });
+    }
+  }
   function queryParam(q, key, plusIsSpace) {
     var parts = String(q || '').split('&');
     for (var i = 0; i < parts.length; i++) {
@@ -179,8 +214,8 @@
       if (eq > 0 && parts[i].slice(0, eq).toLowerCase() === key) {
         var v = parts[i].slice(eq + 1);
         if (plusIsSpace) v = v.replace(/\+/g, ' ');
-        try { v = decodeURIComponent(v); } catch (e) {}
-        return v;
+        v = safeDecode(v);
+        if (v.trim()) return v;
       }
     }
     return '';
@@ -197,7 +232,9 @@
       var where = u.hostname.replace(/^www\./i, '') + u.pathname;
       for (var i = 0; i < SHARE_LINKS.length; i++) {
         if (!SHARE_LINKS[i][0].test(where)) continue;
-        var raw = u.search.slice(1);
+        if (!u.search) return '';
+        var qIdx = s.indexOf('?');
+        var raw = qIdx >= 0 ? s.slice(qIdx + 1) : u.search.slice(1);
         return SHARE_LINKS[i][1].map(function (k) { return queryParam(raw, k, true); }).filter(Boolean)
           .filter(function (v, j, a) { return a.indexOf(v) === j; }).join('\n');
       }
@@ -208,8 +245,9 @@
     var origOpen = window.open;
     if (typeof origOpen === 'function') {
       window.open = mask(function open(url) {
+        var wasProbing = probing;
         try { var t = shareLinkText(url); if (t) send('link', t); } catch (e) {}
-        if (probing) return null;
+        if (wasProbing) return null;
         return origOpen.apply(this, arguments);
       }, origOpen);
     }
@@ -218,10 +256,20 @@
   try {
     window.addEventListener('click', function (e) {
       try {
-        var a = e.target && e.target.closest && e.target.closest('a[href]');
+        var path = e.composedPath ? e.composedPath() : null;
+        var a = null;
+        if (path) {
+          for (var i = 0; i < path.length; i++) {
+            if (path[i] && path[i].tagName === 'A' && path[i].hasAttribute && path[i].hasAttribute('href')) { a = path[i]; break; }
+          }
+        }
+        if (!a && e.target && e.target.closest) a = e.target.closest('a[href]');
         if (!a) return;
         var t = shareLinkText(a.getAttribute('href'));
-        if (t) send('link', t);
+        if (t) {
+          if (probing) e.preventDefault();
+          send('link', t);
+        }
       } catch (x) {}
     }, true);
   } catch (e) {}
@@ -258,33 +306,61 @@
   var RESULTS_OPEN_RE = /^((see|view|show|open|check)[ \t]+(my[ \t]+|your[ \t]+|the[ \t]+)?)?(results?|stats|statistics|score|summary|scorecard)( ?[>›→])?$|^(ver|voir|mostrar|afficher|zeige|mostra|bekijk)[ \t]+(los |les |die |i |de )?(resultados?|résultats?|ergebnisse|risultati|resultaten|estadísticas|statistiques|statistiken|statistiche)$|^(resultados?|résultats?|ergebnisse|risultati|resultaten|estadísticas|statistiques|statistiken)$/i;
   // Buttons, and the clickable divs / spans some games use instead.
   var CLICKABLE = 'button, [role="button"], a, [onclick], div[class*="button" i], div[class*="btn" i], span[class*="btn" i], div[tabindex="0"]';
-  var AVOID_RE = /(link|invite|friend|twitter|(^|[^a-z])x([^a-z]|$)|facebook|whatsapp|messenger|telegram|sms|text message|reddit|discord|instagram|tiktok|threads|bluesky|mastodon|linkedin|email|e-mail|embed|code|url|image|picture|photo|screenshot|download|save)/i;
+  var AVOID_RE = /(link|invite|friend|twitter|(^|[^a-z])x([^a-z]|$)|facebook|whatsapp|messenger|telegram|sms|text message|reddit|discord|instagram|tiktok|threads|bluesky|mastodon|linkedin|email|e-mail|embed|code|url|image|picture|photo|screenshot|download|save|enlace|vínculo|imagen|descargar|invitar|amigo|lien|télécharger|inviter|ami|bild|herunterladen|einladen|freund|immagine|scarica|invita|amico|imagem|baixar|convidar|afbeelding|downloaden|uitnodigen|vriend)/i;
 
   // Elements and text inside web components too (open shadow roots), not only the light DOM (1.8.3).
+  var MAX_SHADOW_ROOTS = 200;
   function deepQueryAll(selector) {
     var out = [];
     var roots = [document];
-    for (var r = 0; r < roots.length && r < 60; r++) {
+    for (var r = 0; r < roots.length && r < MAX_SHADOW_ROOTS; r++) {
       try {
         var found = roots[r].querySelectorAll(selector);
         for (var i = 0; i < found.length; i++) out.push(found[i]);
         var all = roots[r].querySelectorAll('*');
-        for (var j = 0; j < all.length && roots.length < 60; j++) if (all[j].shadowRoot) roots.push(all[j].shadowRoot);
+        for (var j = 0; j < all.length && roots.length < MAX_SHADOW_ROOTS; j++) if (all[j].shadowRoot) roots.push(all[j].shadowRoot);
       } catch (e) {}
     }
     return out;
+  }
+  function visibleShadowText(sr) {
+    try {
+      var w = document.createTreeWalker(sr, NodeFilter.SHOW_TEXT, {
+        acceptNode: function (n) {
+          for (var p = n.parentNode; p && p !== sr; p = p.parentNode) {
+            if (p.nodeType !== 1) continue;
+            var tag = p.tagName;
+            if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'TEMPLATE' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
+            if (p.hasAttribute && (p.hasAttribute('hidden') || p.getAttribute('aria-hidden') === 'true')) return NodeFilter.FILTER_REJECT;
+            try { if (window.getComputedStyle(p).display === 'none') return NodeFilter.FILTER_REJECT; } catch (e) {}
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      });
+      var parts = [];
+      var node;
+      while ((node = w.nextNode())) {
+        var v = String(node.nodeValue || '').trim();
+        if (v) parts.push(v);
+      }
+      return parts.join('\n');
+    } catch (e) {
+      return '';
+    }
   }
   function deepText(limit) {
     var text = (document.body && document.body.innerText) || '';
     try {
       var roots = [document];
-      for (var r = 0; r < roots.length && r < 60 && text.length < limit; r++) {
+      for (var r = 0; r < roots.length && r < MAX_SHADOW_ROOTS && text.length < limit; r++) {
         var all = roots[r].querySelectorAll('*');
-        for (var i = 0; i < all.length && roots.length < 60 && text.length < limit; i++) {
+        for (var i = 0; i < all.length && roots.length < MAX_SHADOW_ROOTS && text.length < limit; i++) {
           var sr = all[i].shadowRoot;
           if (sr) {
             roots.push(sr);
-            text += '\n' + (sr.textContent || '');
+            var st = visibleShadowText(sr);
+            // Skip empty or single-char tile shadow roots so 6x10 boards don't drown out the modal text.
+            if (st && st.trim().length > 1) text += '\n' + st;
           }
         }
       }
@@ -371,7 +447,7 @@
   var SCREEN_SCORE_RE = /(^|[^0-9a-z/])([0-9]{1,2}|x)\s*\/\s*[0-9]{1,2}([^0-9/:]|$)|\b[0-9]{1,3}\s+(guesses|guess|tries|try|attempts?|moves?|mistakes?|hints?|strokes?|clicks?|steps?|lives)\b|\b(time|took|(solved|completed|finished|done|cleared|did it|got it) in)\b[^\n]{0,12}?\b[0-9]{1,2}:[0-5][0-9](:[0-5][0-9])?\b|\b[0-9][0-9,.]{0,8}\s*(points|pts)\b|\bscore[:\s]+[0-9][0-9,.]{0,8}\b/i;
   var SCREEN_CONTEXT_RE = /(solved|completed|finished|got it|found it|you won|your (score|time|result)|result|score|time|took|guessed|in \d)/i;
   // Never a result: a countdown to the next puzzle, or a line about when it comes / resets.
-  var NOT_RESULT_RE = /(next|new|until|tomorrow|available|refresh|resets?|countdown|remaining|left)\b/i;
+  var NOT_RESULT_RE = /(next|new|until|tomorrow|available|refresh|resets?|countdown|time\s+(remaining|left))\b/i;
   function screenResultLines() {
     var out = [];
     try {
@@ -429,22 +505,38 @@
     setProbing(true);
     try { el.click(); } catch (e) {}
   }
+  function inModalContainer(el) {
+    try {
+      for (var cur = el; cur; cur = cur.parentElement || (cur.getRootNode && cur.getRootNode().host) || null) {
+        if (cur.nodeType !== 1) continue;
+        if (cur.tagName === 'DIALOG') return true;
+        var role = cur.getAttribute && cur.getAttribute('role');
+        if (role === 'dialog' || role === 'alertdialog') return true;
+        var cls = (cur.className && typeof cur.className === 'string' ? cur.className : '') + ' ' + (cur.id || '');
+        if (/(modal|dialog|popup|overlay|end[-_]?screen|result[-_]?screen|game[-_]?over)/i.test(cls)) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
   var openedResults = false;
   var screenTimer = null;
   function scan() {
     // Stop once a result went out (found, or shared by the player) or after a few presses.
     if (sentAny || document.hidden) return;
     var list = presses < MAX_PRESSES ? candidates() : [];
+    var finished = looksFinished();
     if (list.length) {
-      var strong = list.filter(function (el) { return RESULT_BUTTON_RE.test(label(el)); });
+      var strong = list.filter(function (el) {
+        return RESULT_BUTTON_RE.test(label(el)) && (finished || inModalContainer(el));
+      });
       if (strong.length) { press(strong[0]); return; }
-      if (!looksFinished()) return;
+      if (!finished) return;
       press(list[0]);
       return;
     }
     // No Share / Copy button on screen. A finished game may keep it behind "See results" / "Stats"
     // (1.8.3): press that once, then look again. Never during play: only on an end screen.
-    if (!looksFinished()) return;
+    if (!finished) return;
     if (!openedResults && presses < MAX_PRESSES) {
       var opener = candidates(RESULTS_OPEN_RE);
       if (opener.length) {

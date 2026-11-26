@@ -148,11 +148,27 @@ class BackgroundFixesTest {
         assertEquals(ScheduleChangeReceiver.Mode.RESCHEDULE_ONLY, ScheduleChangeReceiver.modeFor("android.intent.action.TIMEZONE_CHANGED"))
         assertEquals(ScheduleChangeReceiver.Mode.RESCHEDULE_ONLY, ScheduleChangeReceiver.modeFor("android.intent.action.TIME_SET"))
         assertEquals(
-            ScheduleChangeReceiver.Mode.RESCHEDULE_ONLY,
+            ScheduleChangeReceiver.Mode.CATCH_UP_AND_SCHEDULE,
             ScheduleChangeReceiver.modeFor("android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED")
         )
         assertNull(ScheduleChangeReceiver.modeFor("com.example.SOMETHING"))
         assertNull(ScheduleChangeReceiver.modeFor(null))
+    }
+
+    @Test
+    fun resetAlarmsNextTrigger_avoidsDozeCooldownBeforeReset() {
+        val resetAt = 1_000_000_000L
+        // Exact alarms always target resetAt directly.
+        assertEquals(resetAt, ResetAlarms.nextTrigger(resetAt, resetAt - 3_600_000L, exact = true))
+        // Within 15 min final stage, target resetAt directly.
+        assertEquals(resetAt, ResetAlarms.nextTrigger(resetAt, resetAt - 14 * 60_000L, exact = false))
+        assertEquals(resetAt, ResetAlarms.nextTrigger(resetAt, resetAt - 15 * 60_000L, exact = false))
+        // 18 min remaining: half would be 9 min (inside Doze cooldown), so clamp headroom to >= 12 min before reset.
+        val triggerAt18m = ResetAlarms.nextTrigger(resetAt, resetAt - 18 * 60_000L, exact = false)
+        assertTrue("expected >= 12m headroom before reset, got ${(resetAt - triggerAt18m) / 60_000L}m", resetAt - triggerAt18m >= 12 * 60_000L)
+        assertTrue(triggerAt18m > resetAt - 18 * 60_000L)
+        // 60 min remaining: half is 30 min.
+        assertEquals(resetAt - 30 * 60_000L, ResetAlarms.nextTrigger(resetAt, resetAt - 60 * 60_000L, exact = false))
     }
 
     @Test
@@ -167,9 +183,15 @@ class BackgroundFixesTest {
     }
 
     @Test
-    fun severalReadyGames_shareOneNotification() {
+    fun severalReadyGames_shareOneNotificationAndPreserveSameDisplayNameById() {
         // Unread alerts in the shade come first; a game already listed isn't listed twice.
         assertEquals(listOf("Wordle", "Nerdle", "Globle"), Notifier.mergeReadyNames(listOf("Wordle", "Nerdle"), listOf("Nerdle", "Globle", " ")))
+        // Two distinct custom games with the same display name remain distinct entries when keyed by id.
+        val mergedSameName = Notifier.mergeReadyEntries(
+            inShade = listOf("custom-1" to "Daily Word"),
+            fresh = listOf("custom-2" to "Daily Word", "custom-1" to "Daily Word")
+        )
+        assertEquals(listOf("custom-1" to "Daily Word", "custom-2" to "Daily Word"), mergedSameName)
         assertEquals(
             "3 daily games are ready" to "Wordle, Nerdle and Globle have refreshed. Tap to open your hub.",
             Notifier.combinedText(listOf("Wordle", "Nerdle", "Globle"))

@@ -90,71 +90,33 @@ test('1.9.4: normalizeGameObject preserves valid altUrls (<=4) and embeds (<=8) 
   assert.equal('embeds' in bare, false);
 });
 
-test('1.9.4: applyRestoreGameState("replace") and restoreRestoredGameState() reset and restore status and todayScore', () => {
-  const ref = new Date('2026-11-18T15:00:00Z');
-  const state = {
-    games: [{
-      id: 'w',
-      name: 'Wordle',
-      url: 'https://nytimes.com/games/wordle',
-      resetTime: '00:00',
-      resetZone: 'utc',
-      status: 'completed',
-      todayScore: 'Wordle 1234 3/6',
-      streak: 2,
-      bestStreak: 2,
-      totalPlayed: 2,
-      totalWon: 2,
-      dayHistory: { '2026-11-17': 'completed', '2026-11-18': 'completed' }
-    }],
-    historyLogs: [
-      { gameId: 'w', gameName: 'Wordle', date: '2026-11-18', outcome: 'Completed', score: 'Wordle 1234 3/6' },
-      { gameId: 'w', gameName: 'Wordle', date: '2026-11-17', outcome: 'Completed', score: 'Wordle 1233 4/6' }
-    ]
-  };
-  // Backup from yesterday (no 2026-11-18 entry).
-  const backupGame = {
-    id: 'w',
-    name: 'Wordle',
-    url: 'https://nytimes.com/games/wordle',
-    resetTime: '00:00',
-    resetZone: 'utc',
-    dayHistory: { '2026-11-17': 'completed' }
-  };
-  const backupLogs = [
-    { gameId: 'w', gameName: 'Wordle', date: '2026-11-17', outcome: 'Completed', score: 'Wordle 1233 4/6' }
-  ];
+test('1.9.7: dead single-game restore helpers are removed and normalizeUrlKey strips m. alongside www.', () => {
+  assert.equal(H.applyRestoreGameState, undefined);
+  assert.equal(H.restoreRestoredGameState, undefined);
+  assert.equal(H.normalizeUrlKey('https://m.nytimes.com/games/wordle/index.html'), 'nytimes.com/games/wordle');
+  assert.equal(H.normalizeUrlKey('https://www.nytimes.com/games/wordle/'), 'nytimes.com/games/wordle');
+  assert.equal(H.normalizeUrlKey('https://M.Contexto.me/'), 'contexto.me');
+});
 
-  const res = H.applyRestoreGameState(state, backupGame, backupLogs, 'replace', ref);
-  assert.ok(res);
-  assert.equal(state.games[0].status, 'ready');
-  assert.equal(state.games[0].todayScore, '');
-  assert.equal(state.games[0].streak, 1);
-  assert.equal(state.historyLogs.length, 1);
-
-  // Undo restores status, todayScore, dayHistory, and historyLogs.
-  const undone = H.restoreRestoredGameState(state, { gameId: 'w', before: res.before, newGame: res.newGame }, ref);
-  assert.equal(undone, true);
-  assert.equal(state.games[0].status, 'completed');
-  assert.equal(state.games[0].todayScore, 'Wordle 1234 3/6');
-  assert.equal(state.games[0].streak, 2);
-  assert.equal(state.historyLogs.length, 2);
-
-  // Replace with a backup that DOES include today updates status & todayScore to the backup's values.
-  const backupWithToday = {
-    id: 'w',
-    name: 'Wordle',
-    url: 'https://nytimes.com/games/wordle',
-    resetTime: '00:00',
-    resetZone: 'utc',
-    dayHistory: { '2026-11-18': 'completed' }
-  };
-  const backupTodayLogs = [
-    { gameId: 'w', gameName: 'Wordle', date: '2026-11-18', outcome: 'Completed', score: 'Wordle 1234 5/6' }
-  ];
-  H.applyRestoreGameState(state, backupWithToday, backupTodayLogs, 'replace', ref);
-  assert.equal(state.games[0].status, 'completed');
-  assert.equal(state.games[0].todayScore, 'Wordle 1234 5/6');
+test('1.9.7: msUntilNextResetCached isolates cache entries by timezone', () => {
+  const cache = new Map();
+  const game = { id: 'local-g', name: 'Wordle', resetTime: '00:00', resetZone: 'local' };
+  const ref = new Date('2026-06-15T12:00:00Z');
+  const prevTz = process.env.TZ;
+  try {
+    process.env.TZ = 'UTC';
+    const utcMs = H.msUntilNextResetCached(game, ref, cache);
+    assert.equal(utcMs, 12 * 3600000);
+    process.env.TZ = 'America/New_York';
+    const nyMs = H.msUntilNextResetCached(game, ref, cache);
+    assert.equal(nyMs, 16 * 3600000);
+    // Same UTC offset (-04:00) vs another IANA zone with same offset still keys on IANA id
+    process.env.TZ = 'America/Toronto';
+    const torontoMs = H.msUntilNextResetCached(game, ref, cache);
+    assert.equal(torontoMs, 16 * 3600000);
+  } finally {
+    process.env.TZ = prevTz;
+  }
 });
 
 test('1.9.4: dedupeHistoryLogs and applyScheduleChangeState deduplicate colliding dates preferring Completed and score text', () => {
@@ -170,13 +132,14 @@ test('1.9.4: dedupeHistoryLogs and applyScheduleChangeState deduplicate collidin
   assert.equal(deduped[0].score, '3/6');
   assert.equal(deduped[1].gameId, 'g2');
 
-  // Schedule change that clamps two rows onto todayKey deduplicates them cleanly.
+  // Schedule change that clamps two rows onto todayKey deduplicates them cleanly and syncs todayScore + streaks.
   const now = new Date('2026-11-18T12:00:00Z');
   const game = {
     id: 'g1',
     name: 'Game',
     resetTime: '00:00',
     resetZone: 'utc',
+    todayScore: 'stale score',
     lastCycleKey: '2026-11-18',
     dayHistory: { '2026-11-17': 'missed', '2026-11-18': 'completed' }
   };
@@ -190,6 +153,14 @@ test('1.9.4: dedupeHistoryLogs and applyScheduleChangeState deduplicate collidin
   assert.equal(res.logs[0].date, '2026-11-18');
   assert.equal(res.logs[0].outcome, 'Completed');
   assert.equal(res.logs[0].score, '2/6');
+  assert.equal(res.logs[0].streak, 1);
+  assert.equal(game.todayScore, '2/6');
+
+  // Invalid schedule inputs do not mutate game.resetTime / game.resetZone.
+  const invalidRes = H.applyScheduleChangeState(game, { resetTime: '01:00', resetZone: 'utc' }, { resetTime: 'bad', resetZone: 'local' }, res.logs, now);
+  assert.equal(invalidRes.changed, false);
+  assert.equal(game.resetTime, '01:00');
+  assert.equal(game.resetZone, 'utc');
 });
 
 test('1.9.4: streakAsOfDate computes historical streak without using today live streak', () => {
@@ -208,3 +179,4 @@ test('1.9.4: streakAsOfDate computes historical streak without using today live 
   assert.equal(H.streakAsOfDate(hist, '2026-11-16'), 4);
   assert.equal(H.streakAsOfDate(hist, '2026-11-09'), 0);
 });
+

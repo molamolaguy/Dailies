@@ -33,10 +33,11 @@
     '#gdpr-cookie-message', '#consent-banner', '.consent-banner'
   ];
   // Classes these tools put on <html>/<body> to stop the page scrolling behind the banner.
-  var LOCK_CSS = 'html.sp-message-open, html.sp-message-open body, body.didomi-popup-open, html.didomi-popup-open,'
-    + ' body.qc-cmp-showing, body.qc-cmp-ui-showing, body.cky-modal-open, body.cli-barmodal-open, body.iubenda-cs-blocking,'
-    + ' body.osano-cm-no-scroll, html.cmplz-banner-open, body.tarteaucitron-modal-open, html.klaro-open'
-    + ' { overflow: auto !important; }';
+  var LOCK_CSS = 'html.sp-message-open, html.didomi-popup-open, html.cmplz-banner-open, html.klaro-open'
+    + ' { overflow-y: auto !important; }\n'
+    + 'html.sp-message-open body, body.didomi-popup-open, body.qc-cmp-showing, body.qc-cmp-ui-showing,'
+    + ' body.cky-modal-open, body.cli-barmodal-open, body.iubenda-cs-blocking, body.osano-cm-no-scroll, body.tarteaucitron-modal-open'
+    + ' { overflow: visible !important; }';
   var css = SELECTORS.join(',\n') + ' { display: none !important; visibility: hidden !important; pointer-events: none !important; }\n' + LOCK_CSS;
   function addStyle() {
     var root = document.head || document.documentElement;
@@ -49,15 +50,46 @@
     return true;
   }
   if (!addStyle()) document.addEventListener('readystatechange', addStyle, { once: true });
-  // Some tools set overflow:hidden straight on <html>/<body>: undo that once their banner is (hidden) on the page.
+  // Some tools set overflow:hidden or overflow-y:hidden straight on <html>/<body>: undo that once their banner is (hidden) on the page.
   var joined = SELECTORS.join(',');
   function unlock() {
     try {
       if (!document.querySelector(joined)) return;
       [document.documentElement, document.body].forEach(function (el) {
-        if (el && el.style && el.style.overflow === 'hidden') el.style.overflow = '';
+        if (!el || !el.style) return;
+        if (el.style.overflow === 'hidden') el.style.overflow = '';
+        if (el.style.overflowY === 'hidden') el.style.overflowY = '';
       });
     } catch (e) {}
   }
-  [800, 2000, 4000, 8000].forEach(function (ms) { setTimeout(function () { addStyle(); unlock(); }, ms); });
+  var observer = null;
+  var observedBody = null;
+  function watchLocks() {
+    try {
+      if (typeof MutationObserver !== 'function') return;
+      if (!observer) {
+        var timer = null;
+        observer = new MutationObserver(function () {
+          if (timer) return;
+          timer = setTimeout(function () { timer = null; addStyle(); unlock(); }, 50);
+        });
+        setTimeout(function () {
+          try { if (observer) observer.disconnect(); } catch (e) {}
+          observer = null;
+        }, 20000);
+      }
+      if (document.documentElement && !watchedRoot) {
+        watchedRoot = true;
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
+      }
+      if (document.body && document.body !== observedBody) {
+        observedBody = document.body;
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
+      }
+    } catch (e) {}
+  }
+  var watchedRoot = false;
+  watchLocks();
+  if (!document.body) document.addEventListener('DOMContentLoaded', function () { addStyle(); watchLocks(); unlock(); }, { once: true });
+  [800, 2000, 4000, 8000, 15000].forEach(function (ms) { setTimeout(function () { addStyle(); watchLocks(); unlock(); }, ms); });
 })();

@@ -26,4 +26,26 @@ class CrashLogTest {
         val text = "short log\n"
         assertEquals(text, CrashLog.trimToLimit(text, maxBytes = 100))
     }
+
+    @Test
+    fun trimToLimit_respectsUtf8ByteBudgetWithoutSplittingSurrogates() {
+        val emoji = "🟩" // 4 UTF-8 bytes, 2 UTF-16 chars (surrogate pair)
+        val text = "line1\n" + emoji.repeat(10) + "\n"
+        val trimmed = CrashLog.trimToLimit(text, maxBytes = 15)
+        val bytes = trimmed.toByteArray(Charsets.UTF_8)
+        assertTrue("trimmed UTF-8 bytes (${bytes.size}) exceeded budget", bytes.size <= 15)
+        assertEquals(trimmed, String(bytes, Charsets.UTF_8))
+        assertTrue(trimmed.isNotEmpty() && !Character.isLowSurrogate(trimmed[0]))
+    }
+
+    @Test
+    fun describe_scrubsHttpAndHttpsUrls() {
+        val err = IllegalStateException(
+            "Failed loading https://user.example.com/secret?token=abc from http://another.example/play",
+            RuntimeException("Cause at https://nested.example/path")
+        )
+        val desc = CrashLog.describe(err)
+        assertTrue(!desc.contains("user.example.com") && !desc.contains("another.example") && !desc.contains("nested.example"))
+        assertTrue(desc.contains("<url>"))
+    }
 }

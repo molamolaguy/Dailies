@@ -881,9 +881,9 @@ activistpost.com	.post-ads
 activistpost.com	a[href^="https://secure.altimetry.com/"]
 actualidadiphone.com	#breadcrumbs + aside[id]
 ad-doge.com	#ctl00_PageMainContent_balancesChartDiv12
-ad-doge.com,club,cryptomininggame.com,faucetcrypto.com,freebitcoin.win,getdogecoins.com	ins[class^="bmadblock-"]
+ad-doge.com,cryptomininggame.com,faucetcrypto.com,freebitcoin.win,getdogecoins.com	ins[class^="bmadblock-"]
 ad4msan.com,atleticalive.it,daemon-hentai.com,elaoffcial.com,europeelects.eu,inputmag.dk,leeapk.com,livenewsof.com,ossels.ai,teamkong.rf.gd,telugusexkathalu.com,world-iptv.club	#zdn-adblock-overlay
-ada.lk,advertiserandtimes.co.uk,agame.com,barkinganddagenhampost.co.uk,becclesandbungayjournal.co.uk,beeg.com,blogto.com,burymercury.co.uk,cambstimes.co.uk,cardealermagazine.co.uk,crimemagazine.com,dailyedge.ie,datalounge.com,dazeddigital.com,derehamtimes.co.uk,dermnetnz.org,developingtelecoms.com,dissmercury.co.uk,djmag.com,eadt.co.uk,eastlondonadvertiser.co.uk,edp24.co.uk,elystandard.co.uk,etf.com,eurogamer.it,eurogamer.net,eurogamer.pt,eveningnews24.co.uk,examtiger.com,exmouthjournal.co.uk,fakenhamtimes.co.uk,fijivillage.com,flashgames.ru,football.co.uk,ftopx.com,gaana.com,games.co.id,games.co.uk,gamesgames.com,gayboystube.com,gayporntube.com,gearspace.com,gematsu.com,giochi.it,gioco.it,girlsgogames.co.id,girlsgogames.co.uk,girlsgogames.com,girlsgogames.de,girlsgogames.fr,girlsgogames.it,girlsgogames.ru,globalrph.com,gobankingrates.com,gozofinder.com,greatyarmouthmercury.co.uk,gry.pl,hackneygazette.co.uk,hamhigh.co.uk,headforpoints.com,hertsad.co.uk,hungangels.com,huntspost.co.uk,icaew.com,ilfordrecorder.co.uk,iol.co.za,ipswichstar.co.uk,islingtongazette.co.uk,jetzspielen.de,jeu.fr,jeux.fr,juegos.com,juegosdechicas.com,krajskelisty.cz,leaddev.com,letshosting.com,lgr.co.uk,linuxinsider.com,lowestoftjournal.co.uk,maltapark.com,mapcarta.com,meetdownload.com,midweekherald.co.uk,mixnews.lv,momjunction.com,moonbit.co.in,mousebreaker,mousebreaker.com,newhamrecorder.co.uk,newsit.gr,newstalkzb.co.nz,newsweek.com,northern-scot.co.uk,northnorfolknews.co.uk,northsomersettimes.co.uk,ojogos.com.br,ourgames.ru,oyunskor.com,permainan.co.id,pianistmagazine.com,piccalil.li,pinkun.com,podtail.com,porngameshub.com,pornwatchers.com,proxcskiing.com,remindmagazine.com,romfordrecorder.co.uk,royston-crow.co.uk,saffronwaldenreporter.co.uk,sidmouthherald.co.uk,skysports.com,spel.nl,spela.se,spelletjes.nl,spielen.com,statista.com,stileproject.com,stowmarketmercury.co.uk,stylecraze.com,sudburymercury.co.uk,the42.ie,thebridalbox.com,thecomet.net,thedrum.com,thejournal.ie,thestudentroom.co.uk,thetrendspotter.net,thinkspain.com,tineye.com,tlife.gr,transfery.info,trucksplanet.com,unogs.com,varsity.co.uk,velonews.com,videacesky.cz,videogameschronicle.com,wattonandswaffhamtimes.co.uk,wccftech.com,whtimes.co.uk,wisbechstandard.co.uk,wtatennis.com,wymondhamandattleboroughmercury.co.uk	.advert
+ada.lk,advertiserandtimes.co.uk,agame.com,barkinganddagenhampost.co.uk,becclesandbungayjournal.co.uk,beeg.com,blogto.com,burymercury.co.uk,cambstimes.co.uk,cardealermagazine.co.uk,crimemagazine.com,dailyedge.ie,datalounge.com,dazeddigital.com,derehamtimes.co.uk,dermnetnz.org,developingtelecoms.com,dissmercury.co.uk,djmag.com,eadt.co.uk,eastlondonadvertiser.co.uk,edp24.co.uk,elystandard.co.uk,etf.com,eurogamer.it,eurogamer.net,eurogamer.pt,eveningnews24.co.uk,examtiger.com,exmouthjournal.co.uk,fakenhamtimes.co.uk,fijivillage.com,flashgames.ru,football.co.uk,ftopx.com,gaana.com,games.co.id,games.co.uk,gamesgames.com,gayboystube.com,gayporntube.com,gearspace.com,gematsu.com,giochi.it,gioco.it,girlsgogames.co.id,girlsgogames.co.uk,girlsgogames.com,girlsgogames.de,girlsgogames.fr,girlsgogames.it,girlsgogames.ru,globalrph.com,gobankingrates.com,gozofinder.com,greatyarmouthmercury.co.uk,gry.pl,hackneygazette.co.uk,hamhigh.co.uk,headforpoints.com,hertsad.co.uk,hungangels.com,huntspost.co.uk,icaew.com,ilfordrecorder.co.uk,iol.co.za,ipswichstar.co.uk,islingtongazette.co.uk,jetzspielen.de,jeu.fr,jeux.fr,juegos.com,juegosdechicas.com,krajskelisty.cz,leaddev.com,letshosting.com,lgr.co.uk,linuxinsider.com,lowestoftjournal.co.uk,maltapark.com,mapcarta.com,meetdownload.com,midweekherald.co.uk,mixnews.lv,momjunction.com,moonbit.co.in,mousebreaker.com,newhamrecorder.co.uk,newsit.gr,newstalkzb.co.nz,newsweek.com,northern-scot.co.uk,northnorfolknews.co.uk,northsomersettimes.co.uk,ojogos.com.br,ourgames.ru,oyunskor.com,permainan.co.id,pianistmagazine.com,piccalil.li,pinkun.com,podtail.com,porngameshub.com,pornwatchers.com,proxcskiing.com,remindmagazine.com,romfordrecorder.co.uk,royston-crow.co.uk,saffronwaldenreporter.co.uk,sidmouthherald.co.uk,skysports.com,spel.nl,spela.se,spelletjes.nl,spielen.com,statista.com,stileproject.com,stowmarketmercury.co.uk,stylecraze.com,sudburymercury.co.uk,the42.ie,thebridalbox.com,thecomet.net,thedrum.com,thejournal.ie,thestudentroom.co.uk,thetrendspotter.net,thinkspain.com,tineye.com,tlife.gr,transfery.info,trucksplanet.com,unogs.com,varsity.co.uk,velonews.com,videacesky.cz,videogameschronicle.com,wattonandswaffhamtimes.co.uk,wccftech.com,whtimes.co.uk,wisbechstandard.co.uk,wtatennis.com,wymondhamandattleboroughmercury.co.uk	.advert
 ada.org,globes.co.il,techcentral.ie,tempr.email,texteditor.co,versus.com	.topBanner
 adaa.org	div[class^="c-ad_"]
 adblock-tester.com	embed[width="240"]
@@ -2734,9 +2734,6 @@ ay.live,aylink.co,gitizle.vip,gitlink.pro,shtms.co,uzunversiyon.xyz,yindex.xyz	.
 ayatoon.com,gokushiteki.com,haxnode.net,majorscans.com,netfuck.net,tarotscans.com,warungkomik.com,xerifetech.com	body > #footer + div[id][class*=" "]
 aylink.co	.media-panel
 ayobandung.com,cumlouder.com,gr8.cc,psycatgames.com	.sticky-banner
-az,azpolitika.info	.adsbyskyline
-az,bax.tv,cebhe.info	.adsgarden
-az,sonxeber.az	.makerekframe
 az.baku.ws	.bottom_banner
 az.baku.ws	.main_top_banners
 az.baku.ws	iframe[src^="http://ad.adriver.ru/"]
@@ -2761,6 +2758,7 @@ azoai.com,azobuild.com,azocleantech.com,azolifesciences.com,azom.com,azomining.c
 azoai.com,azobuild.com,azocleantech.com,azolifesciences.com,azom.com,azomining.com,azonano.com,azooptics.com,azoquantum.com,azorobotics.com,azosensors.com,insidehpc.com	.sidebar-sponsored-content
 azoranov.com	div[id^="sticky-ads-az-"]
 azoranov.com	div[id^="teaserad"]
+azpolitika.info	.adsbyskyline
 azpolitika.info	.top-bnr
 azrotv.com	#ad_asd
 azrotv.com,luchaonline.com,onworks.net,unitystr.com,uptoplay.net	.adbn-wrap
@@ -3005,6 +3003,7 @@ bavarianfootballworks.com	.duet--layout--rail > div:has(> div[class] > div[data-
 bavarianfootballworks.com,goldenstateofmind.com,mmafighting.com,rollbamaroll.com,theverge.com,vanquishthefoe.com	div[class^="adblock-allowlist-messaging"]
 bavarianfootballworks.com,managingmadrid.com	div[class]:has(> div[data-concert]:only-child)
 bax.tv	.mejs__baxtv_midroll
+bax.tv,cebhe.info	.adsgarden
 baynews9.com	.google-dfp-ads
 bbato.com	.pages > .notice-page
 bbc.co.uk,bbc.com	#leaderboard-aside-content
@@ -6248,7 +6247,6 @@ cvs.com	cvs-shop-product-shelf-container[shelf-type*="criteoType"]
 cwc.utah.gov	body > #scroll-top + div[id][class]
 cwtv.com	#ad_728x90
 cxtvlive.com	.ad-titulo
-cyberchef.org	#workspace-wrapper > [id][style*="height"] {height: 100% !important}
 cyberciti.biz	.amp-wp-4ed0dd1
 cyberciti.biz	.entry-content > center > div[style="border: 1px solid #e9ecef; border-radius: 3px; padding: 3px; color: #999999;"]
 cyberciti.biz	div[class^="tips_"][class*="_slot_"]
@@ -13943,10 +13941,8 @@ justetf.com	div[data-testid="quick-search-results-panel"] + div:has(> div[data-t
 justetf.com	div[id^="shadow-teaser-"]:has(div[class="disclaimer mb-1"])
 justetf.com	tr[onclick^="gaW"]
 justinweather.com	.top-ad-banner-wrapper
-justjared.com	.banner-spacer-top {max-height: 50px !important;}
 justjared.com	.header-container__main
 justjared.com	.tpd-ob-reserve
-justjared.com	[role="banner"] {top:0 !important}
 justjared.com,justjaredjr.com	.top_rail_shell
 justjared.com,theblast.com	.tpd-tcm-widget
 justpicsplease.com	.ba
@@ -15927,11 +15923,6 @@ mcqlearn.com	.affiliate-disclaimer-detail
 mcqslearn.com	.hdrtopall
 md5hashing.net	.alert-promo
 mdpi.com	#adBannerContent
-me	body > #ads[style^="position: absolute; z-index:"]
-me	body[bgcolor="#000000"] > div[id="adbtm"][style^="position: fixed;"]
-me	iframe[src^="//ads.livetv"]
-me	td[background^="//cdn.livetv"] > table[width="100%"] > tbody > tr > td[valign="top"] + td[align="right"]
-me	td[height="91"][align="center"][bgcolor="#000000"]
 meaningfulhq.com	a[href^="https://payhip.com"]
 meawfy.com	.section-wrapper a[href][target="_blank"]
 meczdej.pl,securityweek.com	.zox-post-ad-wrap
@@ -22339,7 +22330,6 @@ sfera.az	.row > .col-lg-12 > div[style="overflow-x: auto;padding:15px;text-align
 sfexaminer.com	#block-2924520
 sfgate.com	.fdc > div.package:has(> div.s > div[data-block-type="ad"])
 sfgate.com	main > div.f:has(> div.zone > div.package div[data-block-type="ad"])
-sgcarmart	.dealer_banner
 sgcarmart.com	.leadbadv
 sgxnifty.org	#aub
 sgxnifty.org	#aub_cover
@@ -23032,6 +23022,7 @@ sonixgvn.net	body > div[class][style*="position:"][style*="z-index:"]
 sonixgvn.net	div[id^="div-vi-"]
 sonora.id,tribunnews.com	#div-Inside-MediumRectangle
 sonxeber.az	.blk_rekinline
+sonxeber.az	.makerekframe
 sonxeber.az,xanim.az	body > a[href="http://unvan.az"][target="_blank"]
 sonyalphaforum.com	#elPostFeed > form > article.cPost:has(> .ipsColumn > .ipsComment_content > .cPost_contentWrap > .ipsType_normal > p > a.ab-test-amazon)
 sonyalpharumors.com	#custom_html-39
@@ -25276,7 +25267,6 @@ tianxun.com	div[id*="-first-result" i]:has(button[class*="SponsoredInfoButton" i
 tianxun.com	section[data-testid="inline-ad-panel-desktop-layout"]
 tibiopedia.pl	#rightUserBar > .ad_panel_right
 tibiopedia.pl	.com_leaderboard
-ticketmaster	.kOwduY
 ticketmaster.com	.jTNWic
 ticketmaster.com	.jUIMbR
 ticketmaster.sg	.adsdisclaimer

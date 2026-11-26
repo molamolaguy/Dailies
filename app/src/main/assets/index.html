@@ -173,13 +173,12 @@
   <main id="m3Scaffold" class="m3-scaffold max-w-3xl mx-auto space-y-4">
 
     <!-- View 1: MINIMALISTIC DAILY HUB -->
-    <section id="viewDashboard" class="tab-page space-y-4" aria-hidden="false">
-      <!-- Minimal Status & Filter / Add Bar -->
-      <div class="hub-sticky flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="hub-header-row flex items-center gap-2.5 text-xs text-slate-400">
-          <span class="inline-flex items-center gap-1.5 text-sm font-bold text-white tracking-tight mr-1">
-            <span id="hubLogo" class="hub-logo-wrap" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 108 108" class="hub-logo shrink-0" aria-hidden="true">
+    <section id="viewDashboard" class="tab-page space-y-3.5" aria-hidden="false">
+      <!-- Top App Bar -->
+      <header class="hub-topbar">
+        <div class="hub-brand">
+          <span id="hubLogo" class="hub-logo-wrap" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 108 108" class="hub-logo shrink-0" aria-hidden="true">
               <!-- Matches the launcher icon: the white one with the yellow-to-green star by default, or the
                    theme's colours (primary-container ground, primary flower, on-primary sparkle) when
                    "App Icon Matches Theme" is on. Colours come from app.css (.hub-logo). -->
@@ -195,62 +194,78 @@
                 <path class="logo-mark" d="M54,41 C56.08,51.92 56.08,51.92 67,54 C56.08,56.08 56.08,56.08 54,67 C51.92,56.08 51.92,56.08 41,54 C51.92,51.92 51.92,51.92 54,41Z"/>
               </g>
             </svg>
-            </span>
-            <span class="hub-title-text">Dailies</span>
           </span>
-          <span><strong id="kpiReadyCount" class="text-emerald-400 font-semibold">0</strong> ready</span>
-          <span>·</span>
-          <span><strong id="kpiDoneCount" class="text-slate-200 font-semibold">0 / 0</strong> done</span>
-          <span>·</span>
-          <span><span aria-hidden="true">🔥</span> <span class="sr-only">Top streak</span> <strong id="kpiTopStreak" class="text-amber-300 font-semibold">0d</strong></span>
-          <button id="btnCopyToday" type="button" class="copy-today hidden ml-auto shrink-0 icon-label" aria-label="Today's results: copy or share" title="Today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Results</span></button>
+          <span class="hub-title-text">Dailies</span>
         </div>
+        <div class="hub-topbar-actions">
+          <button id="btnCopyToday" type="button" class="copy-today hidden shrink-0 icon-label" aria-label="Today's results: copy or share" title="Today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Results</span></button>
+          <button id="btnHubSearch" type="button" aria-pressed="false" aria-controls="hubSearchRow" aria-label="Search games" title="Search games" class="hub-search-btn icon-btn"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></button>
+        </div>
+      </header>
 
-        <div class="hub-actions-row flex items-center gap-2">
-          <div class="flex items-center bg-slate-900/80 border border-slate-800 rounded-xl p-0.5 text-xs">
-            <button type="button" data-filter="all" aria-pressed="true" class="filter-tab px-2.5 py-1 rounded-lg bg-slate-800 text-white font-medium">All</button>
-            <button type="button" data-filter="ready" aria-pressed="false" class="filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Ready</button>
-            <button type="button" data-filter="completed" aria-pressed="false" class="filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white">Done</button>
+      <!-- Expressive Hero Summary Card -->
+      <div class="hub-hero glass-card">
+        <div class="hub-hero-row">
+          <div class="hub-hero-left">
+            <p class="hub-hero-eyebrow">Today's Progress</p>
+            <div class="hub-hero-metric">
+              <strong id="kpiDoneCount" class="hub-hero-num tabular">0 / 0</strong>
+              <span class="hub-hero-unit">done</span>
+            </div>
           </div>
-          <select id="hubSort" aria-label="Sort games" class="hub-sort px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold shrink-0">
+          <div class="hub-hero-pills">
+            <span class="hero-pill hero-pill-ready"><span class="dot" aria-hidden="true"></span><strong id="kpiReadyCount" class="tabular">0</strong><span>ready</span></span>
+            <span class="hero-pill hero-pill-streak"><span aria-hidden="true">🔥</span><span class="sr-only">Top streak</span><strong id="kpiTopStreak" class="tabular">0d</strong></span>
+          </div>
+        </div>
+        <button id="btnPlayAll" type="button" class="play-next play-all-bar android-only hidden">
+          <span class="pa-ico" aria-hidden="true">▶</span><span class="pa-text">Play all</span><span class="pa-left" id="playAllLeft"></span>
+        </button>
+      </div>
+
+      <!-- Sticky Filter & Search Bar -->
+      <div class="hub-sticky">
+        <div class="hub-actions-row">
+          <div class="hub-filter-group" role="group" aria-label="Filter games">
+            <button type="button" data-filter="all" aria-pressed="true" class="filter-tab on">All</button>
+            <button type="button" data-filter="ready" aria-pressed="false" class="filter-tab">Ready</button>
+            <button type="button" data-filter="completed" aria-pressed="false" class="filter-tab">Done</button>
+          </div>
+          <select id="hubSort" aria-label="Sort games" class="hub-sort shrink-0">
             <option value="custom">Custom order</option>
             <option value="reset">Next reset</option>
             <option value="alpha">A–Z</option>
             <option value="least">Least played</option>
           </select>
-          <button id="btnHubSearch" type="button" aria-pressed="false" aria-controls="hubSearchRow" aria-label="Search games" title="Search games" class="hub-search-btn px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 shrink-0"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></button>
-          <button id="btnOpenAddModal" type="button" aria-label="Add game" class="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shrink-0">
-            + Add<span class="add-game-word"> Game</span>
-          </button>
         </div>
         <div id="hubSearchRow" class="hub-search-row hidden">
-          <span class="hub-search-ico"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></span>
+          <span class="hub-search-ico"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg></span>
           <input id="hubSearchInput" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false" placeholder="Search games by name, site or category" aria-label="Search games" />
           <button id="btnHubSearchClose" type="button" class="hub-search-close" aria-label="Close search"><span class="ico ico-close" aria-hidden="true"></span></button>
         </div>
       </div>
 
       <!-- Shown when "Check for Updates" finds a newer release -->
-      <div id="updateBanner" class="hidden glass-card rounded-2xl p-3.5 border border-indigo-500/40 flex items-center justify-between gap-3" role="status">
+      <div id="updateBanner" class="hidden glass-card rounded-2xl p-4 border border-indigo-500/40 flex items-center justify-between gap-3" role="status">
         <div class="min-w-0">
           <p id="updateBannerTitle" class="text-sm font-bold text-white">Update available</p>
           <p id="updateBannerSub" class="text-xs text-slate-400">Installs over this version and keeps your data.</p>
           <div id="updateProgress" class="update-progress hidden" aria-hidden="true"><span></span></div>
         </div>
-        <div class="flex items-center gap-1 shrink-0">
-          <button id="btnUpdateOpen" type="button" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold">Update</button>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="btnUpdateOpen" type="button" class="px-4 py-2 rounded-full bg-indigo-600 text-white text-xs font-bold">Update</button>
           <button id="btnUpdateDismiss" type="button" class="icon-btn ghost" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
         </div>
       </div>
 
       <!-- A game's results suggest its reset time is wrong -->
-      <div id="resetSuggestBanner" class="hidden glass-card rounded-2xl p-3.5 border border-amber-500/40 flex items-center justify-between gap-3" role="status">
+      <div id="resetSuggestBanner" class="hidden glass-card rounded-2xl p-4 border border-amber-500/40 flex items-center justify-between gap-3" role="status">
         <div class="min-w-0">
           <p id="resetSuggestTitle" class="text-sm font-bold text-white">Reset time</p>
           <p id="resetSuggestSub" class="text-xs text-slate-400"></p>
         </div>
-        <div class="flex items-center gap-1 shrink-0">
-          <button id="btnResetSuggestApply" type="button" class="px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold">Update</button>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="btnResetSuggestApply" type="button" class="px-4 py-2 rounded-full bg-indigo-600 text-white text-xs font-bold">Update</button>
           <button id="btnResetSuggestDismiss" type="button" class="icon-btn ghost" aria-label="Not now"><span class="ico ico-close" aria-hidden="true"></span></button>
         </div>
       </div>
@@ -260,16 +275,12 @@
         <p class="text-sm font-bold text-white">Your saved data couldn't be read</p>
         <p class="text-xs text-slate-300 mt-1 leading-relaxed">To protect it, nothing is being saved right now. You can import a backup from Settings, or start fresh (the unreadable file is kept on the device, not deleted).</p>
         <div class="flex items-center gap-2 mt-3">
-          <button id="btnDataStartFresh" type="button" class="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold">Start fresh</button>
-          <button id="btnDataGoImport" type="button" class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold">Import a backup</button>
+          <button id="btnDataStartFresh" type="button" class="px-4 py-2 rounded-full bg-rose-600 text-white text-xs font-bold">Start fresh</button>
+          <button id="btnDataGoImport" type="button" class="px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold">Import a backup</button>
         </div>
       </div>
 
       <!-- Clean Minimal Games List -->
-      <!-- Play all (1.8.3: the only thing at the top of the list): today's unplayed games in a row -->
-      <button id="btnPlayAll" type="button" class="play-next play-all-bar android-only hidden">
-        <span class="pa-ico" aria-hidden="true">▶</span><span class="pa-text">Play all</span><span class="pa-left" id="playAllLeft"></span>
-      </button>
       <div id="gamesGrid" class="space-y-2.5"></div>
     </section>
 
@@ -384,9 +395,9 @@
           </h3>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div class="grid grid-cols-1 text-xs">
           <!-- 1.9.0: Theme, wallpaper colours, colour theme and AMOLED in one row that opens them. -->
-          <button type="button" id="btnOpenTheme" class="set-row set-link sm:col-span-3">
+          <button type="button" id="btnOpenTheme" class="set-row set-link">
             <div class="min-w-0">
               <p class="font-bold text-white">Theme</p>
               <p class="text-[11px] text-slate-400">Dark or light, colors, and pitch-black</p>
@@ -395,7 +406,7 @@
           </button>
 
           <!-- 1.9.0: the app icon in one row that opens the choices. -->
-          <button type="button" id="btnOpenAppIcon" class="android-only set-row set-link sm:col-span-3">
+          <button type="button" id="btnOpenAppIcon" class="android-only set-row set-link">
             <div class="min-w-0">
               <p class="font-bold text-white">App Icon</p>
               <p class="text-[11px] text-slate-400">The icon on your home screen</p>
@@ -480,10 +491,10 @@
               <span class="icon-label" style="justify-content:flex-start"><span class="ico ico-schedule section-icon" aria-hidden="true"></span>Gameplay &amp; Time</span>
             </h3>
           </div>
-          <span id="liveClockDisplay" class="live-clock shrink-0 tabular px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-800">--:--:--</span>
+          <span id="liveClockDisplay" class="live-clock shrink-0 tabular px-3 py-1 rounded-full bg-slate-900 border border-slate-800">--:--:--</span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+        <div class="grid grid-cols-1 text-xs">
           <div class="set-row flex items-center justify-between gap-3">
             <div>
               <p class="font-bold text-white">Local Time Display Format</p>
@@ -550,7 +561,7 @@
             <span class="icon-label"><span class="ico ico-shield section-icon" aria-hidden="true"></span>Game Player</span>
           </h3>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+        <div class="grid grid-cols-1 text-xs">
           <label class="set-row flex items-center justify-between gap-3 cursor-pointer">
             <div>
               <p class="font-bold text-white">Auto-Log Shared Results</p>
@@ -649,7 +660,7 @@
         </div>
         <div class="grid grid-cols-2 gap-2.5">
           <button id="btnExportCsv" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Export history (.csv)</button>
-          <button id="btnShareGameList" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
+          <button id="btnShareGameList" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Share game list</button>
           <button id="btnHistoryChanges" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold" aria-label="Recent changes (undo)">Recent changes</button>
           <button id="btnOpenTrash" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Trash</button>
           <button id="btnGameHealth" type="button" class="android-only px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold">Check links &amp; icons</button>
@@ -705,21 +716,21 @@
 
   <!-- ADD / EDIT GAME MODAL (Refresh Schedule Reference always uses device local time) -->
   <div id="modalAddGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalAddTitle">
-    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-lg border border-indigo-500/30 shadow-2xl overflow-hidden">
-      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-        <h3 id="modalAddTitle" class="text-sm sm:text-base font-bold text-white">Add Daily Game by Link</h3>
-        <button id="btnCloseAddModal" type="button" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+    <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-lg border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <h3 id="modalAddTitle" class="text-base font-bold text-white truncate">Add Daily Game by Link</h3>
+        <button id="btnCloseAddModal" type="button" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
 
-      <form id="formSaveGame" class="p-4 space-y-3.5 text-xs sm:text-sm">
+      <form id="formSaveGame" class="space-y-3.5 text-xs sm:text-sm">
         <input type="hidden" id="editGameId" value="" />
 
-        <div id="editTodayEntry" class="hidden p-3 rounded-xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-3">
+        <div id="editTodayEntry" class="hidden p-3 rounded-2xl bg-slate-900/70 border border-slate-800 flex items-center justify-between gap-3">
           <div class="min-w-0">
             <p class="text-xs font-semibold text-slate-200">Today's entry</p>
             <p id="editTodayEntrySummary" class="text-[11px] text-slate-400 truncate"></p>
           </div>
-          <button id="btnEditTodayEntry" type="button" class="shrink-0 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">Edit entry</button>
+          <button id="btnEditTodayEntry" type="button" class="shrink-0 px-3.5 py-2 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">Edit entry</button>
         </div>
 
         <div>
@@ -728,8 +739,8 @@
             <span id="scrapeStatusBadge" class="text-[11px] text-indigo-300 hidden">Scraping website…</span>
           </div>
           <div class="flex gap-2">
-            <input id="inputGameUrl" type="text" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" required placeholder="Paste a daily game link, e.g. nytimes.com/games/wordle" class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
-            <button id="btnAutoDetectMeta" type="button" class="px-3 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold shrink-0">Scrape Site</button>
+            <input id="inputGameUrl" type="text" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" required placeholder="Paste a daily game link, e.g. nytimes.com/games/wordle" class="modal-input flex-1 min-w-0 px-3.5 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+            <button id="btnAutoDetectMeta" type="button" class="px-4 py-2 rounded-full bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold shrink-0">Scrape Site</button>
           </div>
           <button id="btnBrowseGames" type="button" class="mt-2 text-xs font-semibold text-indigo-300 underline-offset-2 hover:underline">Or pick from popular daily games</button>
           <div id="sameGameNote" class="same-game-note hidden" role="status">
@@ -742,13 +753,13 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div class="sm:col-span-2">
             <label for="inputGameName" class="block text-xs font-semibold text-slate-300 mb-1">Game Title *</label>
-            <input id="inputGameName" type="text" required placeholder="e.g. Wordle" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+            <input id="inputGameName" type="text" required placeholder="e.g. Wordle" class="modal-input w-full px-3.5 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
           </div>
           <div>
             <label for="inputGameIcon" class="block text-xs font-semibold text-slate-300 mb-1">Favicon URL / Icon</label>
             <div class="flex items-center gap-2">
-              <div id="inputIconPreview" class="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden text-base"><span class="ico ico-gamepad ico-lg" aria-hidden="true"></span></div>
-              <input id="inputGameIcon" type="text" value="" placeholder="Icon image URL (optional)" class="w-full px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs" />
+              <div id="inputIconPreview" class="w-10 h-10 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0 overflow-hidden text-base"><span class="ico ico-gamepad ico-lg" aria-hidden="true"></span></div>
+              <input id="inputGameIcon" type="text" value="" placeholder="Icon image URL (optional)" class="modal-input w-full px-3 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 text-white text-xs" />
             </div>
           </div>
         </div>
@@ -767,25 +778,25 @@
           </div>
           <div>
             <label for="inputGameMaxTries" class="block text-xs font-semibold text-slate-300 mb-1">Target Format / Par</label>
-            <input id="inputGameMaxTries" type="text" placeholder="e.g. 8 guesses, Daily Dive" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+            <input id="inputGameMaxTries" type="text" placeholder="e.g. 8 guesses, Daily Dive" class="modal-input w-full px-3.5 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
           </div>
         </div>
 
-        <div class="p-3 rounded-xl bg-slate-900/70 border border-slate-800">
-          <label for="inputResetTime" class="block text-xs font-semibold text-indigo-300 mb-1">Daily Refresh Time * <span class="text-slate-400 font-medium">(in the zone the game uses)</span></label>
+        <div class="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-800">
+          <label for="inputResetTime" class="block text-xs font-semibold text-indigo-300 mb-1.5">Daily Refresh Time * <span class="text-slate-400 font-medium">(in the zone the game uses)</span></label>
           <div class="flex items-center gap-2">
-            <input id="inputResetTime" type="time" value="00:00" required class="flex-1 min-w-0 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white font-mono" />
+            <input id="inputResetTime" type="time" value="00:00" required class="modal-input flex-1 min-w-0 px-3.5 py-2 rounded-2xl bg-slate-950 border border-slate-700 text-white font-mono" />
             <select id="inputResetZone" aria-label="Time zone the reset time is in" class="shrink-0 px-2.5 py-2 rounded-xl bg-slate-950 border border-slate-700 text-white" style="max-width: 46%;">
               <option value="local">My local time</option>
               <option value="utc">UTC</option>
             </select>
           </div>
-          <p id="inputResetZoneHint" class="mt-1 text-[11px] text-slate-400"></p>
+          <p id="inputResetZoneHint" class="mt-1.5 text-[11px] text-slate-400"></p>
         </div>
 
         <div>
           <label for="inputGameDesc" class="block text-xs font-semibold text-slate-300 mb-1">Notes / Rules Reminder</label>
-          <input id="inputGameDesc" type="text" placeholder="e.g. Color-coded character attributes across 14 Fire Emblem releases" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
+          <input id="inputGameDesc" type="text" placeholder="e.g. Color-coded character attributes across 14 Fire Emblem releases" class="modal-input w-full px-3.5 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500" />
         </div>
 
         <div>
@@ -802,16 +813,16 @@
           <p class="mt-1 text-[11px] text-slate-400">Reminds you when you have a streak and haven't logged today.</p>
         </div>
 
-        <label class="flex items-center gap-2.5 cursor-pointer select-none pt-1">
-          <input id="inputNotifyEnabled" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500" />
+        <label class="flex items-center justify-between gap-3 cursor-pointer select-none pt-1">
           <span class="text-xs text-slate-200">Notify me right when this game's next puzzle reset occurs</span>
+          <input id="inputNotifyEnabled" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
         </label>
 
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-          <button id="btnRemoveFromEdit" type="button" class="hidden px-3 py-2 rounded-xl text-rose-300 text-xs font-semibold border border-rose-500/30">Remove</button>
-          <button id="btnArchiveFromEdit" type="button" class="hidden mr-auto px-3 py-2 rounded-xl text-slate-300 text-xs font-semibold border border-slate-700">Archive</button>
-          <button id="btnCancelAddModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
-          <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg">Save Daily Game</button>
+        <div class="modal-footer flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button id="btnRemoveFromEdit" type="button" class="hidden px-3.5 py-2 rounded-full text-rose-300 text-xs font-semibold border border-rose-500/30">Remove</button>
+          <button id="btnArchiveFromEdit" type="button" class="hidden mr-auto px-3.5 py-2 rounded-full text-slate-300 text-xs font-semibold border border-slate-700">Archive</button>
+          <button id="btnCancelAddModal" type="button" class="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg">Save Daily Game</button>
         </div>
       </form>
     </div>
@@ -819,31 +830,33 @@
 
   <!-- QUICK LOG SCORE MODAL (Preserving Pasted Text Formatting) -->
   <div id="modalLogScore" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalLogTitle">
-    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-emerald-500/30 shadow-2xl overflow-hidden">
-      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-        <h3 id="modalLogTitle" class="text-sm sm:text-base font-bold text-white">Log Today's Result</h3>
-        <button id="btnCloseLogModal" type="button" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+    <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <h3 id="modalLogTitle" class="text-base font-bold text-white truncate">Log Today's Result</h3>
+        <button id="btnCloseLogModal" type="button" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
-      <form id="formLogScore" class="p-4 space-y-3.5 text-xs sm:text-sm">
+      <form id="formLogScore" class="space-y-3.5 text-xs sm:text-sm">
         <input type="hidden" id="logGameId" value="" />
         <div>
           <p id="logOutcomeLabel" class="block text-xs font-semibold text-slate-300 mb-1.5">Outcome</p>
           <div class="grid grid-cols-2 gap-2.5" role="group" aria-labelledby="logOutcomeLabel">
-            <button type="button" data-status-pick="completed" class="status-pick-btn py-2.5 px-3 rounded-xl border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs icon-label w-full"><span class="ico ico-solved ico-lg" aria-hidden="true"></span>Solved / Won</button>
-            <button type="button" data-status-pick="missed" class="status-pick-btn py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs icon-label w-full"><span class="ico ico-missed ico-lg" aria-hidden="true"></span>Missed</button>
+            <button type="button" data-status-pick="completed" class="status-pick-btn py-2.5 px-3 rounded-full border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs icon-label w-full"><span class="ico ico-solved ico-lg" aria-hidden="true"></span>Solved / Won</button>
+            <button type="button" data-status-pick="missed" class="status-pick-btn py-2.5 px-3 rounded-full border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs icon-label w-full"><span class="ico ico-missed ico-lg" aria-hidden="true"></span>Missed</button>
           </div>
         </div>
         <div>
           <div class="flex items-center justify-between gap-2 mb-1.5">
             <label for="inputLogScoreText" class="block text-xs font-semibold text-slate-300 nowrap">Score / share text</label>
-            <button id="btnScreenshotScore" type="button" class="hidden px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold nowrap">📷 Screenshot</button>
-            <button id="btnPasteScore" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold nowrap icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Paste</button>
+            <div class="flex items-center gap-1.5">
+              <button id="btnScreenshotScore" type="button" class="hidden px-3.5 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold nowrap icon-label"><span aria-hidden="true">📷</span><span>Screenshot</span></button>
+              <button id="btnPasteScore" type="button" class="px-3.5 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold nowrap icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Paste</button>
+            </div>
           </div>
-          <textarea id="inputLogScoreText" rows="5" placeholder="Paste the result the game copied (emoji grids and line breaks are kept)…" style="white-space: pre-wrap; tab-size: 4;" class="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-xs leading-relaxed placeholder-slate-500 resize-y"></textarea>
+          <textarea id="inputLogScoreText" rows="5" placeholder="Paste the result the game copied (emoji grids and line breaks are kept)…" style="white-space: pre-wrap; tab-size: 4;" class="modal-input w-full px-3.5 py-2.5 rounded-2xl bg-slate-900 border border-slate-700 text-white font-mono text-xs leading-relaxed placeholder-slate-500 resize-y"></textarea>
         </div>
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-          <button id="btnCancelLogModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
-          <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg">Save Progress</button>
+        <div class="modal-footer flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button id="btnCancelLogModal" type="button" class="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg">Save Progress</button>
         </div>
       </form>
     </div>
@@ -851,21 +864,21 @@
 
   <!-- CALENDAR DAY SNAPSHOT (read-only; Edit opens the log editor) -->
   <div id="modalDayEntry" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="dayEntryTitle">
-    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl overflow-hidden">
-      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2">
+    <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
         <div class="min-w-0">
-          <h3 id="dayEntryTitle" class="text-sm sm:text-base font-bold text-white truncate">Result</h3>
-          <p id="dayEntryDate" class="text-[11px] text-slate-400"></p>
+          <h3 id="dayEntryTitle" class="text-base font-bold text-white truncate">Result</h3>
+          <p id="dayEntryDate" class="text-xs text-slate-400"></p>
         </div>
-        <button type="button" data-close-modal="modalDayEntry" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalDayEntry" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
-      <div class="p-4 space-y-3 text-xs sm:text-sm">
+      <div class="space-y-3 text-xs sm:text-sm">
         <div id="dayEntryChips" class="day-chips"></div>
         <pre id="dayEntryScore" class="hist-score hidden"></pre>
         <p id="dayEntryEmpty" class="hidden text-xs text-slate-400">Nothing logged for this day.</p>
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-          <button id="btnDayEntryCopy" type="button" class="hidden px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Copy</button>
-          <button id="btnDayEntryEdit" type="button" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg">Edit</button>
+        <div class="modal-footer flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button id="btnDayEntryCopy" type="button" class="hidden px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Copy</button>
+          <button id="btnDayEntryEdit" type="button" class="px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg">Edit</button>
         </div>
       </div>
     </div>
@@ -873,13 +886,13 @@
 
   <!-- POPULAR GAMES PICKER (built-in catalogue) -->
   <div id="modalBrowseGames" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="browseGamesTitle">
-    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-lg border border-slate-700 shadow-2xl overflow-hidden">
-      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2">
-        <h3 id="browseGamesTitle" class="text-sm sm:text-base font-bold text-white">Popular daily games</h3>
-        <button type="button" data-close-modal="modalBrowseGames" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+    <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-lg border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <h3 id="browseGamesTitle" class="text-base font-bold text-white">Popular daily games</h3>
+        <button type="button" data-close-modal="modalBrowseGames" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
-      <div class="p-4 space-y-3">
-        <input id="browseGamesSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search games" aria-label="Search games" class="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm placeholder-slate-500" />
+      <div class="space-y-3">
+        <input id="browseGamesSearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search games" aria-label="Search games" class="w-full px-4 py-2.5 rounded-full bg-slate-900 border border-slate-700 text-white text-sm placeholder-slate-500" />
         <div id="browseGamesList" class="browse-list"></div>
       </div>
     </div>
@@ -894,7 +907,7 @@
           <h3 id="achDetailTitle" class="text-base font-bold text-white">Achievement</h3>
           <p id="achDetailSub" class="text-xs text-slate-400"></p>
         </div>
-        <button type="button" data-close-modal="modalAchievement" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalAchievement" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div id="achDetailTiers" class="ach-detail-tiers"></div>
     </div>
@@ -907,7 +920,7 @@
           <h3 id="iconEditorTitle" class="text-base font-bold text-white">Your own icon</h3>
           <p class="text-xs text-slate-400">Pick the star and background colors.</p>
         </div>
-        <button type="button" data-close-modal="modalIconEditor" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalIconEditor" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div id="iconEditorPreview" class="icon-editor-preview" aria-hidden="true"></div>
       <p class="ie-label">Star</p>
@@ -917,30 +930,8 @@
       <input id="iconEditorColor" type="color" class="sr-only" tabindex="-1" aria-hidden="true" />
       <p class="text-[11px] text-slate-400 leading-relaxed">Android doesn't let apps change their own icon to a custom picture, so <strong class="text-slate-200">Add to Home Screen</strong> adds a Dailies shortcut with this icon. It's also used inside the app and on alerts.</p>
       <div class="today-results-actions">
-        <button id="btnIconEditorUse" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Use in app</button>
-        <button id="btnIconEditorPin" type="button" class="android-only px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg">Add to Home Screen</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="modalRestoreGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="restoreGameTitle">
-    <div tabindex="-1" class="modal-panel glass-card changes-panel w-full max-w-md border border-slate-700 shadow-2xl">
-      <div class="flex items-center justify-between gap-3">
-        <div class="min-w-0">
-          <h3 id="restoreGameTitle" class="text-base font-bold text-white">Restore one game</h3>
-          <p id="restoreGameSub" class="text-xs text-slate-400">Pick a game from the backup.</p>
-        </div>
-        <button type="button" data-close-modal="modalRestoreGame" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
-      </div>
-      <div id="restoreGameList" class="changes-list"></div>
-      <div id="restoreGameMode" class="hidden restore-mode">
-        <p id="restoreGameChosen" class="text-sm font-bold text-white"></p>
-        <p id="restoreGameDetail" class="text-xs text-slate-400 mt-1"></p>
-        <div class="restore-actions">
-          <button id="btnRestoreMerge" type="button" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold">Add missing days</button>
-          <button id="btnRestoreReplace" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Replace its history</button>
-        </div>
-        <p class="text-[11px] text-slate-500 mt-2">Add missing days keeps everything you have and fills in days from the backup. Replace swaps this game's history for the backup's. Either can be undone from Recent changes.</p>
+        <button id="btnIconEditorUse" type="button" class="px-4 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Use in app</button>
+        <button id="btnIconEditorPin" type="button" class="android-only px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg">Add to Home Screen</button>
       </div>
     </div>
   </div>
@@ -952,13 +943,13 @@
           <h3 id="todayResultsTitle" class="text-base font-bold text-white">Today's results</h3>
           <p id="todayResultsSub" class="text-xs text-slate-400">All of today's results in one message.</p>
         </div>
-        <button type="button" data-close-modal="modalTodayResults" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalTodayResults" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <label class="today-results-opt"><input id="todayResultsGrids" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" /><span>Include emoji grids</span></label>
       <pre id="todayResultsPreview" class="today-results-preview" dir="auto"></pre>
       <div class="today-results-actions">
-        <button id="btnTodayResultsCopy" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Copy</button>
-        <button id="btnTodayResultsShare" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg">Share</button>
+        <button id="btnTodayResultsCopy" type="button" class="px-4 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold icon-label"><span class="ico ico-paste" aria-hidden="true"></span>Copy</button>
+        <button id="btnTodayResultsShare" type="button" class="px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg">Share</button>
       </div>
     </div>
   </div>
@@ -972,15 +963,15 @@
           <h3 id="gameActionsTitle" class="text-base font-bold text-white truncate" dir="auto">Game</h3>
           <p id="gameActionsSub" class="text-xs text-slate-400 truncate"></p>
         </div>
-        <button type="button" data-close-modal="modalGameActions" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalGameActions" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div id="gameActionsList" class="game-actions-list"></div>
       <div id="gameActionsNotes" class="hidden game-notes">
         <label for="gameNotesInput" class="text-xs font-semibold text-slate-300">Notes</label>
         <textarea id="gameNotesInput" rows="4" maxlength="2000" dir="auto" placeholder="Tips, strategy, anything to remember about this game"></textarea>
         <div class="flex justify-end gap-2">
-          <button id="btnGameNotesCancel" type="button" class="px-3 py-2 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold">Cancel</button>
-          <button id="btnGameNotesSave" type="button" class="px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-bold">Save notes</button>
+          <button id="btnGameNotesCancel" type="button" class="px-4 py-2 rounded-full bg-slate-800 text-slate-200 text-xs font-semibold">Cancel</button>
+          <button id="btnGameNotesSave" type="button" class="px-4 py-2 rounded-full bg-indigo-600 text-white text-xs font-bold">Save notes</button>
         </div>
       </div>
     </div>
@@ -994,10 +985,10 @@
           <h3 id="trashTitle" class="text-base font-bold text-white">Trash</h3>
           <p class="text-xs text-slate-400">Removed games, forgotten history and cleared results are kept here for 30 days.</p>
         </div>
-        <button type="button" data-close-modal="modalTrash" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalTrash" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div id="trashList" class="changes-list"></div>
-      <div class="flex justify-end"><button id="btnEmptyTrash" type="button" class="px-3 py-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold">Empty trash</button></div>
+      <div class="flex justify-end"><button id="btnEmptyTrash" type="button" class="px-4 py-2 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold">Empty trash</button></div>
     </div>
   </div>
 
@@ -1010,13 +1001,13 @@
           <h3 id="recheckTitle" class="text-base font-bold text-white">Updates from game pages</h3>
           <p id="recheckSub" class="text-xs text-slate-400"></p>
         </div>
-        <button type="button" data-close-modal="modalRecheck" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalRecheck" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div id="recheckList" class="recheck-list"></div>
       <p class="text-[11px] text-slate-500">Untick anything you'd rather keep. What you skip isn't suggested again.</p>
       <div class="flex justify-end gap-2">
-        <button id="btnRecheckSkip" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Keep mine</button>
-        <button id="btnRecheckApply" type="button" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg">Update</button>
+        <button id="btnRecheckSkip" type="button" class="px-4 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Keep mine</button>
+        <button id="btnRecheckApply" type="button" class="px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg">Update</button>
       </div>
     </div>
   </div>
@@ -1028,10 +1019,10 @@
           <h3 id="whatsNewTitle" class="text-base font-bold text-white">What's new</h3>
           <p id="whatsNewSub" class="text-xs text-slate-400"></p>
         </div>
-        <button type="button" data-close-modal="modalWhatsNew" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalWhatsNew" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div id="whatsNewList" class="whats-new-list"></div>
-      <div class="flex justify-end"><button type="button" data-close-modal="modalWhatsNew" class="px-5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold">Got it</button></div>
+      <div class="flex justify-end"><button type="button" data-close-modal="modalWhatsNew" class="px-5 py-2.5 rounded-full bg-indigo-600 text-white text-sm font-bold">Got it</button></div>
     </div>
   </div>
 
@@ -1043,14 +1034,14 @@
           <h3 id="errorLogTitle" class="text-base font-bold text-white">Report a problem</h3>
           <p class="text-xs text-slate-400">Recent errors and crashes, with your app and phone version. No games, scores or personal data are included. Check it before you send it.</p>
         </div>
-        <button type="button" data-close-modal="modalErrorLog" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalErrorLog" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <pre id="errorLogText" class="today-results-preview error-log-text" dir="ltr"></pre>
       <div class="error-log-actions">
-        <button id="btnErrorLogClear" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold">Clear log</button>
-        <button id="btnErrorLogCopy" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold">Copy</button>
-        <button id="btnErrorLogShare" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold">Share</button>
-        <button id="btnErrorLogIssue" type="button" class="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold">Open a GitHub issue</button>
+        <button id="btnErrorLogClear" type="button" class="px-3.5 py-2 rounded-full bg-slate-800 text-slate-200 text-xs font-semibold">Clear log</button>
+        <button id="btnErrorLogCopy" type="button" class="px-3.5 py-2 rounded-full bg-slate-800 text-slate-200 text-xs font-semibold">Copy</button>
+        <button id="btnErrorLogShare" type="button" class="px-3.5 py-2 rounded-full bg-slate-800 text-slate-200 text-xs font-semibold">Share</button>
+        <button id="btnErrorLogIssue" type="button" class="px-4 py-2 rounded-full bg-indigo-600 text-white text-xs font-bold">Open a GitHub issue</button>
       </div>
     </div>
   </div>
@@ -1063,11 +1054,11 @@
           <h3 id="gameHealthTitle" class="text-base font-bold text-white">Links &amp; icons</h3>
           <p id="gameHealthSub" class="text-xs text-slate-400">Check that every game's site still loads, and fetch sharper icons.</p>
         </div>
-        <button type="button" data-close-modal="modalGameHealth" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalGameHealth" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div class="grid grid-cols-2 gap-2.5 text-xs">
-        <button id="btnCheckLinks" type="button" class="px-3 py-2.5 rounded-xl bg-indigo-600 text-white font-bold">Check links</button>
-        <button id="btnRefreshIcons" type="button" class="px-3 py-2.5 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Refresh icons</button>
+        <button id="btnCheckLinks" type="button" class="px-3 py-2.5 rounded-full bg-indigo-600 text-white font-bold">Check links</button>
+        <button id="btnRefreshIcons" type="button" class="px-3 py-2.5 rounded-full bg-slate-800 text-slate-200 border border-slate-700 font-semibold">Refresh icons</button>
       </div>
       <p id="gameHealthStatus" class="text-xs text-slate-400" role="status" aria-live="polite"></p>
       <div id="gameHealthList" class="changes-list"></div>
@@ -1082,7 +1073,7 @@
           <h3 id="modalThemeTitle" class="text-base font-bold text-white">Theme</h3>
           <p class="text-xs text-slate-400">Changes show straight away.</p>
         </div>
-        <button type="button" data-close-modal="modalTheme" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalTheme" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div class="set-sheet grid grid-cols-1 text-xs">
           <div class="set-row flex items-center justify-between gap-3">
@@ -1103,7 +1094,7 @@
             </div>
             <input id="settingDynamicWallpaper" type="checkbox" checked class="w-4 h-4 rounded accent-indigo-500 shrink-0" />
           </label>
-          <div class="set-row sm:col-span-3">
+          <div class="set-row">
             <p class="font-bold text-white">Color Theme</p>
             <p class="text-[11px] text-slate-400">A preset, or pick your own accent</p>
             <div id="themeChoices" class="theme-choices" role="radiogroup" aria-label="Color theme"></div>
@@ -1136,7 +1127,7 @@
           <h3 id="modalAppIconTitle" class="text-base font-bold text-white">App Icon</h3>
           <p class="text-xs text-slate-400">Changes when you leave the app. Some launchers then remove it from the home screen; add it again from the app list.</p>
         </div>
-        <button type="button" data-close-modal="modalAppIcon" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalAppIcon" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div class="set-sheet grid grid-cols-1 text-xs">
           <div class="set-row">
@@ -1154,10 +1145,10 @@
           <h3 id="storageTitle" class="text-base font-bold text-white">Storage</h3>
           <p id="storageSub" class="text-xs text-slate-400">What Dailies keeps on this phone. Clearing these never touches your games, history or backups.</p>
         </div>
-        <button type="button" data-close-modal="modalStorage" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalStorage" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div id="storageList" class="changes-list"></div>
-      <div class="flex justify-end gap-2"><button id="btnStorageClear" type="button" class="px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-bold" disabled>Clear selected</button></div>
+      <div class="flex justify-end gap-2"><button id="btnStorageClear" type="button" class="px-5 py-2.5 rounded-full bg-indigo-600 text-white text-xs font-bold" disabled>Clear selected</button></div>
     </div>
   </div>
 
@@ -1168,7 +1159,7 @@
           <h3 id="changesTitle" class="text-base font-bold text-white">Recent changes</h3>
           <p class="text-xs text-slate-400">Logs, edits and removals from the last 60 days. Undo any of them.</p>
         </div>
-        <button type="button" data-close-modal="modalChanges" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+        <button type="button" data-close-modal="modalChanges" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
       <div class="modal-search"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"/></svg><input id="changesSearch" type="search" autocomplete="off" placeholder="Search by game, change or date" aria-label="Search changes" /></div>
       <div id="changesList" class="changes-list"></div>
@@ -1185,62 +1176,62 @@
         </div>
       </div>
       <div class="next-game-actions">
-        <button id="btnNextGameHome" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Back to home</button>
-        <button id="btnNextGamePlay" type="button" class="next-game-play px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg truncate">Play next</button>
+        <button id="btnNextGameHome" type="button" class="px-4 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold">Back to home</button>
+        <button id="btnNextGamePlay" type="button" class="next-game-play px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold shadow-lg truncate">Play next</button>
       </div>
     </div>
   </div>
 
   <!-- DELETE GAME CONFIRMATION POPUP MODAL -->
   <div id="modalDeleteGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalDeleteTitle">
-    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-rose-500/30 shadow-2xl overflow-hidden">
-      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-        <h3 id="modalDeleteTitle" class="text-sm sm:text-base font-bold text-white">Remove Game</h3>
-        <button id="btnCloseDeleteModal" type="button" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+    <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <h3 id="modalDeleteTitle" class="text-base font-bold text-white truncate">Remove Game</h3>
+        <button id="btnCloseDeleteModal" type="button" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
-      <div class="p-4 space-y-4 text-xs sm:text-sm">
+      <div class="space-y-4 text-xs sm:text-sm">
         <input type="hidden" id="deleteGameId" value="" />
         <p id="modalDeleteMessage" class="text-slate-200 leading-relaxed">
           Are you sure you want to remove this game from the app? Streaks and log data will be retained.
         </p>
-        <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-          <button id="btnCancelDeleteModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancel</button>
-          <button id="btnConfirmDeleteModal" type="button" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg">Remove</button>
+        <div class="modal-footer flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button id="btnCancelDeleteModal" type="button" class="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Cancel</button>
+          <button id="btnConfirmDeleteModal" type="button" class="px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg">Remove</button>
         </div>
       </div>
     </div>
   </div>
 
   <div id="modalShareList" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalShareListTitle">
-    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl overflow-hidden">
-      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-        <h3 id="modalShareListTitle" class="text-sm sm:text-base font-bold text-white">Share your games</h3>
-        <button id="btnCloseShareList" type="button" data-close-modal="modalShareList" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+    <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <h3 id="modalShareListTitle" class="text-base font-bold text-white">Share your games</h3>
+        <button id="btnCloseShareList" type="button" data-close-modal="modalShareList" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
-      <div class="p-4 space-y-3 text-xs text-center">
+      <div class="space-y-3 text-xs text-center">
         <p class="text-slate-300">A friend can scan this with their phone camera, or open the link, to add the same games in Dailies.</p>
         <img id="shareListQr" alt="QR code for your game list" class="share-qr mx-auto" draggable="false" />
         <p id="shareListCount" class="text-slate-400"></p>
-        <div class="flex justify-center gap-2 pt-1">
-          <button id="btnShareListLink" type="button" class="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold">Share link</button>
-          <button type="button" data-close-modal="modalShareList" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-semibold">Done</button>
+        <div class="modal-footer flex justify-center gap-2 pt-2">
+          <button id="btnShareListLink" type="button" class="px-5 py-2 rounded-full bg-indigo-600 text-white font-bold">Share link</button>
+          <button type="button" data-close-modal="modalShareList" class="px-4 py-2 rounded-full bg-slate-800 text-slate-200 font-semibold">Done</button>
         </div>
       </div>
     </div>
   </div>
 
   <div id="modalImportList" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalImportListTitle">
-    <div tabindex="-1" class="modal-panel glass-card rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl overflow-hidden">
-      <div class="px-4 py-3.5 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between">
-        <h3 id="modalImportListTitle" class="text-sm sm:text-base font-bold text-white">Add games from a friend</h3>
-        <button id="btnCloseImportList" type="button" data-close-modal="modalImportList" class="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+    <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <h3 id="modalImportListTitle" class="text-base font-bold text-white">Add games from a friend</h3>
+        <button id="btnCloseImportList" type="button" data-close-modal="modalImportList" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
       </div>
-      <div class="p-4 space-y-3 text-xs">
+      <div class="space-y-3 text-xs">
         <p id="importListSub" class="text-slate-300">Pick the games to add.</p>
         <div id="importListRows" class="space-y-1.5 max-h-[50vh] overflow-y-auto"></div>
-        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
-          <button type="button" data-close-modal="modalImportList" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-semibold">Cancel</button>
-          <button id="btnImportListAdd" type="button" class="px-5 py-2 rounded-xl bg-indigo-600 text-white font-bold">Add games</button>
+        <div class="modal-footer flex justify-end gap-2 pt-3 border-t border-slate-800">
+          <button type="button" data-close-modal="modalImportList" class="px-4 py-2 rounded-full bg-slate-800 text-slate-200 font-semibold">Cancel</button>
+          <button id="btnImportListAdd" type="button" class="px-5 py-2 rounded-full bg-indigo-600 text-white font-bold">Add games</button>
         </div>
       </div>
     </div>
@@ -1253,7 +1244,7 @@
   <div id="returnPrompt" class="return-sheet hidden" role="dialog" aria-labelledby="returnPromptTitle">
     <div class="return-card">
       <div class="return-head">
-        <div id="returnPromptIcon" class="m3-shape-avatar-compact m3-shape-3 shrink-0 overflow-hidden"></div>
+        <div id="returnPromptIcon" class="m3-shape-avatar-compact m3-shape-app shrink-0 overflow-hidden"></div>
         <div class="min-w-0 flex-1">
           <p id="returnPromptTitle" class="return-title">Finished?</p>
           <p id="returnPromptSub" class="return-sub">Log today's result to keep your streak.</p>
@@ -1275,38 +1266,43 @@
 
   <!-- ANDROID MATERIAL 3 EXPRESSIVE FLOATING NAVIGATION BAR -->
   <nav id="bottomNavWrapper" class="m3-bottom-nav-wrapper" aria-label="Primary Navigation">
-    <div class="m4-floating-dock pointer-events-auto px-3 py-1.5 grid grid-cols-3 gap-2">
-      <span id="navIndicator" class="nav-indicator m4-tonal-pill" aria-hidden="true"></span>
-      <button type="button" data-nav="dashboard" aria-current="page" class="nav-btn nav-on relative flex flex-col items-center justify-center py-1 rounded-full font-bold text-[11px]">
-        <span class="m3-floating-icon mb-0.5" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="6" width="20" height="12" rx="6" />
-            <path d="M6 12h4M8 10v4" />
-            <circle cx="15" cy="11" r="0.85" fill="currentColor" />
-            <circle cx="17.5" cy="13" r="0.85" fill="currentColor" />
-          </svg>
-        </span>
-        <span>Daily Hub</span>
-      </button>
-      <button type="button" data-nav="stats" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]">
-        <span class="m3-floating-icon mb-0.5" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3v18h18" />
-            <rect x="7" y="12" width="2.5" height="6" rx="0.6" />
-            <rect x="12" y="8" width="2.5" height="10" rx="0.6" />
-            <rect x="17" y="5" width="2.5" height="13" rx="0.6" />
-          </svg>
-        </span>
-        <span>Streaks &amp; Log</span>
-      </button>
-      <button type="button" data-nav="settings" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]">
-        <span class="m3-floating-icon mb-0.5" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="3.2" />
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-          </svg>
-        </span>
-        <span>Settings</span>
+    <div class="m3-bottom-bar-row">
+      <div class="m4-floating-dock pointer-events-auto px-2 py-1.5 grid grid-cols-3 gap-1">
+        <span id="navIndicator" class="nav-indicator m4-tonal-pill" aria-hidden="true"></span>
+        <button type="button" data-nav="dashboard" aria-current="page" class="nav-btn nav-on relative flex flex-col items-center justify-center py-1 rounded-full font-bold text-[11px]">
+          <span class="m3-floating-icon mb-0.5" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="6" />
+              <path d="M6 12h4M8 10v4" />
+              <circle cx="15" cy="11" r="0.85" fill="currentColor" />
+              <circle cx="17.5" cy="13" r="0.85" fill="currentColor" />
+            </svg>
+          </span>
+          <span>Daily Hub</span>
+        </button>
+        <button type="button" data-nav="stats" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]">
+          <span class="m3-floating-icon mb-0.5" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18" />
+              <rect x="7" y="12" width="2.5" height="6" rx="0.6" />
+              <rect x="12" y="8" width="2.5" height="10" rx="0.6" />
+              <rect x="17" y="5" width="2.5" height="13" rx="0.6" />
+            </svg>
+          </span>
+          <span>Streaks &amp; Log</span>
+        </button>
+        <button type="button" data-nav="settings" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full text-slate-300 hover:text-white font-medium text-[11px]">
+          <span class="m3-floating-icon mb-0.5" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3.2" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </span>
+          <span>Settings</span>
+        </button>
+      </div>
+      <button id="btnOpenAddModal" type="button" class="m3-dock-fab m4-primary-fab pointer-events-auto" aria-label="Add game" title="Add game">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>
   </nav>
@@ -1746,14 +1742,37 @@
 
     function loadState() {
       const { copies, unreadable } = readSavedCopies();
-      let best = null;
+      let nativeParsed = null;
+      let localParsed = null;
       let unparsable = false;
+      const nativeActive = hasNativeStore();
+      const maxValidSavedAt = Date.now() + 60000;
       copies.forEach((c) => {
         const parsed = parseSavedState(c.raw);
-        if (!parsed) { unparsable = unparsable || c.source === 'native'; return; }
+        if (!parsed) {
+          unparsable = true;
+          return;
+        }
         const at = Number(parsed.savedAt) || 0;
-        if (!best || at > best.at) best = { parsed, at, source: c.source };
+        if (c.source === 'native') {
+          if (!nativeParsed || at > nativeParsed.at) nativeParsed = { parsed, at, source: 'native' };
+        } else if (!localParsed || at > localParsed.at) {
+          localParsed = { parsed, at, source: c.source };
+        }
       });
+      let best = null;
+      if (nativeActive) {
+        if (nativeParsed) {
+          best = nativeParsed;
+          if (localParsed && localParsed.parsed.__nativeFallback === true && localParsed.at > nativeParsed.at && localParsed.at <= maxValidSavedAt) {
+            best = localParsed;
+          }
+        } else if (!unparsable && localParsed) {
+          best = localParsed;
+        }
+      } else {
+        best = localParsed;
+      }
       if (best && !unreadable && !unparsable) return stateFromParsed(best.parsed, best.source);
       if (unreadable || unparsable) {
         // Saved data exists but can't be used. Never overwrite it: start in a protected, read-only
@@ -1776,9 +1795,10 @@
     let liveTickIntervalId = null;
     let historyPage = 0; // 0 = newest page
 
-    function serializeState() {
+    function serializeState(extra) {
       const copy = Object.assign({}, state, { schemaVersion: STATE_SCHEMA_VERSION, savedAt: Date.now() });
       Object.keys(copy).forEach((k) => { if (k.startsWith('__')) delete copy[k]; });
+      if (extra && typeof extra === 'object') Object.assign(copy, extra);
       return JSON.stringify(copy);
     }
 
@@ -1788,7 +1808,8 @@
       // round trip to Android (the theme one redrew the window's background and system bars), often in
       // the middle of an animation.
       const s0 = state.settings || {};
-      const sig = JSON.stringify([s0.amoledDark, s0.dynamicWallpaper, s0.themeMode, s0.streakReminderMinutes, currentAppIcon(), s0.darkGamePages,
+      const iconForLauncher = typeof launcherIconStyle === 'function' ? launcherIconStyle() : currentAppIcon();
+      const sig = JSON.stringify([s0.amoledDark, s0.dynamicWallpaper, s0.themeMode, s0.streakReminderMinutes, iconForLauncher, s0.darkGamePages,
         s0.blockAdsInGames, s0.autoLogFromShare, s0.preloadGames, s0.recheckGames, s0.hideCookieBanners, s0.pullToRefresh, s0.findResults]);
       if (sig === lastLaunchPrefs) return;
       lastLaunchPrefs = sig;
@@ -1812,7 +1833,7 @@
           window.AndroidBridge.setStreakReminder(Number((state.settings || {}).streakReminderMinutes) || 0);
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setAppIconStyle === 'function') {
-          window.AndroidBridge.setAppIconStyle(currentAppIcon());
+          window.AndroidBridge.setAppIconStyle(iconForLauncher);
         }
         if (window.AndroidBridge && typeof window.AndroidBridge.setDarkGamePages === 'function') {
           window.AndroidBridge.setDarkGamePages((state.settings || {}).darkGamePages !== false);
@@ -1906,10 +1927,16 @@
     window.onHubSaveResult = function (ok) {
       if (ok) {
         lastSaveFailToastAt = 0;
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
         showToast('Saving works again', 'Your latest changes are saved.', 'emerald');
-      } else if (Date.now() - lastSaveFailToastAt > 60000) {
-        lastSaveFailToastAt = Date.now();
-        showToast('Could not save', 'Your latest changes are not saved yet (is the phone\'s storage full?). Export a backup from Settings.', 'indigo');
+      } else {
+        try {
+          if (!state.__saveBlocked) localStorage.setItem(STORAGE_KEY, serializeState({ __nativeFallback: true }));
+        } catch (e) {}
+        if (Date.now() - lastSaveFailToastAt > 60000) {
+          lastSaveFailToastAt = Date.now();
+          showToast('Could not save', 'Your latest changes are not saved yet (is the phone\'s storage full?). Export a backup from Settings.', 'indigo');
+        }
       }
     };
 
@@ -1930,6 +1957,19 @@
       saveState({ syncNow: true });
       renderAll();
       showToast('Started fresh', 'Your unreadable data was kept aside on the device, not deleted.', 'indigo');
+    }
+
+    function latestLoggedCycle(g) {
+      const h = g && g.dayHistory;
+      if (!h || typeof h !== 'object') return '';
+      let best = '';
+      const keys = Object.keys(h);
+      for (let i = 0; i < keys.length; i++) {
+        const k = keys[i];
+        const v = h[k];
+        if ((v === 'completed' || v === 'missed') && HubCore.DATE_KEY_RE.test(k) && k > best) best = k;
+      }
+      return best;
     }
 
     function flushSyncNativeNow() {
@@ -1954,6 +1994,7 @@
             // Logged anything (solved or missed) for the current puzzle: no streak reminder needed.
             loggedCycle: (g.status === 'completed' || g.status === 'missed') && g.lastCycleKey === getCycleDateKey(g.resetTime, g.resetZone)
               ? g.lastCycleKey : '',
+            lastLoggedCycle: latestLoggedCycle(g),
             status: g.status || 'ready',
             streak: g.archived ? 0 : (g.streak || 0)
           }))));
@@ -2142,6 +2183,7 @@
     }
 
     let themeSwitchTimer = 0;
+    let lastRenderedThemeDay = localTodayKey();
     function applyThemeAndSettings() {
       if (!state.settings) state.settings = getDefaultSettings();
       const root = document.documentElement;
@@ -2207,9 +2249,9 @@
         if (themeTokens) localStorage.setItem('dailydeck_theme_tokens_v1', JSON.stringify({ light, tokens: themeTokens }));
         else localStorage.removeItem('dailydeck_theme_tokens_v1');
       } catch (e) {}
-      // Gold & Ruby themes (picked in Color Theme, rolled via Daily Random, or legacy accent flag with Wallpaper).
-      const ruby = (activeTheme === 'ruby' || (useWallpaper && rubyAccentsOn())) && rubyUnlocked();
-      const gold = !ruby && (activeTheme === 'gold' || (useWallpaper && goldAccentsOn())) && goldAccentsUnlocked();
+      // Gold & Ruby themes (picked in Color Theme or rolled via Daily Random).
+      const ruby = activeTheme === 'ruby' && rubyUnlocked();
+      const gold = !ruby && activeTheme === 'gold' && goldAccentsUnlocked();
       root.setAttribute('data-gold', gold ? 'true' : 'false');
       root.setAttribute('data-ruby', ruby ? 'true' : 'false');
       // 1.7.0 display options.
@@ -2223,7 +2265,7 @@
         const r = light
           ? { '--md-primary': '#AD0826', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#FFE0E5', '--md-on-primary-container': '#4A0210',
             '--md-secondary-container': '#FCE4E8', '--md-tertiary': '#AD0826', '--md-tertiary-container': '#FFE3E8', '--md-glow': 'rgba(196, 12, 44, 0.24)' }
-          : { '--md-primary': '#FF2E4F', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#4A0614', '--md-on-primary-container': '#FFD9E0',
+          : { '--md-primary': '#D90B32', '--md-on-primary': '#FFFFFF', '--md-primary-container': '#4A0614', '--md-on-primary-container': '#FFD9E0',
             '--md-secondary-container': '#3D0813', '--md-tertiary': '#FF6E88', '--md-tertiary-container': '#520818', '--md-glow': 'rgba(245, 22, 60, 0.36)' };
         Object.keys(r).forEach((k) => root.style.setProperty(k, r[k]));
       }
@@ -2235,6 +2277,14 @@
             '--md-secondary-container': '#3D331B', '--md-tertiary': '#D9C792', '--md-tertiary-container': '#473C20', '--md-glow': 'rgba(197, 174, 108, 0.30)' };
         Object.keys(g).forEach((k) => root.style.setProperty(k, g[k]));
       }
+      lastRenderedThemeDay = localTodayKey();
+      try {
+        const metaTheme = document.querySelector('meta[name="theme-color"]');
+        if (metaTheme) {
+          const surfaceCol = getComputedStyle(root).getPropertyValue('--md-surface').trim();
+          if (surfaceCol) metaTheme.setAttribute('content', surfaceCol);
+        }
+      } catch (e) {}
       // The game player's bar uses the same colours.
       try {
         const b = window.AndroidBridge;
@@ -2340,12 +2390,21 @@
           score: 'Auto-marked missed (daily reset occurred before completion)',
           streak: 0
         });
+        HubCore.recomputeLogStreaks(game, state.historyLogs);
+        HubCore.sortHistoryLogs(state.historyLogs);
+        invalidateLogIndex();
       }
     }
 
     function checkDailyRollovers(opts) {
       const silent = Boolean(opts && opts.silent);
       let changed = false;
+      const todayLocal = localTodayKey();
+      if (state.settings && state.settings.dailyRandomTheme && todayLocal !== lastRenderedThemeDay) {
+        lastRenderedThemeDay = todayLocal;
+        applyThemeAndSettings();
+        saveLaunchPrefs();
+      }
 
       state.games.forEach((g) => {
         const currentKey = getCycleDateKey(g.resetTime, g.resetZone);
@@ -2359,7 +2418,7 @@
           // Days while archived aren't tracked: just move to the current puzzle.
           g.lastCycleKey = currentKey;
           g.status = (g.dayHistory && g.dayHistory[currentKey]) || 'ready';
-          if (g.status !== 'completed') g.todayScore = '';
+          g.todayScore = (findLogRow(g, currentKey) || {}).score || '';
           changed = true;
           return;
         }
@@ -2376,7 +2435,7 @@
           // puzzle's own recorded outcome, never carry the later day's "Done" onto it.
           g.lastCycleKey = currentKey;
           g.status = g.dayHistory[currentKey] || 'ready';
-          if (g.status !== 'completed') g.todayScore = '';
+          g.todayScore = (findLogRow(g, currentKey) || {}).score || '';
           recomputeGameStatsFromHistory(g);
           changed = true;
           return;
@@ -2407,7 +2466,7 @@
         }
 
         g.status = g.dayHistory[currentKey] || 'ready';
-        g.todayScore = '';
+        g.todayScore = (findLogRow(g, currentKey) || {}).score || '';
         g.lastCycleKey = currentKey;
         recomputeGameStatsFromHistory(g);
         changed = true;
@@ -2966,7 +3025,7 @@
         grid.innerHTML = noGamesAtAll ? `
           <div class="glass-card rounded-2xl p-6 text-center border border-slate-800">
             <p class="text-base font-bold text-white">No games yet</p>
-            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">Tap <strong class="text-slate-200">+ Add Game</strong> and paste a daily game's link${IS_WEB ? ', or pick one from the list of popular games' : ', or share a link to Dailies from your browser'}.</p>
+            <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">Tap <strong class="text-slate-200">+</strong> in the bottom bar and paste a daily game's link${IS_WEB ? ', or pick one from the list of popular games' : ', or share a link to Dailies from your browser'}.</p>
           </div>
         ` : `
           <div class="glass-card rounded-2xl p-6 text-center border border-slate-800">
@@ -3118,10 +3177,15 @@
     };
 
     /** Text recognised in a screenshot: from the log dialog's button ("picker") or shared to Dailies ("share"). */
-    window.onScreenshotText = function (text, source) {
+    window.onScreenshotText = function (text, source, error) {
       if (text === null || text === undefined) {
-        if (source === 'share') showToast("Couldn't read that screenshot", 'Text reading needs Google Play services. You can still log the result by hand.', 'indigo');
-        else if (source === 'picker' && text === null) { /* picker closed or failed: nothing to do */ }
+        if (error === 'unreadable_image') {
+          showToast("Couldn't open that image", 'Pick a PNG or JPG screenshot of your result.', 'indigo');
+        } else if (error === 'model_unavailable') {
+          showToast("Couldn't read that screenshot", 'On-device text reading isn\'t available right now (needs Google Play services). You can still log the result by hand.', 'indigo');
+        } else if (error === 'ocr_failed' || source === 'share') {
+          showToast("Couldn't read that screenshot", 'Could not extract text from that screenshot. You can still log the result by hand.', 'indigo');
+        } else if (source === 'picker') { /* picker closed or failed: nothing to do */ }
         return;
       }
       const result = HubCore.extractResultText(text);
@@ -3131,8 +3195,7 @@
       }
       if (source === 'share' || !isModalOpen('modalLogScore')) {
         // Which game? Look for a game's name in the text; ask if it's unclear.
-        const low = String(text).toLowerCase();
-        const matches = visibleGames().filter((g) => g.name && low.includes(g.name.toLowerCase()));
+        const matches = visibleGames().filter((g) => HubCore.mentionsGameExplicitly(text, g.name, g.url));
         if (matches.length === 1) {
           switchNavigation('dashboard');
           openLogModal(matches[0].id);
@@ -3182,12 +3245,15 @@
     function historyCsv() {
       const q = (v) => {
         const t = String(v === undefined || v === null ? '' : v);
-        return /[",\n\r]/.test(t) || /^[=+\-@]/.test(t) ? `"${(/^[=+\-@]/.test(t) ? "'" : '') + t.replace(/"/g, '""')}"` : t;
+        const formula = /^[\s\x00-\x1F]*[=+\-@]/.test(t);
+        return /[",\n\r]/.test(t) || formula ? `"${(formula ? "'" : '') + t.replace(/"/g, '""')}"` : t;
       };
       const head = ['date', 'game', 'outcome', 'score', 'streak', 'time_seconds', 'logged_at', 'full_result'];
       const rows = state.historyLogs.slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).map((l) => {
         const sc = HubCore.parseScore(l.score);
-        return [l.date, l.gameName, l.outcome, sc ? (sc.fail ? `X/${sc.max}` : `${sc.n}/${sc.max}`) : '', Number(l.streak) || 0,
+        const pv = HubCore.parseResultValue(l.score);
+        const scoreCell = (pv && pv.label) || (sc && sc.fail ? `X/${sc.max}` : '');
+        return [l.date, l.gameName, l.outcome, scoreCell, Number(l.streak) || 0,
           Number(l.timeMs) > 0 ? Math.round(Number(l.timeMs) / 1000) : '', l.localTime || '', String(l.score || '').replace(/\r?\n/g, ' / ')].map(q).join(',');
       });
       return '\ufeff' + [head.join(',')].concat(rows).join('\r\n') + '\r\n';
@@ -3211,6 +3277,7 @@
     }
     window.onCsvSaved = function (ok) {
       if (ok) showToast('History exported', `${plural(state.historyLogs.length, 'result')} saved as a spreadsheet.`, 'emerald');
+      else showToast('Export cancelled', 'No spreadsheet file was saved.', 'indigo');
     };
 
     /**
@@ -3285,8 +3352,8 @@
 
     function moveGameInOrder(gameId, direction) {
       adoptSortAsCustom();
-      const filtered = visibleGames().filter((g) => state.activeFilter === 'all' || g.status === state.activeFilter);
-      const sec = gameSections(filtered);
+      const filtered = hubList();
+      const sec = hubSearch ? { grouped: false, open: filtered, done: [] } : gameSections(filtered);
       // The arrows move a card within the section it's shown in.
       const visibleList = !sec.grouped ? filtered : (sec.done.some((g) => g.id === gameId) ? sec.done : sec.open);
       const visIdx = visibleList.findIndex((g) => g.id === gameId);
@@ -3362,7 +3429,8 @@
       const begin = () => {
         if (!press) return;
         const card = press.card;
-        const cards = [...grid.querySelectorAll('[data-card-game-id]')];
+        const section = card.closest('#doneSection') || grid;
+        const cards = [...section.querySelectorAll(':scope > [data-card-game-id]')];
         const from = cards.indexOf(card);
         clearPress();
         if (from < 0) return;
@@ -3481,7 +3549,7 @@
         swallowTouchEnd = false;
         finish(true);
       });
-      grid.addEventListener('touchcancel', () => finish(false));
+      grid.addEventListener('touchcancel', () => { swallowTouchEnd = false; finish(false); });
       grid.addEventListener('contextmenu', (e) => {
         if (press || drag) { e.preventDefault(); return; }
         // A mouse right-click (web app on a computer) opens the quick actions too.
@@ -3706,11 +3774,17 @@
         document.body.appendChild(menu);
         const r = btn.getBoundingClientRect();
         const vh = window.innerHeight;
+        const clientW = document.documentElement.clientWidth || window.innerWidth;
         const below = vh - r.bottom - 12;
         const above = r.top - 12;
         const maxH = Math.min(380, Math.max(below, above));
-        menu.style.width = `${Math.max(r.width, 220)}px`;
-        menu.style.left = `${Math.min(Math.max(8, r.left), document.documentElement.clientWidth - Math.max(r.width, 220) - 8)}px`;
+        const menuW = Math.min(Math.max(r.width, 220), clientW - 16);
+        const alignRight = r.width < menuW && (r.left + r.width / 2) > (clientW / 2);
+        const left = alignRight
+          ? Math.min(Math.max(8, r.right - menuW), clientW - menuW - 8)
+          : Math.min(Math.max(8, r.left), clientW - menuW - 8);
+        menu.style.width = `${menuW}px`;
+        menu.style.left = `${left}px`;
         menu.style.maxHeight = `${maxH}px`;
         if (below >= Math.min(260, menu.scrollHeight) || below >= above) menu.style.top = `${r.bottom + 6}px`;
         else menu.style.bottom = `${vh - r.top + 6}px`;
@@ -3790,7 +3864,7 @@
      * One page is drawn at a time, the neighbours first.
      */
     function parkNeighbours() {
-      if (REDUCED_MOTION || Pager.neighbour || tabAnimating) return;
+      if (REDUCED_MOTION || Pager.neighbour || tabAnimating || isAnyModalOpen() || themedSelectOpen) return;
       const at = TAB_ORDER.indexOf(activeTab);
       const others = TAB_ORDER.filter((tab) => tab !== activeTab).sort((a, b) => Math.abs(TAB_ORDER.indexOf(a) - at) - Math.abs(TAB_ORDER.indexOf(b) - at));
       for (const tab of others) {
@@ -3803,7 +3877,11 @@
       }
     }
     /** Parks the pages after a page change, once the landing has settled (not in the frames right after). */
-    function parkSoon() { setTimeout(() => whenIdle(parkNeighbours, 1500), 700); }
+    let parkSoonTimer = 0;
+    function parkSoon() {
+      if (parkSoonTimer) clearTimeout(parkSoonTimer);
+      parkSoonTimer = setTimeout(() => { parkSoonTimer = 0; whenIdle(parkNeighbours, 1500); }, 700);
+    }
     /**
      * 1.8.11: called by the app while its launch cover is still over the page (see HubActivity.revealHub).
      * The page slides to each of the other pages and back once, at full size and opacity, exactly as a
@@ -4132,7 +4210,6 @@
       if (c.kind === 'log' && c.snap) ok = restoreUndo(c.snap);
       else if (c.kind === 'remove') ok = restoreRemovedGame(c);
       else if (c.kind === 'archive') ok = restoreArchived(c);
-      else if (c.kind === 'restore') ok = restoreRestoredGame(c);
       if (!ok) return;
       c.undone = Date.now();
       saveState();
@@ -4153,6 +4230,10 @@
       if (state.retainedGameStats) {
         delete state.retainedGameStats[g.id];
         if (key && state.retainedGameStats[key] && state.retainedGameStats[key].id === g.id) delete state.retainedGameStats[key];
+      }
+      if (Array.isArray(state.trash)) {
+        state.trash = state.trash.filter((t) => !(t && t.kind === 'game' && t.game && t.game.id === g.id));
+        updateTrashButton();
       }
       checkDailyRollovers({ silent: true });
       saveState();
@@ -4178,7 +4259,6 @@
     function changeLabel(c) {
       if (c.kind === 'remove') return `Removed ${c.name}`;
       if (c.kind === 'archive') return `${c.archived ? 'Archived' : 'Restored'} ${c.name}`;
-      if (c.kind === 'restore') return `Restored ${c.name} from a backup`;
       const had = c.snap && c.snap.dayValue;
       if (c.outcome === 'missed') return had ? `Changed ${c.name} to missed` : `Marked ${c.name} missed`;
       return had ? `Updated ${c.name}` : `Logged ${c.name}`;
@@ -4280,6 +4360,7 @@
         input.value = '';
         if (hubSearch) { hubSearch = ''; renderGamesGrid(); }
       }
+      syncBackInterceptState();
     }
 
     // ---- Quick actions (1.8.0): long-press a game card (or right-click it) ----
@@ -4425,6 +4506,8 @@
         }
         const have = new Set(state.historyLogs.map((l) => `${l.gameId}|${l.date}`));
         (t.logs || []).forEach((l) => { if (!have.has(`${l.gameId}|${l.date}`)) state.historyLogs.push(l); });
+        if (r) HubCore.recomputeLogStreaks(r, state.historyLogs);
+        HubCore.sortHistoryLogs(state.historyLogs);
         invalidateLogIndex();
         ok = true;
         showToast(`${t.name} restored`, 'Its history is back. Add the game again to carry on its streak.', 'emerald');
@@ -4459,7 +4542,8 @@
         saveState({ sync: false });
         renderTrash();
         renderVisibleTab();
-      });
+        if ((state.trash || []).length) openModal('modalTrash');
+      }, undefined, () => openModal('modalTrash'));
     }
     function emptyTrash() {
       const n = (state.trash || []).length;
@@ -4470,7 +4554,7 @@
         saveState({ sync: false });
         renderTrash();
         renderVisibleTab();
-      });
+      }, undefined, () => openModal('modalTrash'));
     }
 
     // ---- What's new (1.8.0): shown once after an update ----
@@ -4833,11 +4917,12 @@
       return { star: validHex(c.star) ? c.star : '#F2C94C', bg: validHex(c.bg) ? c.bg : '#1E1B4B' };
     }
     /** Dark or light sparkle, whichever shows up on the star. */
-    function markOn(hex) { const o = HubCore.hexToOklch(hex); return o && o.L > 0.72 ? '#1A1A1A' : '#FFFFFF'; }
+    function markOn(hex) { const o = HubCore.hexToOklch(hex); return o && o.L > 0.62 ? '#1A1A1A' : '#FFFFFF'; }
     function customIconSvg(size, uid, colors) {
       const c = colors || customIconColors();
       const id = `ci-${uid}`;
-      const light = HubCore.oklchToHex(Math.min(0.97, HubCore.hexToOklch(c.star).L + 0.12), HubCore.hexToOklch(c.star).C, HubCore.hexToOklch(c.star).H);
+      const starO = HubCore.hexToOklch(c.star) || { L: 0.8, C: 0.1, H: 90 };
+      const light = HubCore.oklchToHex(Math.min(0.97, starO.L + 0.12), starO.C, starO.H);
       return `<svg width="${size}" height="${size}" viewBox="0 0 108 108" class="hub-logo" aria-hidden="true"><defs>`
         + `<linearGradient id="${id}-s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78"><stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="${c.star}"/></linearGradient></defs>`
         + `<rect x="0.5" y="0.5" width="107" height="107" rx="30" fill="${c.bg}" stroke="var(--md-outline)" stroke-width="1"/>`
@@ -4869,8 +4954,10 @@
     function customIconPng(colors) {
       return new Promise((resolve) => {
         const c = colors;
+        const starO = HubCore.hexToOklch(c.star) || { L: 0.8, C: 0.1, H: 90 };
+        const light = HubCore.oklchToHex(Math.min(0.97, starO.L + 0.12), starO.C, starO.H);
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 108 108"><defs><linearGradient id="s" gradientUnits="userSpaceOnUse" x1="32" y1="30" x2="76" y2="78">`
-          + `<stop offset="0" stop-color="${HubCore.oklchToHex(Math.min(0.97, HubCore.hexToOklch(c.star).L + 0.12), HubCore.hexToOklch(c.star).C, HubCore.hexToOklch(c.star).H)}"/><stop offset="1" stop-color="${c.star}"/></linearGradient></defs>`
+          + `<stop offset="0" stop-color="${light}"/><stop offset="1" stop-color="${c.star}"/></linearGradient></defs>`
           + `<rect width="108" height="108" fill="${c.bg}"/><path d="${ICON_FLOWER}" fill="url(#s)"/><path d="${ICON_MARK}" fill="${markOn(c.star)}"/></svg>`;
         const img = new Image();
         img.onload = () => {
@@ -4896,80 +4983,6 @@
       showToast(result === 'pinned' ? 'Add it to your home screen' : 'Custom icon saved',
         result === 'pinned' ? 'Confirm in the box your launcher shows. The shortcut opens Dailies.' : "Your launcher can't add shortcuts, but the icon is used in the app and on alerts.", 'emerald');
     };
-
-    // ---- Restore one game from a backup (1.7.0) ----
-    let restoreGameUntil = 0;
-    let restoreBackup = null;
-    let restorePick = null;
-    function startRestoreOneGame() {
-      restoreGameUntil = Date.now() + 10 * 60000;
-      try {
-        if (window.AndroidBridge && typeof window.AndroidBridge.openBackupFilePicker === 'function') { window.AndroidBridge.openBackupFilePicker(); return; }
-      } catch (e) {}
-      const input = document.getElementById('inputImportBackupFile');
-      if (input) { input.value = ''; input.click(); }
-    }
-    /** A backup file chosen for "Restore one game": list its games. */
-    function openRestoreGame(raw) {
-      let parsed = null;
-      try { parsed = JSON.parse(String(raw || '').trim()); } catch (e) {}
-      const games = parsed && Array.isArray(parsed.games) ? parsed.games.filter((g) => g && g.id && g.name) : [];
-      if (!games.length) { showToast("Can't read that backup", 'Choose a Dailies backup file (.json).', 'indigo'); return; }
-      const logs = Array.isArray(parsed.historyLogs) ? parsed.historyLogs.filter((l) => l && typeof l.date === 'string') : [];
-      restoreBackup = { games, logs };
-      restorePick = null;
-      document.getElementById('restoreGameSub').textContent = `${plural(games.length, 'game')} in this backup. Pick one.`;
-      document.getElementById('restoreGameMode').classList.add('hidden');
-      const list = document.getElementById('restoreGameList');
-      list.classList.remove('hidden');
-      list.innerHTML = games.map((g, i) => {
-        const rows = logs.filter((l) => (l.gameId ? l.gameId === g.id : l.gameName === g.name));
-        const dates = rows.map((r) => r.date).sort();
-        const sub = rows.length ? `${plural(rows.length, 'result')} · ${formatCycleDateLabel(dates[0])} – ${formatCycleDateLabel(dates[dates.length - 1])}` : 'No results';
-        const inHub = state.games.some((x) => x.id === g.id || normalizeUrlKey(x.url) === normalizeUrlKey(g.url));
-        return `<button type="button" class="restore-row" data-restore-index="${i}"><span class="best-icon">${renderGameIconHtml(g.icon, g.name, 'w-5 h-5')}</span>`
-          + `<span class="rr-main"><span class="best-name" dir="auto">${escapeHtml(g.name)}</span><span class="best-sub">${escapeHtml(sub)}${inHub ? '' : ' · not in your hub'}</span></span></button>`;
-      }).join('');
-      openModal('modalRestoreGame');
-    }
-    function chooseRestoreGame(i) {
-      const g = restoreBackup && restoreBackup.games[i];
-      if (!g) return;
-      restorePick = g;
-      const rows = restoreBackup.logs.filter((l) => (l.gameId ? l.gameId === g.id : l.gameName === g.name));
-      const target = state.games.find((x) => x.id === g.id) || state.games.find((x) => normalizeUrlKey(x.url) === normalizeUrlKey(g.url));
-      document.getElementById('restoreGameList').classList.add('hidden');
-      document.getElementById('restoreGameMode').classList.remove('hidden');
-      document.getElementById('restoreGameChosen').textContent = g.name;
-      document.getElementById('restoreGameDetail').textContent = target
-        ? `${plural(rows.length, 'result')} in the backup; ${plural(state.historyLogs.filter((l) => l.gameId === target.id).length, 'result')} now.`
-        : `${plural(rows.length, 'result')} in the backup. It isn't in your hub, so it will be added back.`;
-      document.getElementById('btnRestoreReplace').classList.toggle('hidden', !target);
-    }
-    /** Brings one game's history back: "merge" fills in days you don't have; "replace" swaps it for the backup's. */
-    function applyRestoreGame(mode) {
-      const g = restorePick;
-      if (!g) return;
-      const res = HubUiHelpers.applyRestoreGameState(state, g, restoreBackup.logs, mode);
-      if (!res) return;
-      const { target, before, added, newGame } = res;
-      invalidateLogIndex();
-      const changeId = recordChange({ kind: 'restore', gameId: target.id, name: target.name, detail: mode === 'replace' ? 'History replaced from a backup' : `${plural(added, 'day')} added from a backup`, before, newGame });
-      saveState();
-      closeModal('modalRestoreGame');
-      renderVisibleTab();
-      checkNewAchievements();
-      showToast(`${target.name} restored`, mode === 'replace' ? 'Its history now matches the backup.' : `${plural(added, 'day')} added from the backup.`, 'emerald', null,
-        { actionLabel: 'Undo', onAction: () => undoChange(changeId) });
-    }
-    function restoreRestoredGame(c) {
-      if (!HubUiHelpers.restoreRestoredGameState(state, c)) return false;
-      invalidateLogIndex();
-      saveState();
-      renderVisibleTab();
-      showToast('Restore undone', `${c.name} is back as it was.`, 'indigo');
-      return true;
-    }
 
     function renderPlayNext() {
       checkAllDoneCelebration();
@@ -5097,6 +5110,7 @@
       const playedMs = game.playTime && game.playTime.key === todayKey ? Number(game.playTime.ms) || 0 : 0;
       let loggedRow = existingRow;
       if (existingRow) {
+        const hadDifferentId = existingRow.gameId !== game.id;
         existingRow.gameId = game.id;
         existingRow.gameName = game.name;
         existingRow.icon = game.icon;
@@ -5105,8 +5119,9 @@
         existingRow.streak = rowStreak;
         existingRow.localTime = formatLogTime(new Date());
         // When the current puzzle was logged: used to check the game's reset time (puzzle numbers).
-        if (isCurrentCycle) existingRow.loggedAt = Date.now();
+        if (isCurrentCycle && !(Number(existingRow.loggedAt) > 0)) existingRow.loggedAt = Date.now();
         if (playedMs > 0) existingRow.timeMs = playedMs;
+        if (hadDifferentId) invalidateLogIndex();
       } else {
         removeTodayLog(game, todayKey);
         loggedRow = {
@@ -5122,7 +5137,11 @@
         if (playedMs > 0) loggedRow.timeMs = playedMs;
         if (isCurrentCycle) loggedRow.loggedAt = Date.now();
         state.historyLogs.unshift(loggedRow);
+        invalidateLogIndex();
       }
+      HubCore.recomputeLogStreaks(game, state.historyLogs);
+      HubCore.sortHistoryLogs(state.historyLogs);
+      invalidateLogIndex();
       const records = validStatus === 'completed'
         ? HubCore.newRecords(recordBaseRows, loggedRow, isCurrentCycle ? prevBestStreak : Infinity) : [];
       // Personal bests set by this result: a 🏆 on the card and in the history.
@@ -5182,13 +5201,24 @@
       { id: 'default', label: 'Default', bg: ['#FFFFFF', '#FFFFFF'], star: [[0, '#FFD43B'], [1, '#2FB86A']], mark: '#FFFFFF', outline: true },
       { id: 'themed', label: 'Theme', themed: true },
       { id: 'midnight', label: 'Midnight', bg: ['#0F172A', '#1E1B4B'], star: [[0, '#7DD3FC'], [1, '#A78BFA']], mark: '#FFFFFF' },
-      { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
+      { id: 'iris', label: 'Iris', bg: ['#1E1635', '#2E1F54'], star: [[0, '#C4B5FD'], [1, '#7C3AED']], mark: '#FFFFFF' },
       { id: 'ocean', label: 'Ocean', bg: ['#E0F7FA', '#CCF2F7'], star: [[0, '#22D3EE'], [1, '#2563EB']], mark: '#FFFFFF' },
+      { id: 'forest', label: 'Forest', bg: ['#0B261A', '#133A27'], star: [[0, '#6EE7B7'], [1, '#16A34A']], mark: '#FFFFFF' },
+      { id: 'sunset', label: 'Sunset', bg: ['#3B0A2A', '#5B1238'], star: [[0, '#FDBA74'], [1, '#F43F5E']], mark: '#FFFFFF' },
+      { id: 'rose', label: 'Rose', bg: ['#330D1E', '#4C142E'], star: [[0, '#FDA4AF'], [1, '#E11D48']], mark: '#FFFFFF' },
+      { id: 'teal', label: 'Teal', bg: ['#072729', '#0D3B3E'], star: [[0, '#5EEAD4'], [1, '#0D9488']], mark: '#FFFFFF' },
+      { id: 'amber', label: 'Amber', bg: ['#2C1806', '#45250A'], star: [[0, '#FBBF24'], [1, '#B45309']], mark: '#FFFFFF' },
+      { id: 'crimson', label: 'Crimson', bg: ['#2D090E', '#470F17'], star: [[0, '#FCA5A5'], [1, '#DC2626']], mark: '#FFFFFF' },
+      { id: 'cobalt', label: 'Cobalt', bg: ['#0C1938', '#152A5E'], star: [[0, '#93C5FD'], [1, '#2563EB']], mark: '#FFFFFF' },
+      { id: 'sage', label: 'Sage', bg: ['#16241B', '#223629'], star: [[0, '#BBF7D0'], [1, '#4D7C5B']], mark: '#FFFFFF' },
+      { id: 'plum', label: 'Plum', bg: ['#280D30', '#3F154B'], star: [[0, '#F0ABFC'], [1, '#9333EA']], mark: '#FFFFFF' },
+      { id: 'slate', label: 'Slate', bg: ['#131B24', '#1E293B'], star: [[0, '#CBD5E1'], [1, '#475569']], mark: '#FFFFFF' },
       { id: 'mono', label: 'Mono', bg: ['#111111', '#111111'], star: [[0, '#FFFFFF'], [1, '#FFFFFF']], mark: '#111111' },
       { id: 'custom', label: 'Custom', custom: true },
       { id: 'gold', label: 'Gold', bg: ['#14130E', '#070706'], star: [[0, '#F2E8C4'], [0.2, '#D6C38A'], [0.4, '#F0E3B6'], [0.58, '#B8A469'], [0.78, '#8F8159'], [1, '#6A6044']], mark: '#2A2417', sparks: '#2A2417', bevel: true, locked: true },
       { id: 'ruby', label: 'Ruby', bg: ['#0C090A', '#0C090A'], star: [[0, '#F0627E'], [1, '#7E0B24']], mark: '#0C090A', gem: true, locked: true }
     ];
+    const PRESET_THEME_ICON_IDS = new Set(['iris', 'ocean', 'forest', 'sunset', 'rose', 'teal', 'amber', 'crimson', 'cobalt', 'sage', 'plum', 'slate']);
     const earnedTierKeys = () => new Set(Array.isArray(state.achievements) ? state.achievements : []);
     /**
      * The Gold app icon: every achievement's first tier earned. Remembered (state.goldUnlocked, kept
@@ -5251,15 +5281,14 @@
         iconEl.innerHTML = `${appIconSvg(cur, 24, 'sum')}<span>${escapeHtml(label)}</span>`;
       }
     }
-    /** The app icon matching a given pre-made color theme when Daily Random Theme is on. */
+    /** The app icon matching a given pre-made color theme. */
     function iconForTheme(themeId) {
       if (themeId === 'gold' && goldIconUnlocked()) return 'gold';
       if (themeId === 'ruby' && rubyUnlocked()) return 'ruby';
-      if (themeId === 'ocean') return 'ocean';
-      if (themeId === 'sunset') return 'sunset';
+      if (PRESET_THEME_ICON_IDS.has(themeId)) return themeId;
       return 'themed';
     }
-    /** The chosen style ("" means the 1.2–1.3 switch decides), never a locked one. */
+    /** Selected app icon style for UI display (highlights 'themed' when user chose Theme; reflects Daily Random when active). */
     function currentAppIcon() {
       const s = state.settings || {};
       if (s.dailyRandomTheme) return iconForTheme(dailyRandomThemeId());
@@ -5268,6 +5297,17 @@
       if (style === 'gold' && !goldIconUnlocked()) style = 'default';
       if (style === 'ruby' && !rubyUnlocked()) style = 'default';
       return style;
+    }
+    /** Actual launcher alias style sent to AndroidBridge.setAppIconStyle (resolves 'themed' onto preset themes). */
+    function launcherIconStyle() {
+      const s = state.settings || {};
+      const uiStyle = currentAppIcon();
+      if (s.dailyRandomTheme) return uiStyle;
+      if (uiStyle !== 'themed') return uiStyle;
+      const useWallpaper = s.dynamicWallpaper !== false && !IS_WEB;
+      const activeTheme = colorThemeId();
+      if (!useWallpaper && activeTheme !== 'custom' && activeTheme !== 'wallpaper') return iconForTheme(activeTheme);
+      return 'themed';
     }
     /** The icon as an SVG (same shapes and colours as the launcher icon). */
     // ---- Gold icon: Brushed Champagne gold star, as on the launcher (same design as its PNGs) ----
@@ -5379,17 +5419,28 @@
     function renderIconChoices() {
       const box = document.getElementById('iconChoices');
       if (!box) return;
+      const s = state.settings || {};
+      const randOn = Boolean(s.dailyRandomTheme);
       const current = currentAppIcon();
       box.innerHTML = ICON_STYLES.map((st) => {
         const locked = iconLocked(st);
+        const randLocked = randOn && !st.custom;
+        const visualLock = locked || randLocked;
         const on = st.id === current;
-        return `<button type="button" class="icon-choice${on ? ' on' : ''}${locked ? ' locked' : ''}" data-icon-style="${st.id}" role="radio" aria-checked="${on}"`
-          + ` aria-label="${escapeHtml(st.label)}${locked ? ', locked' : ''}">${appIconSvg(st.id, 44, 'pick')}`
+        return `<button type="button" class="icon-choice${on ? ' on' : ''}${visualLock ? ' locked' : ''}" data-icon-style="${st.id}" role="radio" aria-checked="${on}" aria-disabled="${visualLock}"`
+          + ` aria-label="${escapeHtml(st.label)}${locked ? ', locked' : randLocked ? ', controlled by Daily Random Theme' : ''}">${appIconSvg(st.id, 44, 'pick')}`
           + `${locked ? '<span class="icon-lock" aria-hidden="true">🔒</span>' : ''}<span class="icon-name">${escapeHtml(st.label)}</span></button>`;
       }).join('');
       // How Gold unlocks is an easter egg: the locked tile says nothing more.
       const hint = document.getElementById('iconGoldHint');
-      if (hint) hint.textContent = '';
+      if (hint) {
+        if (randOn) {
+          const rolled = COLOR_THEMES.find((t) => t.id === dailyRandomThemeId());
+          hint.textContent = `Matching today's Daily Random Theme (${rolled ? rolled.label : 'Daily'}). Turn off Daily Random Theme in Theme settings to pick a fixed icon.`;
+        } else {
+          hint.textContent = '';
+        }
+      }
       renderDisplaySummaries();
     }
     function chooseAppIcon(style) {
@@ -5399,6 +5450,10 @@
         showToast(`${st.label} is locked`, st.id === 'ruby' ? 'Some achievements are secret. Find them all.' : 'Keep playing. It unlocks somewhere along the way.', 'indigo');
         return;
       }
+      if (state.settings && state.settings.dailyRandomTheme && !st.custom) {
+        showToast('Daily Random Theme is on', 'The app icon rotates to match today\'s theme. Turn off Daily Random Theme in Theme settings to pick a fixed icon.', 'indigo');
+        return;
+      }
       if (st.custom) { openIconEditor(); return; }
       if (!state.settings) state.settings = getDefaultSettings();
       state.settings.appIcon = style;
@@ -5406,6 +5461,7 @@
       haptic('tick');
       saveState({ sync: false });
       applyThemeAndSettings();
+      saveLaunchPrefs();
       renderIconChoices();
       showToast(`${st.label} icon chosen`, 'It changes on your home screen when you leave the app.', 'emerald');
     }
@@ -5538,6 +5594,7 @@
         const key = getCycleDateKey(resetTime, resetZone);
         g.lastCycleKey = key;
         g.status = (g.dayHistory && g.dayHistory[key]) || 'ready';
+        g.todayScore = (findLogRow(g, key) || {}).score || '';
         recomputeGameStatsFromHistory(g);
       } else return false;
       return true;
@@ -5812,7 +5869,7 @@
         forgetBtn = document.createElement('button');
         forgetBtn.id = 'btnForgetRemovedGame';
         forgetBtn.type = 'button';
-        forgetBtn.className = 'mt-3 px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold';
+        forgetBtn.className = 'mt-3 px-4 py-2 rounded-full bg-slate-800 border border-slate-700 text-slate-200 text-xs font-semibold';
         forgetBtn.textContent = 'Forget this removed game';
         forgetBtn.addEventListener('click', () => forgetRemovedGame(selectedCalendarGameId));
         gridEl.insertAdjacentElement('afterend', forgetBtn);
@@ -5835,10 +5892,6 @@
     // ---- Recap (1.6.0): this week (or an earlier one) or the calendar's month, compared with the one before ----
     let recapPeriod = 'week';
     let recapWeekOffset = 0;
-    function localTodayKey() {
-      const d = new Date();
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
     function shortDayLabel(key) {
       try {
         const [y, m, d] = key.split('-').map(Number);
@@ -5948,26 +6001,61 @@
       const ink = light ? '#1D1B20' : '#FFFFFF';
       const muted = light ? '#5F5B66' : '#A9A3B8';
       const gold = document.documentElement.getAttribute('data-gold') === 'true';
+      const ruby = document.documentElement.getAttribute('data-ruby') === 'true';
       const font = (getComputedStyle(document.body).fontFamily || 'sans-serif');
       const F = (w, px) => `${w} ${px}px ${font}`;
       const rr = (X, Y, w, h, rad) => { x.beginPath(); x.moveTo(X + rad, Y); x.arcTo(X + w, Y, X + w, Y + h, rad); x.arcTo(X + w, Y + h, X, Y + h, rad); x.arcTo(X, Y + h, X, Y, rad); x.arcTo(X, Y, X + w, Y, rad); x.closePath(); };
+      const clipText = (str, maxW) => {
+        const chars = [...String(str || '')];
+        if (x.measureText(chars.join('')).width <= maxW) return chars.join('');
+        while (chars.length > 1 && x.measureText(chars.join('') + '…').width > maxW) chars.pop();
+        return chars.join('') + '…';
+      };
+      const iso = (str) => `\u2068${String(str || '')}\u2069`;
       x.fillStyle = surface; x.fillRect(0, 0, W, H);
       const glow = x.createRadialGradient(220, 120, 0, 220, 120, 900);
-      glow.addColorStop(0, gold ? 'rgba(197,174,108,0.35)' : primary); glow.addColorStop(1, 'rgba(0,0,0,0)');
-      x.globalAlpha = gold ? 1 : 0.22; x.fillStyle = glow; x.fillRect(0, 0, W, H); x.globalAlpha = 1;
+      if (ruby) {
+        glow.addColorStop(0, light ? 'rgba(173,8,38,0.18)' : 'rgba(217,11,50,0.34)');
+      } else if (gold) {
+        glow.addColorStop(0, light ? 'rgba(139,125,84,0.22)' : 'rgba(197,174,108,0.35)');
+      } else {
+        glow.addColorStop(0, primary);
+      }
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      x.globalAlpha = (gold || ruby) ? 1 : 0.22; x.fillStyle = glow; x.fillRect(0, 0, W, H); x.globalAlpha = 1;
       const accent = (X, Y, w, h) => {
-        if (!gold) return primary;
-        const g = x.createLinearGradient(X, Y, X + w, Y + h);
-        [[0, '#D6C38F'], [0.3, '#BAA465'], [0.6, '#8B7D54'], [1, '#CEBA81']].forEach(([o, col]) => g.addColorStop(o, col));
-        return g;
+        if (ruby) {
+          const g = x.createLinearGradient(X, Y, X + w, Y + h);
+          const stops = light
+            ? [[0, '#83032D'], [0.45, '#AD0826'], [1, '#6D0123']]
+            : [[0, '#FE9AA5'], [0.35, '#F65976'], [0.7, '#D90B32'], [1, '#FF6E88']];
+          stops.forEach(([o, col]) => g.addColorStop(o, col));
+          return g;
+        }
+        if (gold) {
+          const g = x.createLinearGradient(X, Y, X + w, Y + h);
+          const stops = light
+            ? [[0, '#8B7D54'], [0.4, '#726542'], [0.75, '#5F5336'], [1, '#8C7E57']]
+            : [[0, '#D6C38F'], [0.3, '#BAA465'], [0.6, '#8B7D54'], [1, '#CEBA81']];
+          stops.forEach(([o, col]) => g.addColorStop(o, col));
+          return g;
+        }
+        return primary;
       };
       // 1.8.5: more room between lines and a little between letters (the text was packed together).
       const spacing = (px) => { if ('letterSpacing' in x) x.letterSpacing = `${px}px`; };
       // Header
       x.textBaseline = 'alphabetic';
       spacing(1.5); x.fillStyle = accent(80, 90, 400, 60); x.font = F(700, 40); x.fillText('✦ Dailies', 80, 140);
-      spacing(0); x.fillStyle = ink; x.font = F(800, 88); x.fillText(title, 80, 268);
-      spacing(1); x.fillStyle = muted; x.font = F(500, 38); x.fillText(range, 80, 344);
+      spacing(0); x.fillStyle = ink;
+      let titlePx = 88;
+      x.font = F(800, titlePx);
+      while (titlePx > 46 && x.measureText(title).width > W - 160) {
+        titlePx -= 4;
+        x.font = F(800, titlePx);
+      }
+      x.fillText(clipText(title, W - 160), 80, 268);
+      spacing(1); x.fillStyle = muted; x.font = F(500, 38); x.fillText(clipText(range, W - 160), 80, 344);
       // Tiles
       const tiles = [
         ['Solved', String(r.solved), change ? `${signed(change.solved)} vs ${vs}` : `of ${r.results} results`],
@@ -5979,24 +6067,29 @@
         const X = 80 + (i % 2) * 470, Y = 420 + Math.floor(i / 2) * 304, w = 440, h = 274;
         rr(X, Y, w, h, 44); x.fillStyle = i === 0 ? pc : cont; x.fill();
         spacing(1); x.fillStyle = i === 0 ? onPc : muted; x.font = F(600, 34); x.fillText(k, X + 44, Y + 68);
-        spacing(0); x.fillStyle = i === 0 ? onPc : (i === 1 ? accent(X, Y, w, h) : ink); x.font = F(800, 100); x.fillText(v, X + 44, Y + 178);
+        spacing(0); x.fillStyle = i === 0 ? onPc : (i === 1 ? accent(X, Y, w, h) : ink);
+        let valPx = 100;
+        x.font = F(800, valPx);
+        while (valPx > 48 && x.measureText(v).width > w - 88) {
+          valPx -= 6;
+          x.font = F(800, valPx);
+        }
+        x.fillText(clipText(v, w - 88), X + 44, Y + 178);
         spacing(1); x.fillStyle = i === 0 ? onPc : muted; x.font = F(500, 30);
-        let t = sub; while (x.measureText(t).width > w - 88 && t.length > 4) t = t.slice(0, -2) + '…';
-        x.fillText(t, X + 44, Y + 236);
+        x.fillText(clipText(sub, w - 88), X + 44, Y + 236);
       });
       // Highlights
       rr(80, 1052, 910, 196, 44); x.fillStyle = low; x.fill();
       const lines = [];
-      if (r.bestGame) lines.push(`⭐  Best game: ${r.bestGame.name} (${r.bestGame.solved}/${r.bestGame.results})`);
-      if (r.bestResult) lines.push(`🏆  Best result: ${r.bestResult.game} ${r.bestResult.score}`);
-      if (r.topGame && lines.length < 2) lines.push(`🎯  Most played: ${r.topGame.name}`);
+      if (r.bestGame) lines.push(`⭐  Best game: ${iso(r.bestGame.name)} (${r.bestGame.solved}/${r.bestGame.results})`);
+      if (r.bestResult) lines.push(`🏆  Best result: ${iso(r.bestResult.game)} ${iso(r.bestResult.score)}`);
+      if (r.topGame && lines.length < 2) lines.push(`🎯  Most played: ${iso(r.topGame.name)}`);
       if (!lines.length) lines.push(`🧩  ${plural(r.results, 'result')} logged`);
       spacing(0.5); x.font = F(600, 36); x.fillStyle = ink;
       const shown = lines.slice(0, 2);
       const y0 = shown.length === 1 ? 1163 : 1130;
       shown.forEach((l, i) => {
-        let t = l; while (x.measureText(t).width > 830 && t.length > 4) t = t.slice(0, -2) + '…';
-        x.fillText(t, 124, y0 + i * 68);
+        x.fillText(clipText(l, 830), 124, y0 + i * 68);
       });
       spacing(1); x.fillStyle = muted; x.font = F(500, 28); x.fillText('Tracked with Dailies', 80, 1306);
       spacing(0);
@@ -6171,6 +6264,15 @@
         'Forget', () => {
           addToTrash({ kind: 'forgot', name: snap.name, snap: JSON.parse(JSON.stringify(snap)),
             logs: state.historyLogs.filter((l) => l && l.gameId === id).map((l) => Object.assign({}, l)) });
+          if (Array.isArray(state.trash)) {
+            state.trash = state.trash.filter((t) => !(t && t.kind === 'game' && t.game && t.game.id === id));
+            updateTrashButton();
+          }
+          if (Array.isArray(state.recentChanges)) {
+            state.recentChanges.forEach((c) => {
+              if (c && c.kind === 'remove' && !c.undone && ((c.game && c.game.id === id) || c.gameId === id)) c.undone = Date.now();
+            });
+          }
           Object.keys(retained).forEach((k) => { if (retained[k] && retained[k].id === id) delete retained[k]; });
           state.historyLogs = state.historyLogs.filter((l) => !(l && l.gameId === id));
           invalidateLogIndex();
@@ -6416,7 +6518,7 @@
       return Boolean(st && st.enabled);
     }
 
-    const NOTIF_BTN_OFF_CLASS = 'px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow';
+    const NOTIF_BTN_OFF_CLASS = 'px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow';
     /** "Allow Notifications" while they're off; a static "Notifications enabled" badge once they're on. */
     function renderNotificationButton(status) {
       const btn = document.getElementById('btnRequestBrowserPerm');
@@ -6686,9 +6788,7 @@
     function renderFilterTabs() {
       document.querySelectorAll('.filter-tab').forEach((t) => {
         const active = t.getAttribute('data-filter') === state.activeFilter;
-        t.className = active
-          ? 'filter-tab px-2.5 py-1 rounded-lg bg-slate-800 text-white font-medium'
-          : 'filter-tab px-2.5 py-1 rounded-lg text-slate-400 hover:text-white';
+        t.className = active ? 'filter-tab on' : 'filter-tab';
         t.setAttribute('aria-pressed', active ? 'true' : 'false');
       });
     }
@@ -6785,13 +6885,15 @@
       // here, as a slide lands, made the browser lay the whole page out on the spot (1.8.10).
       place(tab) { this.set(tab, tab, 0); }
     };
+    let resizeTimer = 0;
     window.addEventListener('resize', () => {
       Pager._w = 0;
       NavIndicator.measure();
       NavIndicator.place(activeTab);
-      // Parked pages sit at the old width: park them again at the new one.
+      // Parked pages sit at the old width: park them again at the new one (once resize settles).
       document.querySelectorAll('.tab-page.parked').forEach((el) => { el.dataset.redraw = '1'; });
-      if (typeof parkSoon === 'function') parkSoon();
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => { resizeTimer = 0; if (typeof parkSoon === 'function') parkSoon(); }, 120);
     });
 
     const Pager = {
@@ -7187,6 +7289,7 @@
     }
 
     function switchNavigation(targetView, anim) {
+      if (themedSelectOpen) themedSelectOpen.close();
       const normalized = (targetView === 'notifications' || targetView === 'settings')
         ? 'settings'
         : (targetView === 'stats' ? 'stats' : 'dashboard');
@@ -7269,11 +7372,15 @@
     }
 
     let lastBackInterceptState = null;
+    function isHubSearchOpen() {
+      const r = document.getElementById('hubSearchRow');
+      return Boolean(r && !r.classList.contains('hidden'));
+    }
     function syncBackInterceptState() {
       // While a dialog is open the page behind it doesn't scroll (or stretch at its ends).
       document.documentElement.classList.toggle('modal-open', isAnyModalOpen());
       document.documentElement.classList.toggle('qr-open', isModalOpen('modalShareList'));
-      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId) || Boolean(themedSelectOpen);
+      const wantsBack = isAnyModalOpen() || activeTab !== 'dashboard' || Boolean(returnPromptGameId) || Boolean(themedSelectOpen) || isHubSearchOpen();
       if (wantsBack === lastBackInterceptState) return;
       lastBackInterceptState = wantsBack;
       try {
@@ -7284,15 +7391,16 @@
     }
 
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
-    const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
-    const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalTheme', 'modalAppIcon', 'modalIconEditor', 'modalRestoreGame', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalShareList', 'modalImportList'];
+    const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
+    const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
+    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalTheme', 'modalAppIcon', 'modalIconEditor', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
       return Boolean(el && !el.classList.contains('hidden'));
     }
     function openModal(id) {
+      if (themedSelectOpen) themedSelectOpen.close();
       closeAllModals(id);
       hideReturnPrompt();
       const el = document.getElementById(id);
@@ -7306,8 +7414,10 @@
       });
     }
     function closeModal(id) {
+      if (themedSelectOpen) themedSelectOpen.close();
       const el = document.getElementById(id);
       if (!el || el.classList.contains('hidden')) return;
+      let cancelCb = null;
       if (id === 'modalAddGame') {
         latestActiveScrapeId = ++scrapeRequestIdCounter;
         if (urlInputDebounceTimer) {
@@ -7316,7 +7426,9 @@
         }
       } else if (id === 'modalDeleteGame') {
         document.getElementById('deleteGameId').value = '';
+        cancelCb = pendingConfirmCancel;
         pendingConfirmAction = null;
+        pendingConfirmCancel = null;
         document.getElementById('btnConfirmDeleteModal').textContent = 'Remove';
         document.getElementById('btnConfirmDeleteModal').className = CONFIRM_BTN_DANGER;
       } else if (id === 'modalLogScore') {
@@ -7327,6 +7439,7 @@
       if (id === 'modalBrowseGames') browseReturnToAdd = false;
       el.classList.add('hidden');
       syncBackInterceptState();
+      if (typeof cancelCb === 'function') { cancelCb(); return; }
       if (reopenAdd) { openModal('modalAddGame'); return; }
       if (!MODAL_IDS.some(isModalOpen) && modalReturnFocus && modalReturnFocus.isConnected) {
         try { modalReturnFocus.focus({ preventScroll: true }); } catch (e) {}
@@ -7334,7 +7447,9 @@
       }
     }
     function closeAllModals(except) {
+      if (themedSelectOpen) themedSelectOpen.close();
       browseReturnToAdd = false;
+      if (except !== 'modalDeleteGame') pendingConfirmCancel = null;
       MODAL_IDS.forEach((id) => { if (id !== except) closeModal(id); });
     }
     function closeAddModal() {
@@ -7360,7 +7475,8 @@
 
     // The Remove dialog doubles as a generic "are you sure?" (import, forgetting a removed game).
     var pendingConfirmAction = null;
-    function openConfirmModal(title, message, confirmLabel, onConfirm, tone) {
+    var pendingConfirmCancel = null;
+    function openConfirmModal(title, message, confirmLabel, onConfirm, tone, onCancel) {
       openModal('modalDeleteGame');
       document.getElementById('btnConfirmDeleteModal').className = tone === 'primary' ? CONFIRM_BTN_PRIMARY : CONFIRM_BTN_DANGER;
       document.getElementById('deleteGameId').value = '';
@@ -7368,11 +7484,13 @@
       document.getElementById('modalDeleteMessage').textContent = message;
       document.getElementById('btnConfirmDeleteModal').textContent = confirmLabel;
       pendingConfirmAction = onConfirm;
+      pendingConfirmCancel = typeof onCancel === 'function' ? onCancel : null;
     }
 
     function confirmDeleteGame() {
       if (pendingConfirmAction) {
         const action = pendingConfirmAction;
+        pendingConfirmCancel = null;
         closeDeleteConfirmModal();
         action();
         return;
@@ -7643,10 +7761,10 @@
         btn.setAttribute('aria-pressed', pick === selectedLogStatus ? 'true' : 'false');
         if (pick === selectedLogStatus) {
           btn.className = pick === 'missed'
-            ? 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-xl border border-rose-500 bg-rose-500/20 text-rose-300 font-bold text-xs'
-            : 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-xl border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs';
+            ? 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-full border border-rose-500 bg-rose-500/20 text-rose-300 font-bold text-xs'
+            : 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-full border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs';
         } else {
-          btn.className = 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs';
+          btn.className = 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-full border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs';
         }
       });
     }
@@ -7658,14 +7776,10 @@
     function sharedResultTarget(text, raw) {
       if (!text || /^https?:\/\/\S+$/i.test(text)) return null;
       const byUrl = raw ? findGameByUrl(raw) : null;
-      const lower = text.toLowerCase();
-      const candidates = byUrl ? [byUrl] : state.games.filter((g) => {
-        const name = String(g.name || '').trim().toLowerCase();
-        let host = '';
-        try { host = new URL(g.url).hostname.replace(/^www\./i, '').toLowerCase(); } catch (e) {}
-        return (name.length >= 3 && lower.includes(name)) || (host && lower.includes(host));
-      });
-      const hits = candidates.filter((g) => HubCore.isStrictShareResult(text, g));
+      const candidates = byUrl
+        ? [byUrl]
+        : state.games.filter((g) => HubCore.mentionsGameExplicitly(text, g.name, g.url) && HubCore.isStrictShareResult(text, g));
+      const hits = byUrl ? candidates.filter((g) => HubCore.isStrictShareResult(text, g)) : candidates;
       return hits.length === 1 ? hits[0] : null;
     }
 
@@ -7809,11 +7923,8 @@
       returnPromptShareText = '';
       const opts = cycleKey ? { cycleKey } : undefined;
       if (action === 'paste') {
-        // The web version: the copied share text, read on this tap (iPhone asks to allow Paste).
-        let clip = captured;
-        if (!clip) {
-          try { clip = navigator.clipboard && navigator.clipboard.readText ? await navigator.clipboard.readText() : ''; } catch (e) { clip = ''; }
-        }
+        // The web version / Android: prefer captured result, else read clipboard on this explicit tap.
+        let clip = captured || await readClipboardText();
         clip = String(clip || '').replace(/\r\n/g, '\n').trim();
         if (clip && HubCore.isStrictShareResult(clip, game)) {
           autoLogShareResult(game, clip, cycleKey || getCycleDateKey(game.resetTime, game.resetZone));
@@ -7865,7 +7976,7 @@
         showToast("Can't undo that", 'That game is no longer in your hub.', 'indigo');
         return false;
       }
-      if (getCycleDateKey(game.resetTime, game.resetZone) === snap.liveKeyAtSnapshot) {
+      if (snap.cycleKey === snap.liveKeyAtSnapshot && getCycleDateKey(game.resetTime, game.resetZone) === snap.liveKeyAtSnapshot) {
         game.status = snap.status;
         game.todayScore = snap.todayScore;
         game.lastCycleKey = snap.lastCycleKey;
@@ -7881,6 +7992,8 @@
         state.historyLogs.splice(idx, 1);
       }
       markDayChangesUndone(game.id, snap.cycleKey, snap.takenAt);
+      HubCore.recomputeLogStreaks(game, state.historyLogs);
+      HubCore.sortHistoryLogs(state.historyLogs);
       invalidateLogIndex();
       recomputeGameStatsFromHistory(game);
       saveState();
@@ -7953,8 +8066,10 @@
       const game = state.games.find((g) => g.id === gameId);
       if (!game) return;
       const background = Boolean(opts && opts.background);
+      const interrupted = Boolean(opts && opts.interrupted);
+      const fromWebTab = Boolean(opts && opts.fromWebTab);
       if (!background) lastOpenedGameId = game.id;
-      switchNavigation('dashboard');
+      if (!interrupted) switchNavigation('dashboard');
       // A result the player confirmed in the player (read off the end screen, 1.8.3) is taken as is.
       const confirmed = Boolean(opts && opts.confirmed) && typeof shareText === 'string' && shareText.trim().length >= 3;
       const captured = (typeof shareText === 'string' && (confirmed || HubCore.isStrictShareResult(shareText, game)))
@@ -7963,7 +8078,8 @@
       const currentKey = getCycleDateKey(game.resetTime, game.resetZone);
       const openedKey = Number(openedAt) > 0 ? getCycleDateKey(game.resetTime, game.resetZone, new Date(Number(openedAt))) : '';
       const resetWhilePlaying = Boolean(openedKey && openedKey !== currentKey && cycleKeyToDay(openedKey) < cycleKeyToDay(currentKey));
-      addPlayTime(game, resetWhilePlaying ? openedKey : currentKey, Number(elapsedMs) || 0);
+      const playedMs = Number(elapsedMs) || 0;
+      addPlayTime(game, resetWhilePlaying ? openedKey : currentKey, playedMs);
       if (background) {
         // A game that reset while the session went on: its result is for the puzzle it was opened on.
         const key = resetWhilePlaying ? openedKey : currentKey;
@@ -7976,7 +8092,7 @@
         } else saveState({ sync: false });
         return;
       }
-      if (openLog) {
+      if (openLog && !interrupted) {
         openLogModal(game.id, resetWhilePlaying ? { cycleKey: openedKey } : undefined);
         logOpenedFromPlayer = true;
         const box = document.getElementById('inputLogScoreText');
@@ -7991,23 +8107,32 @@
         autoLogShareResult(game, captured, currentKey);
         return;
       }
+      if (interrupted) {
+        if (captured) {
+          const key = resetWhilePlaying ? openedKey : currentKey;
+          showToast(`${game.name} result found`, captured.split('\n')[0].slice(0, 60), 'indigo', null,
+            { actionLabel: 'Log', onAction: () => autoLogShareResult(game, captured, key) });
+        }
+        return;
+      }
       returnPromptShareText = captured;
       returnPromptOpenedKey = resetWhilePlaying ? openedKey : '';
-      if (resetWhilePlaying && (captured || Number(elapsedMs || 0) >= RETURN_PROMPT_MIN_MS)) {
+      const awayEnough = fromWebTab || playedMs >= RETURN_PROMPT_MIN_MS;
+      if (resetWhilePlaying && (captured || awayEnough)) {
         // The puzzle changed mid-game: ask which one the result is for instead of guessing.
-        showReturnPrompt(game, Number(elapsedMs || 0), { opened: openedKey, current: currentKey });
+        showReturnPrompt(game, playedMs, { opened: openedKey, current: currentKey });
         return;
       }
       const alreadyLogged = game.status === 'completed' || game.status === 'missed';
       const askEnabled = !state.settings || state.settings.askToLogOnReturn !== false;
-      if (askEnabled && !alreadyLogged && Number(elapsedMs || 0) >= RETURN_PROMPT_MIN_MS) {
-        showReturnPrompt(game, Number(elapsedMs || 0));
+      if (askEnabled && !alreadyLogged && awayEnough) {
+        showReturnPrompt(game, playedMs);
       }
     };
 
     window.handleBackPress = function () {
       if (themedSelectOpen) { themedSelectOpen.close(); return true; }
-      // The visible top layer first: an open modal, then the "Finished?" sheet, then the tab.
+      // The visible top layer first: an open modal, then the "Finished?" sheet, then hub search, then the tab.
       const open = MODAL_IDS.filter(isModalOpen);
       if (open.length) {
         closeModal(open[open.length - 1]);
@@ -8015,6 +8140,10 @@
       }
       if (returnPromptGameId) {
         hideReturnPrompt();
+        return true;
+      }
+      if (isHubSearchOpen()) {
+        setHubSearchOpen(false);
         return true;
       }
       if (activeTab === 'settings' && closeSettingsSection()) return true;
@@ -8029,8 +8158,6 @@
     // BACKUP VALIDATION & IMPORT
     // =========================================================================
     function validateAndApplyBackup(raw) {
-      if (restoreGameUntil > Date.now()) { restoreGameUntil = 0; openRestoreGame(raw); return; }
-      restoreGameUntil = 0;
       if (!raw || !String(raw).trim()) {
         showToast('Import Cancelled', 'No backup file was selected.', 'indigo');
         return;
@@ -8063,7 +8190,7 @@
 
         const backupIsLegacy = !(parsed && !Array.isArray(parsed) && Number(parsed.schemaVersion) >= STATE_SCHEMA_VERSION);
         const importedLogs = rawLogs
-          ? rawLogs.filter((l) => l && typeof l === 'object' && typeof l.date === 'string' && typeof l.gameName === 'string')
+          ? rawLogs.filter((l) => l && typeof l === 'object' && typeof l.date === 'string' && (typeof l.gameName === 'string' || typeof l.gameId === 'string'))
           : null;
         const seenIds = new Set();
         const validatedGames = [];
@@ -8072,9 +8199,9 @@
           const norm = normalizeGameObject(g, idx);
           // One unusable entry (no valid link) is skipped and reported, not a reason to refuse the file.
           if (!norm) { skipped += 1; return; }
-          if (backupIsLegacy) migrateLegacyFlattenedUtc(norm, importedLogs || []);
           norm.id = HubCore.uniqueId(norm.id, seenIds);
           seenIds.add(norm.id);
+          if (backupIsLegacy) migrateLegacyFlattenedUtc(norm, importedLogs || []);
           // Keep the backup's cycle anchor (if not in the future) so the days between the backup and
           // now are filled in as missed by the rollover below, exactly as if the app had been open.
           const todayKey = getCycleDateKey(norm.resetTime, norm.resetZone);
@@ -8086,6 +8213,7 @@
           validatedGames.push(norm);
         });
         if (!validatedGames.length && rawGames.length) throw new Error('No usable games');
+        const gamesById = new Map(validatedGames.map((g) => [g.id, g]));
 
         // Current games the backup doesn't have: they leave the hub, but their history is kept (as for
         // a removed game) so re-adding them, or looking them up in Streaks & Log, still works.
@@ -8102,6 +8230,13 @@
           state.games = validatedGames;
           historyPage = 0;
           if (importedLogs) {
+            const keptById = new Map(dropped.map((g) => [g.id, g]));
+            importedLogs.forEach((l) => {
+              if (!l.gameName) {
+                const mg = (l.gameId && (gamesById.get(l.gameId) || keptById.get(l.gameId))) || null;
+                l.gameName = mg ? mg.name : 'Daily Game';
+              }
+            });
             const have = new Set(importedLogs.map((l) => `${l.gameId || ''}|${l.date}`));
             state.historyLogs = importedLogs.concat(keptLogs.filter((l) => !have.has(`${l.gameId}|${l.date}`)));
           }
@@ -8112,6 +8247,9 @@
             state.retainedGameStats = normalizeRetainedMap(rawRetained);
           }
           if (!state.retainedGameStats || typeof state.retainedGameStats !== 'object') state.retainedGameStats = {};
+          state.recentChanges = [];
+          state.trash = [];
+          updateTrashButton();
           // Earned achievements are kept (some can't be re-earned from the data alone, e.g. Collector).
           if (rawAchievements) state.achievements = [...new Set([...(Array.isArray(state.achievements) ? state.achievements : []), ...rawAchievements])];
           if (rawGold) state.goldUnlocked = true;
@@ -8125,6 +8263,8 @@
             if (urlKey) state.retainedGameStats[urlKey] = snap;
           });
           pruneRetainedMap(state.retainedGameStats);
+          validatedGames.forEach((g) => HubCore.recomputeLogStreaks(g, state.historyLogs));
+          HubCore.sortHistoryLogs(state.historyLogs);
           invalidateLogIndex();
           // An explicit import replaces unreadable data on purpose: saving can resume.
           const wasBlocked = Boolean(state.__saveBlocked);
@@ -8375,7 +8515,8 @@
       // Keyboard activation for non-button elements that act like buttons (e.g. compact card titles).
       document.addEventListener('keydown', (e) => {
         const el = e.target && e.target.closest ? e.target.closest('[role="button"][data-action]') : null;
-        if (el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); el.click(); }
+        if (!el || el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
       });
 
       initFolds();
@@ -8399,9 +8540,9 @@
       let swipe = null;
       document.addEventListener('touchstart', (e) => {
         swipe = null;
-        if (!e.touches || e.touches.length !== 1 || isAnyModalOpen() || tabAnimating) return;
+        if (!e.touches || e.touches.length !== 1 || isAnyModalOpen() || themedSelectOpen || tabAnimating) return;
         const el = e.target;
-        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .recap-swipe, .m4-floating-dock, .return-sheet, .tsel-menu, #toastContainer')) return;
+        if (el && el.closest('input, textarea, select, .overflow-x-auto, #historyBlock, #calendarSwipeArea, .recap-swipe, .m4-floating-dock, #bottomNavWrapper, .return-sheet, .tsel-menu, #toastContainer')) return;
         swipe = { x: e.touches[0].clientX, y: e.touches[0].clientY, dx: 0, locked: false };
         Pager.prime();
       }, { passive: true });
@@ -8489,12 +8630,15 @@
       };
       bindSetting('settingDynamicWallpaper', 'dynamicWallpaper', true);
       document.getElementById('settingDynamicWallpaper').addEventListener('change', (e) => {
-        if (e.target.checked && state.settings && state.settings.dailyRandomTheme) {
+        if (e.target.checked && state.settings) {
           state.settings.dailyRandomTheme = false;
+          state.settings.goldAccents = false;
+          state.settings.rubyAccents = false;
           const rb = document.getElementById('settingDailyRandomTheme');
           if (rb) rb.checked = false;
           saveState({ sync: false });
           applyThemeAndSettings();
+          renderIconChoices();
           saveLaunchPrefs();
         }
       });
@@ -8903,7 +9047,6 @@
       const btnSettingsImport = document.getElementById('btnSettingsImportJson');
       if (btnSettingsImport) {
         btnSettingsImport.addEventListener('click', () => {
-          restoreGameUntil = 0;
           try {
             if (window.AndroidBridge && typeof window.AndroidBridge.openBackupFilePicker === 'function') {
               window.AndroidBridge.openBackupFilePicker();
@@ -8998,13 +9141,6 @@
       document.getElementById('btnTodayResultsCopy').addEventListener('click', () => copyText(todaysCombinedText(), "Today's results copied."));
       document.getElementById('btnTodayResultsShare').addEventListener('click', () => shareText(todaysCombinedText(), "Today's Dailies"));
       document.getElementById('btnPlayAll').addEventListener('click', playAll);
-      // (1.8.7: "Restore one game from a backup" was removed from Data & Backup.)
-      document.getElementById('restoreGameList').addEventListener('click', (e) => {
-        const b = e.target.closest('[data-restore-index]');
-        if (b) chooseRestoreGame(Number(b.getAttribute('data-restore-index')));
-      });
-      document.getElementById('btnRestoreMerge').addEventListener('click', () => applyRestoreGame('merge'));
-      document.getElementById('btnRestoreReplace').addEventListener('click', () => applyRestoreGame('replace'));
       const ieColor = document.getElementById('iconEditorColor');
       const onIeSwatch = (e) => {
         const b = e.target.closest('[data-ie-color]');
@@ -9128,17 +9264,20 @@
         el.addEventListener('click', (e) => { if (e.target === el) closeModal(id); });
       });
       document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && themedSelectOpen) { themedSelectOpen.close(); e.preventDefault(); return; }
         const openId = MODAL_IDS.find(isModalOpen);
         if (!openId) return;
         if (e.key === 'Escape') { closeModal(openId); e.preventDefault(); return; }
         if (e.key !== 'Tab') return;
-        const focusables = [...document.getElementById(openId).querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+        const modal = document.getElementById(openId);
+        const focusables = [...modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
           .filter((x) => !x.disabled && x.offsetParent !== null);
         if (!focusables.length) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
-        if (e.shiftKey && document.activeElement === first) { last.focus(); e.preventDefault(); }
-        else if (!e.shiftKey && document.activeElement === last) { first.focus(); e.preventDefault(); }
+        const active = document.activeElement;
+        if (e.shiftKey && (active === first || !focusables.includes(active))) { last.focus(); e.preventDefault(); }
+        else if (!e.shiftKey && (active === last || !modal.contains(active))) { first.focus(); e.preventDefault(); }
       });
       document.getElementById('btnCancelAddModal').addEventListener('click', closeAddModal);
 
@@ -9283,16 +9422,16 @@
             return;
           }
           if (existing) {
-            existing.url = url;
-            existing.name = name;
-            existing.icon = isImageIcon(icon) ? icon : getDefaultFaviconUrl(url);
-            existing.category = category;
-            existing.maxTries = maxTries;
             const prevSchedule = { resetTime: existing.resetTime, resetZone: HubCore.normalizeZone(existing.resetZone) };
             if (prevSchedule.resetZone !== resetZone || prevSchedule.resetTime !== resetTime) {
               // Same puzzles, corrected clock: move history so streaks stay attached to the right days.
               applyScheduleChange(existing, prevSchedule, { resetTime, resetZone }, state.historyLogs);
             }
+            existing.url = url;
+            existing.name = name;
+            existing.icon = isImageIcon(icon) ? icon : getDefaultFaviconUrl(url);
+            existing.category = category;
+            existing.maxTries = maxTries;
             existing.resetTime = resetTime;
             existing.resetZone = resetZone;
             existing.desc = desc;
@@ -9300,6 +9439,7 @@
             existing.reminderMinutes = reminderMinutes;
             existing.lastCycleKey = newCycleKey;
             existing.status = (existing.dayHistory && existing.dayHistory[newCycleKey]) || 'ready';
+            existing.todayScore = (findLogRow(existing, newCycleKey) || {}).score || '';
             recomputeGameStatsFromHistory(existing);
           }
           showToast(`${name} Updated`, (existing && alertsWillReach(existing))

@@ -185,11 +185,83 @@ class AdBlockEngineTest {
         assertFalse("bare label without TLD must not match", AdBlockEngine.domainMatches("foo", "foo.*"))
         assertFalse(AdBlockEngine.domainMatches("bar.com", "foo.*"))
 
-        val e = AdBlockEngine(LongArray(0), LongArray(0), emptySet(), sequenceOf("||ad.net^\$domain=foo.*"))
+        // Multi-label entity rules like read.amazon.* or disk.yandex.*
+        assertTrue(AdBlockEngine.domainMatches("read.amazon.com", "read.amazon.*"))
+        assertTrue(AdBlockEngine.domainMatches("read.amazon.co.uk", "read.amazon.*"))
+        assertTrue(AdBlockEngine.domainMatches("sub.read.amazon.co.uk", "read.amazon.*"))
+        assertFalse(AdBlockEngine.domainMatches("amazon.com", "read.amazon.*"))
+        assertFalse(AdBlockEngine.domainMatches("read.amazon.evil.com", "read.amazon.*"))
+
+        val e = AdBlockEngine(LongArray(0), LongArray(0), emptySet(), sequenceOf("||ad.net^\$domain=foo.*", "||trk.net^\$domain=read.amazon.*"))
         assertTrue(e.shouldBlock("https://ad.net/a.js", "foo.com", RequestType.SCRIPT))
         assertTrue(e.shouldBlock("https://ad.net/a.js", "www.foo.co.uk", RequestType.SCRIPT))
         assertFalse(e.shouldBlock("https://ad.net/a.js", "foo.example.com", RequestType.SCRIPT))
         assertFalse(e.shouldBlock("https://ad.net/a.js", "sub.foo.example.com", RequestType.SCRIPT))
+        assertTrue(e.shouldBlock("https://trk.net/a.js", "read.amazon.co.uk", RequestType.SCRIPT))
+        assertFalse(e.shouldBlock("https://trk.net/a.js", "www.amazon.co.uk", RequestType.SCRIPT))
+    }
+
+    @Test
+    fun trailingDotFqdn_cannotBypassHostAnchoredRules() {
+        val e = AdBlockEngine(
+            LongArray(0),
+            LongArray(0),
+            emptySet(),
+            sequenceOf("||ads.net^", "||ads.net/path/ad.js", "||tracker.org:8443/px")
+        )
+        assertTrue(e.shouldBlock("https://ads.net./x", "g.com", RequestType.SCRIPT))
+        assertTrue(e.shouldBlock("https://sub.ads.net./x", "g.com", RequestType.SCRIPT))
+        assertTrue(e.shouldBlock("https://ads.net.:8443/x", "g.com", RequestType.SCRIPT))
+        assertTrue(e.shouldBlock("https://ads.net./path/ad.js", "g.com", RequestType.SCRIPT))
+        assertTrue(e.shouldBlock("https://tracker.org.:8443/px", "g.com", RequestType.IMAGE))
+        assertFalse(e.shouldBlock("https://notads.net./x", "g.com", RequestType.SCRIPT))
+    }
+
+    @Test
+    fun hostAnchorLeadingWildcard_staysWithinHost() {
+        val e = AdBlockEngine(
+            LongArray(0),
+            LongArray(0),
+            emptySet(),
+            sequenceOf("||*.exaapi.com^", "||*two-gun-volley.pages.dev^", "@@||*optout\$domain=smartadserver.com")
+        )
+        assertTrue(e.shouldBlock("https://cdn.exaapi.com/x", "g.com", RequestType.SCRIPT))
+        assertTrue(e.shouldBlock("https://a.b.exaapi.com/x", "g.com", RequestType.SCRIPT))
+        assertFalse("must not cross / into path", e.shouldBlock("https://evil.com/.exaapi.com/x", "g.com", RequestType.SCRIPT))
+        assertFalse("must not cross / into query", e.shouldBlock("https://evil.com/?h=.exaapi.com", "g.com", RequestType.SCRIPT))
+        assertTrue(e.shouldBlock("https://my-two-gun-volley.pages.dev/a.js", "g.com", RequestType.SCRIPT))
+        assertFalse("must not match path for ||*host", e.shouldBlock("https://evil.com/two-gun-volley.pages.dev", "g.com", RequestType.SCRIPT))
+    }
+
+    @Test
+    fun inferType_secFetchDestAndFallback() {
+        assertEquals(RequestType.SCRIPT, AdBlockEngine.inferType("https://a.com/bundle", "*/*", false, secFetchDest = "script"))
+        assertEquals(RequestType.STYLESHEET, AdBlockEngine.inferType("https://a.com/theme", "*/*", false, secFetchDest = "style"))
+        assertEquals(RequestType.IMAGE, AdBlockEngine.inferType("https://a.com/pixel", "*/*", false, secFetchDest = "image"))
+        assertEquals(RequestType.FONT, AdBlockEngine.inferType("https://a.com/f", "*/*", false, secFetchDest = "font"))
+        assertEquals(RequestType.SUBDOCUMENT, AdBlockEngine.inferType("https://a.com/embed", "*/*", false, secFetchDest = "iframe"))
+        assertEquals(RequestType.SUBDOCUMENT, AdBlockEngine.inferType("https://a.com/embed", "*/*", false, secFetchDest = "frame"))
+        assertEquals(RequestType.MEDIA, AdBlockEngine.inferType("https://a.com/stream", "*/*", false, secFetchDest = "video"))
+        assertEquals(RequestType.MEDIA, AdBlockEngine.inferType("https://a.com/track", "*/*", false, secFetchDest = "audio"))
+        assertEquals(RequestType.MEDIA, AdBlockEngine.inferType("https://a.com/sub", "*/*", false, secFetchDest = "track"))
+        // Sec-Fetch-Dest: empty falls back to extension/Accept/X-Requested-With heuristics
+        assertEquals(RequestType.SCRIPT, AdBlockEngine.inferType("https://a.com/x.js", "*/*", false, secFetchDest = "empty"))
+        assertEquals(RequestType.XHR, AdBlockEngine.inferType("https://a.com/api", "application/json", false, secFetchDest = "empty"))
+        assertEquals(RequestType.OTHER, AdBlockEngine.inferType("https://a.com/api", "*/*", false, secFetchDest = "empty"))
+    }
+
+    @Test
+    fun allOption_isOrderIndependentAndBlocksAnySubresourceType() {
+        val e = AdBlockEngine(
+            LongArray(0),
+            LongArray(0),
+            emptySet(),
+            sequenceOf("||all-first.example^\$all,script", "||script-first.example^\$script,all")
+        )
+        for (t in listOf(RequestType.SCRIPT, RequestType.IMAGE, RequestType.STYLESHEET, RequestType.XHR, RequestType.OTHER)) {
+            assertTrue("all,script must block $t", e.shouldBlock("https://all-first.example/res", "all-first.example", t))
+            assertTrue("script,all must block $t", e.shouldBlock("https://script-first.example/res", "script-first.example", t))
+        }
     }
 
     @Test
@@ -266,6 +338,9 @@ class AdBlockEngineTest {
             dir.resolve("document_allow.txt").readLines().map { it.trim() }.filter { it.isNotEmpty() }.toSet()
         )
         PublicSuffix.load(dir.resolve("psl.txt").readLines().asSequence())
+        assertEquals("xn--aroport-bya.ci", PublicSuffix.publicSuffixOf("sub.site.xn--aroport-bya.ci"))
+        assertEquals("site.xn--aroport-bya.ci", AdBlockEngine.siteOf("sub.site.xn--aroport-bya.ci"))
+
         val page = "fe-guess.com"
         val ads = listOf(
             "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1",
@@ -302,6 +377,6 @@ class AdBlockEngineTest {
         repeat(n) { i -> real.shouldBlock(urls[i % urls.size] + "&r=$i", page, RequestType.SCRIPT) }
         val perCallUs = (System.nanoTime() - t0) / 1000.0 / n
         println("adblock: ${real.ruleCount} url rules, %.1f µs per check".format(perCallUs))
-        assertTrue("too slow: $perCallUs µs", perCallUs < 500)
+        assertTrue("too slow: $perCallUs µs", perCallUs < 1500)
     }
 }

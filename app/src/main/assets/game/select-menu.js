@@ -24,16 +24,17 @@
     style.textContent = [
       ':host{all:initial}',
       '.scrim{position:fixed;inset:0;background:rgba(0,0,0,' + (C.light ? '0.18' : '0.35') + ');-webkit-tap-highlight-color:transparent}',
-      '.menu{position:fixed;box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;padding:6px;border-radius:18px;',
-      'background:' + C.bg + ';border:1px solid ' + C.outline + ';box-shadow:0 18px 40px -12px rgba(0,0,0,0.6);',
-      'font:600 14px/1.3 "Google Sans Flex","Google Sans",Roboto,system-ui,sans-serif;color:' + C.fg + ';',
-      'animation:in 140ms cubic-bezier(0.2,0,0,1)}',
-      '@keyframes in{from{opacity:0;transform:translateY(-4px) scale(0.98)}to{opacity:1;transform:none}}',
-      '.group{padding:10px 12px 4px;font-size:11.5px;font-weight:700;letter-spacing:0.02em;opacity:0.65;text-transform:uppercase}',
-      '.item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;box-sizing:border-box;margin:0;',
-      'padding:11px 12px;border:0;border-radius:12px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;',
+      '.menu{position:fixed;box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;padding:6px;border-radius:24px;',
+      'background:' + C.bg + ';border:1px solid ' + C.outline + ';box-shadow:0 20px 44px -12px rgba(0,0,0,' + (C.light ? '0.28' : '0.62') + ');',
+      'font:600 14px/1.25 "Google Sans Flex","Google Sans",Roboto,system-ui,sans-serif;color:' + C.fg + ';',
+      'animation:in 180ms cubic-bezier(0.22, 1, 0.36, 1)}',
+      '@keyframes in{from{opacity:0;transform:translateY(-6px) scale(0.97)}to{opacity:1;transform:none}}',
+      '.group{padding:10px 14px 4px;font-size:11.5px;font-weight:700;letter-spacing:0.02em;opacity:0.65;text-transform:uppercase}',
+      '.item{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:44px;box-sizing:border-box;margin:0;',
+      'padding:10px 14px;border:0;border-radius:14px;background:transparent;color:inherit;font:inherit;line-height:1.25;text-align:left;cursor:pointer;',
+      'transition:border-radius 140ms cubic-bezier(0.22, 1, 0.36, 1),transform 140ms cubic-bezier(0.22, 1, 0.36, 1),background-color 120ms ease;',
       '-webkit-tap-highlight-color:transparent}',
-      '.item:active{background:' + C.press + '}',
+      '.item:not([disabled]):active{background:' + C.press + ';border-radius:10px;transform:scale(0.985)}',
       '.item.on{background:' + C.sel + ';color:' + C.selFg + '}',
       '.item[disabled]{opacity:0.4;cursor:default}',
       '.item .tick{flex-shrink:0;width:16px;height:16px;color:' + C.accent + '}',
@@ -53,10 +54,19 @@
     select.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function zoomFactor() {
+    try {
+      var z = parseFloat(window.getComputedStyle(document.documentElement).zoom);
+      return z > 0 && isFinite(z) ? z : 1;
+    } catch (e) { return 1; }
+  }
+
   function show(select) {
     if (open) open.close();
     ensureHost();
     while (root.childNodes.length > 1) root.removeChild(root.lastChild);
+    var z = zoomFactor();
+    host.style.zoom = z !== 1 ? String(1 / z) : '';
     var scrim = document.createElement('div');
     scrim.className = 'scrim';
     var menu = document.createElement('div');
@@ -92,21 +102,37 @@
     host.style.display = 'block';
 
     // Under the list (or above it when there's more room there), as wide as the list, within the screen.
-    var r = select.getBoundingClientRect();
+    var rawR = select.getBoundingClientRect();
+    var r = { left: rawR.left * z, top: rawR.top * z, bottom: rawR.bottom * z, width: rawR.width * z };
     var vw = window.innerWidth, vh = window.innerHeight, m = 8;
     var width = Math.min(vw - m * 2, Math.max(r.width, 200));
-    var left = Math.min(Math.max(m, r.left), vw - m - width);
-    var below = vh - r.bottom - m, above = r.top - m;
+    var alignRight = r.width < width && (r.left + r.width / 2 > vw / 2);
+    var desiredLeft = alignRight ? (r.left + r.width - width) : r.left;
+    var left = Math.min(Math.max(m, desiredLeft), Math.max(m, vw - m - width));
+    var below = Math.max(0, vh - r.bottom - m), above = Math.max(0, r.top - m);
     var natural = menu.scrollHeight;
     var placeBelow = below >= Math.min(natural, 280) || below >= above;
-    var maxH = Math.max(160, (placeBelow ? below : above) - 4);
+    var avail = (placeBelow ? below : above) - 4;
+    var maxH = Math.max(80, Math.min(avail, vh - m * 2));
     menu.style.width = width + 'px';
     menu.style.left = left + 'px';
     menu.style.maxHeight = maxH + 'px';
-    if (placeBelow) menu.style.top = Math.min(r.bottom + 4, vh - m - Math.min(natural, maxH)) + 'px';
-    else menu.style.bottom = (vh - r.top + 4) + 'px';
+    menu.style.transformOrigin = (placeBelow ? 'top ' : 'bottom ') + (alignRight ? 'right' : 'left');
+    var usedH = Math.min(natural, maxH);
+    if (placeBelow) {
+      var top = Math.max(m, Math.min(r.bottom + 4, vh - m - usedH));
+      menu.style.top = top + 'px';
+    } else {
+      var bottom = Math.max(m, Math.min(vh - r.top + 4, vh - m - usedH));
+      menu.style.bottom = bottom + 'px';
+    }
     if (current) menu.scrollTop = Math.max(0, current.offsetTop - menu.clientHeight / 2 + current.offsetHeight / 2);
 
+    function onScroll(e) {
+      var target = e && e.target;
+      if (target && (target === menu || (menu.contains && menu.contains(target)))) return;
+      close();
+    }
     function close() {
       if (!open) return;
       open = null;
@@ -114,6 +140,7 @@
       while (root.childNodes.length > 1) root.removeChild(root.lastChild);
       window.removeEventListener('resize', close);
       window.removeEventListener('popstate', close);
+      window.removeEventListener('scroll', onScroll, true);
     }
     scrim.addEventListener('click', close);
     menu.addEventListener('click', function (e) {
@@ -125,7 +152,27 @@
     });
     window.addEventListener('resize', close);
     window.addEventListener('popstate', close);
+    window.addEventListener('scroll', onScroll, true);
     open = { select: select, close: close };
+  }
+
+  try {
+    Object.defineProperty(window, '__dailiesCloseSelectMenu', {
+      value: function () { if (open) { open.close(); return true; } return false; },
+      configurable: true
+    });
+  } catch (e) {
+    window.__dailiesCloseSelectMenu = function () { if (open) { open.close(); return true; } return false; };
+  }
+
+  function eventTarget(e) {
+    try {
+      if (e && typeof e.composedPath === 'function') {
+        var path = e.composedPath();
+        if (path && path.length) return path[0];
+      }
+    } catch (err) {}
+    return e && e.target;
   }
 
   function menuSelect(t) {
@@ -145,7 +192,7 @@
   // that moves (a scroll) is left alone.
   var tap = null;
   document.addEventListener('touchstart', function (e) {
-    var s = e.touches && e.touches.length === 1 ? menuSelect(e.target) : null;
+    var s = e.touches && e.touches.length === 1 ? menuSelect(eventTarget(e)) : null;
     tap = s ? { s: s, x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
   }, { capture: true, passive: true });
   document.addEventListener('touchmove', function (e) {
@@ -162,18 +209,18 @@
   }, { capture: true, passive: false });
   // A mouse (or a tap whose touchend couldn't be cancelled): the page's own picker opens on mousedown.
   document.addEventListener('mousedown', function (e) {
-    if (e.button !== 0 || !menuSelect(e.target)) return;
+    if (e.button !== 0 || !menuSelect(eventTarget(e))) return;
     e.preventDefault();
   }, true);
   document.addEventListener('click', function (e) {
-    var s = menuSelect(e.target);
+    var s = menuSelect(eventTarget(e));
     if (!s) return;
     e.preventDefault();
     openFor(s);
   }, true);
   // Keyboard (Enter / Space / Alt+Down on a focused list) opens it too.
   document.addEventListener('keydown', function (e) {
-    var s = menuSelect(e.target);
+    var s = menuSelect(eventTarget(e));
     if (!s) { if (open && e.key === 'Escape') open.close(); return; }
     if (e.key === 'Enter' || e.key === ' ' || (e.altKey && e.key === 'ArrowDown')) { e.preventDefault(); openFor(s); }
   }, true);

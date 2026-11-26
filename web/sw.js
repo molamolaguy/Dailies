@@ -27,7 +27,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   if (req.mode === 'navigate') {
     const cachedShell = () => caches.open(CACHE).then((c) => c.match('./').then((r) => r || c.match('./index.html')));
-    event.respondWith(fetch(req).then((res) => {
+    event.respondWith(fetch(req, { cache: 'no-cache' }).then((res) => {
       if (res.ok) {
         const copy = res.clone();
         event.waitUntil(caches.open(CACHE).then((c) => c.put('./', copy)));
