@@ -1,8 +1,8 @@
-# Dailies 1.10.1: How the App Works
+# Dailies 1.10.3: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.10.1` (`versionCode = 36`)
+- **Version**: `1.10.3` (`versionCode = 38`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **License**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -18,12 +18,12 @@ new puzzle is out, opens games in a built-in ad-blocking player, and keeps your 
 | Area | What you get |
 |---|---|
 | **Daily Hub** | A card for every game you add, with a live countdown to its next reset, your streak, and Play / Log / Edit actions. Search, sort, filter by All / Ready / Done, group finished games, long-press to drag-reorder or open Quick Actions (with notes), or tap **Play all** to run through unplayed games in sequence. |
-| **Adding games** | Paste or share a link (or a `dailies://add` shared list / QR code). The app reads the game's name, icon, category and reset time from the page, detects duplicates, and includes a built-in catalog of 67 popular daily games with known reset times. |
-| **Reset times** | Each reset is stored in the time zone the game publishes it in (your local time, UTC, or a named zone such as `America/New_York`). It's always shown in your phone's local time, with daylight-saving changes handled correctly. |
+| **Adding games** | Paste or share a link (or a `dailies://add` shared list / QR code). The app reads the game's name, icon, category, target format/par, short description, reset time and reset time zone from the page, detects duplicates, and includes a built-in catalog of 69 popular daily games with known reset times. |
+| **Reset times** | Each reset is stored in the time zone the game publishes it in (your local time, UTC, or a named zone such as `America/New_York` or `Europe/Berlin`). It's always shown in your phone's local time, with daylight-saving changes handled correctly. |
 | **Game player** | Full-screen player with Hub, a game switcher on the title, Next, an ad-block shield (with a blocked count), a ⋮ menu (Reload, Open in browser, Zoom) and Log. Supports fullscreen video and canvas, file uploads (Photo Picker), downloads, cookie-banner hiding, pull-to-refresh, dark game pages, asset preloading and safe `intent://` links. |
-| **Auto-logging** | When you tap a game's **Share** or **Copy** button — or when a game reaches its end screen — the result is captured. Going back to the hub logs it as Solved (or Missed for a failed result such as "X/6"), with the share text as your score and an **Undo** button. You can also read results from screenshots via on-device OCR. |
+| **Auto-logging** | When you tap a game's **Share** or **Copy** button — or when a game reaches its end screen — the result is captured. Going back to the hub logs it as Solved (or Missed for a failed result such as "X/6"), with the share text as your score and an **Undo** button. Practice, Unlimited, Replay and Archive rounds are ignored so they never overwrite today's Daily. You can also read results from screenshots via on-device OCR. |
 | **Ad blocking** | About 316,000 ad, tracker and malware domains, 21,500 URL rules and 42,900 element-hiding rules, built from EasyList, EasyPrivacy, AdGuard Base, HaGeZi Pro and StevenBlack. You can switch it off per site or everywhere. |
-| **Streaks & Log** | A completion calendar per game (best streak, current streak, plays, score stats and personal bests), weekly and monthly swipeable recaps, searchable and filterable score history (grouped by whole day), and always-open two-tier + secret monochrome achievements. |
+| **My Results** | A completion calendar per game (best streak, current streak, plays, score stats and personal bests), weekly and monthly swipeable recaps, searchable and filterable score history (grouped by whole day), and always-open two-tier + secret monochrome achievements. |
 | **Reset alerts** | A notification when a game's new puzzle is out, optional global and per-game streak reminders before reset, per-game on/off toggles, grouped alerts, and exact timing where Android allows it. |
 | **Look** | Material 3 Expressive with Google Sans, Material Symbols icons, Dark / Light / Match phone themes, Material You wallpaper colors, custom color seeds, true-black AMOLED mode, selectable app icons (including Custom, Gold and Ruby), and compact cards. |
 | **Your data** | Stored only on your phone, with no size limit. Every save is atomic and keeps a backup copy. You can export/import `.json` backups, schedule weekly folder backups, export `.csv`, and undo from Recent changes or Trash. |
@@ -50,8 +50,8 @@ new puzzle is out, opens games in a built-in ad-blocking player, and keeps your 
 
 ### Tab 1: Daily Hub
 - **Adding a game**: tap **+ Add Game** and paste a link (or a shared `dailies://add` list link), or use **Share → Dailies** from Chrome.
-  - **Or pick from popular daily games** lists the 67 built-in games by category (searchable); tap one to fill in its link, name and reset time.
-  - The name, icon, category and reset time fill in by themselves.
+  - **Or pick from popular daily games** lists the 69 built-in games by category (searchable); tap one to fill in its link, name and reset time.
+  - The name, icon, category, target format/par, short description, reset time and reset time zone fill in by themselves.
   - Anything you've already typed is never overwritten.
   - **✓ Reset time from built-in list** means the time came from the catalog of popular games.
   - Pick the reset's time zone if the site doesn't say. The hint shows what that is in your time ("= 2:00 PM your time").
@@ -84,9 +84,9 @@ new puzzle is out, opens games in a built-in ad-blocking player, and keeps your 
   - **Log**: go back and open the log form, pre-filled with any captured result.
 - **Result capture** works three ways at once:
   1. **Clipboard**: anything the game copies while it's on screen is checked, and checked again when you come back to the player or close it.
-  2. **Find Results Automatically** (part of `share-hook.js`): when the page shows an end screen ("Next puzzle in 05:12:44", "You solved it") with a Share / Copy button a tap could actually reach, Dailies presses that button once in a probe mode where the result text is captured and nothing is copied, shared or opened. Links and buttons for other apps or images ("Share on X", "Copy link", "Share image") are never pressed, each button at most once and at most three per page, it stops once a result has gone out, and a real tap ends probe mode at once. It can also offer a score read from a stable end screen (`Log it / Not now`). It can be turned off in Settings.
-  3. **Page hooks**: a small script (`share-hook.js`) sees `navigator.clipboard`, `execCommand('copy')`, copy events, `DataTransfer.setData`, `navigator.share`, and share links. Each hook calls the original and returns its result unchanged, so games behave exactly as before.
-- **What counts as a result**: an emoji grid, a score like "3/6" with context, or the game's name with a count such as "#512" or "4 guesses". Links, names and random text are ignored.
+  2. **Find Results Automatically** (part of `share-hook.js`): when the page shows an end screen ("Next puzzle in 05:12:44", "Expedition #53 opens in 9 h 12 m", "You solved it") with a Share / Copy button a tap could actually reach, Dailies presses that button once in a probe mode where the result text is captured and nothing is copied, shared or opened. Links and buttons for other apps or images ("Share on X", "Copy link", "Share image") are never pressed, each button at most once and at most three accepted probes per page, it stops once a result has gone out, and a real tap ends probe mode at once. It can also offer a score read from a stable end screen (`Log it / Not now`). It can be turned off in Settings.
+  3. **Page hooks**: a small script (`share-hook.js`) sees `navigator.clipboard`, `execCommand('copy')`, copy events, `DataTransfer.setData`, `navigator.share`, `window.prompt` share fallbacks, and share links. Each hook calls the original and returns its result unchanged, so games behave exactly as before.
+- **What counts as a result**: an emoji grid, a score like "3/6" with context, or the game's name with a count such as "#512" or "4 guesses". Links, names, live progress counters ("0/9 Fields"), and Practice/Unlimited rounds are ignored.
   - Only the game's own page (and same-site frames) can submit a result; ads and third-party frames can't.
   - The result is logged against the puzzle that was live when you opened the game.
 - **Downloads**:
@@ -94,7 +94,7 @@ new puzzle is out, opens games in a built-in ad-blocking player, and keeps your 
   - Files the game builds itself (`blob:` and `data:` links, e.g. a "save image" button) open Android's **Save to…** picker. They can be up to 25 MB.
 - **Links to other apps** (`intent://`) only open an installed app through a normal "view" request, or fall back to the web page the link names.
 
-### Tab 2: Streaks & Log
+### Tab 2: My Results
 - **Completion calendar**:
   - Pick a game, swipe the calendar or use ‹ › to change month, and **Today** to jump back.
   - Tap a day to see its result (outcome, time, play time, streak and the result text) with **Copy** and **Edit**.
@@ -683,3 +683,16 @@ Measured in the real WebView on the CI emulator (`SwipeTimingDeviceTest`, logcat
 - **Persistent, interactive app header & seamless Hub controls**: moved `.hub-topbar` (`#appHeader.app-topbar-shell`, `52px` + `--safe-top`) above `<main id="m3Scaffold">` with `#btnCopyToday`, interactive `#btnHeaderReady` (toggles `ready`/`all` or switches to Hub with `ready`), and `#btnHeaderStreak` (jumps to **Streaks & Log** pre-selecting the highest-streak game's calendar) live across all tabs and subtle scroll elevation (`html.app-scrolled`). Made `#viewDashboard > .hub-sticky` transparent and non-sticky, placed `#btnHubSearch` inside `.hub-actions-right` alongside `#hubSort`, removed card `data-action="delete"` (`X`) buttons, hid `.reorder` arrows when `#gamesGrid[data-sort]` is not `custom`, and wrapped `.game-card.compact .gc-title` cleanly without truncation.
 - **Zero-stretch boundaries & smooth transitions**: added `OVER_SCROLL_NEVER` in `HubActivity`, `overscroll-behavior: none` across pages/dialogs/menus, and zero rubber-band clamping at main tab, Score History, and Recap swipe boundaries. Rebuilt `shiftCalendarMonth()` using a flicker-free `.cal-ghost` cross-slide across fixed 6-row (`42`-cell) grids, softened `.cal-cell.today`, and refactored Settings folds (`openSettingsSection()`) to batch reads/writes cleanly over `.fold-body` with `contain: layout style`.
 - **Monochrome SVG UI, Streaks & Gold/Ruby surface polish**: standardized Dailies UI/shared text on crisp monochrome outline SVGs (`achIconHtml`, `wnIconHtml`, lock/clock/camera/theme-swatch SVGs) and clean typographic markers (`✓`/`✗`/`•`/`★`), restricting `🔥` exclusively to streaks and `⚡` exclusively to fastest completion times. Moved **Achievements** open below **Score History**, added whole-day Score History pagination (`HubUiHelpers.paginateHistoryByDay()`), added modal top/bottom safe-area clearance, updated Gold & Ruby rules (`ruby-css.js`), and added warm obsidian **Gold** / wine-obsidian **Ruby** surface tokens synced via `dailydeck_theme_tokens_v1` first-frame boot and `AndroidBridge.setPlayerColors`.
+
+## 43. New in 1.10.2
+
+- **Balanced Daily Hub spacing & default All view**: restored clean vertical and horizontal breathing room between `#appHeader`, `.hub-hero`, `.hub-sticky`, `.game-card` items, inline action buttons, and `.m3-bottom-nav-wrapper`, and always reset `activeFilter` to `'all'` on launch.
+- **Brushed Champagne Gold palette, concentric rims & stable nav labels**: matched the Gold theme tokens directly to the Brushed Champagne Gold app icon, unified Ruby and Gold filled buttons onto concentric `1px` `border-box` rims, and switched `#navIndicator` on Gold/Ruby to translucent glass so bottom nav labels stay invariant while swiping.
+- **Proportional numerals, monochrome achievements & Recap cleanup**: switched streak/stat numerals to uniformly lit proportional `Google Sans Flex` glyphs, converted all 24 achievements to monochrome outline SVGs, and removed the Weekly Recap share buttons.
+
+## 44. New in 1.10.3
+
+- **Automatic result logging overhaul (`share-hook.js`, `GameActivity`, `ShareResultDetector`, `hub-core.js`)**: extended post-input watch windows (`90s`) for long finish animations, added DOM visibility/attribute `MutationObserver` watching, matched word countdowns (`"opens in 9 h 12 m"`), filtered below-the-fold FAQ/SEO prose and live gameplay progress counters (`0/9 Fields`, remaining guesses), blocked non-daily rounds (`Unlimited`, `Practice`, `Replay`, `Archive`, `∞`), and added `aria-label` / icon-only Share probing, `localStorage` completion cues, `window.prompt` & readonly share boxes, and two-step Share → Copy menus.
+- **URL site scraping overhaul (`WebsiteScraper`, `PageRenderer`, `index.html`, `hub-core.js`)**: fixed bare-origin relative URL resolution (`resolveUrl`), prioritized app bundles over vendor scripts, expanded reset time & time zone detection (`German time`, `Berlin`, `Toronto`, `Brazil`, Asian/Oceania zones, `"in your local time"`, `UTC±offset`, Luxon/Day.js hints), added `targetFormat` extraction (`37 guesses`, written numbers, `50,000 points`, `Fastest time`, `Most points`, `Fewest guesses`, `Fewest strokes`), improved concise how-to-play descriptions, and added weighted **Gaming & RPG** / **Custom Daily** category scoring.
+- **My Results tab**: renamed the middle bottom navigation tab from **Streaks & Log** to **My Results**.
+

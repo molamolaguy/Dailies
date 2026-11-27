@@ -205,7 +205,7 @@
       </div>
       <div class="hub-topbar-actions">
         <button id="btnHeaderReady" type="button" class="hero-pill hero-pill-ready" title="Show ready games"><span class="dot" aria-hidden="true"></span><strong id="kpiReadyCount">0</strong><span class="ready-label">ready</span></button>
-        <button id="btnHeaderStreak" type="button" class="hero-pill hero-pill-streak" title="View streaks &amp; log"><span aria-hidden="true">🔥</span><span class="sr-only">Top streak</span><strong id="kpiTopStreak">0d</strong></button>
+        <button id="btnHeaderStreak" type="button" class="hero-pill hero-pill-streak" title="View My Results"><span aria-hidden="true">🔥</span><span class="sr-only">Top streak</span><strong id="kpiTopStreak">0d</strong></button>
         <button id="btnCopyToday" type="button" class="copy-today hidden shrink-0 icon-label" aria-label="Today's results: copy or share" title="Today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Results</span></button>
       </div>
     </div>
@@ -296,7 +296,7 @@
       <div id="gamesGrid" class="space-y-3"></div>
     </section>
 
-    <!-- View 2: STREAKS & LOG (MONTHLY CALENDAR + DAILY COMPLETION & SCORE HISTORY) -->
+    <!-- View 2: MY RESULTS (MONTHLY CALENDAR + DAILY COMPLETION & SCORE HISTORY) -->
     <section id="viewStats" class="tab-page hidden space-y-3" aria-hidden="true" inert>
       <!-- Monthly Game Completion & Missed Calendar -->
       <div class="glass-card rounded-2xl p-3.5 border border-slate-800 space-y-3">
@@ -1315,7 +1315,7 @@
               <rect x="17" y="5" width="2.5" height="13" rx="0.6" />
             </svg>
           </span>
-          <span>Streaks &amp; Log</span>
+          <span>My Results</span>
         </button>
         <button type="button" data-nav="settings" class="nav-btn relative flex flex-col items-center justify-center py-1 rounded-full font-medium text-[11px]">
           <span class="m3-floating-icon mb-0.5" aria-hidden="true">
@@ -1410,7 +1410,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.10.2';
+    const APP_VERSION = '1.10.3';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -2771,8 +2771,18 @@
       if (c === 'Geography' || c === 'Geography & Maps') return 'Geography & Maps';
       if (c === 'Math & Logic') return 'Math & Logic';
       if (c === 'Music & Media' || c === 'Movies & Media') return 'Movies & Media';
-      if (c === 'Trivia' || c === 'Gaming & RPG') return 'Gaming & RPG';
+      if (c === 'Gaming & RPG') return 'Gaming & RPG';
       if (c === 'Word' || c === 'Word & Association') return 'Word & Association';
+      return 'Custom Daily';
+    }
+
+    function inferCategoryFromUrlTokens(tokens) {
+      const t = String(tokens || '').toLowerCase();
+      if (/(?:poke|nintendo|zelda|mario|rpg|loldle|gamedle|valdle|steam|elden|smash)/.test(t)) return 'Gaming & RPG';
+      if (/(?:geo|worldle|globle|country|flag|map|capital|travle|atlas)/.test(t)) return 'Geography & Maps';
+      if (/(?:sudoku|math|nerdle|equation|chess|nonogram|picross|logic|minesweep)/.test(t)) return 'Math & Logic';
+      if (/(?:movie|film|cine|actor|song|music|bandle|heardle|spotle|framed|album)/.test(t)) return 'Movies & Media';
+      if (/(?:word|crossword|anagram|pangram|spell|lexi|quordle|octordle|phrazle|redactle)/.test(t)) return 'Word & Association';
       return 'Custom Daily';
     }
 
@@ -2781,7 +2791,7 @@
       if (!cleaned) return null;
       try {
         const u = new URL(cleaned);
-        const host = u.hostname.replace(/^www\./i, '').toLowerCase();
+        const host = u.hostname.replace(/^(www|m)\./i, '').toLowerCase();
         const defaultFavicon = getDefaultFaviconUrl(cleaned);
 
         // Built-in catalogue of popular games with known reset schedules (known-games.js).
@@ -2801,7 +2811,10 @@
           };
         }
 
-        const baseName = host.split('.')[0]
+        const pathParts = u.pathname.split('/').map((s) => decodeURIComponent(s || '').trim()).filter(Boolean)
+          .filter((s) => !/^(?:index\.html?|play|game|games|puzzle|puzzles|daily|today|[a-z]{2}(?:-[a-z]{2})?)$/i.test(s));
+        const slugSource = pathParts.length ? pathParts[pathParts.length - 1].replace(/\.[a-z0-9]+$/i, '') : host.split('.')[0];
+        const baseName = slugSource
           .replace(/[-_]+/g, ' ')
           .replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -2809,7 +2822,7 @@
           url: cleaned,
           name: baseName || 'Daily Web Game',
           icon: defaultFavicon,
-          category: 'Custom Daily',
+          category: inferCategoryFromUrlTokens(`${host} ${u.pathname}`),
           resetTime: '00:00',
           resetZone: 'local',
           maxTries: 'Daily Puzzle',
@@ -2887,10 +2900,12 @@
               resultMeta.resetTime = HubCore.sanitizeResetTime(p.resetTime);
               resultMeta.resetZone = HubCore.normalizeZone(p.resetZone);
             }
-            if (p.metricType && p.par) {
+            if (p.targetFormat) {
+              resultMeta.maxTries = String(p.targetFormat).trim();
+            } else if (p.metricType && p.par) {
               resultMeta.maxTries = p.metricType === 'tries'
                 ? `${p.par} guesses`
-                : (p.metricType === 'time' ? `${p.par}s target` : `${p.par} pts`);
+                : (p.metricType === 'time' ? 'Fastest time' : 'Most points');
             }
             if (p.category) resultMeta.category = mapNativeCategoryToUiCategory(p.category);
             didScrapeLive = Boolean(res.ok);
@@ -2899,9 +2914,15 @@
               resultMeta.name = knownAfterRedirect.name;
               resultMeta.category = knownAfterRedirect.category;
               resultMeta.maxTries = knownAfterRedirect.maxTries;
-              resultMeta.resetTime = knownAfterRedirect.resetTime;
-              resultMeta.resetZone = knownAfterRedirect.resetZone;
-              resultMeta.knownSchedule = true;
+              const liveScheduleBeatsUnverified = !knownAfterRedirect.verified && Boolean(p.timeFound);
+              if (!liveScheduleBeatsUnverified) {
+                resultMeta.resetTime = knownAfterRedirect.resetTime;
+                resultMeta.resetZone = knownAfterRedirect.resetZone;
+                resultMeta.knownSchedule = true;
+              } else {
+                if (!p.zoneFound) resultMeta.resetZone = knownAfterRedirect.resetZone;
+                resultMeta.knownSchedule = false;
+              }
               resultMeta.knownVerified = Boolean(knownAfterRedirect.verified);
             }
           }
@@ -4715,6 +4736,11 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.10.3': [
+        ['bullseye', 'Smarter automatic result logging', 'Catches results after long finish animations, stops live gameplay counters (such as 0/9) and Practice or Unlimited rounds from logging early, and reads aria-labelled, pre-populated, and two-step Share / Copy menus.'],
+        ['search', 'Upgraded URL site scraping', 'Finds more reset times, international time zones, UTC offsets, target formats / pars, short how-to-play descriptions, and Gaming & RPG or Custom Daily categories when adding a link.'],
+        ['list', 'My Results tab', 'Renamed the middle navigation tab from Streaks & Log to My Results.']
+      ],
       '1.10.2': [
         ['layers', 'Balanced Daily Hub & default All view', 'Restored clean breathing room between Today\'s Progress, filters, game cards, and the floating dock, and set the Daily Hub to always open on All.'],
         ['crown', 'Brushed Champagne Gold & crisp Ruby rims', 'Matched the Gold theme directly to the Gold app icon\'s Brushed Champagne palette, aligned Gold and Ruby button rims concentrically around all edges, and kept bottom navigation text invariant when swiping.'],

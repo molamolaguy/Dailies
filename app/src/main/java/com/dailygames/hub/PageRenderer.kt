@@ -171,18 +171,22 @@ try{Object.defineProperty(window,'webkitRTCPeerConnection',{value:nope,configura
 
         /**
          * Runs in the rendered page: its title and address, meta tags (first of each), JSON-LD blocks,
-         * and text: what's on screen plus help / rules / "how to play" sections that are often hidden
-         * until opened.
+         * icon link, and text: what's on screen plus help / rules / FAQ / about / dialog / details
+         * sections (and open shadow roots) that are often hidden until opened.
          */
         const val EXTRACT_JS = """(function(){try{
-var q=function(s){try{return Array.prototype.slice.call(document.querySelectorAll(s));}catch(e){return [];}};
+var q=function(s,r){try{return Array.prototype.slice.call((r||document).querySelectorAll(s));}catch(e){return [];}};
 var meta={};q('meta[name],meta[property]').forEach(function(m){var k=(m.getAttribute('property')||m.getAttribute('name')||'').toLowerCase();if(k&&!(k in meta))meta[k]=String(m.getAttribute('content')||'').slice(0,600);});
-var ld=q('script[type="application/ld+json"]').slice(0,5).map(function(s){return String(s.textContent||'').slice(0,20000);});
-var lines=function(el){var out=[],w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),n;while((n=w.nextNode())&&out.length<200){var t=String(n.nodeValue||'').trim();if(t&&!/^(script|style|noscript)$/i.test(n.parentNode&&n.parentNode.nodeName))out.push(t);}return out.join('\n');};
-var help=q('[id*="help" i],[class*="help" i],[id*="how" i],[class*="how-to" i],[class*="howto" i],[id*="rules" i],[class*="rules" i],[id*="instructions" i],[class*="instructions" i],[id*="tutorial" i],[class*="tutorial" i]').slice(0,8).map(lines).join('\n');
-var text=((document.body&&document.body.innerText)||'')+'\nHow to play\n'+help;
+var ld=q('script[type="application/ld+json"]').slice(0,6).map(function(s){return String(s.textContent||'').slice(0,20000);});
+var iconEl=q('link[rel*="apple-touch-icon" i][href],link[rel*="icon" i][href]').filter(function(l){return !/mask-icon/i.test(l.getAttribute('rel')||'');})[0];
+var icon=iconEl?String(iconEl.href||'').slice(0,500):'';
+var lines=function(el){var out=[],w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),n;while((n=w.nextNode())&&out.length<240){var p=n.parentNode&&n.parentNode.nodeName;var t=String(n.nodeValue||'').trim();if(t&&!/^(script|style|noscript|svg)$/i.test(p))out.push(t);}return out.join('\n');};
+var sel='details,dialog,[role="dialog"],[id*="help" i],[class*="help" i],[id*="how" i],[class*="how-to" i],[class*="howto" i],[id*="rules" i],[class*="rules" i],[id*="instructions" i],[class*="instructions" i],[id*="tutorial" i],[class*="tutorial" i],[id*="about" i],[class*="about" i],[id*="faq" i],[class*="faq" i],[aria-label*="how" i],[aria-label*="help" i],[aria-label*="rules" i],[aria-label*="about" i]';
+var help=q(sel).slice(0,14).map(lines).join('\n');
+var shadow=[];q('*').slice(0,600).forEach(function(el){if(el.shadowRoot&&shadow.length<6){var st=lines(el.shadowRoot);if(st)shadow.push(st);}});
+var text=((document.body&&document.body.innerText)||'')+(shadow.length?'\n'+shadow.join('\n'):'')+'\nHow to play\n'+help;
 var frames=q('iframe[src]').filter(function(f){var r=f.getBoundingClientRect();return /^https?:/i.test(f.src)&&r.width>=150&&r.height>=150;}).slice(0,8).map(function(f){return String(f.src).slice(0,500);});
-return JSON.stringify({title:document.title||'',url:location.href,meta:meta,ld:ld,frames:frames,text:text.replace(/[ \t ]+/g,' ').replace(/\n\s*\n+/g,'\n').slice(0,40000)});
+return JSON.stringify({title:document.title||'',url:location.href,icon:icon,meta:meta,ld:ld,frames:frames,text:text.replace(/[ \t\u00a0]+/g,' ').replace(/\n\s*\n+/g,'\n').slice(0,45000)});
 }catch(e){return '{}';}})()"""
     }
 }

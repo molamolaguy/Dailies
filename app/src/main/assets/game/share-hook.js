@@ -40,13 +40,15 @@
     // Games build the text right away or after a short animation; probe mode ends after that.
     if (probing) probeTimer = setTimeout(function () { probing = false; probeTimer = null; }, 1500);
   }
+  var storageMarkedFinished = false;
+  function resetProbeState() { sentAny = false; last = ''; storageMarkedFinished = false; }
   try {
     Object.defineProperty(window, '__dailiesResetShareProbe', {
-      value: function () { sentAny = false; last = ''; },
+      value: resetProbeState,
       configurable: true
     });
   } catch (e) {
-    window.__dailiesResetShareProbe = function () { sentAny = false; last = ''; };
+    window.__dailiesResetShareProbe = resetProbeState;
   }
 
   // Wrapped functions report themselves as native code, so pages that check doesn't see a difference.
@@ -66,12 +68,22 @@
       Function.prototype.toString = patchedToString;
     }
   } catch (e) {}
+  var ALLOW_NON_DAILY = '__DAILIES_NON_DAILY__' === 'true';
   var BARE_URL_RE = /^https?:\/\/\S+$/i;
-  var PLAUSIBLE_RESULT_RE = /[0-9\n]|[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u2B1B\u2B1C\u2B50\u2705\u274C]/u;
+  var GRID_PAIR_RE = /(?:[\u2B1B\u2B1C\u26AB\u26AA\u2705\u274C\u{1F7E0}-\u{1F7EB}\u{1F534}\u{1F535}]|[0-9]\uFE0F?\u20E3)\uFE0F?[ ]?(?:[\u2B1B\u2B1C\u26AB\u26AA\u2705\u274C\u{1F7E0}-\u{1F7EB}\u{1F534}\u{1F535}]|[0-9]\uFE0F?\u20E3)/u;
+  var PLAUSIBLE_GLYPH_RE = /[\u2B1B\u2B1C\u26AB\u26AA\u2705\u274C\u{1F7E0}-\u{1F7EB}\u{1F534}\u{1F535}\u2B50]|[0-9]\uFE0F?\u20E3/u;
+  var PLAUSIBLE_SCORE_RE = /#[ \t\u00A0]*[0-9]|(^|[^0-9/.])([0-9]{1,2}|x)[ \t\u00A0]*\/[ \t\u00A0]*[0-9]{1,2}([^0-9/]|$)|(^|[^0-9:/])[0-9]{1,2}:[0-5][0-9]|\b[0-9][0-9,.]*[ \t\u00A0]*(guesses?|tries|attempts?|mistakes?|pts|points?|km|m|meters?|metres?|ft|feet|moves?|swaps?|strokes?|shots?|steps?|words?|clues?|hints?|%|xp|depth)\b|\b(solved|completed|finished|beat|scored|score|combo|rank|i got to|i reached)\b|\(perfect\)/i;
+  var NON_DAILY_TEXT_RE = /(^|[^a-z0-9_/.-])(unlimited|practice|replay|unranked|free[ \t\u00A0]+play|training[ \t\u00A0]+mode|custom[ \t\u00A0]+(puzzle|game|grid)|archive)([^a-z0-9_/.-]|$)/i;
+  var INFINITY_TEXT_RE = /(?:^|[ \t\u00A0#])\u221E(?:[ \t\u00A0·:\-]|\n|$)/;
+  function hasDisallowedNonDailyMarker(t) {
+    if (ALLOW_NON_DAILY) return false;
+    return INFINITY_TEXT_RE.test(t) || NON_DAILY_TEXT_RE.test(t);
+  }
   function looksPlausibleShare(t) {
     var trimmed = t.trim();
-    if (!trimmed || BARE_URL_RE.test(trimmed)) return false;
-    return PLAUSIBLE_RESULT_RE.test(trimmed);
+    if (!trimmed || BARE_URL_RE.test(trimmed) || hasDisallowedNonDailyMarker(trimmed)) return false;
+    if (PLAUSIBLE_GLYPH_RE.test(trimmed) || PLAUSIBLE_SCORE_RE.test(trimmed)) return true;
+    return trimmed.indexOf('\n') >= 0 && /[0-9]/.test(trimmed);
   }
   function send(via, text) {
     try {
@@ -274,6 +286,24 @@
     }, true);
   } catch (e) {}
 
+  // 6) Fallback prompt("Copy your score:", shareText) used by games when clipboard/Web Share fails.
+  try {
+    var origPrompt = window.prompt;
+    if (typeof origPrompt === 'function') {
+      window.prompt = mask(function prompt(message, defaultValue) {
+        var wasProbing = probing;
+        try {
+          if (typeof defaultValue === 'string' && looksPlausibleShare(defaultValue)) {
+            send('prompt', defaultValue);
+            if (wasProbing) return null;
+          }
+        } catch (e) {}
+        if (wasProbing) return null;
+        return origPrompt.apply(this, arguments);
+      }, origPrompt);
+    }
+  } catch (e) {}
+
   if (!FIND_RESULTS) return;
   // ---- Finding a finished game's result --------------------------------------------------------
 
@@ -286,27 +316,87 @@
   } catch (e) { return; }
 
   var MAX_PRESSES = 3;
+  var POST_INPUT_WATCH_MS = 90000;
   var presses = 0;
   var tried = typeof WeakSet === 'function' ? new WeakSet() : null;
   var lastInputAt = 0;
   var timers = [];
+  var mutationTimers = [];
 
-  // Words a game's end screen shows (a result, the answer, when the next puzzle comes). Not words
-  // that also sit on a game's screen while playing ("Statistics", "Streak", "Score").
-  var FINISHED_RE = /(next (puzzle|game|word|challenge|dive|round|grid|board|level) (in|at|tomorrow|available)|next [a-z]+ (in|at|tomorrow)|new [a-z]+ (in|at)|come back tomorrow|see you tomorrow|you('ve| have)? (won|solved|got it|found it|did it|completed|finished|crushed)|puzzle (complete|solved|done)|(solved|completed)!|well done|great job|congratulations|splendid|magnificent|phew|nice work|flawless|game over|out of (guesses|lives|tries)|better luck|the answer was|final score|you scored)/i;
+  // Observe localStorage / sessionStorage transitions to finished/won/gameOver states after a move,
+  // giving a reliable completion signal even on <canvas>/WebGL games or custom-worded end screens.
+  var STORAGE_DONE_RE = /"(gameStatus|status|state|phase)"\s*:\s*"(win|won|lost|lose|fail|failed|complete|completed|solved|finished|done|ended|gameover|game_over)"|"(done|completed|isComplete|isCompleted|isFinished|finished|solved|isSolved|gameOver|isGameOver|hasWon|won)"\s*:\s*true\b/gi;
+  function countDoneTokens(s) {
+    if (!s || s.length > 200000) return 0;
+    STORAGE_DONE_RE.lastIndex = 0;
+    var c = 0;
+    while (STORAGE_DONE_RE.exec(s)) c += 1;
+    return c;
+  }
+  try {
+    var sp = window.Storage && window.Storage.prototype;
+    if (sp && typeof sp.setItem === 'function') {
+      var origSetItem = sp.setItem;
+      sp.setItem = mask(function setItem(key, value) {
+        var oldVal = null;
+        var active = !sentAny && lastInputAt > 0 && (Date.now() - lastInputAt <= POST_INPUT_WATCH_MS);
+        if (active) {
+          try { oldVal = this.getItem(key); } catch (e) {}
+        }
+        var res = origSetItem.apply(this, arguments);
+        if (active) {
+          try {
+            var vStr = String(value == null ? '' : value);
+            if (countDoneTokens(vStr) > countDoneTokens(oldVal == null ? '' : String(oldVal))) {
+              storageMarkedFinished = true;
+              mutationTimers.forEach(clearTimeout);
+              mutationTimers = [
+                setTimeout(scan, 900),
+                setTimeout(scan, 2600),
+                setTimeout(scan, 6500)
+              ];
+            }
+          } catch (e) {}
+        }
+        return res;
+      }, origSetItem);
+    }
+  } catch (e) {}
+
+  // Words a game's end screen shows (a result, the answer, when the next puzzle comes). Matched per
+  // short visible UI line (never across multi-sentence rules/FAQ prose), and never words that sit on
+  // a game's screen while playing ("Statistics", "Streak", "Score").
+  var FINISHED_RE = /(next (puzzle|game|word|challenge|dive|round|grid|board|level|expedition) (in|at|tomorrow|available|opens|is)|the next [a-z]+ is|next [a-z]+ (in|at|tomorrow|opens)|new [a-z]+ (in|at|opens)|come back tomorrow|see you tomorrow|you('ve| have)? (won|solved|got it|found it|did it|completed|finished|crushed)|puzzle (complete|solved|done)(?![ \t]+(by|when|once|if|after|with)\b)|expedition (complete|finished|done)|(solved|completed)!|game over|out of (guesses|lives|tries)|better luck|the answer was|final score|you scored)/i;
+  // Standalone praise callouts ("Splendid!", "Flawless!", "Well done") only count on short heading
+  // lines, never as mid-sentence adjectives in rules prose ("A flawless grid leaves three...").
+  var FINISHED_CALLOUT_RE = /^(?:[^a-z0-9à-ÿ]{0,4}\s*)?(well done|great job|congratulations|congrats|splendid|magnificent|phew|nice work|flawless|bravo|enhorabuena|felicidades|parabéns|félicitations|glückwunsch|gut gemacht|complimenti|gefeliciteerd|goed gedaan)(?:[!.\s]|[^a-z0-9à-ÿ]{1,4})*$/i;
   // The same in Spanish, French, German, Portuguese, Italian and Dutch (1.8.3).
-  var FINISHED_INTL_RE = /(próxim[oa] (palabra|juego|reto|partida|palavra|jogo|desafio) (en|em)|vuelve mañana|volte amanhã|¡?lo (lograste|conseguiste)|¡?(has|ha) ganado|enhorabuena|felicidades|parabéns|você (acertou|venceu|conseguiu)|la respuesta era|a resposta era|prochain(e)? (mot|jeu|défi|partie) dans|reviens demain|revenez demain|bravo ?!|(tu as|vous avez) (gagné|trouvé|réussi)|félicitations|la réponse était|nächste[sr]? (wort|rätsel|spiel|runde) in|komm morgen wieder|(du hast|sie haben) (gewonnen|es geschafft|gelöst)|glückwunsch|gut gemacht|die lösung war|prossim[oa] (parola|gioco|sfida) tra|torna domani|(hai|avete) (vinto|indovinato|risolto)|complimenti|la risposta era|volgende? (woord|puzzel|spel) over|kom morgen terug|gefeliciteerd|goed gedaan|het antwoord was)/i;
-  // A countdown to the next puzzle ("Next puzzle in 05:12:44"), not a game's own timer.
-  var COUNTDOWN_RE = /(next|new|until|tomorrow|available|refresh|resets?)[^\n]{0,40}?[0-2]?[0-9]:[0-5][0-9]:[0-5][0-9]/i;
+  var FINISHED_INTL_RE = /(próxim[oa] (palabra|juego|reto|partida|palavra|jogo|desafio) (en|em)|vuelve mañana|volte amanhã|¡?lo (lograste|conseguiste)|¡?(has|ha) ganado|você (acertou|venceu|conseguiu)|la respuesta era|a resposta era|prochain(e)? (mot|jeu|défi|partie) dans|reviens demain|revenez demain|(tu as|vous avez) (gagné|trouvé|réussi)|la réponse était|nächste[sr]? (wort|rätsel|spiel|runde) in|komm morgen wieder|(du hast|sie haben) (gewonnen|es geschafft|gelöst)|die lösung war|prossim[oa] (parola|gioco|sfida) tra|torna domani|(hai|avete) (vinto|indovinato|risolto)|la risposta era|volgende? (woord|puzzel|spel) over|kom morgen terug|het antwoord was)/i;
+  // A countdown to the next puzzle ("Next puzzle in 05:12:44", "Expedition #53 opens in 9 h 12 m"),
+  // not a game's own running clock.
+  var COUNTDOWN_COLON_RE = /(next|new|until|tomorrow|available|refresh|resets?|opens?|unlocks?|starts?|begins?|returns?|back)[^\n]{0,45}?[0-2]?[0-9]:[0-5][0-9]:[0-5][0-9]/i;
+  var COUNTDOWN_WORDS_RE = /(?:(next|new|tomorrow'?s)[^\n]{0,35}?\b(in|opens?\s+in|unlocks?\s+in|available\s+in)|(?:[a-z]+\s+)?#[0-9]+\s+(opens?|unlocks?|starts?|available)\s+in|\b(resets?|opens?|unlocks?)\s+in)\s+([0-9]{1,2}\s*(days?|d|hours?|hrs?|h)\b([,\s]+[0-9]{1,2}\s*(hours?|hrs?|h|minutes?|mins?|m)\b)?|[0-9]{1,2}\s*(minutes?|mins?|m)\b|under a minute)/i;
+  function hasCountdown(line) {
+    return COUNTDOWN_COLON_RE.test(line) || COUNTDOWN_WORDS_RE.test(line);
+  }
   var BUTTON_RE = /(^|[^a-zà-ÿ])(share|copy|compartir|copiar|partager|copier|teilen|kopieren|condividi|copia|compartilhar|delen|kopiëren|kopieer)([^a-zà-ÿ]|$)/i;
+  var COPY_ONLY_RE = /(^|[^a-zà-ÿ])(copy|copiar|copier|kopieren|copia|kopiëren|kopieer)([^a-zà-ÿ]|$)/i;
   // "Copy result", "Share my score", "Copy results 🦐": a button that only an end screen has, so it
   // counts as finished on its own (Krillion shows no other end-screen wording).
-  var RESULT_BUTTON_RE = /((share|copy)[ \t]*(my|your|the|today'?s)?[ \t]*(results?|scores?|stats|grid|dive)|(compartir|copiar|partager|copier|teilen|kopieren|condividi|copia|compartilhar|delen)[ \t]+(mis |tus |los |mes |les |meine |i |os |de )?(resultados?|résultats?|ergebnis(se)?|risultati|resultaten|puntuación|score|pontuação))/i;
+  var RESULT_BUTTON_RE = /((share|copy)[ \t]*(my|your|the|today'?s)?[ \t]*(results?|scores?|stats|grid|dive|text|emoji|to clipboard)|(compartir|copiar|partager|copier|teilen|kopieren|condividi|copia|compartilhar|delen)[ \t]+(mis |tus |los |mes |les |meine |i |os |de )?(resultados?|résultats?|ergebnis(se)?|risultati|resultaten|puntuación|score|pontuação))/i;
+  // Icon-only share / copy buttons strictly inside an end-screen modal when aria-label/text was omitted.
+  var ICON_SHARE_ATTR_RE = /(^|[^a-z])(copy[-_ ]?(result|score|btn|button|text|clipboard)?|share[-_ ]?(result|score|btn|button|card|text)?|btn[-_ ]?(copy|share))([^a-z]|$)/i;
+  var ICON_COPY_ATTR_RE = /(^|[^a-z])(copy[-_ ]?(result|score|btn|button|text|clipboard)?|btn[-_ ]?copy)([^a-z]|$)/i;
+  var ICON_STRONG_ATTR_RE = /(^|[^a-z])(copy|share)[-_ ]?(result|score)s?([^a-z]|$)/i;
   // A button that opens a finished game's results / stats, where the Share button is (1.8.3).
   var RESULTS_OPEN_RE = /^((see|view|show|open|check)[ \t]+(my[ \t]+|your[ \t]+|the[ \t]+)?)?(results?|stats|statistics|score|summary|scorecard)( ?[>›→])?$|^(ver|voir|mostrar|afficher|zeige|mostra|bekijk)[ \t]+(los |les |die |i |de )?(resultados?|résultats?|ergebnisse|risultati|resultaten|estadísticas|statistiques|statistiken|statistiche)$|^(resultados?|résultats?|ergebnisse|risultati|resultaten|estadísticas|statistiques|statistiken)$/i;
   // Buttons, and the clickable divs / spans some games use instead.
   var CLICKABLE = 'button, [role="button"], a, [onclick], div[class*="button" i], div[class*="btn" i], span[class*="btn" i], div[tabindex="0"]';
   var AVOID_RE = /(link|invite|friend|twitter|(^|[^a-z])x([^a-z]|$)|facebook|whatsapp|messenger|telegram|sms|text message|reddit|discord|instagram|tiktok|threads|bluesky|mastodon|linkedin|email|e-mail|embed|code|url|image|picture|photo|screenshot|download|save|enlace|vínculo|imagen|descargar|invitar|amigo|lien|télécharger|inviter|ami|bild|herunterladen|einladen|freund|immagine|scarica|invita|amico|imagem|baixar|convidar|afbeelding|downloaden|uitnodigen|vriend)/i;
+  var END_CONTAINER_RE = /(modal|dialog|popup|overlay|end[-_]?screen|result[-_]?screen|game[-_]?over|camp[-_]?sheet|done[-_]?card|done[-_]?screen)/i;
+  var PROSE_BLOCK_RE = /(^|[^a-z])(faq|seo|how[-_]?to|instructions?|rules[-_]?box|tutorial|privacy|cookie|legal|changelog|roadmap)([^a-z]|$)/i;
+  var REVEAL_ATTR_TARGET_RE = /(modal|dialog|overlay|popup|camp|done|result|end|finish|win|summary|share|visible|open|show|active)/i;
+  var NON_DAILY_HEADING_RE = /^(?:mode\s*[:·\-]\s*)?(unlimited(?: mode| puzzle| game)?|practice(?: mode| round| expedition| game)?|free play|training mode|custom (?:puzzle|game|grid)|replay\s*[·\-]\s*unranked)$/i;
 
   // Elements and text inside web components too (open shadow roots), not only the light DOM (1.8.3).
   var MAX_SHADOW_ROOTS = 200;
@@ -323,53 +413,154 @@
     }
     return out;
   }
-  function visibleShadowText(sr) {
-    try {
-      var w = document.createTreeWalker(sr, NodeFilter.SHOW_TEXT, {
-        acceptNode: function (n) {
-          for (var p = n.parentNode; p && p !== sr; p = p.parentNode) {
-            if (p.nodeType !== 1) continue;
-            var tag = p.tagName;
-            if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'TEMPLATE' || tag === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
-            if (p.hasAttribute && (p.hasAttribute('hidden') || p.getAttribute('aria-hidden') === 'true')) return NodeFilter.FILTER_REJECT;
-            try { if (window.getComputedStyle(p).display === 'none') return NodeFilter.FILTER_REJECT; } catch (e) {}
-          }
-          return NodeFilter.FILTER_ACCEPT;
-        }
-      });
-      var parts = [];
-      var node;
-      while ((node = w.nextNode())) {
-        var v = String(node.nodeValue || '').trim();
-        if (v) parts.push(v);
-      }
-      return parts.join('\n');
-    } catch (e) {
-      return '';
-    }
+  function classAndId(el) {
+    var cls = el.className && typeof el.className === 'string' ? el.className : '';
+    return cls + ' ' + (el.id || '') + ' ' + ((el.getAttribute && el.getAttribute('aria-label')) || '');
   }
-  function deepText(limit) {
-    var text = (document.body && document.body.innerText) || '';
+  function buttonAttrHint(el) {
+    var cls = el.className && typeof el.className === 'string' ? el.className : '';
+    var dt = (el.getAttribute && (el.getAttribute('data-testid') || el.getAttribute('data-action'))) || '';
+    return ((el.id || '') + ' ' + cls + ' ' + dt).trim();
+  }
+  function findEndContainer(el) {
+    try {
+      for (var cur = el; cur; cur = cur.parentElement || (cur.getRootNode && cur.getRootNode().host) || null) {
+        if (cur.nodeType !== 1) continue;
+        if (cur.tagName === 'DIALOG') return cur;
+        var role = cur.getAttribute && cur.getAttribute('role');
+        if (role === 'dialog' || role === 'alertdialog') return cur;
+        if (END_CONTAINER_RE.test(classAndId(cur))) return cur;
+      }
+    } catch (e) {}
+    return null;
+  }
+  function inModalContainer(el) {
+    return Boolean(findEndContainer(el));
+  }
+  // Groups inline children and compact single-row flex pills (e.g. `<span>0/9</span> <span>Fields</span>`
+  // or `Expedition #53 opens in <span>9 h 12 m</span>`) onto one logical line instead of splitting them.
+  function lineContainer(el) {
+    var cur = el;
+    for (var depth = 0; cur && cur.nodeType === 1 && depth < 6; depth++) {
+      var parent = cur.parentElement;
+      if (!parent || parent.tagName === 'BODY') break;
+      try {
+        var cs = window.getComputedStyle(cur);
+        var d = cs.display || '';
+        if (d === 'inline' || d === 'contents') { cur = parent; continue; }
+        var pcs = window.getComputedStyle(parent);
+        var pd = pcs.display || '';
+        if ((pd === 'inline-flex' || pd === 'flex') && (pcs.flexDirection || '').indexOf('column') < 0) {
+          var pr = parent.getBoundingClientRect();
+          if (pr.height > 0 && pr.height <= 56) { cur = parent; continue; }
+        }
+      } catch (e) {}
+      break;
+    }
+    return cur;
+  }
+  // Visible UI lines currently on screen (plus scrollable content inside an active end-screen sheet),
+  // excluding hidden elements, closed <details>, FAQ/SEO/rules prose, and off-screen below-the-fold text.
+  function visibleLines(limit) {
+    var lines = [];
+    var totalChars = 0;
+    var viewH = window.innerHeight || 0;
+    function walkRoot(root, skipSingleCharRoot) {
+      if (!root || totalChars >= limit) return;
+      var rootLines = [];
+      var lastBox = null;
+      var current = '';
+      try {
+        var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+          acceptNode: function (n) {
+            var el = n.parentElement;
+            if (!el) return NodeFilter.FILTER_REJECT;
+            var modal = findEndContainer(el);
+            for (var p = el; p && p !== root; p = p.parentNode) {
+              if (p.nodeType !== 1) continue;
+              var tag = p.tagName;
+              if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'TEMPLATE' || tag === 'NOSCRIPT' || tag === 'SVG') return NodeFilter.FILTER_REJECT;
+              if (tag === 'DETAILS' && (!p.open || !modal)) return NodeFilter.FILTER_REJECT;
+              if (p.hasAttribute && (p.hasAttribute('hidden') || p.hasAttribute('inert') || p.getAttribute('aria-hidden') === 'true')) return NodeFilter.FILTER_REJECT;
+              if (!modal && PROSE_BLOCK_RE.test(classAndId(p))) return NodeFilter.FILTER_REJECT;
+              try {
+                var cs = window.getComputedStyle(p);
+                if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) <= 0.05) return NodeFilter.FILTER_REJECT;
+              } catch (e) {}
+            }
+            if (viewH > 0) {
+              try {
+                var r = el.getBoundingClientRect();
+                if (r.width > 0 || r.height > 0) {
+                  if (r.width < 1 || r.height < 1) return NodeFilter.FILTER_REJECT;
+                  if (r.bottom <= 0 || r.top >= viewH + 40) {
+                    if (!modal) return NodeFilter.FILTER_REJECT;
+                    var mr = modal.getBoundingClientRect();
+                    if (mr.bottom <= 0 || mr.top >= viewH) return NodeFilter.FILTER_REJECT;
+                  }
+                }
+              } catch (e) {}
+            }
+            return NodeFilter.FILTER_ACCEPT;
+          }
+        });
+        var node;
+        while ((node = w.nextNode()) && totalChars < limit) {
+          var v = String(node.nodeValue || '').replace(/\s+/g, ' ').trim();
+          if (!v) continue;
+          var box = lineContainer(node.parentElement);
+          if (box === lastBox && current) {
+            current += ' ' + v;
+          } else {
+            if (current) { rootLines.push(current); totalChars += current.length + 1; }
+            current = v;
+            lastBox = box;
+          }
+        }
+        if (current) { rootLines.push(current); totalChars += current.length + 1; }
+      } catch (e) {}
+      if (skipSingleCharRoot && rootLines.length === 1 && rootLines[0].length <= 1) return;
+      for (var i = 0; i < rootLines.length; i++) lines.push(rootLines[i]);
+    }
+    if (document.body) walkRoot(document.body, false);
     try {
       var roots = [document];
-      for (var r = 0; r < roots.length && r < MAX_SHADOW_ROOTS && text.length < limit; r++) {
+      for (var r = 0; r < roots.length && r < MAX_SHADOW_ROOTS && totalChars < limit; r++) {
         var all = roots[r].querySelectorAll('*');
-        for (var i = 0; i < all.length && roots.length < MAX_SHADOW_ROOTS && text.length < limit; i++) {
+        for (var i = 0; i < all.length && roots.length < MAX_SHADOW_ROOTS && totalChars < limit; i++) {
           var sr = all[i].shadowRoot;
           if (sr) {
             roots.push(sr);
-            var st = visibleShadowText(sr);
-            // Skip empty or single-char tile shadow roots so 6x10 boards don't drown out the modal text.
-            if (st && st.trim().length > 1) text += '\n' + st;
+            walkRoot(sr, true);
           }
         }
       }
     } catch (e) {}
-    return text.slice(0, limit);
+    return lines;
   }
-  function label(el) {
-    var t = (el.getAttribute('aria-label') || el.getAttribute('title') || el.innerText || el.textContent || '').trim();
-    return t.replace(/\s+/g, ' ');
+  // Collects aria-label, title, and visible text independently so a verbose title attribute (>40 chars)
+  // never hides a crisp visible "Share" label, while any AVOID_RE match on any label disqualifies the button.
+  function buttonLabels(el) {
+    var out = [];
+    function push(raw, maxLen) {
+      var s = String(raw || '').replace(/\s+/g, ' ').trim();
+      if (s && s.length <= maxLen && out.indexOf(s) < 0) out.push(s);
+    }
+    push(el.getAttribute && el.getAttribute('aria-label'), 80);
+    push(el.getAttribute && el.getAttribute('title'), 80);
+    push(el.innerText || el.textContent, 45);
+    return out;
+  }
+  function isStrongResultButton(el) {
+    var labels = buttonLabels(el);
+    for (var i = 0; i < labels.length; i++) {
+      if (RESULT_BUTTON_RE.test(labels[i])) return true;
+    }
+    if (!labels.length && inModalContainer(el)) {
+      var hint = buttonAttrHint(el);
+      if (hint && !AVOID_RE.test(hint) && ICON_STRONG_ATTR_RE.test(hint)) return true;
+    }
+    return false;
   }
   // On screen and really there: inside the viewport, not hidden by an ancestor, and the element
   // a tap at its centre would hit (not covered by something else, not a hidden pre-rendered dialog).
@@ -405,6 +596,8 @@
   function candidates(re) {
     var out = [];
     var test = re || BUTTON_RE;
+    var allowIconAttr = (test === BUTTON_RE || test === COPY_ONLY_RE);
+    var iconRe = test === COPY_ONLY_RE ? ICON_COPY_ATTR_RE : ICON_SHARE_ATTR_RE;
     var nodes = deepQueryAll(CLICKABLE);
     for (var i = 0; i < nodes.length && out.length < 4; i++) {
       var el = nodes[i];
@@ -415,28 +608,89 @@
         var href = (el.getAttribute('href') || '').trim();
         if (href && href !== '#' && href.toLowerCase().indexOf('javascript:') !== 0) continue; // a real link: never follow it
       }
-      var text = label(el);
-      if (!text || text.length > 40 || !test.test(text) || AVOID_RE.test(text)) continue;
-      if (!pressable(el)) continue;
+      var rawAll = ((el.getAttribute && el.getAttribute('aria-label')) || '') + ' ' +
+                   ((el.getAttribute && el.getAttribute('title')) || '') + ' ' +
+                   ((el.innerText || el.textContent || '').slice(0, 80));
+      if (AVOID_RE.test(rawAll)) continue;
+      var labels = buttonLabels(el);
+      var matched = false;
+      for (var j = 0; j < labels.length; j++) {
+        if (test.test(labels[j])) { matched = true; break; }
+      }
+      if (!matched && !labels.length && allowIconAttr && inModalContainer(el)) {
+        var hint = buttonAttrHint(el);
+        if (hint && !AVOID_RE.test(hint) && iconRe.test(hint)) matched = true;
+      }
+      if (!matched || !pressable(el)) continue;
       out.push(el);
     }
     return out;
   }
-  function looksFinished() {
+  function isNonDailyModeScreen(lines) {
+    if (ALLOW_NON_DAILY) return false;
+    for (var i = 0; i < lines.length; i++) {
+      var l = lines[i];
+      if (l.length <= 40 && NON_DAILY_HEADING_RE.test(l)) return true;
+    }
+    return false;
+  }
+  function lineIndicatesFinished(l) {
+    if (!l || l.length > 120) return false;
+    if (FINISHED_RE.test(l) || FINISHED_INTL_RE.test(l)) return true;
+    return l.length <= 45 && FINISHED_CALLOUT_RE.test(l);
+  }
+  function looksFinished(linesOpt) {
     try {
-      var head = deepText(20000);
-      return FINISHED_RE.test(head) || FINISHED_INTL_RE.test(head) || COUNTDOWN_RE.test(head);
+      var lines = linesOpt || visibleLines(20000);
+      if (isNonDailyModeScreen(lines)) return false;
+      if (storageMarkedFinished) return true;
+      for (var i = 0; i < lines.length; i++) {
+        var l = lines[i];
+        if (lineIndicatesFinished(l) || hasCountdown(l)) return true;
+      }
+      return false;
     } catch (e) { return false; }
   }
   // End-screen words, not only a countdown: some games show "Next puzzle in 05:12:44" all the time,
   // also before the player has started (1.8.12).
-  var NEXT_LINE_RE = /(next|new|nächste[sr]?|próxim[oa]|prochaine?|prossim[oa]|volgende?)\b[^\n]{0,30}\b(in|at|en|em|dans|tra|over)\b/i;
-  function saysFinished() {
+  var NEXT_LINE_RE = /(next|new|nächste[sr]?|próxim[oa]|prochaine?|prossim[oa]|volgende?)\b[^\n]{0,35}\b(in|at|en|em|dans|tra|over|opens)\b|(?:[a-z]+\s+)?#[0-9]+\s+(opens?|unlocks?|starts?|available)\s+in\b|\b(opens?|unlocks?|resets?)\s+in\s+([0-9]|under a minute)/i;
+  function saysFinished(linesOpt) {
     try {
-      // Without the countdown's own line ("Next puzzle in …" is in FINISHED_RE for the Share button).
-      var head = deepText(20000).split('\n').filter(function (l) { return !NEXT_LINE_RE.test(l) && !COUNTDOWN_RE.test(l); }).join('\n');
-      return FINISHED_RE.test(head) || FINISHED_INTL_RE.test(head);
+      var lines = linesOpt || visibleLines(20000);
+      if (isNonDailyModeScreen(lines)) return false;
+      for (var i = 0; i < lines.length; i++) {
+        var l = lines[i];
+        if (NEXT_LINE_RE.test(l) || hasCountdown(l)) continue;
+        if (lineIndicatesFinished(l)) return true;
+      }
+      return false;
     } catch (e) { return false; }
+  }
+
+  // ---- Pre-populated share text blocks (<textarea readonly>, <input readonly>, <pre>) ----
+  function prepopulatedShareText() {
+    try {
+      var viewH = window.innerHeight || 0;
+      var viewW = window.innerWidth || 0;
+      var fields = deepQueryAll('textarea, input[readonly], pre');
+      for (var i = 0; i < fields.length; i++) {
+        var el = fields[i];
+        if (el.closest && el.closest('[aria-hidden="true"], [inert], [hidden]')) continue;
+        if (el.tagName === 'TEXTAREA' && !el.readOnly && !el.disabled && !inModalContainer(el)) continue;
+        var cs = window.getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) <= 0.05) continue;
+        var r = el.getBoundingClientRect();
+        if (r.width < 40 || r.height < 20) continue;
+        if (viewH > 0 && (r.bottom <= 0 || r.top >= viewH || r.right <= 0 || r.left >= viewW)) continue;
+        var raw = (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') ? el.value : el.innerText;
+        var val = String(raw || '').trim();
+        if (val.length < 6 || val.length > 2000 || !looksPlausibleShare(val)) continue;
+        if (GRID_PAIR_RE.test(val) || (val.indexOf('\n') >= 0 && (/#[ \t]*[0-9]/.test(val) || /\b([0-9]{1,2}|x)\s*\/\s*[0-9]{1,2}\b/i.test(val)))) {
+          return val;
+        }
+      }
+    } catch (e) {}
+    return '';
   }
 
   // ---- A result shown on the end screen, for a game with no Share / Copy button (1.8.3) ----
@@ -444,26 +698,53 @@
   // offers it (the player decides), never logs it by itself.
   // A time counts only as the player's own ("Time 1:23", "Solved in 2:05"), not "… in 05:12:44" on
   // a countdown to the next puzzle (1.8.12: noillirk.com's countdown was offered as the score).
-  var SCREEN_SCORE_RE = /(^|[^0-9a-z/])([0-9]{1,2}|x)\s*\/\s*[0-9]{1,2}([^0-9/:]|$)|\b[0-9]{1,3}\s+(guesses|guess|tries|try|attempts?|moves?|mistakes?|hints?|strokes?|clicks?|steps?|lives)\b|\b(time|took|(solved|completed|finished|done|cleared|did it|got it) in)\b[^\n]{0,12}?\b[0-9]{1,2}:[0-5][0-9](:[0-5][0-9])?\b|\b[0-9][0-9,.]{0,8}\s*(points|pts)\b|\bscore[:\s]+[0-9][0-9,.]{0,8}\b/i;
-  var SCREEN_CONTEXT_RE = /(solved|completed|finished|got it|found it|you won|your (score|time|result)|result|score|time|took|guessed|in \d)/i;
+  var SCREEN_SCORE_RE = /(^|[^0-9a-z/])([0-9]{1,2}|x)\s*\/\s*[0-9]{1,2}([^0-9/:]|$)|\b[0-9]{1,3}\s+(guesses|guess|tries|try|attempts?|moves?|mistakes?|hints?|strokes?|clicks?|steps?)\b|\b(time|took|(solved|completed|finished|done|cleared|did it|got it) in)\b[^\n]{0,12}?\b[0-9]{1,2}:[0-5][0-9](:[0-5][0-9])?\b|\b[0-9][0-9,.]{0,8}\s*(points|pts)\b|\bscore[:\s]+[0-9][0-9,.]{0,8}\b/i;
+  var SCREEN_CONTEXT_RE = /(solved|completed|finished|got it|found it|you won|your (final )?(score|time|result)|final (score|time|result)|result|score|time|took|guessed|in \d)/i;
   // Never a result: a countdown to the next puzzle, or a line about when it comes / resets.
-  var NOT_RESULT_RE = /(next|new|until|tomorrow|available|refresh|resets?|countdown|time\s+(remaining|left))\b/i;
-  function screenResultLines() {
+  var NOT_RESULT_RE = /(next|new|until|tomorrow|available|refresh|resets?|opens?|unlocks?|countdown|time\s+(remaining|left))\b/i;
+  // Live in-game progress / board counters ("0/9 Fields", "Round 2/5", "12 Guesses left", "3/10 Found")
+  // that sit in a game's HUD while playing and must never be offered as a finished result.
+  var PROGRESS_UNIT_RE = /\b(fields?|felder|cells?|tiles?|squares?|slots?|items?|objects?|differences?|pairs?|sets?|groups?|categories|countries|flags?|locations?|pins?|targets?|stages?|rounds?|levels?|questions?|prompts?|waves?|chapters?|hearts?|lives|left|remaining|verbleibend|restantes?|restants?|found|discovered|collected|filled|gefüllt)\b/i;
+  var ZERO_SCORE_LINE_RE = /(^|[^0-9])0+\s*\/\s*[0-9]{1,2}\b|\bscore[:\s]+0+(\b|$)|\b0+\s*(points?|pts|guesses?|tries|moves?)\b/i;
+  var FINAL_ZERO_CONTEXT_RE = /(final (score|result)|your (final )?(score|result)|game over|out of (guesses|lives|tries))/i;
+  var ACTIVE_PLAY_RE = /\b([0-9]+\s+(guesses|tries|attempts|lives|moves|hints)\s+(left|remaining)|click a cell|select a cell|enter a (game|word|guess)|type (a|your) (guess|word|answer)|make a guess|drop pin)\b/i;
+  function hasVisibleEndModal() {
+    try {
+      var nodes = deepQueryAll('dialog, [role="dialog"], [role="alertdialog"], [class*="modal" i], [class*="overlay" i], [class*="done-card" i], [class*="camp-sheet" i], [class*="end-screen" i], [class*="result-screen" i]');
+      var viewH = window.innerHeight || 0;
+      for (var i = 0; i < nodes.length; i++) {
+        var el = nodes[i];
+        if (el.hasAttribute && (el.hasAttribute('hidden') || el.getAttribute('aria-hidden') === 'true')) continue;
+        var cs = window.getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) <= 0.05) continue;
+        var r = el.getBoundingClientRect();
+        if (r.width >= 40 && r.height >= 40 && (viewH === 0 || (r.bottom > 0 && r.top < viewH))) return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+  function screenResultLines(linesOpt) {
     var out = [];
     try {
-      var lines = deepText(20000).split('\n');
+      var lines = linesOpt || visibleLines(20000);
+      var allowZero = lines.some(function (ln) { return FINAL_ZERO_CONTEXT_RE.test(ln); });
       for (var i = 0; i < lines.length && out.length < 6; i++) {
         var l = lines[i].replace(/\s+/g, ' ').trim();
-        if (l.length < 3 || l.length > 80 || NOT_RESULT_RE.test(l) || COUNTDOWN_RE.test(l)) continue;
+        if (l.length < 3 || l.length > 80 || NOT_RESULT_RE.test(l) || hasCountdown(l) || PROGRESS_UNIT_RE.test(l)) continue;
         if (/(^|[^0-9])0?0:00(:00)?([^0-9]|$)/.test(l)) continue; // a clock that hasn't started
+        if (!allowZero && ZERO_SCORE_LINE_RE.test(l)) continue; // unstarted/zero HUD counter ("0/9", "Score: 0")
+        var prev = i > 0 ? lines[i - 1].replace(/\s+/g, ' ').trim() : '';
+        var next = i + 1 < lines.length ? lines[i + 1].replace(/\s+/g, ' ').trim() : '';
+        if ((prev && prev.length <= 24 && PROGRESS_UNIT_RE.test(prev)) || (next && next.length <= 24 && PROGRESS_UNIT_RE.test(next))) continue;
         var bareTime = /^[0-9]{1,2}:[0-5][0-9](:[0-5][0-9])?$/.test(l);
         if (!SCREEN_SCORE_RE.test(l) && !bareTime) continue;
-        // A bare "3/6" or "1:23" takes its label from the line before ("Your time" / "1:23").
-        if (!SCREEN_CONTEXT_RE.test(l) && i > 0) {
-          var prev = lines[i - 1].replace(/\s+/g, ' ').trim();
-          // (Not a line that is a score itself, such as the game's clock just above.)
-          if (prev && prev.length <= 40 && SCREEN_CONTEXT_RE.test(prev) && !NOT_RESULT_RE.test(prev) && !SCREEN_SCORE_RE.test(prev)) { out.push(prev.replace(/[:\s]+$/, '') + ': ' + l); continue; }
-          if (!/^([0-9x]{1,2}\s*\/\s*[0-9]{1,2})$/i.test(l)) continue;
+        // A bare "3/6" or "1:23" only counts when preceded by an explicit result/score/time label
+        // ("Your score" / "7/9", "Your time" / "1:23"), never as an unlabeled HUD badge.
+        if (!SCREEN_CONTEXT_RE.test(l)) {
+          if (prev && prev.length <= 40 && SCREEN_CONTEXT_RE.test(prev) && !NOT_RESULT_RE.test(prev) && !PROGRESS_UNIT_RE.test(prev) && !SCREEN_SCORE_RE.test(prev)) {
+            out.push(prev.replace(/[:\s]+$/, '') + ': ' + l);
+          }
+          continue;
         }
         if (bareTime) continue; // a time with nothing saying whose it is
         out.push(l);
@@ -473,9 +754,13 @@
   }
   var screenSent = false;
   function offerScreenResult() {
-    // Only on a real end screen (its words, not only a countdown), and only once.
-    if (sentAny || screenSent || document.hidden || !saysFinished()) return;
-    var first = screenResultLines();
+    // Only on a real end screen (its words, not only a countdown), never while active gameplay prompts
+    // sit uncovered on screen, and only once.
+    if (sentAny || screenSent || document.hidden) return;
+    var lines = visibleLines(20000);
+    if (!saysFinished(lines)) return;
+    if (!hasVisibleEndModal() && lines.some(function (l) { return ACTIVE_PLAY_RE.test(l); })) return;
+    var first = screenResultLines(lines);
     if (!first.length) return;
     // A line that changes from one second to the next is a clock still running (the game's own timer
     // or a countdown), never the result: read again a moment later and keep a line that stayed put.
@@ -485,7 +770,7 @@
       // Of the lines that stayed put, the one that says what the player did ("Solved in 3 guesses")
       // before a count, and a count before a bare clock ("Time 0:11").
       var rank = function (l) {
-        if (/(solved|completed|finished|got it|found it|you won|guessed|your (score|result))/i.test(l)) return 0;
+        if (/(solved|completed|finished|got it|found it|you won|guessed|your (final )?(score|result)|final (score|result))/i.test(l)) return 0;
         if (/[0-9x]\s*\/\s*[0-9]|[0-9]\s+(guess|tr(y|ies)|attempt|move|mistake|hint|stroke|click|step|point|pts)/i.test(l)) return 1;
         return 2;
       };
@@ -497,37 +782,69 @@
       try { post('{"via":"screen","n":' + quote(NONCE) + ',"text":' + quote(line.slice(0, 120)) + '}'); } catch (e) {}
     }, 1600);
   }
-  function press(el) {
+  // If pressing a "Share" button opened a custom share drawer instead of copying immediately,
+  // check for a newly revealed "Copy" / "Copy result" item inside that drawer.
+  function scanCopyFollowUp() {
+    if (sentAny || document.hidden || presses >= MAX_PRESSES) return;
+    var copyBtns = candidates(COPY_ONLY_RE);
+    if (copyBtns.length) {
+      press(copyBtns[0], true);
+      return;
+    }
+    var pre = prepopulatedShareText();
+    if (pre) {
+      presses += 1;
+      try { post('{"kind":"press","n":' + quote(NONCE) + '}'); } catch (e) {}
+      setProbing(true);
+      send('probe', pre);
+    }
+  }
+  function dispatchTouchClick(el) {
+    try {
+      var r = el.getBoundingClientRect();
+      var cx = r.left + r.width / 2;
+      var cy = r.top + r.height / 2;
+      var base = { bubbles: true, cancelable: true, composed: true, clientX: cx, clientY: cy, button: 0 };
+      if (typeof PointerEvent === 'function') {
+        el.dispatchEvent(new PointerEvent('pointerdown', Object.assign({ pointerId: 1, pointerType: 'touch', isPrimary: true, buttons: 1 }, base)));
+      }
+      if (typeof MouseEvent === 'function') {
+        el.dispatchEvent(new MouseEvent('mousedown', Object.assign({ buttons: 1 }, base)));
+      }
+      if (typeof PointerEvent === 'function') {
+        el.dispatchEvent(new PointerEvent('pointerup', Object.assign({ pointerId: 1, pointerType: 'touch', isPrimary: true, buttons: 0 }, base)));
+      }
+      if (typeof MouseEvent === 'function') {
+        el.dispatchEvent(new MouseEvent('mouseup', Object.assign({ buttons: 0 }, base)));
+      }
+    } catch (e) {}
+    if (!sentAny) {
+      try { el.click(); } catch (e) {}
+    }
+  }
+  function press(el, skipCopyFollowUp) {
     if (tried) tried.add(el);
     presses += 1;
     // Tells the app a press is coming, so it ignores windows, other apps and downloads it may start.
     try { post('{"kind":"press","n":' + quote(NONCE) + '}'); } catch (e) {}
     setProbing(true);
-    try { el.click(); } catch (e) {}
-  }
-  function inModalContainer(el) {
-    try {
-      for (var cur = el; cur; cur = cur.parentElement || (cur.getRootNode && cur.getRootNode().host) || null) {
-        if (cur.nodeType !== 1) continue;
-        if (cur.tagName === 'DIALOG') return true;
-        var role = cur.getAttribute && cur.getAttribute('role');
-        if (role === 'dialog' || role === 'alertdialog') return true;
-        var cls = (cur.className && typeof cur.className === 'string' ? cur.className : '') + ' ' + (cur.id || '');
-        if (/(modal|dialog|popup|overlay|end[-_]?screen|result[-_]?screen|game[-_]?over)/i.test(cls)) return true;
-      }
-    } catch (e) {}
-    return false;
+    dispatchTouchClick(el);
+    if (!skipCopyFollowUp && !sentAny && presses < MAX_PRESSES) {
+      timers.push(setTimeout(scanCopyFollowUp, 750), setTimeout(scanCopyFollowUp, 1800));
+    }
   }
   var openedResults = false;
   var screenTimer = null;
   function scan() {
     // Stop once a result went out (found, or shared by the player) or after a few presses.
     if (sentAny || document.hidden) return;
+    var lines = visibleLines(20000);
+    if (isNonDailyModeScreen(lines)) return;
     var list = presses < MAX_PRESSES ? candidates() : [];
-    var finished = looksFinished();
+    var finished = looksFinished(lines);
     if (list.length) {
       var strong = list.filter(function (el) {
-        return RESULT_BUTTON_RE.test(label(el)) && (finished || inModalContainer(el));
+        return isStrongResultButton(el) && (finished || inModalContainer(el));
       });
       if (strong.length) { press(strong[0]); return; }
       if (!finished) return;
@@ -541,10 +858,21 @@
       var opener = candidates(RESULTS_OPEN_RE);
       if (opener.length) {
         openedResults = true;
-        press(opener[0]);
+        press(opener[0], true);
         // The results view opens with an animation; its Share button comes after.
         setTimeout(function () { setProbing(false); }, 400);
         timers.push(setTimeout(scan, 900), setTimeout(scan, 2200), setTimeout(scan, 4000));
+        return;
+      }
+    }
+    // Check if the end screen already displays a pre-populated share grid / text box.
+    if (presses < MAX_PRESSES) {
+      var pre = prepopulatedShareText();
+      if (pre) {
+        presses += 1;
+        try { post('{"kind":"press","n":' + quote(NONCE) + '}'); } catch (e) {}
+        setProbing(true);
+        send('probe', pre);
         return;
       }
     }
@@ -560,39 +888,73 @@
   // A game that's already finished shows its end screen soon after loading.
   function onReady() { schedule([2500, 6000]); }
   if (document.readyState === 'complete') onReady(); else window.addEventListener('load', onReady);
-  // After each move: the end screen often animates in a few seconds after the last guess.
+  // After each move: end screens may animate in quickly or after a 30–45s finish sequence (Farflung).
   function onInput() {
     lastInputAt = Date.now();
-    schedule([1500, 4000, 8000]);
+    schedule([1500, 4000, 8000, 18000, 32000, 46000]);
   }
   // A real touch or key ends probe mode at once (so the player's own tap copies / shares normally),
-  // and a button the player pressed themselves is never pressed again.
+  // and a button the player pressed themselves is never pressed again. Synthetic probe events
+  // (e.isTrusted === false) are ignored here so dispatchTouchClick doesn't cancel its own probe!
   window.addEventListener('pointerdown', function (e) {
+    if (e && e.isTrusted === false) return;
     setProbing(false);
     try {
       var b = e.target && e.target.closest && e.target.closest(CLICKABLE);
       if (b && tried) tried.add(b);
     } catch (x) {}
   }, true);
-  window.addEventListener('keydown', function () { setProbing(false); }, true);
-  window.addEventListener('pointerup', onInput, true);
-  window.addEventListener('keyup', onInput, true);
-  // Late-appearing end screens (only shortly after the player did something).
+  window.addEventListener('keydown', function (e) {
+    if (e && e.isTrusted === false) return;
+    setProbing(false);
+  }, true);
+  window.addEventListener('pointerup', function (e) {
+    if (e && e.isTrusted === false) return;
+    onInput();
+  }, true);
+  window.addEventListener('keyup', function (e) {
+    if (e && e.isTrusted === false) return;
+    onInput();
+  }, true);
+  // Late-appearing end screens (including 30–60s finish animations and pre-rendered modals revealed via
+  // class/style/hidden changes).
   try {
-    var pending = null;
+    var pending = false;
     new MutationObserver(function (records) {
-      if (sentAny || Date.now() - lastInputAt > 20000 || pending) return;
-      // An end screen adds elements; a clock ticking only swaps its text (1.8.12: a game's timer made
-      // this read the whole page every second while the player played).
-      var added = false;
-      for (var i = 0; i < records.length && !added; i++) {
-        var nodes = records[i].addedNodes;
-        for (var j = 0; j < nodes.length; j++) if (nodes[j].nodeType === 1) { added = true; break; }
+      if (sentAny || Date.now() - lastInputAt > POST_INPUT_WATCH_MS || pending) return;
+      // An end screen either adds element nodes or reveals a pre-rendered modal/done card/share button;
+      // a ticking game clock only swaps characterData/text nodes and is ignored (1.8.12).
+      var relevant = false;
+      for (var i = 0; i < records.length && !relevant; i++) {
+        var rec = records[i];
+        if (rec.type === 'childList') {
+          var nodes = rec.addedNodes;
+          for (var j = 0; j < nodes.length; j++) if (nodes[j].nodeType === 1) { relevant = true; break; }
+        } else if (rec.type === 'attributes') {
+          var t = rec.target;
+          if (t && t.nodeType === 1) {
+            var attr = rec.attributeName;
+            if (attr === 'hidden' || attr === 'open' || t.tagName === 'DIALOG' || t.tagName === 'BUTTON' ||
+                (t.getAttribute && t.getAttribute('role') === 'dialog') || REVEAL_ATTR_TARGET_RE.test(classAndId(t))) {
+              relevant = true;
+            }
+          }
+        }
       }
-      if (!added) return;
-      pending = setTimeout(function () { pending = null; scan(); }, 900);
+      if (!relevant) return;
+      pending = true;
+      mutationTimers.forEach(clearTimeout);
+      mutationTimers = [
+        setTimeout(function () { pending = false; scan(); }, 900),
+        setTimeout(scan, 2500)
+      ];
       // The document itself: this runs before the page's <html> element exists, and observing that
       // (null) threw, so late end screens were never seen (1.8.12).
-    }).observe(document, { childList: true, subtree: true });
+    }).observe(document, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style', 'hidden', 'open', 'aria-hidden']
+    });
   } catch (e) {}
 })();

@@ -364,4 +364,94 @@ class GamePlayerTest {
             assertTrue("it offers the solve, not the clock; shown: $shown", shown.contains("Solved in 3 guesses"))
         }
     }
+
+    @Test
+    fun inGameProgressAndRulesProseAreNotOfferedAsAResultUntilFinished() {
+        val page = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+            <style>.pill{display:inline-flex;gap:6px;padding:6px 12px}</style></head>
+            <body style="margin:0;padding:20px;font:16px sans-serif">
+            <main>
+              <div><div class="pill"><span>12</span><span>Guesses</span></div>
+              <div class="pill"><span id="prog">0/9</span><span>Fields</span></div></div>
+              <div>Score <span>0</span></div>
+              <button id="cell" style="font-size:18px;padding:12px 24px">Cell 1</button>
+              <p>Click a cell and enter a game that fits both categories. You have 12 guesses left.</p>
+            </main>
+            <div id="doneWrap" class="daily-done-card" style="display:none;padding:16px">
+              <div>9/9 Fields filled</div>
+              <button id="copyBtn" aria-label="Copy result" style="padding:10px 18px">Copy</button>
+              <div>Next puzzle in 05:42:10</div>
+            </div>
+            <section style="margin-top:24px">
+              <p>Nine cells add up to 900. A flawless grid leaves three of them over for 1,200 points.</p>
+              <p>Sudoku is a grid puzzle solved by following rules.</p>
+            </section>
+            <script>
+              document.getElementById('cell').addEventListener('click', function () {
+                document.getElementById('prog').textContent = '3/9';
+              });
+              document.getElementById('copyBtn').addEventListener('click', function () {
+                navigator.clipboard.writeText('Game A #52 8/9\n🟩🟩🟩\n🟩🟩🟩\n🟩⬜🟩');
+              });
+            </script></body></html>"""
+        launchWithPage(page) { s ->
+            s.waitForJs("String(!!document.getElementById('cell'))", "\"true\"")
+            pageCssWidth = s.js("String(document.documentElement.clientWidth)").trim('"').toFloat()
+            s.tap("#cell")
+            Thread.sleep(10_500)
+            s.onActivity { a ->
+                val shown = allText(a.window.decorView)
+                assertTrue("in-game 0/9 or 3/9 progress must not trigger result card; shown: $shown",
+                    !shown.contains("result on screen") && !shown.contains("result saved"))
+            }
+            s.js("document.getElementById('doneWrap').style.display='block'; 'ok'")
+            val end = System.currentTimeMillis() + 10_000
+            var shown = ""
+            while (System.currentTimeMillis() < end) {
+                s.onActivity { a -> shown = allText(a.window.decorView) }
+                if (shown.contains("result saved")) break
+                Thread.sleep(300)
+            }
+            assertTrue("revealing the finished card captures Copy result; shown: $shown", shown.contains("Game A result saved"))
+        }
+    }
+
+    @Test
+    fun aShareButtonAfterALongFinishAnimationIsCapturedAutomatically() {
+        val page = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;padding:24px;font:16px sans-serif">
+            <div id="stage"><button id="pin" style="font-size:18px;padding:12px 24px">Drop pin</button></div>
+            <div id="camp"></div>
+            <script>
+              var __offset = 0, __origNow = Date.now.bind(Date);
+              Date.now = function () { return __origNow() + __offset; };
+              window.__showCamp = function () {
+                __offset = 35000;
+                document.getElementById('stage').style.display = 'none';
+                document.getElementById('camp').innerHTML =
+                  '<section class="camp-sheet"><div>265 km</div>' +
+                  '<button id="sh" aria-label="Share" style="padding:12px 24px;font-size:16px">Share</button>' +
+                  '<div>Expedition #52 opens in <span>9 h 12 m</span></div></section>';
+                document.getElementById('sh').addEventListener('click', function () {
+                  navigator.clipboard.writeText('Game A #52 · 265/500 km\nRare · Uncommon\nhttps://example.com/a');
+                });
+              };
+            </script></body></html>"""
+        launchWithPage(page) { s ->
+            s.waitForJs("String(!!document.getElementById('pin'))", "\"true\"")
+            pageCssWidth = s.js("String(document.documentElement.clientWidth)").trim('"').toFloat()
+            s.tap("#pin")
+            Thread.sleep(500)
+            s.js("window.__showCamp(); 'ok'")
+            val end = System.currentTimeMillis() + 10_000
+            var shown = ""
+            while (System.currentTimeMillis() < end) {
+                s.onActivity { a -> shown = allText(a.window.decorView) }
+                if (shown.contains("result saved")) break
+                Thread.sleep(300)
+            }
+            assertTrue("Share button after ~35s animation is auto-captured; shown: $shown", shown.contains("Game A result saved"))
+        }
+    }
 }
+

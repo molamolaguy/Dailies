@@ -70,5 +70,7 @@ test('1.9.7: mobile m. URLs match catalogue entries alongside www.', () => {
   assert.equal(known.find('https://m.nerdlegame.com/').name, 'Nerdle');
   assert.equal(known.find('https://m.nytimes.com/games/wordle/index.html').name, 'Wordle');
   assert.equal(known.find('http://m.wafflegame.net/daily').name, 'Waffle');
+  assert.equal(known.find('https://farflung.game/').name, 'Farflung');
+  assert.equal(known.find('https://www.n-puzzle.com/de/nintendoku').name, 'Nintendoku');
 });
 

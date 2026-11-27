@@ -1,0 +1,3 @@
+- Smarter automatic result logging: catches results after long finish animations, stops active gameplay counters (such as 0/9) or Practice/Unlimited rounds from logging early, and reads aria-labelled, pre-populated, and two-step Share/Copy menus.
+- Upgraded URL site scraping for reset times, time zones, UTC offsets, target format/par, concise how-to-play descriptions, and Gaming & RPG / Custom Daily categories.
+- Renamed the Streaks & Log tab to My Results.

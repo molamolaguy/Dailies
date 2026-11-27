@@ -172,7 +172,7 @@
       resetTime: '00:00', resetZone: 'local', maxTries: 'Fastest time', verified: false,
       desc: 'A new jigsaw puzzle every day.' },
     { host: 'putt.day', name: 'putt.day', category: 'Custom Daily',
-      resetTime: '00:00', resetZone: 'local', maxTries: 'Fewest strokes', verified: false,
+      resetTime: '00:00', resetZone: 'America/Los_Angeles', maxTries: 'Fewest strokes', verified: true,
       desc: 'A daily minigolf hole.' },
     { host: 'framed.wtf', path: '/episode', name: 'Episode', category: 'Movies & Media',
       resetTime: '00:00', resetZone: 'utc', maxTries: '6 frames', verified: false,
@@ -201,8 +201,10 @@
     { host: 'immaculategrid.com', name: 'Immaculate Grid', category: 'Custom Daily',
       resetTime: '09:00', resetZone: 'America/New_York', maxTries: '9 guesses', verified: false,
       desc: 'A 3x3 grid of baseball players who fit both clues.' },
-    { host: 'n-puzzle.com', path: '/en/nintendoku', name: 'Nintendoku', category: 'Gaming & RPG',
-      resetTime: '06:00', resetZone: 'Europe/Paris', maxTries: '9 guesses', verified: false,
+    { host: 'n-puzzle.com', path: '/en/nintendoku',
+      also: [{ host: 'n-puzzle.com', path: '/de/nintendoku' }, { host: 'n-puzzle.com', path: '/nintendoku' }],
+      name: 'Nintendoku', category: 'Gaming & RPG',
+      resetTime: '06:00', resetZone: 'Europe/Paris', maxTries: '9 guesses', verified: true,
       desc: 'A 3x3 grid of Nintendo games that fit both categories.' },
     // ---- 1.8.3 ----
     { host: 'whentaken.com', name: 'WhenTaken', category: 'Geography & Maps',
@@ -228,7 +230,10 @@
       desc: 'Guess the year each photo was taken.' },
     { host: 'globle-capitals.com', name: 'Globle: Capitals', category: 'Geography & Maps',
       resetTime: '00:00', resetZone: 'local', maxTries: 'Fewest guesses', verified: false,
-      desc: 'Find the mystery capital city using proximity hints.' }
+      desc: 'Find the mystery capital city using proximity hints.' },
+    { host: 'farflung.game', name: 'Farflung', category: 'Geography & Maps',
+      resetTime: '00:00', resetZone: 'local', maxTries: 'Most km', verified: true,
+      desc: 'Pin five countries on the world map — rarer answers travel further.' }
   ];
 
   function parse(url) {

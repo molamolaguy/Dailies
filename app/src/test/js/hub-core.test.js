@@ -950,3 +950,54 @@ test('all regular and secret achievements use monochrome SVG icon keys (no emoji
     assert.match(a.icon, /^[a-zA-Z0-9]+$/, `Achievement ${a.id} must use an SVG icon key, got: ${a.icon}`);
   }
 });
+
+test('Farflung N/M km scores preserve km unit and space-separated game names match compound share headers', () => {
+  const ff = 'Farflung #52 · 265/500 km*\nRare · Uncommon · Uncommon · Miss · Elusive\nhttps://farflung.game/s/mdccxn?e=52&w=4';
+  assert.equal(core.isStrictShareResult(ff, { name: 'Farflung', url: 'https://farflung.game/' }), true);
+  assert.equal(core.isStrictShareResult('Farflung #5 · 85/500 km\nRare · Miss · Miss · Miss · Miss', { name: 'Far Flung', url: 'https://farflung.game/' }), true);
+  const rv = core.parseResultValue(ff);
+  assert.deepEqual(rv, { kind: 'points', value: 265, unit: 'km', group: 'p:km', rank: -265, label: '265km' });
+  const nin = '🎮 NintenDoku, Daily, Nov 26, 2026\n\n8/9, 587/1200 pts\n\n🟩🟩🟩\n🟩🟩🟩\n🟩⬜🟩';
+  assert.equal(core.parseResultValue(nin).label, '587 pts');
+  assert.equal(core.parseResultValue('TimeGuessr #400 38,412/50,000').label, '38,412 pts');
+  // Non-daily modes (Unlimited, Practice, Replay, Archive, ∞) do not auto-log against a Daily game,
+  // unless the user's game itself is an Unlimited/Practice game.
+  assert.equal(core.isStrictShareResult('Farflung ∞ · 310/500 km\nRare · Farflung\nhttps://farflung.game', { name: 'Farflung', url: 'https://farflung.game/' }), false);
+  assert.equal(core.isStrictShareResult('Farflung · Expedition #50 replay · unranked\n265 km\nhttps://farflung.game', { name: 'Farflung', url: 'https://farflung.game/' }), false);
+  assert.equal(core.isStrictShareResult('🎮 NintenDoku, Unlimited\n\n8/9\n🟩🟩🟩\n🟩🟩🟩\n🟩⬜🟩', { name: 'Nintendoku', url: 'https://www.n-puzzle.com/en/nintendoku' }), false);
+  assert.equal(core.isStrictShareResult('Wordle Unlimited 3/6\n⬜🟨🟩⬜⬜\n🟩🟩🟩🟩🟩', { name: 'Wordle Unlimited', url: 'https://wordleunlimited.org/' }), true);
+});
+
+test('recheckChanges prefers scraped targetFormat over generic metricType/par', () => {
+  const games = [
+    { id: 'g1', name: 'TimePhoto', url: 'https://timephoto.example/', icon: '', desc: 'Guess the year.', resetTime: '00:00', resetZone: 'local', maxTries: 'Daily Puzzle', category: 'Custom Daily' }
+  ];
+  const results = [
+    {
+      id: 'g1',
+      url: 'https://timephoto.example/',
+      finalUrl: 'https://timephoto.example/',
+      parsed: {
+        name: 'TimePhoto',
+        description: 'Guess the year.',
+        faviconUrl: '',
+        resetTime: '06:00',
+        resetZone: 'Europe/Berlin',
+        timeFound: true,
+        zoneFound: true,
+        metricType: 'points',
+        par: 50000,
+        targetFormat: '50,000 points',
+        category: 'Gaming & RPG'
+      }
+    }
+  ];
+  const out = core.recheckChanges(games, results, { isKnown: () => false, category: (c) => c });
+  assert.equal(out.length, 1);
+  assert.equal(out[0].changes.find((c) => c.field === 'maxTries').to, '50,000 points');
+  assert.deepEqual(out[0].changes.find((c) => c.field === 'reset').to, { time: '06:00', zone: 'Europe/Berlin' });
+  assert.equal(out[0].changes.find((c) => c.field === 'category').to, 'Gaming & RPG');
+});
+
+
+

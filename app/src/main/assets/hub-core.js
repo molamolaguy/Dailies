@@ -602,9 +602,12 @@
     add(raw.replace(NAME_PREFIX_RE, ''));
     add(raw.split(/[·:|–—]| - /)[0]);
     add(raw.split(/[·:|–—]| - /)[0].replace(NAME_PREFIX_RE, ''));
-    // "Krillion Daily Dive" is shared as "Krillion …".
-    const first = raw.replace(NAME_PREFIX_RE, '').split(' ')[0];
+    // "Krillion Daily Dive" is shared as "Krillion …"; "Far Flung" is shared as "Farflung …".
+    const stripped = raw.replace(NAME_PREFIX_RE, '');
+    const first = stripped.split(' ')[0];
     if (first.length >= 5 && /^[a-z0-9]+$/.test(first)) add(first);
+    const joined = stripped.replace(/ /g, '');
+    if (joined !== stripped && joined.length >= 6 && /^[a-z0-9]+$/.test(joined)) add(joined);
     let level = 0;
     for (const k of keys) {
       if (!new RegExp(`(?<![a-z0-9])${escapeRe(k)}(?![a-z])`).test(lower)) continue;
@@ -643,11 +646,26 @@
     return false;
   }
 
+  const STRICT_NON_DAILY_RE = /(?<![a-z0-9_\/.-])(unlimited|practice|replay|unranked|free[ \t\u00A0]+play|training[ \t\u00A0]+mode|custom[ \t\u00A0]+(?:puzzle|game|grid)|archive)(?![a-z0-9_\/.-])/g;
+  const STRICT_INFINITY_ROUND_RE = /(?:^|[ \t\u00A0#])\u221E(?:[ \t\u00A0·:\-]|\n|$)/;
+
+  function isNonDailyResult(t, lower, name, url) {
+    if (STRICT_INFINITY_ROUND_RE.test(t) && String(name == null ? '' : name).indexOf('\u221E') < 0) return true;
+    const gameCtx = `${asciiLower(name)} ${asciiLower(url)}`;
+    STRICT_NON_DAILY_RE.lastIndex = 0;
+    let m;
+    while ((m = STRICT_NON_DAILY_RE.exec(lower))) {
+      if (!gameCtx.includes(m[1])) return true;
+    }
+    return false;
+  }
+
   function isStrictShareResult(text, game) {
     const t = strictTrim(String(text == null ? '' : text).replace(/\r\n/g, '\n'));
     if (t.length < 3 || t.length > 4000) return false;
     const lower = asciiLower(t);
     if (SINGLE_URL_RE.test(lower)) return false;
+    if (isNonDailyResult(t, lower, game && game.name, game && game.url)) return false;
     if (STRICT_GRID_RE.test(t)) return true;
     const mention = gameMention(lower, game && game.name, game && game.url);
     const puzzleNo = STRICT_PUZZLE_NO_RE.test(lower);
@@ -758,8 +776,8 @@
   const TIME_HM_RE = /(?<![A-Za-z0-9_.])([0-9]{1,2})[ \t\u00A0]*h(?:ours?|rs?)?[ \t\u00A0,]*([0-9]{1,2})[ \t\u00A0]*m(?:in(?:ute)?s?)?(?![A-Za-z0-9_])/i;
   const TIME_MINUTES_RE = /(?<![A-Za-z0-9_.])([0-9]{1,3})[ \t\u00A0]*min(?:ute)?s?(?![A-Za-z0-9_])/i;
   const POINTS_RE = /(?<![A-Za-z0-9_#.,\-\u2212])([-\u2212]?)([0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?|[0-9]{1,7}(?:\.[0-9]+)?)[ \t\u00A0]*(pts|points?|xp|m|meters?|metres?|km|%)(?![A-Za-z0-9_])/i;
-  // "38,412/50,000" (TimeGuessr, FoodGuessr): a points total out of a maximum.
-  const POINTS_OF_RE = /(?<![0-9.,\/])([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})[ \t\u00A0]*\/[ \t\u00A0]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,7})(?![0-9\/])/;
+  // "38,412/50,000" (TimeGuessr, FoodGuessr) or "265/500 km*" (Farflung): a total out of a maximum.
+  const POINTS_OF_RE = /(?<![0-9.,\/])([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{1,7})[ \t\u00A0]*\/[ \t\u00A0]*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,7})(?![0-9\/])(?:[ \t\u00A0]*(pts|points?|xp|km|m|meters?|metres?)(?![A-Za-z0-9_]))?/i;
   // A unit-less "m" is minutes ("58m"), unless it reads as a distance (Krillion's "4,250m" depth).
   const DISTANCE_CONTEXT_RE = /depth|deep|dive|metre|meter|distance|krillion/i;
   const GOLF_CONTEXT_RE = /\u26F3|golf|strokes?|(?<![A-Za-z])par(?![A-Za-z])/i;
@@ -790,7 +808,9 @@
     let m = POINTS_OF_RE.exec(cleaned);
     if (m && num(m[1]) <= num(m[2])) {
       const value = num(m[1]);
-      return { kind: 'points', value, unit: 'pts', group: 'p:pts', rank: -value, label: pointsLabel(value, 'pts') };
+      const uRaw = (m[3] || '').toLowerCase();
+      const unit = uRaw === 'km' ? 'km' : (/^(m|meters?|metres?)$/.test(uRaw) ? 'm' : (uRaw === 'xp' ? 'xp' : 'pts'));
+      return { kind: 'points', value, unit, group: `p:${unit}`, rank: -value, label: pointsLabel(value, unit) };
     }
     const g = parseScore(cleaned);
     if (g) {
@@ -1675,10 +1695,11 @@
         }
       }
       // Only over the placeholder: a format learned from results (1.8.3) or typed in knows better.
-      if (p.metricType && Number(p.par) > 0 && (!norm(g.maxTries) || /^daily puzzle$/i.test(norm(g.maxTries)))) {
+      if ((norm(p.targetFormat) || (p.metricType && Number(p.par) > 0)) && (!norm(g.maxTries) || /^daily puzzle$/i.test(norm(g.maxTries)))) {
         const par = Number(p.par);
-        const fmt = p.metricType === 'tries' ? `${par} guesses` : (p.metricType === 'time' ? `${par}s target` : `${par} pts`);
-        if (!same(fmt, g.maxTries)) add('maxTries', g.maxTries || '', fmt);
+        const fmt = norm(p.targetFormat)
+          || (p.metricType === 'tries' ? `${par} guesses` : (p.metricType === 'time' ? `${par}s target` : `${par} pts`));
+        if (fmt && !same(fmt, g.maxTries)) add('maxTries', g.maxTries || '', fmt);
       }
       if (p.category && typeof o.category === 'function' && (g.category || 'Custom Daily') === 'Custom Daily') {
         const cat = o.category(p.category);

@@ -221,5 +221,131 @@ class WebsiteScraperRobustnessTest {
             server.stop(0)
         }
     }
+
+    @Test
+    fun expandedResetSchedulesAndZones_coverRealWorldPhrasingsAndUtcOffsets() {
+        // Nintendoku: "06:00 German time"
+        val de = WebsiteScraper.detectResetScheduleDetail("A new puzzle appears every day at 06:00 German time, identical for everyone worldwide.")
+        assertTrue(de.timeFound)
+        assertTrue(de.zoneFound)
+        assertEquals("06:00", de.time)
+        assertEquals("Europe/Berlin", de.zone)
+
+        // Farflung: "opens at midnight in your local time"
+        val ff = WebsiteScraper.detectResetScheduleDetail("A new expedition opens at midnight in your local time.")
+        assertTrue(ff.timeFound)
+        assertTrue(ff.zoneFound)
+        assertEquals("00:00", ff.time)
+        assertEquals("local", ff.zone)
+
+        // putt.day: "new one at midnight Pacific"
+        val putt = WebsiteScraper.detectResetScheduleDetail("Same hole for everyone, new one at midnight Pacific.")
+        assertTrue(putt.timeFound)
+        assertTrue(putt.zoneFound)
+        assertEquals("00:00", putt.time)
+        assertEquals("America/Los_Angeles", putt.zone)
+
+        // Inverted word order & 12:00 midnight / 12 noon
+        assertEquals("00:00" to "utc", WebsiteScraper.detectResetSchedule("At midnight UTC, a new puzzle unlocks."))
+        assertEquals("00:00" to "America/New_York", WebsiteScraper.detectResetSchedule("Daily puzzle resets at 12:00 midnight ET."))
+        assertEquals("12:00" to "Europe/London", WebsiteScraper.detectResetSchedule("New round unlocks at 12 noon UK time."))
+
+        // Explicit numeric UTC/GMT offsets normalize cleanly to UTC HH:MM
+        val utcPlus8 = WebsiteScraper.detectResetScheduleDetail("Daily reset at 08:00 UTC+8")
+        assertEquals("00:00", utcPlus8.time)
+        assertEquals("utc", utcPlus8.zone)
+        assertTrue(utcPlus8.zoneFound)
+
+        val gmtMinus5 = WebsiteScraper.detectResetScheduleDetail("New puzzle available at 19:00 GMT-5")
+        assertEquals("00:00", gmtMinus5.time)
+        assertEquals("utc", gmtMinus5.zone)
+
+        // Non-clock ratios in prose must not be mistaken for 24h reset times
+        val ratio = WebsiteScraper.detectResetScheduleDetail("Daily map game drawn at scale 1:50.")
+        // wait: "at scale 1:50" has "scale " before 1:50, not "at " right before 1:50!
+        assertFalse(ratio.timeFound)
+    }
+
+    @Test
+    fun resolveUrlAndOwnScripts_handleBareOriginRelativePathsAndVendorBundles() {
+        val html = """
+            <html><head>
+              <script src="../js/jquery-3.6.0.min.js"></script>
+              <script src="/_next/static/chunks/polyfills-abc.js"></script>
+              <script src="/_next/static/chunks/9812-hash.js"></script>
+              <script type="module" crossorigin src="./assets/index-Cex6E_IQ.js"></script>
+            </head></html>
+        """.trimIndent()
+        val scripts = WebsiteScraper.ownScriptUrls(html, "https://farflung.game", max = 2)
+        assertEquals(
+            listOf("https://farflung.game/assets/index-Cex6E_IQ.js", "https://farflung.game/_next/static/chunks/9812-hash.js"),
+            scripts
+        )
+        assertEquals("https://www.gamedle.wtf/js/platform0.3.js", WebsiteScraper.resolveUrl("https://www.gamedle.wtf/", "../js/platform0.3.js"))
+        assertEquals("America/Toronto", WebsiteScraper.scriptZoneHint("""dayjs.tz(now, "America/Toronto")"""))
+        assertEquals("Europe/Berlin", WebsiteScraper.scriptZoneHint("""DateTime.now().setZone("Europe/Berlin")"""))
+        assertEquals("utc", WebsiteScraper.scriptZoneHint("""const day=Math.floor(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())/864e5)"""))
+    }
+
+    @Test
+    fun targetFormatDescriptionsAndCategories_handleRealGameArchetypes() {
+        // Farflung
+        val ffHtml = """
+            <html><head>
+              <title>Farflung Geography Game - Play the Daily Map Quiz</title>
+              <meta property="og:site_name" content="Farflung" />
+              <meta name="description" content="Play Farflung, the official daily geography game. Pin a country for each of five prompts in this free online map quiz." />
+            </head><body>A new expedition opens at midnight in your local time.</body></html>
+        """.trimIndent()
+        val ff = WebsiteScraper.parseHtmlMetadata(ffHtml, "https://farflung.game")
+        assertEquals("Farflung", ff.name)
+        assertEquals("Geography", ff.category)
+        assertEquals("5 prompts", ff.targetFormat)
+        assertEquals("Pin a country for each of five prompts in this map quiz.", ff.description)
+        assertEquals("00:00", ff.resetTime)
+        assertEquals("local", ff.resetZone)
+        assertTrue(ff.timeFound && ff.zoneFound)
+
+        // Nintendoku (Gaming & RPG, German time, 3x3 grid / 12 guesses)
+        val ninHtml = """
+            <html><head>
+              <title>NintenDoku: The Daily Nintendo Grid Puzzle</title>
+              <meta property="og:description" content="A new Nintendo grid puzzle every day. Fill the 3x3 grid with matching games. 7,700+ titles from NES to Switch 2." />
+            </head><body><div>A new puzzle appears every day at 06:00 German time.</div><div>You have 12 guesses.</div></body></html>
+        """.trimIndent()
+        val nin = WebsiteScraper.parseHtmlMetadata(ninHtml, "https://www.n-puzzle.com/en/nintendoku")
+        assertEquals("NintenDoku", nin.name)
+        assertEquals("Gaming & RPG", nin.category)
+        assertEquals("06:00", nin.resetTime)
+        assertEquals("Europe/Berlin", nin.resetZone)
+        assertEquals("9 answers (3x3 grid)", nin.targetFormat)
+        assertEquals("Fill the 3x3 grid with matching games.", nin.description)
+
+        // High-guess games (37 guesses), written counts (four mistakes), optimization goals, and max points
+        assertEquals("37 guesses", WebsiteScraper.detectTargetFormat("Solve 32 Wordles at once in 37 guesses."))
+        assertEquals("tries" to 37, WebsiteScraper.detectMetric("Solve 32 Wordles at once in 37 guesses."))
+        assertEquals("4 mistakes", WebsiteScraper.detectTargetFormat("Group sixteen words into four categories with up to four mistakes."))
+        assertEquals("Fewest guesses", WebsiteScraper.detectTargetFormat("Travle: A daily game, get between countries in as few guesses as possible!"))
+        assertEquals("50,000 points", WebsiteScraper.detectTargetFormat("Score up to 50,000 points across five mystery photos."))
+        assertEquals("Fastest time", WebsiteScraper.detectTargetFormat("Beat the fastest time on the stopwatch!"))
+        assertEquals("60s target", WebsiteScraper.detectTargetFormat("Solve as many equations as you can in 60 seconds!"))
+        // Audio clip duration ("1-second clip") must not trigger a stopwatch "time" metric
+        assertEquals(null, WebsiteScraper.detectMetric("Guess the movie from a 1 second clip."))
+
+        // Bare "world" or "city" does not falsely trigger Geography; non-word minigolf falls back to Custom Daily
+        assertEquals("Word", WebsiteScraper.detectCategory("Bracket City — nested word clues known around the world", "theatlantic.com"))
+        assertEquals("Gaming & RPG", WebsiteScraper.detectCategory("Gamedle - Guess the video game from its cover art", "gamedle.wtf"))
+        assertEquals("Custom Daily", WebsiteScraper.detectCategory("putt.day: a daily hole of mini golf", "putt.day"))
+
+        // Domain suffix stripped from og:site_name when <title> has the clean brand name, kept for putt.day
+        val sq = WebsiteScraper.parseHtmlMetadata(
+            """<html><head><title>Squaredle | Daily Word Search Puzzle</title><meta property="og:site_name" content="Squaredle.app" /><meta name="description" content="Squaredle is a daily word building game. Swipe letters in the grid to test your vocabulary every day." /></head></html>""",
+            "https://squaredle.app/"
+        )
+        assertEquals("Squaredle", sq.name)
+        assertEquals("Word", sq.category)
+        assertTrue(sq.description.startsWith("Swipe letters in the grid"))
+    }
 }
+
 
