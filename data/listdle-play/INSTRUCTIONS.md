@@ -45,6 +45,9 @@ Other agents work in the same folder at the same time, each with its own results
 to your own file (Python: `open('results/<your batch name>.jsonl', 'a')`), one line per game. Never
 rewrite, sort, clean up or even open another batch's results file, and never write to a file by a
 pattern or glob. Don't use other games' work/<id> folders either.
+Any helper script you write (for recording results, solving, etc.) goes in your own folder,
+work/<your batch name>/ (create it), never in /tmp or a shared name like /tmp/rec.py: other agents
+write files with the same names at the same time.
 
 When your batch is done, reply with only: counts by status, and any game where something notable
 happened (one line each). Do not paste the share texts in the reply.
