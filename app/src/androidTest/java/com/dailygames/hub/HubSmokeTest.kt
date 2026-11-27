@@ -221,7 +221,7 @@ class HubSmokeTest {
             s.waitForJs("String(typeof renderGamesGrid === 'function' && typeof Pager === 'object')", "\"true\"")
             s.js("window.__errs=[]; window.addEventListener('error', e => window.__errs.push(String(e.message))); switchNavigation('dashboard', { settled: true }); 'ok'")
             Thread.sleep(2_500) // the pages beside the screen are drawn ahead
-            // Left: hub -> Streaks & Log, then Settings.
+            // Left: hub -> My Results, then Settings.
             s.swipe(0.85f, 0.1f, 0.12f)
             s.waitForJs("activeTab", "\"stats\"", 5_000)
             s.waitForJs(settledJs, "\"true\"", 5_000)
@@ -232,7 +232,7 @@ class HubSmokeTest {
             s.swipe(0.85f, 0.1f, 0.12f)
             s.waitForJs("activeTab", "\"settings\"", 5_000)
             s.waitForJs(settledJs, "\"true\"", 5_000)
-            // Right: back to Streaks & Log.
+            // Right: back to My Results.
             s.swipe(0.15f, 0.9f, 0.12f)
             s.waitForJs("activeTab", "\"stats\"", 5_000)
             s.waitForJs(settledJs, "\"true\"", 5_000)

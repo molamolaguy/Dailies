@@ -1580,6 +1580,60 @@
       "name": "Globle",
       "url": "https://globle-game.com/game",
       "strict": true
+    },
+    {
+      "text": "Farflung #52 · 265/500 km*\nRare · Uncommon · Uncommon · Miss · Elusive\nhttps://farflung.game/s/mdccxn?e=52&w=4",
+      "name": "Farflung",
+      "url": "https://farflung.game/",
+      "strict": true
+    },
+    {
+      "text": "Farflung #5 · 85/500 km\nUncommon · Miss · Miss · Miss · Miss",
+      "name": "Far Flung",
+      "url": "https://farflung.game/",
+      "strict": true
+    },
+    {
+      "text": "0/9 Fields",
+      "name": "Nintendoku",
+      "url": "https://www.n-puzzle.com/en/nintendoku",
+      "strict": false
+    },
+    {
+      "text": "🎮 NintenDoku, Unlimited\n\n8/9, 587/1200 pts\n\n🟩🟩🟩\n🟩🟩🟩\n🟩⬜🟩\n\nhttps://www.n-puzzle.com/en/nintendoku",
+      "name": "Nintendoku",
+      "url": "https://www.n-puzzle.com/en/nintendoku",
+      "strict": false
+    },
+    {
+      "text": "Farflung · Expedition #50 replay · unranked\n265 km\nhttps://farflung.game",
+      "name": "Farflung",
+      "url": "https://farflung.game/",
+      "strict": false
+    },
+    {
+      "text": "Farflung ∞ · 310/500 km\nRare · Farflung · Uncommon · Common · Elusive\nhttps://farflung.game",
+      "name": "Farflung",
+      "url": "https://farflung.game/",
+      "strict": false
+    },
+    {
+      "text": "Wordle Archive #412 3/6\n⬜🟨🟩⬜⬜\n🟩🟩🟩🟩🟩",
+      "name": "Wordle",
+      "url": "https://www.nytimes.com/games/wordle/index.html",
+      "strict": false
+    },
+    {
+      "text": "Wordle Unlimited 3/6\n⬜🟨🟩⬜⬜\n🟩🟩🟩🟩🟩",
+      "name": "Wordle Unlimited",
+      "url": "https://wordleunlimited.org/",
+      "strict": true
+    },
+    {
+      "text": "MyGame #42 3/6\nhttps://mygame.example/archive/share",
+      "name": "MyGame",
+      "url": "https://mygame.example/",
+      "strict": true
     }
   ]
 }

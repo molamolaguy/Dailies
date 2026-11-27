@@ -38,17 +38,32 @@ object ShareResultDetector {
     private val LINE_START = Regex("""^(?:\z|[0-9]+(?![0-9]*[:./])|[ \t\x{00A0}]*#|[ \t\x{00A0}]+[0-9][0-9,]{2,}(?![0-9,]*[:./]|[0-9,]*[ \t\x{00A0}]*m(?![a-z]))|[ \t\x{00A0}]+[-\x{2013}\x{2014}][ \t\x{00A0}]+)""")
     private val NAME_SPLIT = Regex("""[·:|–—]| - """)
     private val GENERIC_WORDS = setOf("the", "daily", "game", "games", "puzzle", "puzzles", "play", "today", "www", "html", "index")
+    private val NON_DAILY_WORD = Regex("""(?<![a-z0-9_/.-])(unlimited|practice|replay|unranked|free[ \t\x{00A0}]+play|training[ \t\x{00A0}]+mode|custom[ \t\x{00A0}]+(?:puzzle|game|grid)|archive)(?![a-z0-9_/.-])""")
+    private val INFINITY_ROUND = Regex("""(?:^|[ \t\x{00A0}#])\x{221E}(?:[ \t\x{00A0}·:\-]|\n|\z)""")
 
     private fun strictTrim(s: String?): String = TRIM.replace(s.orEmpty(), "")
     private fun asciiLower(s: String): String = buildString(s.length) { s.forEach { append(if (it in 'A'..'Z') it + 32 else it) } }
     private fun word(lower: String, key: String, after: String) =
         Regex("(?<![a-z0-9])" + Regex.escape(key) + "(?!$after)").containsMatchIn(lower)
 
+    fun configuredGameAllowsNonDaily(gameName: String?, gameUrl: String?): Boolean {
+        if (gameName.orEmpty().indexOf('\u221E') >= 0) return true
+        val gameCtx = asciiLower(gameName.orEmpty()) + " " + asciiLower(gameUrl.orEmpty())
+        return NON_DAILY_WORD.containsMatchIn(gameCtx)
+    }
+
+    private fun isNonDaily(t: String, lower: String, gameName: String?, gameUrl: String?): Boolean {
+        if (INFINITY_ROUND.containsMatchIn(t) && gameName.orEmpty().indexOf('\u221E') < 0) return true
+        val gameCtx = asciiLower(gameName.orEmpty()) + " " + asciiLower(gameUrl.orEmpty())
+        return NON_DAILY_WORD.findAll(lower).any { m -> !gameCtx.contains(m.groupValues[1]) }
+    }
+
     fun isStrictShareResult(text: String?, gameName: String?, gameUrl: String?): Boolean {
         val t = strictTrim(text?.replace("\r\n", "\n"))
         if (t.length < 3 || t.length > 4000) return false
         val lower = asciiLower(t)
         if (SINGLE_URL.containsMatchIn(lower)) return false
+        if (isNonDaily(t, lower, gameName, gameUrl)) return false
         if (GRID.containsMatchIn(t)) return true
         val mention = gameMention(lower, gameName, gameUrl)
         val puzzleNo = PUZZLE_NO.containsMatchIn(lower)
@@ -94,8 +109,11 @@ object ShareResultDetector {
         val head = raw.split(NAME_SPLIT)[0]
         add(head)
         add(NAME_PREFIX.replace(head, ""))
-        val first = NAME_PREFIX.replace(raw, "").split(' ')[0]
+        val stripped = NAME_PREFIX.replace(raw, "")
+        val first = stripped.split(' ')[0]
         if (first.length >= 5 && first.all { it in 'a'..'z' || it in '0'..'9' }) add(first)
+        val joined = stripped.replace(" ", "")
+        if (joined != stripped && joined.length >= 6 && joined.all { it in 'a'..'z' || it in '0'..'9' }) add(joined)
         var level = 0
         for (k in keys) {
             if (!word(lower, k, "[a-z]")) continue

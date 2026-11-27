@@ -6,7 +6,7 @@
 
 <p>
   <img src="design/screens-readme/1-hub.png" width="200" alt="The hub: today's games with reset countdowns, streaks and Play next">
-  <img src="design/screens-readme/2-calendar.png" width="200" alt="Streaks & Log: completion calendar and score stats">
+  <img src="design/screens-readme/2-calendar.png" width="200" alt="My Results: completion calendar and score stats">
   <img src="design/screens-readme/3-recap.png" width="200" alt="Weekly recap and score history">
   <img src="design/screens-readme/4-themes.png" width="200" alt="Settings: color themes and app icons">
 </p>

@@ -1,3 +1,17 @@
+# Dailies 1.10.3
+
+Smarter automatic result logging, upgraded URL site scraping for custom daily games, and the **My Results** tab update. It installs over 1.10.2 and keeps everything, every setting included. If you're on 1.10.2, you can install it from **Settings → About → Check now**.
+
+## Changes
+- **More reliable automatic result logging.** Extended post-input finish watching for games with 30–45s finish animations (such as Farflung), recognized word-based countdowns (`"opens in 9 h 12 m"`) and visibility/attribute modal transitions, filtered below-the-fold FAQ/SEO prose and live gameplay progress counters (`0/9 Fields`, remaining guesses) so in-progress games never trigger early result prompts, blocked Practice / Unlimited / Replay / Archive / `∞` rounds from logging as today's Daily, and added support for `aria-label` / icon-only Share buttons, `localStorage` completion cues, pre-populated share boxes, and two-step Share → Copy menus.
+- **Smarter URL site scraping.** Fixed bare-origin relative bundle/manifest/icon URL resolution and prioritized app bundles over vendor scripts; expanded reset time & time zone extraction (`German time`, `Berlin`, `Toronto`, `Brazil`, Asian/Oceania zones, prepositions like `"in your local time"`, fixed `UTC±offset` conversion, and Luxon/Day.js bundle hints); added rich **Target Format / Par** detection (`37 guesses`, written numbers like `four mistakes` / `five prompts`, `50,000 points`, `Fastest time`, `Most points`, `Fewest guesses`, `Fewest strokes`); refined concise how-to-play descriptions; and switched category detection to weighted scoring with native **Gaming & RPG** and **Custom Daily** support.
+- **My Results tab.** Renamed the middle navigation tab from **Streaks & Log** to **My Results**.
+
+## Requirements
+- Android 7.0 or newer.
+
+---
+
 # Dailies 1.10.2
 
 Daily Hub spacing, Gold & Ruby theme polish, navigation bar stability, numeral kerning, and monochrome achievement badges tuned on Google Pixel 11 Pro XL. It installs over 1.10.1 and keeps everything, every setting included. If you're on 1.10.1, you can install it from **Settings → About → Check now**.

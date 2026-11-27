@@ -997,9 +997,10 @@ class GameActivity : ComponentActivity() {
                     val probe = msg.optString("via") == "probe"
                     if (probe) {
                         if (!findResults || now > probeAcceptUntil || probeResultsThisPage >= 1) return@addWebMessageListener
-                        probeResultsThisPage += 1
                     } else if (!userActedWithin(SHARE_GESTURE_WINDOW_MS)) return@addWebMessageListener
-                    offerShare(msg.optString("text"), if (probe) "probe" else "page")
+                    if (offerShare(msg.optString("text"), if (probe) "probe" else "page") && probe) {
+                        probeResultsThisPage += 1
+                    }
                 }
             }
             if (blockAdsSetting) addCosmeticListener(webView)
@@ -1090,9 +1091,13 @@ class GameActivity : ComponentActivity() {
         pageScript("game/pull-refresh.js").replace("__DAILIES_COLOR__", String.format(Locale.US, "#%06X", 0xFFFFFF and (if (accentColor == 0) LIGHT_PRIMARY else accentColor)))
 
     /** share-hook.js with this player's key and the Find Results setting filled in. */
-    private fun shareHookScript(): String = pageScript("game/share-hook.js")
-        .replace("__DAILIES_NONCE__", pageKey)
-        .replace("__DAILIES_FIND__", (autoLogEnabled && findResults).toString())
+    private fun shareHookScript(): String {
+        val allowNonDaily = ShareResultDetector.configuredGameAllowsNonDaily(gameName, effectiveGameUrl)
+        return pageScript("game/share-hook.js")
+            .replace("__DAILIES_NONCE__", pageKey)
+            .replace("__DAILIES_FIND__", (autoLogEnabled && findResults).toString())
+            .replace("__DAILIES_NON_DAILY__", allowNonDaily.toString())
+    }
 
     private fun probeGuarded(): Boolean = SystemClock.elapsedRealtime() < probeGuardUntil
 
@@ -1151,13 +1156,14 @@ class GameActivity : ComponentActivity() {
     }
 
     /** Keeps the latest text that passes the strict share-result check; it is logged back in the hub. */
-    private fun offerShare(text: String?, via: String) {
+    private fun offerShare(text: String?, via: String): Boolean {
         // While switching games the old page is still alive: whatever it reports isn't the new game's.
-        if (!autoLogEnabled || text.isNullOrBlank() || switching) return
+        if (!autoLogEnabled || text.isNullOrBlank() || switching) return false
         val clean = text.replace("\r\n", "\n").trim()
-        if (clean == capturedShare) return
-        if (!ShareResultDetector.isStrictShareResult(clean, gameName, effectiveGameUrl)) return
+        if (clean == capturedShare) return false
+        if (!ShareResultDetector.isStrictShareResult(clean, gameName, effectiveGameUrl)) return false
         acceptShare(clean, via, confirmed = false)
+        return true
     }
 
     /** Keeps [clean] as this game's result and shows the "result saved" card. */
@@ -1192,8 +1198,7 @@ class GameActivity : ComponentActivity() {
         if (gesture || userActedWithin(SHARE_GESTURE_WINDOW_MS)) {
             offerShare(text, "link")
         } else if (findResults && now <= probeAcceptUntil && probeResultsThisPage < 1) {
-            probeResultsThisPage += 1
-            offerShare(text, "probe")
+            if (offerShare(text, "probe")) probeResultsThisPage += 1
         }
     }
 
@@ -2626,8 +2631,8 @@ class GameActivity : ComponentActivity() {
         private const val MAX_DATA_URL_CHARS = (MAX_DOWNLOAD_BYTES + 2) / 3 * 4 + 4096
         private const val BLOB_ANSWER_TIMEOUT_MS = 15_000L
         /** A share/copy hook result counts only this soon after a real tap or key press. */
-        // Long enough for games that show a results animation before copying.
-        private const val SHARE_GESTURE_WINDOW_MS = 30_000L
+        // Long enough for games that play a 30–60s results animation before copying or sharing.
+        private const val SHARE_GESTURE_WINDOW_MS = 90_000L
         private const val DOWNLOAD_GESTURE_WINDOW_MS = 15_000L
         private const val RENDERER_CRASH_WINDOW_MS = 60_000L
         private const val RENDERER_RAPID_GONE_MS = 15_000L
