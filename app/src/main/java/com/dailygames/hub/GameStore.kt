@@ -271,7 +271,9 @@ object GameStore {
                 nowMs,
                 localTimeZone
             )
-            return g.optString("status") == "completed" &&
+            val status = g.optString("status")
+            if (status == "failed" && g.optString("lastCycleKey") == currentCycle) return true
+            return (status == "completed" || status == "failed") &&
                 g.optString("loggedResultCycle") == currentCycle
         }
         false

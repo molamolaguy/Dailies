@@ -1190,5 +1190,138 @@ test('hasLoggedResultForCycle and isCompletedWithLoggedResult distinguish comple
 
   const missedPlaceholderLogs = [{ gameId: 'g-miss-res', date: '2026-11-27', outcome: 'Missed', score: 'Auto-marked missed' }];
   assert.equal(core.hasLoggedResultForCycle(missedWithResult, '2026-11-27', missedPlaceholderLogs), false);
+
+  const failedWithResult = { id: 'g-fail-res', name: 'Wordle', status: 'failed', todayScore: 'Wordle 1,623 X/6\n⬛⬛⬛⬛⬛', lastCycleKey: '2026-11-27', dayHistory: { '2026-11-27': 'failed' } };
+  const failedLogs = [{ gameId: 'g-fail-res', date: '2026-11-27', outcome: 'Failed', score: 'Wordle 1,623 X/6\n⬛⬛⬛⬛⬛' }];
+  assert.equal(core.hasLoggedResultForCycle(failedWithResult, '2026-11-27', failedLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(failedWithResult, '2026-11-27', failedLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(failedWithResult, '2026-11-28', failedLogs), false);
+
+  const failedNoScore = { id: 'g-fail-noscore', name: 'Globle', status: 'failed', todayScore: '', lastCycleKey: '2026-11-27', dayHistory: { '2026-11-27': 'failed' } };
+  const failedNoScoreLogs = [{ gameId: 'g-fail-noscore', date: '2026-11-27', outcome: 'Failed', score: '' }];
+  assert.equal(core.hasLoggedResultForCycle(failedNoScore, '2026-11-27', failedNoScoreLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(failedNoScore, '2026-11-27', failedNoScoreLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(failedNoScore, '2026-11-28', failedNoScoreLogs), false);
 });
+
+test('failed vs missed: failed breaks streak and is not a win, while unfinished attempts remain ready until rollover marks them missed', () => {
+  const now = new Date('2026-11-27T15:00:00Z');
+  const cleaned = core.cleanDayHistory({
+    '2026-11-24': 'completed',
+    '2026-11-25': 'completed',
+    '2026-11-26': 'missed',
+    '2026-11-27': 'failed',
+    '2026-11-28': 'bogus'
+  });
+  assert.deepEqual(cleaned, {
+    '2026-11-24': 'completed',
+    '2026-11-25': 'completed',
+    '2026-11-26': 'missed',
+    '2026-11-27': 'failed'
+  });
+
+  const counts = core.historyCounts(cleaned);
+  assert.deepEqual(counts, { played: 4, won: 2, failed: 1, missed: 1, longestRun: 2 });
+
+  // Failed today: breaks active streak to 0, does not increment totalWon, counts in totalPlayed.
+  const failedToday = {
+    id: 'wordle',
+    name: 'Wordle',
+    resetTime: '00:00',
+    resetZone: 'UTC',
+    status: 'failed',
+    streak: 5,
+    bestStreak: 2,
+    dayHistory: Object.assign({}, cleaned)
+  };
+  core.recomputeGameStatsFromHistory(failedToday, now);
+  assert.equal(failedToday.status, 'failed');
+  assert.equal(failedToday.streak, 0);
+  assert.equal(failedToday.bestStreak, 2);
+  assert.equal(failedToday.totalWon, 2);
+  assert.equal(failedToday.totalPlayed, 4);
+
+  // Failed yesterday, not yet played today: streak is also 0 (broken by yesterday's loss).
+  const failedYesterday = {
+    id: 'connections',
+    name: 'Connections',
+    resetTime: '00:00',
+    resetZone: 'UTC',
+    status: 'ready',
+    dayHistory: {
+      '2026-11-24': 'completed',
+      '2026-11-25': 'completed',
+      '2026-11-26': 'failed'
+    }
+  };
+  core.recomputeGameStatsFromHistory(failedYesterday, now);
+  assert.equal(failedYesterday.status, 'ready');
+  assert.equal(failedYesterday.streak, 0);
+  assert.equal(failedYesterday.totalWon, 2);
+  assert.equal(failedYesterday.totalPlayed, 3);
+
+  // Started a game (playTime recorded) without finishing: stays 'ready' while live, then when rollover
+  // records 'missed' for that unfinished day, stats count it as 'missed' (never 'failed') and break streak.
+  const startedUnfinished = {
+    id: 'globle',
+    name: 'Globle',
+    resetTime: '00:00',
+    resetZone: 'UTC',
+    status: 'ready',
+    playTime: { key: '2026-11-27', ms: 42000 },
+    dayHistory: { '2026-11-26': 'completed' }
+  };
+  core.recomputeGameStatsFromHistory(startedUnfinished, now);
+  assert.equal(startedUnfinished.status, 'ready');
+  assert.equal(startedUnfinished.streak, 1);
+  // Simulate next-day rollover of an unfinished 'ready' cycle -> 'missed'.
+  startedUnfinished.dayHistory['2026-11-27'] = 'missed';
+  core.recomputeGameStatsFromHistory(startedUnfinished, new Date('2026-11-28T15:00:00Z'));
+  assert.equal(startedUnfinished.streak, 0);
+  assert.equal(core.historyCounts(startedUnfinished.dayHistory).missed, 1);
+  assert.equal(core.historyCounts(startedUnfinished.dayHistory).failed, 0);
+
+  // scoreStats tracks won, failed, and missed separately while winRate counts both failed & missed against wins.
+  const stats = core.scoreStats([
+    { gameId: 'wordle', date: '2026-11-24', outcome: 'Completed', score: 'Wordle 1,620 3/6' },
+    { gameId: 'wordle', date: '2026-11-25', outcome: 'Completed', score: 'Wordle 1,621 4/6' },
+    { gameId: 'wordle', date: '2026-11-26', outcome: 'Missed', score: 'Auto-marked missed' },
+    { gameId: 'wordle', date: '2026-11-27', outcome: 'Failed', score: 'Wordle 1,623 X/6' }
+  ]);
+  assert.equal(stats.played, 4);
+  assert.equal(stats.won, 2);
+  assert.equal(stats.failed, 1);
+  assert.equal(stats.missed, 1);
+  assert.equal(stats.winRate, 50);
+
+  // combinedShareText separates Failed and Missed cleanly and counts only 'completed' as solved.
+  const sharedGrids = core.combinedShareText([
+    { name: 'Globle', outcome: 'completed', text: '🌎 Nov 27, 2026 🌍\n🟧🟩 = 2' },
+    { name: 'Wordle', outcome: 'failed', text: 'Wordle 1,623 X/6\n⬛⬛⬛⬛⬛' },
+    { name: 'Connections', outcome: 'missed', text: '' }
+  ], { dateLabel: 'Fri, Nov 27', total: 3 });
+  assert.match(sharedGrids, /Dailies · Fri, Nov 27 — 1\/3 solved/);
+  assert.match(sharedGrids, /✓ Globle/);
+  assert.match(sharedGrids, /Wordle 1,623 X\/6/);
+  assert.match(sharedGrids, /✗ Connections/);
+
+  const sharedSummary = core.combinedShareText([
+    { name: 'Globle', outcome: 'completed', text: '🌎 Nov 27, 2026 🌍\n🟧🟩 = 2' },
+    { name: 'Wordle', outcome: 'failed', text: '' },
+    { name: 'Connections', outcome: 'missed', text: '' }
+  ], { dateLabel: 'Fri, Nov 27', total: 3, grids: false });
+  assert.match(sharedSummary, /✗ Failed: Wordle/);
+  assert.match(sharedSummary, /✗ Connections/);
+
+  // Bouncing back after a 'failed' day counts as a bounce-back achievement metric just like after 'missed'.
+  const metrics = core.achievementMetrics([{
+    id: 'wordle',
+    name: 'Wordle',
+    resetTime: '00:00',
+    resetZone: 'UTC',
+    dayHistory: { '2026-11-26': 'failed', '2026-11-27': 'completed' }
+  }], [], {}, now);
+  assert.equal(metrics.bounces, 1);
+});
+
 

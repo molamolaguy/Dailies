@@ -327,9 +327,10 @@ class GamePrewarmer(private val host: ViewGroup) {
                 val resetTime = g.optString("resetTime", "00:00")
                 val resetZone = g.optString("resetZone", "local")
                 val cycle = GameStore.cycleKey(resetTime, resetZone, nowMs, localTimeZone)
+                val status = g.optString("status")
                 val doneForCycle = g.optString("loggedCycle") == cycle ||
                     g.optString("lastPlayedCycle") == cycle ||
-                    ((g.optString("status") == "completed" || g.optString("status") == "missed") && g.optString("lastCycleKey") == cycle)
+                    ((status == "completed" || status == "failed" || status == "missed") && g.optString("lastCycleKey") == cycle)
                 if (doneForCycle) continue
                 val expires = nowMs + GameStore.msUntilNextReset(resetTime, resetZone, nowMs, localTimeZone)
                 out += WarmTarget(id, g.optString("url"), cycle, expires)

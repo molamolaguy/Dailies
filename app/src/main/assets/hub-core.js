@@ -351,17 +351,19 @@
     const out = {};
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
     Object.keys(raw).forEach((k) => {
-      if (DATE_KEY_RE.test(k) && (raw[k] === 'completed' || raw[k] === 'missed')) out[k] = raw[k];
+      if (DATE_KEY_RE.test(k) && (raw[k] === 'completed' || raw[k] === 'failed' || raw[k] === 'missed')) out[k] = raw[k];
     });
     return out;
   }
 
   /** Counts derived purely from a day history. */
   function historyCounts(dayHistory) {
-    let longestRun = 0, run = 0, prevDayNum = null, played = 0, won = 0;
+    let longestRun = 0, run = 0, prevDayNum = null, played = 0, won = 0, failed = 0, missed = 0;
     Object.keys(dayHistory || {}).filter((k) => DATE_KEY_RE.test(k)).sort().forEach((k) => {
       const val = dayHistory[k];
-      if (val === 'completed' || val === 'missed') played += 1;
+      if (val === 'completed' || val === 'failed' || val === 'missed') played += 1;
+      if (val === 'failed') failed += 1;
+      else if (val === 'missed') missed += 1;
       if (val === 'completed') {
         won += 1;
         const dNum = cycleKeyToDay(k);
@@ -373,7 +375,7 @@
         prevDayNum = null;
       }
     });
-    return { played, won, longestRun };
+    return { played, won, failed, missed, longestRun };
   }
 
   /**
@@ -420,14 +422,14 @@
 
     const todayKey = getCycleDateKey(game.resetTime, game.resetZone, refDate);
     const todayOutcome = game.dayHistory[todayKey];
-    if (todayOutcome === 'completed' || todayOutcome === 'missed') {
+    if (todayOutcome === 'completed' || todayOutcome === 'failed' || todayOutcome === 'missed') {
       game.status = todayOutcome;
     } else {
       game.status = 'ready';
     }
 
     let currentStreak = 0;
-    if (todayOutcome !== 'missed') {
+    if (todayOutcome !== 'missed' && todayOutcome !== 'failed') {
       let cursor = todayOutcome === 'completed' ? todayKey : addDaysToCycleKey(todayKey, -1);
       while (game.dayHistory[cursor] === 'completed') {
         currentStreak += 1;
@@ -972,20 +974,24 @@
   function scoreStats(rows) {
     const list = Array.isArray(rows) ? rows.filter((r) => r && typeof r === 'object') : [];
     let won = 0;
+    let failed = 0;
     let missed = 0;
     const parsed = [];
     const times = [];
     for (const r of list) {
       const ok = r.outcome === 'Completed';
-      if (ok) won += 1; else if (r.outcome === 'Missed') missed += 1; else continue;
+      if (ok) won += 1;
+      else if (r.outcome === 'Failed') failed += 1;
+      else if (r.outcome === 'Missed') missed += 1;
+      else continue;
       if (ok && Number(r.timeMs) > 0 && Number.isFinite(Number(r.timeMs))) times.push(Number(r.timeMs));
       const sc = parseScore(r.score);
       if (!sc) continue;
       parsed.push({ max: sc.max, n: sc.fail || !ok ? null : sc.n });
     }
-    const played = won + missed;
+    const played = won + failed + missed;
     const out = {
-      won, missed, played, winRate: played ? Math.round((won / played) * 100) : null, avg: null, max: null, avgText: null,
+      won, failed, missed, played, winRate: played ? Math.round((won / played) * 100) : null, avg: null, max: null, avgText: null,
       fastestMs: times.length ? minOf(times, Infinity) : null,
       avgMs: times.length ? Math.round(times.reduce((a, b) => a + b, 0) / times.length) : null,
       timed: times.length
@@ -1289,7 +1295,7 @@
       Object.keys(h).forEach((k) => {
         if (!DATE_KEY_RE.test(k)) return;
         if (h[k] === 'completed') solvedDays.add(k);
-        if (h[k] === 'missed' && h[addDaysToCycleKey(k, 1)] === 'completed') bounces += 1;
+        if ((h[k] === 'missed' || h[k] === 'failed') && h[addDaysToCycleKey(k, 1)] === 'completed') bounces += 1;
       });
     });
     let weekends = 0;
@@ -1785,16 +1791,19 @@
    */
   function combinedShareText(entries, opts) {
     const o = opts || {};
-    const list = (Array.isArray(entries) ? entries : []).filter((e) => e && (e.outcome === 'completed' || e.outcome === 'missed'));
+    const list = (Array.isArray(entries) ? entries : []).filter((e) => e && (e.outcome === 'completed' || e.outcome === 'failed' || e.outcome === 'missed'));
     const solved = list.filter((e) => e.outcome === 'completed').length;
     const total = Number(o.total) > 0 ? Number(o.total) : list.length;
     const head = `Dailies${o.dateLabel ? ` · ${o.dateLabel}` : ''} — ${solved}/${total} solved`;
     const blocks = [];
+    const failedNames = [];
     const missedNames = [];
     list.forEach((e) => {
       let text = String(e.text || '').replace(/\r\n/g, '\n').trim();
+      if (/^auto-marked missed\b/i.test(text)) text = '';
       if (!text) {
-        if (e.outcome === 'missed') missedNames.push(e.name);
+        if (e.outcome === 'failed') failedNames.push(e.name);
+        else if (e.outcome === 'missed') missedNames.push(e.name);
         else blocks.push(`✓ ${e.name}`);
         return;
       }
@@ -1806,9 +1815,12 @@
         lines = lines.filter((l, i) => l.trim() || (i > 0 && lines[i - 1].trim() && i < lines.length - 1));
       }
       text = lines.join('\n').trim();
-      if (!mentionsGame(text, { name: e.name, url: e.url || '' })) text = `${e.outcome === 'missed' ? '✗' : '✓'} ${e.name}\n${text}`;
+      if (!mentionsGame(text, { name: e.name, url: e.url || '' })) {
+        text = `${e.outcome === 'completed' ? '✓' : '✗'} ${e.name}\n${text}`;
+      }
       blocks.push(text);
     });
+    if (failedNames.length) blocks.push(`✗ Failed: ${failedNames.join(', ')}`);
     if (missedNames.length) blocks.push(`✗ ${missedNames.join(', ')}`);
     // 1.8.5: a spacer line between games, so where one result ends and the next starts is clear.
     return head + '\n\n' + blocks.join(`\n\n${RESULTS_SPACER}\n\n`);
@@ -2139,7 +2151,7 @@
    */
   function shareResultSignature(text, cycleDateKey) {
     const raw = String(text || '').replace(/\r\n/g, '\n').trim();
-    if (raw.length < 6 || /^auto-marked missed$/i.test(raw)) return null;
+    if (raw.length < 6 || /^auto-marked missed\b/i.test(raw)) return null;
 
     const urls = [];
     let um;
@@ -2367,13 +2379,18 @@
   }
 
   /**
-   * True when a non-placeholder result snippet is already recorded for `game` on `cycleKey`.
+   * True when a non-placeholder result snippet is already recorded for `game` on `cycleKey`,
+   * or when the cycle is already marked as `'failed'`.
    */
   function hasLoggedResultForCycle(game, cycleKey, historyLogs) {
     if (!game || !cycleKey) return false;
-    const isPlaceholder = (s) => /^auto-marked missed$/i.test(s);
+    const isPlaceholder = (s) => /^auto-marked missed\b/i.test(s);
     const logs = Array.isArray(historyLogs) ? historyLogs : [];
     const row = logs.find((l) => l && l.date === cycleKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
+    const failed = (game.dayHistory && game.dayHistory[cycleKey] === 'failed')
+      || (game.lastCycleKey === cycleKey && game.status === 'failed')
+      || Boolean(row && row.outcome === 'Failed');
+    if (failed) return true;
     const rowScore = row && typeof row.score === 'string' ? row.score.trim() : '';
     if (rowScore && !isPlaceholder(rowScore)) return true;
     if (game.lastCycleKey === cycleKey && game.status === 'completed') {
@@ -2384,12 +2401,17 @@
   }
 
   /**
-   * True when `game` is marked completed for `cycleKey` AND already has a logged result recorded.
+   * True when `game` should suppress the in-player Log button and auto-logger for `cycleKey`:
+   * either marked `'completed'` with a logged result, or marked `'failed'`.
    */
   function isCompletedWithLoggedResult(game, cycleKey, historyLogs) {
     if (!game || !cycleKey) return false;
     const logs = Array.isArray(historyLogs) ? historyLogs : [];
     const row = logs.find((l) => l && l.date === cycleKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
+    const failed = (game.dayHistory && game.dayHistory[cycleKey] === 'failed')
+      || (game.lastCycleKey === cycleKey && game.status === 'failed')
+      || Boolean(row && row.outcome === 'Failed');
+    if (failed) return true;
     const completed = (game.dayHistory && game.dayHistory[cycleKey] === 'completed')
       || (game.lastCycleKey === cycleKey && game.status === 'completed')
       || Boolean(row && row.outcome === 'Completed');

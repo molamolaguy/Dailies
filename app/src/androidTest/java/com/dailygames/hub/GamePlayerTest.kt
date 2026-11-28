@@ -482,4 +482,132 @@ class GamePlayerTest {
             assertEquals("", earlier.getJSONObject(0).getString("share"))
         }
     }
+
+    @Test
+    fun globleStyleStatsPopupCapturesShareAutomatically() {
+        val page = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+            <style>
+              .opacity-0 { opacity: 0; pointer-events: none; }
+              .opacity-100 { opacity: 1; pointer-events: auto; }
+            </style></head>
+            <body style="margin:0;padding:24px;font:16px sans-serif">
+            <p id="answer"></p>
+            <button id="guess" style="padding:12px 24px;font-size:16px">Submit guess</button>
+            <div id="statsPopup" class="opacity-0" style="padding:20px;margin-top:16px">
+              <h2>Statistics</h2>
+              <table>
+                <tr><td>Games won</td><td>5</td></tr>
+                <tr><td>Today's guesses</td><td id="todayGuesses">--</td></tr>
+              </table>
+              <button id="shareBtn" data-i18n="Stats9" disabled style="padding:12px 24px;font-size:16px"><span role="status">Share</span></button>
+            </div>
+            <script>
+              document.getElementById('guess').addEventListener('click', function () {
+                document.getElementById('answer').textContent = 'The Mystery Country is Japan!';
+                setTimeout(function () {
+                  document.getElementById('todayGuesses').textContent = '4';
+                  var btn = document.getElementById('shareBtn');
+                  btn.removeAttribute('disabled');
+                  var pop = document.getElementById('statsPopup');
+                  pop.className = 'opacity-100';
+                }, 600);
+              });
+              document.getElementById('shareBtn').addEventListener('click', function () {
+                navigator.clipboard.writeText('🌎 Nov 27, 2026 🌍\n🔥 5 | Avg. Guesses: 4.5\n🟨🟧🟥🟩 = 4\n\nhttps://globle-game.com\n#globle');
+              });
+            </script></body></html>"""
+        val intent = Intent(ctx, GameActivity::class.java)
+            .putExtra(GameActivity.EXTRA_ID, "globle")
+            .putExtra(GameActivity.EXTRA_NAME, "Globle")
+            .putExtra(GameActivity.EXTRA_URL, "https://globle-game.com/game")
+        ActivityScenario.launchActivityForResult<GameActivity>(intent).use { s ->
+            Thread.sleep(1_500)
+            s.onActivity { a -> findWebView(a.window.decorView)!!.loadDataWithBaseURL("https://globle-game.com/game", page, "text/html", "utf-8", null) }
+            s.waitForJs("String(!!document.getElementById('guess'))", "\"true\"")
+            pageCssWidth = s.js("String(document.documentElement.clientWidth)").trim('"').toFloat()
+            s.tap("#guess")
+            val end = System.currentTimeMillis() + 10_000
+            var shown = ""
+            while (System.currentTimeMillis() < end) {
+                s.onActivity { a -> shown = allText(a.window.decorView) }
+                if (shown.contains("result saved")) break
+                Thread.sleep(250)
+            }
+            assertTrue("Globle stats popup Share button is auto-captured; shown: $shown", shown.contains("Globle result saved"))
+            s.onActivity { a -> a.finish() }
+        }
+    }
+
+    @Test
+    fun krillionStyleBelowFoldCopyResultCapturesAutomatically() {
+        val page = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;padding:24px;font:16px sans-serif">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span>KRILLION</span>
+              <span><span>Dive #</span><span>102</span><span> complete</span></span>
+            </div>
+            <div style="height:2200px;background:linear-gradient(#041226,#0b2545);padding:16px">
+              <p>60</p>
+              <p>7 dive prompts breakdown pushing Copy result below the fold</p>
+            </div>
+            <div style="display:flex;gap:12px;padding:16px 0">
+              <button id="copyRes" class="btn-descend flex-1" style="padding:14px 24px;font-size:16px">Copy result</button>
+            </div>
+            <script>
+              document.getElementById('copyRes').addEventListener('click', function () {
+                navigator.clipboard.writeText('Krillion #102 🦐\n60\n\n🟡🟠🔵🟣🟢⚫⚪');
+              });
+            </script></body></html>"""
+        val intent = Intent(ctx, GameActivity::class.java)
+            .putExtra(GameActivity.EXTRA_ID, "krillion")
+            .putExtra(GameActivity.EXTRA_NAME, "Krillion")
+            .putExtra(GameActivity.EXTRA_URL, "https://krillion.io/")
+        ActivityScenario.launchActivityForResult<GameActivity>(intent).use { s ->
+            Thread.sleep(1_500)
+            s.onActivity { a -> findWebView(a.window.decorView)!!.loadDataWithBaseURL("https://krillion.io/", page, "text/html", "utf-8", null) }
+            val end = System.currentTimeMillis() + 10_000
+            var shown = ""
+            while (System.currentTimeMillis() < end) {
+                s.onActivity { a -> shown = allText(a.window.decorView) }
+                if (shown.contains("result saved")) break
+                Thread.sleep(250)
+            }
+            assertTrue("Krillion below-the-fold Copy result button is auto-captured; shown: $shown", shown.contains("Krillion result saved"))
+            s.onActivity { a -> a.finish() }
+        }
+    }
+
+    @Test
+    fun scrollingDownToCopyResultCapturesWhenScrolledIntoView() {
+        val page = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="margin:0;padding:24px;font:16px sans-serif">
+            <div style="height:6000px"><h1>KRILLION</h1><p>Long dive breakdown</p></div>
+            <div><button id="copyFar" class="btn-descend" style="padding:14px 24px;font-size:16px">Copy result</button></div>
+            <script>
+              document.getElementById('copyFar').addEventListener('click', function () {
+                navigator.clipboard.writeText('Krillion #102 🦐\n60\n\n🟡🟠🔵🟣🟢⚫⚪');
+              });
+            </script></body></html>"""
+        val intent = Intent(ctx, GameActivity::class.java)
+            .putExtra(GameActivity.EXTRA_ID, "krillion-scroll")
+            .putExtra(GameActivity.EXTRA_NAME, "Krillion")
+            .putExtra(GameActivity.EXTRA_URL, "https://krillion.io/")
+        ActivityScenario.launchActivityForResult<GameActivity>(intent).use { s ->
+            Thread.sleep(1_500)
+            s.onActivity { a -> findWebView(a.window.decorView)!!.loadDataWithBaseURL("https://krillion.io/", page, "text/html", "utf-8", null) }
+            s.waitForJs("String(!!document.getElementById('copyFar'))", "\"true\"")
+            s.js("window.scrollTo(0, 5800); window.dispatchEvent(new Event('scroll')); 'ok'")
+            val end = System.currentTimeMillis() + 10_000
+            var shown = ""
+            while (System.currentTimeMillis() < end) {
+                s.onActivity { a -> shown = allText(a.window.decorView) }
+                if (shown.contains("result saved")) break
+                Thread.sleep(250)
+            }
+            assertTrue("scrolling Copy result into view captures the result; shown: $shown", shown.contains("Krillion result saved"))
+            s.onActivity { a -> a.finish() }
+        }
+    }
 }
+
+

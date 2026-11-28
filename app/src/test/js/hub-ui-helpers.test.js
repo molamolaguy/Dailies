@@ -228,3 +228,45 @@ test('normalizeGameObject preserves and deduplicates notDuplicateOf while omitti
   }, 1, now);
   assert.equal('notDuplicateOf' in g2, false);
 });
+
+test('failed status is preserved in normalizeGameObject, ranked between Completed and Missed in dedupeHistoryLogs, and breaks streakAsOfDate', () => {
+  const now = new Date('2026-11-27T12:00:00Z');
+  const norm = H.normalizeGameObject({
+    id: 'g-fail',
+    name: 'Wordle',
+    url: 'https://www.nytimes.com/games/wordle/index.html',
+    status: 'failed',
+    todayScore: 'Wordle 1,623 X/6',
+    dayHistory: { '2026-11-26': 'completed', '2026-11-27': 'failed' }
+  }, 0, now);
+  assert.equal(norm.status, 'failed');
+  assert.equal(norm.dayHistory['2026-11-27'], 'failed');
+
+  // dedupeHistoryLogs prefers Completed > Failed > Missed on the same game & date.
+  const deduped = H.dedupeHistoryLogs([
+    { gameId: 'g-fail', gameName: 'Wordle', date: '2026-11-27', outcome: 'Missed', score: 'Auto-marked missed' },
+    { gameId: 'g-fail', gameName: 'Wordle', date: '2026-11-27', outcome: 'Failed', score: 'Wordle 1,623 X/6' }
+  ]);
+  assert.equal(deduped.length, 1);
+  assert.equal(deduped[0].outcome, 'Failed');
+  assert.equal(deduped[0].score, 'Wordle 1,623 X/6');
+
+  const deduped2 = H.dedupeHistoryLogs([
+    { gameId: 'g-fail', gameName: 'Wordle', date: '2026-11-27', outcome: 'Failed', score: 'Wordle 1,623 X/6' },
+    { gameId: 'g-fail', gameName: 'Wordle', date: '2026-11-27', outcome: 'Completed', score: 'Wordle 1,623 4/6' }
+  ]);
+  assert.equal(deduped2.length, 1);
+  assert.equal(deduped2[0].outcome, 'Completed');
+
+  // streakAsOfDate breaks on 'failed' just like 'missed'.
+  const hist = {
+    '2026-11-24': 'completed',
+    '2026-11-25': 'completed',
+    '2026-11-26': 'failed',
+    '2026-11-27': 'completed'
+  };
+  assert.equal(H.streakAsOfDate(hist, '2026-11-25'), 2);
+  assert.equal(H.streakAsOfDate(hist, '2026-11-26'), 0);
+  assert.equal(H.streakAsOfDate(hist, '2026-11-27'), 1);
+});
+
