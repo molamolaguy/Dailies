@@ -2379,16 +2379,21 @@
   }
 
   /**
-   * True when a non-placeholder result snippet is already recorded for `game` on `cycleKey`.
+   * True when a non-placeholder result snippet is already recorded for `game` on `cycleKey`,
+   * or when the cycle is already marked as `'failed'`.
    */
   function hasLoggedResultForCycle(game, cycleKey, historyLogs) {
     if (!game || !cycleKey) return false;
     const isPlaceholder = (s) => /^auto-marked missed\b/i.test(s);
     const logs = Array.isArray(historyLogs) ? historyLogs : [];
     const row = logs.find((l) => l && l.date === cycleKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
+    const failed = (game.dayHistory && game.dayHistory[cycleKey] === 'failed')
+      || (game.lastCycleKey === cycleKey && game.status === 'failed')
+      || Boolean(row && row.outcome === 'Failed');
+    if (failed) return true;
     const rowScore = row && typeof row.score === 'string' ? row.score.trim() : '';
     if (rowScore && !isPlaceholder(rowScore)) return true;
-    if (game.lastCycleKey === cycleKey && (game.status === 'completed' || game.status === 'failed')) {
+    if (game.lastCycleKey === cycleKey && game.status === 'completed') {
       const todayScore = typeof game.todayScore === 'string' ? game.todayScore.trim() : '';
       if (todayScore && !isPlaceholder(todayScore)) return true;
     }
@@ -2396,12 +2401,17 @@
   }
 
   /**
-   * True when `game` is marked completed for `cycleKey` AND already has a logged result recorded.
+   * True when `game` should suppress the in-player Log button and auto-logger for `cycleKey`:
+   * either marked `'completed'` with a logged result, or marked `'failed'`.
    */
   function isCompletedWithLoggedResult(game, cycleKey, historyLogs) {
     if (!game || !cycleKey) return false;
     const logs = Array.isArray(historyLogs) ? historyLogs : [];
     const row = logs.find((l) => l && l.date === cycleKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
+    const failed = (game.dayHistory && game.dayHistory[cycleKey] === 'failed')
+      || (game.lastCycleKey === cycleKey && game.status === 'failed')
+      || Boolean(row && row.outcome === 'Failed');
+    if (failed) return true;
     const completed = (game.dayHistory && game.dayHistory[cycleKey] === 'completed')
       || (game.lastCycleKey === cycleKey && game.status === 'completed')
       || Boolean(row && row.outcome === 'Completed');

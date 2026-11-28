@@ -316,13 +316,18 @@ class HubSmokeTest {
                     "window.onReturnFromGame('w-fail', false, 45000, 'Wordle 1,623 X/6\\n⬛⬛⬛⬛⬛', Date.now(), {});" +
                     "const wf = state.games.find(g => g.id === 'w-fail');" +
                     "const wfRow = state.historyLogs.find(l => l.gameId === 'w-fail' && l.date === today);" +
+                    // Re-entering and exiting a failed game does NOT show #returnPrompt, and syncs loggedResultCycle to native.
+                    "hideReturnPrompt();" +
+                    "window.onReturnFromGame('w-fail', false, 25000, '', Date.now(), {});" +
+                    "const promptShown = !document.getElementById('returnPrompt').classList.contains('hidden');" +
+                    "flushSyncNativeNow();" +
                     // 2) Globle started yesterday (playTime > 0) without finishing -> rolls over to 'missed', NOT 'failed'.
                     "const gu = state.games.find(g => g.id === 'g-unfin');" +
                     "addPlayTime(gu, yday, 35000);" +
                     "checkDailyRollovers({ silent: true });" +
                     "const guRow = state.historyLogs.find(l => l.gameId === 'g-unfin' && l.date === yday);" +
                     "return JSON.stringify({" +
-                    "  wfStatus: wf.status, wfStreak: wf.streak, wfWon: wf.totalWon, wfPlayed: wf.totalPlayed, wfOutcome: wfRow && wfRow.outcome," +
+                    "  wfStatus: wf.status, wfStreak: wf.streak, wfWon: wf.totalWon, wfPlayed: wf.totalPlayed, wfOutcome: wfRow && wfRow.outcome, promptShown," +
                     "  guYday: gu.dayHistory[yday], guStatus: gu.status, guStreak: gu.streak, guWon: gu.totalWon, guOutcome: guRow && guRow.outcome" +
                     "});" +
                 "})()"
@@ -333,6 +338,12 @@ class HubSmokeTest {
             assertEquals(1, parsed.getInt("wfWon"))
             assertEquals(2, parsed.getInt("wfPlayed"))
             assertEquals("Failed", parsed.getString("wfOutcome"))
+            assertEquals(false, parsed.getBoolean("promptShown"))
+            val end = System.currentTimeMillis() + 5_000
+            while (!GameStore.isCompletedWithLoggedResult(ctx, "w-fail") && System.currentTimeMillis() < end) {
+                Thread.sleep(100)
+            }
+            assertTrue("failed game suppresses WebView Log button & auto-logger via GameStore", GameStore.isCompletedWithLoggedResult(ctx, "w-fail"))
 
             assertEquals("missed", parsed.getString("guYday"))
             assertEquals("ready", parsed.getString("guStatus"))

@@ -1194,7 +1194,14 @@ test('hasLoggedResultForCycle and isCompletedWithLoggedResult distinguish comple
   const failedWithResult = { id: 'g-fail-res', name: 'Wordle', status: 'failed', todayScore: 'Wordle 1,623 X/6\n⬛⬛⬛⬛⬛', lastCycleKey: '2026-11-27', dayHistory: { '2026-11-27': 'failed' } };
   const failedLogs = [{ gameId: 'g-fail-res', date: '2026-11-27', outcome: 'Failed', score: 'Wordle 1,623 X/6\n⬛⬛⬛⬛⬛' }];
   assert.equal(core.hasLoggedResultForCycle(failedWithResult, '2026-11-27', failedLogs), true);
-  assert.equal(core.isCompletedWithLoggedResult(failedWithResult, '2026-11-27', failedLogs), false);
+  assert.equal(core.isCompletedWithLoggedResult(failedWithResult, '2026-11-27', failedLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(failedWithResult, '2026-11-28', failedLogs), false);
+
+  const failedNoScore = { id: 'g-fail-noscore', name: 'Globle', status: 'failed', todayScore: '', lastCycleKey: '2026-11-27', dayHistory: { '2026-11-27': 'failed' } };
+  const failedNoScoreLogs = [{ gameId: 'g-fail-noscore', date: '2026-11-27', outcome: 'Failed', score: '' }];
+  assert.equal(core.hasLoggedResultForCycle(failedNoScore, '2026-11-27', failedNoScoreLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(failedNoScore, '2026-11-27', failedNoScoreLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(failedNoScore, '2026-11-28', failedNoScoreLogs), false);
 });
 
 test('failed vs missed: failed breaks streak and is not a win, while unfinished attempts remain ready until rollover marks them missed', () => {

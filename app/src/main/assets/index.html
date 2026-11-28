@@ -2041,7 +2041,7 @@
               notifyEnabled: Boolean(g.notifyEnabled) && !g.archived,
               reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
               lastCycleKey: g.lastCycleKey || liveKey,
-              lastPlayedCycle: g.status === 'completed' ? liveKey : '',
+              lastPlayedCycle: (g.status === 'completed' || g.status === 'failed') ? liveKey : '',
               // Logged anything (solved, failed, or missed) for the current puzzle: no streak reminder needed.
               loggedCycle: (g.status === 'completed' || g.status === 'failed' || g.status === 'missed') && g.lastCycleKey === liveKey
                 ? g.lastCycleKey : '',
