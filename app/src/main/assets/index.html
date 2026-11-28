@@ -204,7 +204,7 @@
         <h1 class="hub-title-text">Dailies</h1>
       </div>
       <div class="hub-topbar-actions">
-        <button id="btnHeaderReady" type="button" class="hero-pill hero-pill-ready" title="Show ready games"><span class="dot" aria-hidden="true"></span><strong id="kpiReadyCount">0</strong><span class="ready-label">ready</span></button>
+        <button id="btnHeaderReady" type="button" class="hero-pill hero-pill-ready" title="Go to Daily Hub"><span class="dot" aria-hidden="true"></span><strong id="kpiReadyCount">0</strong><span class="ready-label">ready</span></button>
         <button id="btnHeaderStreak" type="button" class="hero-pill hero-pill-streak" title="View My Results"><span aria-hidden="true">🔥</span><span class="sr-only">Top streak</span><strong id="kpiTopStreak">0d</strong></button>
         <button id="btnCopyToday" type="button" class="copy-today hidden shrink-0 icon-label" aria-label="Today's results: copy or share" title="Today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Results</span></button>
       </div>
@@ -413,7 +413,7 @@
             <button type="button" id="btnOpenTheme" class="set-row set-link">
               <div class="min-w-0 flex-1">
                 <p class="font-bold text-white">Theme</p>
-                <p class="text-[11px] text-slate-400">Dark or light, colors, and pitch-black</p>
+                <p class="text-[11px] text-slate-400">App themes and colors</p>
               </div>
               <span id="themeSummary" class="set-value"></span><span class="set-chevron" aria-hidden="true">›</span>
             </button>
@@ -1264,7 +1264,7 @@
   </div>
 
   <!-- TOAST NOTIFICATION BANNER -->
-  <div id="toastContainer" role="status" aria-live="polite" style="top: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + var(--app-topbar-h, 52px) + 0.5rem);" class="fixed z-50 flex flex-col gap-2 max-w-md pointer-events-none"></div>
+  <div id="toastContainer" role="status" aria-live="polite" style="top: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + var(--app-topbar-h, 52px) + 0.5rem);" class="fixed z-50 max-w-md pointer-events-none"></div>
 
   <!-- "FINISHED PLAYING?" SHEET (shown when returning from a game that isn't logged yet) -->
   <div id="returnPrompt" class="return-sheet hidden" role="dialog" aria-labelledby="returnPromptTitle">
@@ -2535,6 +2535,90 @@
       }
     }
 
+    let toastDeckSeq = 0;
+
+    function pauseToastTimer(toast) {
+      if (!toast || !toast._timer) return;
+      clearTimeout(toast._timer);
+      toast._timer = null;
+      const elapsed = Math.max(0, performance.now() - (toast._startedAt || performance.now()));
+      toast._remainingMs = Math.max(1800, (toast._remainingMs || 4500) - elapsed);
+    }
+
+    function dismissToast(toast, exitTransform) {
+      if (!toast || toast.dataset.leaving === '1') return;
+      const container = toast.parentNode;
+      toast.dataset.leaving = '1';
+      if (toast._timer) { clearTimeout(toast._timer); toast._timer = null; }
+      if (container) layoutToastStack(container);
+      if (REDUCED_MOTION || !container) {
+        toast.remove();
+        return;
+      }
+      toast.style.pointerEvents = 'none';
+      toast.style.transition = 'transform 0.2s cubic-bezier(0.4, 0, 1, 1), opacity 0.18s ease-out';
+      toast.style.transform = exitTransform || 'translate3d(0, -18px, 0) scale(0.95)';
+      toast.style.opacity = '0';
+      setTimeout(() => { if (toast.parentNode) toast.remove(); }, 210);
+    }
+
+    function layoutToastStack(container) {
+      if (!container) return;
+      const active = [...container.children].filter((c) => c.dataset.leaving !== '1');
+      const n = active.length;
+      if (!n) return;
+      const front = active[n - 1];
+      front.style.height = '';
+      const frontH = front.offsetHeight || 60;
+
+      active.forEach((toast, idx) => {
+        const depth = (n - 1) - idx;
+        toast.dataset.depth = String(depth);
+        toast.style.zIndex = String(40 - depth);
+        const badge = toast.querySelector('[data-toast-stack]');
+        if (badge) {
+          if (depth === 0 && n > 1) {
+            badge.textContent = `+${n - 1}`;
+            badge.setAttribute('aria-label', `${n - 1} more notifications — tap to cycle`);
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+        }
+        if (depth === 0) {
+          toast.style.height = '';
+          toast.style.pointerEvents = 'auto';
+          if (toast.dataset.dragging !== '1') {
+            toast.style.transition = '';
+            toast.style.transform = 'translate3d(0, 0, 0) scale(1) rotate(0deg) skewX(0deg)';
+            toast.style.opacity = '1';
+            if (!toast._timer && (toast._remainingMs || 0) > 0) {
+              toast._startedAt = performance.now();
+              toast._timer = setTimeout(() => dismissToast(toast), toast._remainingMs);
+            }
+          }
+        } else {
+          pauseToastTimer(toast);
+          toast.style.height = `${frontH}px`;
+          toast.style.pointerEvents = 'none';
+          toast.style.transition = '';
+          const dir = Number(toast.dataset.dir) || 1;
+          if (depth <= 3) {
+            const y = depth === 1 ? 9 : (depth === 2 ? 17 : 24);
+            const scale = depth === 1 ? 0.968 : (depth === 2 ? 0.936 : 0.904);
+            const rot = (depth === 1 ? 1.8 : (depth === 2 ? 2.5 : 3.1)) * dir;
+            const skew = (depth === 1 ? 0.5 : 0.8) * dir;
+            const shiftX = (depth === 1 ? 3.5 : (depth === 2 ? 6 : 8)) * dir;
+            toast.style.transform = `translate3d(${shiftX}px, ${y}px, 0) scale(${scale}) rotate(${rot}deg) skewX(${skew}deg)`;
+            toast.style.opacity = depth === 1 ? '0.95' : (depth === 2 ? '0.86' : '0.74');
+          } else {
+            toast.style.transform = 'translate3d(0, 26px, 0) scale(0.88)';
+            toast.style.opacity = '0';
+          }
+        }
+      });
+    }
+
     /**
      * opts.actionLabel + opts.onAction: a real button (e.g. Undo) instead of making the whole toast
      * the tap target. onClick (optional) still makes the text area tappable.
@@ -2542,63 +2626,92 @@
     function showToast(title, message, tone, onClick, opts) {
       const container = document.getElementById('toastContainer');
       if (!container) return;
-      while (container.children.length >= 3) {
+      const live = () => [...container.children].filter((c) => c.dataset.leaving !== '1');
+      while (live().length >= 5) {
         // Make room by dropping the oldest plain toast first, so a pending Undo isn't pushed out.
-        const plain = [...container.children].find((c) => !c.querySelector('[data-toast-action]'));
-        (plain || container.firstElementChild).remove();
+        const current = live();
+        const plain = current.find((c) => !c.querySelector('[data-toast-action]'));
+        const victim = plain || current[0];
+        if (victim._timer) clearTimeout(victim._timer);
+        victim.remove();
       }
       const toast = document.createElement('div');
+      toast.dataset.dir = (toastDeckSeq++ % 2 === 0) ? '-1' : '1';
+      toast.dataset.depth = '0';
+      toast._remainingMs = opts && opts.actionLabel ? 20000 : 4500;
+      toast._startedAt = 0;
+      toast._timer = null;
       // Coloured by the app's theme (wallpaper, preset, custom or gold); a success gets the accent stripe.
       toast.className = `app-toast ${tone === 'emerald' ? 'tone-ok' : 'tone-info'} pointer-events-auto rounded-2xl p-3.5 shadow-2xl flex items-start justify-between gap-2.5`;
       toast.innerHTML = `
-        <div class="min-w-0 flex-1 cursor-pointer">
+        <div class="min-w-0 flex-1 ${typeof onClick === 'function' ? 'cursor-pointer' : ''}">
           <p class="toast-title text-xs font-bold truncate">${escapeHtml(title)}</p>
-          <p class="toast-msg text-[11px] mt-0.5 line-clamp-2">${escapeHtml(message)}</p>
+          <p class="toast-msg text-[11px] mt-0.5 line-clamp-2 ${message ? '' : 'hidden'}">${escapeHtml(message)}</p>
         </div>
         ${opts && opts.actionLabel ? `<button type="button" data-toast-action class="toast-action">${escapeHtml(opts.actionLabel)}</button>` : ''}
+        <button type="button" data-toast-stack class="toast-stack-badge hidden" title="Next notification"></button>
         <button type="button" data-toast-close class="toast-close px-1.5 py-1 rounded-lg inline-flex" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
       `;
       const closeBtn = toast.querySelector('[data-toast-close]');
       const actionBtn = toast.querySelector('[data-toast-action]');
+      const stackBtn = toast.querySelector('[data-toast-stack]');
       if (actionBtn) {
         actionBtn.addEventListener('click', (ev) => {
           ev.stopPropagation();
-          toast.remove();
+          dismissToast(toast);
           opts.onAction();
+        });
+      }
+      if (stackBtn) {
+        stackBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const active = live();
+          if (active.length <= 1) return;
+          pauseToastTimer(toast);
+          haptic('tick');
+          container.insertBefore(toast, active[0]);
+          layoutToastStack(container);
         });
       }
       closeBtn.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        toast.remove();
+        dismissToast(toast);
       });
       if (typeof onClick === 'function') {
         toast.firstElementChild.addEventListener('click', () => {
           onClick();
-          toast.remove();
+          dismissToast(toast);
         });
+      }
+      if (!REDUCED_MOTION) {
+        toast.style.transform = 'translate3d(0, -12px, 0) scale(0.97)';
+        toast.style.opacity = '0';
       }
       container.appendChild(toast);
       enableToastSwipe(toast);
-      setTimeout(() => {
-        if (toast.parentNode) toast.remove();
-      }, opts && opts.actionLabel ? 20000 : 4500);
+      if (REDUCED_MOTION) {
+        layoutToastStack(container);
+      } else {
+        requestAnimationFrame(() => layoutToastStack(container));
+      }
     }
 
-    /** Swipe a notification sideways (or up) to dismiss it; a short drag springs back. */
+    /** Swipe the front notification sideways (or up) to dismiss it; a short drag springs back into the stack. */
     function enableToastSwipe(toast) {
       let start = null;
       let dx = 0;
       let dy = 0;
       let dragging = false;
       const reset = () => {
-        toast.style.transition = 'transform 0.22s cubic-bezier(0.2, 0, 0, 1), opacity 0.22s';
-        toast.style.transform = '';
-        toast.style.opacity = '';
+        delete toast.dataset.dragging;
+        layoutToastStack(toast.parentNode);
       };
       toast.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1) return;
+        if (e.touches.length !== 1 || toast.dataset.depth !== '0') return;
         start = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now() };
         dx = 0; dy = 0; dragging = false;
+        toast.dataset.dragging = '1';
+        pauseToastTimer(toast);
         toast.style.transition = 'none';
       }, { passive: true });
       toast.addEventListener('touchmove', (e) => {
@@ -2610,7 +2723,8 @@
         if (e.cancelable) e.preventDefault();
         const up = Math.min(0, dy);
         const horizontal = Math.abs(dx) >= Math.abs(up);
-        toast.style.transform = horizontal ? `translateX(${dx}px)` : `translateY(${up}px)`;
+        const tilt = horizontal ? Math.max(-6, Math.min(6, dx * 0.025)) : 0;
+        toast.style.transform = horizontal ? `translate3d(${dx}px, 0, 0) rotate(${tilt}deg)` : `translate3d(0, ${up}px, 0)`;
         toast.style.opacity = String(Math.max(0.2, 1 - (horizontal ? Math.abs(dx) / toast.offsetWidth : -up / 80)));
       }, { passive: false });
       const end = () => {
@@ -2621,13 +2735,14 @@
         const dist = horizontal ? Math.abs(dx) : -up;
         const fast = dist / dt > 0.5;
         start = null;
+        delete toast.dataset.dragging;
         if (!dragging) { reset(); return; }
         if (dist > (horizontal ? toast.offsetWidth * 0.3 : 36) || (fast && dist > 48)) {
-          toast.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
-          toast.style.transform = horizontal ? `translateX(${dx > 0 ? '' : '-'}110%)` : 'translateY(-120%)';
-          toast.style.opacity = '0';
           haptic('tick');
-          setTimeout(() => toast.remove(), 180);
+          const exit = horizontal
+            ? `translate3d(${dx > 0 ? '' : '-'}112%, 0, 0) rotate(${dx > 0 ? 5 : -5}deg)`
+            : 'translate3d(0, -120%, 0)';
+          dismissToast(toast, exit);
         } else {
           reset();
         }
@@ -5009,7 +5124,7 @@
         const g = state.games.find((x) => x.id === r.id);
         if (!g) return '';
         const moved = r.status === 'moved' && r.finalUrl ? `<button type="button" class="chg-undo" data-health-move="${escapeHtml(g.id)}" data-url="${escapeHtml(r.finalUrl)}">Use new link</button>` : '';
-        return `<div class="chg-row"><div class="min-w-0"><p class="chg-title" dir="auto">${escapeHtml(g.name)}</p><p class="chg-sub">${escapeHtml(LINK_PROBLEMS[r.status] || r.status)}${r.code ? ` (${r.code})` : ''}${r.finalUrl && r.status === 'moved' ? ` → ${escapeHtml(r.finalUrl)}` : ''}</p></div>`
+        return `<div class="chg-row"><div class="min-w-0"><p class="chg-title" dir="auto">${escapeHtml(g.name)}</p><p class="chg-sub">${escapeHtml(LINK_PROBLEMS[r.status] || r.status)}${r.code >= 400 ? ` (${r.code})` : ''}${r.finalUrl && r.status === 'moved' ? ` → ${escapeHtml(r.finalUrl)}` : ''}</p></div>`
           + `<div class="trash-acts">${moved}<button type="button" class="trash-del" data-health-edit="${escapeHtml(g.id)}">Edit</button></div></div>`;
       }).join('');
     };
@@ -9509,16 +9624,8 @@
       if (btnHeaderReady) {
         btnHeaderReady.addEventListener('click', () => {
           if (activeTab !== 'dashboard') {
-            state.activeFilter = 'ready';
-            renderFilterTabs();
-            renderGamesGrid();
             switchNavigation('dashboard');
-            scrollHeaderToTop();
-            return;
           }
-          state.activeFilter = state.activeFilter === 'ready' ? 'all' : 'ready';
-          renderFilterTabs();
-          renderGamesGrid();
           scrollHeaderToTop();
         });
       }

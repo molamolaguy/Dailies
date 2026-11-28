@@ -109,7 +109,11 @@ object WebsiteScraper {
         RegexOption.IGNORE_CASE
     )
     private val CHALLENGE_MARKER_REGEX = Regex(
-        """(?:/cdn-cgi/challenge-platform/|cf-chl-|cf_chl_opt|id=["']challenge-form["']|captcha-delivery\.com|verify you are human|checking if the site connection is secure)""",
+        """(?:/cdn-cgi/challenge-platform/(?!scripts/jsd/)|cf-chl-|_?cf_chl_opt|id=["']challenge-form["']|captcha-delivery\.com|verify you are human|checking if the site connection is secure)""",
+        RegexOption.IGNORE_CASE
+    )
+    private val REAL_PAGE_META_REGEX = Regex(
+        """(?:<meta\b[^>]*\b(?:name\s*=\s*["']description["']|property\s*=\s*["']og:(?:title|description|site_name)["'])\b[^>]*\bcontent\s*=\s*["'][^"']{4,}|<script\b[^>]*\btype\s*=\s*["']application/ld\+json["'])""",
         RegexOption.IGNORE_CASE
     )
 
@@ -578,7 +582,9 @@ object WebsiteScraper {
     fun looksLikeBotChallenge(html: String): Boolean {
         if (html.isEmpty()) return false
         val head = html.take(20_000)
-        return CHALLENGE_TITLE_REGEX.containsMatchIn(head) || CHALLENGE_MARKER_REGEX.containsMatchIn(head)
+        if (CHALLENGE_TITLE_REGEX.containsMatchIn(head)) return true
+        if (!CHALLENGE_MARKER_REGEX.containsMatchIn(head)) return false
+        return !REAL_PAGE_META_REGEX.containsMatchIn(head)
     }
 
     fun charsetFromContentType(contentType: String?): Charset {
