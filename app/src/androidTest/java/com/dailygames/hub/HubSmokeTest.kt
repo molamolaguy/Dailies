@@ -28,7 +28,7 @@ class HubSmokeTest {
     private val ctx: Context get() = ApplicationProvider.getApplicationContext()
 
     private fun findWebView(v: View): WebView? {
-        if (v is WebView) return v
+        if (v is WebView && v.visibility == View.VISIBLE) return v
         if (v is ViewGroup) for (i in 0 until v.childCount) findWebView(v.getChildAt(i))?.let { return it }
         return null
     }

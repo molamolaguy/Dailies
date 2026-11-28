@@ -604,36 +604,60 @@ test('isGenericScoreFormat: what the app filled in, not what the user typed', ()
   ['4 mistakes', 'Find all theme words', 'Under 2 minutes', 'Fewest guesses please'].forEach((t) => assert.ok(!H.isGenericScoreFormat(t), t));
 });
 
-test('the same game behind a different link is recognised (1.8.13)', () => {
+test('the same game behind a different link is recognised (1.8.13, tightened)', () => {
+  const known = require(path.join(__dirname, '../../main/assets/known-games.js'));
   const games = [
     { id: 'w', name: 'Wordle', url: 'https://www.nytimes.com/games/wordle/index.html' },
+    { id: 'g', name: 'Globle', url: 'https://globle-game.com/game' },
     { id: 'k', name: 'Krillion', url: 'https://krillion.io/play' },
     { id: 'n', name: 'Noillirk', url: 'https://noillirk.com/' },
     { id: 'c', name: 'Costcodle', url: 'https://costcodle.com', altUrls: ['https://www.costcodle.com/game'] },
-    { id: 'e', name: 'Mini Crossword', url: 'https://puzzles.example/mini', embeds: ['https://minigame.example/play'] },
+    { id: 'o', name: 'Octordle', url: 'https://octordle.com/' },
+    { id: 'mc', name: 'Mini Crossword', url: 'https://www.nytimes.com/crosswords/game/mini' },
+    { id: 's', name: 'NYT Sudoku', url: 'https://www.nytimes.com/puzzles/sudoku' },
+    { id: 'l', name: 'LoLdle - Classic', url: 'https://loldle.net/classic' },
+    { id: 'e', name: 'Mini Game', url: 'https://puzzles.example/mini', embeds: ['https://minigame.example/play'] },
     { id: 'a', name: 'Old One', url: 'https://archived.example/', archived: true }
   ];
-  const find = (c) => { const r = core.findSameGame(c, games); return r ? `${r.game.id} ${r.reason}${r.sure ? '!' : ''}` : 'none'; };
+  const find = (c, opts) => {
+    const r = core.findSameGame(c, games, Object.assign({ sameKnownGame: known.sameGame }, opts || {}));
+    return r ? `${r.game.id} ${r.reason}${r.sure ? '!' : ''}` : 'none';
+  };
   // The same page however it's written: blocked.
   assert.equal(find({ url: 'https://nytimes.com/games/wordle/' }), 'w same!');
   assert.equal(find({ url: 'http://m.nytimes.com/games/wordle?ref=x#top' }), 'w same!');
-  // A link that leads to the game's page, and one of a game's other links.
+  assert.equal(find({ url: 'https://www.nytimes.com/games/wordle/play' }), 'w same!');
+  // Entry/menu pages above or below the game (globle-game.com vs /game, krillion.io vs /play vs /play/today): blocked.
+  assert.equal(find({ url: 'https://globle-game.com' }), 'g same!');
+  assert.equal(find({ url: 'https://www.globle-game.com/' }), 'g same!');
+  assert.equal(find({ url: 'https://krillion.io' }), 'k same!');
+  assert.equal(find({ url: 'https://krillion.io/play/today' }), 'k same!');
+  // Catalogue cross-domain aliases (octordle.com vs britannica.com/games/octordle): blocked.
+  assert.equal(find({ url: 'https://www.britannica.com/games/octordle' }), 'o same!');
+  // A link that leads to the game's page, and one of a game's other links: blocked.
   assert.equal(find({ url: 'https://short.example/abc', finalUrl: 'https://noillirk.com' }), 'n redirect!');
   assert.equal(find({ url: 'https://costcodle.com/game/' }), 'c same!');
-  // A menu page above the game, or a page under it: asked.
-  assert.equal(find({ url: 'https://krillion.io' }), 'k menu');
-  assert.equal(find({ url: 'https://krillion.io/play/today' }), 'k menu');
-  // Another site with the game in a frame, and the game's own page showing this one: asked.
-  assert.equal(find({ url: 'https://other.example/wordle', embeds: ['https://www.nytimes.com/games/wordle/index.html?x=1'] }), 'w embedded');
-  assert.equal(find({ url: 'https://minigame.example/play/' }), 'e embedded');
-  // The same name on another site: asked.
-  assert.equal(find({ url: 'https://wordlegame.example/', name: 'Wordle - The Original Word Game' }), 'w name');
-  // Different games on the same site, a generic name, an archived game: nothing.
-  assert.equal(find({ url: 'https://www.nytimes.com/games/connections', name: 'Connections' }), 'none');
-  assert.equal(find({ url: 'https://other.example/', name: 'Daily Game' }), 'none');
+  // Another site with the game in a frame, and the game's own page showing this one: blocked.
+  assert.equal(find({ url: 'https://other.example/wordle', embeds: ['https://www.nytimes.com/games/wordle/index.html?x=1'] }), 'w embedded!');
+  assert.equal(find({ url: 'https://minigame.example/play/' }), 'e embedded!');
+  // Mirror or portal site carrying the same unique game brand name: blocked.
+  assert.equal(find({ url: 'https://wordlegame.example/', name: 'Wordle - The Original Word Game' }), 'w name!');
+  assert.equal(find({ url: 'https://mystery-portal.example/', name: 'Noillirk' }), 'n name!');
+  // Non-entry subpage without matching title: asked; includeArchived finds archived games.
+  assert.equal(find({ url: 'https://noillirk.com/custom-room' }), 'n menu');
   assert.equal(find({ url: 'https://archived.example/' }), 'none');
+  assert.equal(find({ url: 'https://archived.example/play' }, { includeArchived: true }), 'a same!');
+  // Different games on the same multi-game site (NYT Games, LoLdle modes, Globle Capitals, Daily Crossword vs Mini, another Sudoku site): allowed!
+  assert.equal(find({ url: 'https://www.nytimes.com/games/connections', name: 'Connections' }), 'none');
+  assert.equal(find({ url: 'https://www.nytimes.com/games/strands', name: 'Strands' }), 'none');
+  assert.equal(find({ url: 'https://www.nytimes.com/crosswords/game/daily', name: 'The Crossword' }), 'none');
+  assert.equal(find({ url: 'https://globle-capitals.com/game', name: 'Globle: Capitals' }), 'none');
+  assert.equal(find({ url: 'https://loldle.net/quote', name: 'LoLdle - Quote' }), 'none');
+  assert.equal(find({ url: 'https://sudoku-daily.example/', name: 'Daily Sudoku' }), 'none');
+  assert.equal(find({ url: 'https://other.example/', name: 'Daily Game' }), 'none');
   assert.equal(core.gameNameKey('The NYT Wordle - Play Online'), 'wordle');
   assert.equal(core.gameNameKey('Krillion | The Daily Dive'), 'krillion');
+  assert.equal(core.gameNameKey('LoLdle - Quote'), 'loldlequote');
 });
 
 test('1.9.4: singular swap/click/step share score groups with plural forms', () => {
@@ -999,5 +1023,172 @@ test('recheckChanges prefers scraped targetFormat over generic metricType/par', 
   assert.equal(out[0].changes.find((c) => c.field === 'category').to, 'Gaming & RPG');
 });
 
+test('shareResultSignature & findDuplicateByResult detect duplicate games from result format and style without false positives', () => {
+  const known = require(path.join(__dirname, '../../main/assets/known-games.js'));
+  const games = [
+    { id: 'w', name: 'Wordle', url: 'https://www.nytimes.com/games/wordle/index.html', maxTries: '6 guesses', totalPlayed: 40 },
+    { id: 'conn', name: 'Connections', url: 'https://www.nytimes.com/games/connections', maxTries: '4 mistakes', totalPlayed: 25 },
+    { id: 'globle', name: 'Globle', url: 'https://globle-game.com/game', maxTries: 'Daily Puzzle', totalPlayed: 18 },
+    { id: 'lol-classic', name: 'LoLdle - Classic', url: 'https://loldle.net/classic', maxTries: 'Daily Puzzle', totalPlayed: 12 },
+    { id: 'anon-main', name: 'Secret Grid', url: 'https://secretgrid.example/', maxTries: '6 guesses', totalPlayed: 10 }
+  ];
+  const logs = [
+    { gameId: 'w', gameName: 'Wordle', date: '2026-11-26', outcome: 'Completed', score: 'Wordle 1,622 4/6\n⬛🟨⬛⬛🟩\n🟩🟩🟩🟩🟩' },
+    { gameId: 'conn', gameName: 'Connections', date: '2026-11-26', outcome: 'Completed', score: 'Connections\nPuzzle #899\n🟨🟨🟨🟨\n🟩🟩🟩🟩\n🟦🟦🟦🟦\n🟪🟪🟪🟪' },
+    { gameId: 'globle', gameName: 'Globle', date: '2026-11-26', outcome: 'Completed', score: '🌍 Nov 26, 2026 🌍\n🔥 4 | Avg. Guesses: 6.2\n🟨🟧🟥🟩 = 4' },
+    { gameId: 'lol-classic', gameName: 'LoLdle - Classic', date: '2026-11-26', outcome: 'Completed', score: "I've guessed the #800 champion on #LoLdle (Classic) mode!\n🟩🟥🟩🟨🟩" },
+    { gameId: 'anon-main', gameName: 'Secret Grid', date: '2026-11-26', outcome: 'Completed', score: 'Puzzle #849 4/6\n⬛🟨⬛⬛🟩\n🟩🟩🟩🟩🟩' }
+  ];
 
+  // 1. Embedded URL inside the result matches an existing game (including catalogue cross-domain aliases).
+  const urlMirror = { id: 'new-url', name: 'Mystery Geo', url: 'https://custom-mirror.example/' };
+  const hitUrl = core.findDuplicateByResult(
+    urlMirror,
+    '🌍 Nov 27, 2026 🌍\n🟧🟩 = 2\nhttps://globle-game.com',
+    '2026-11-27',
+    [...games, urlMirror],
+    logs,
+    { sameKnownGame: known.sameGame }
+  );
+  assert.ok(hitUrl);
+  assert.equal(hitUrl.game.id, 'globle');
+  assert.equal(hitUrl.reason, 'result-url');
+
+  // 2. Brand / header + matching 5-wide BWG style catches a mirror with a completely different card title & URL.
+  const wordleMirror = { id: 'new-w', name: 'Daily Five', url: 'https://dailyfive-mirror.example/' };
+  const hitBrand = core.findDuplicateByResult(
+    wordleMirror,
+    'Wordle 1,623 3/6\n⬛🟩🟨⬛⬛\n🟩🟩🟩🟩🟩',
+    '2026-11-27',
+    [...games, wordleMirror],
+    logs,
+    { sameKnownGame: known.sameGame }
+  );
+  assert.ok(hitBrand);
+  assert.equal(hitBrand.game.id, 'w');
+  assert.equal(hitBrand.reason, 'result-brand');
+
+  // 3. Pure format + visual style + distinctive skeleton matches even with no brand name or URL in the snippet.
+  const globleClone = { id: 'new-g', name: 'World Map', url: 'https://map-mirror.example/' };
+  const hitStyle = core.findDuplicateByResult(
+    globleClone,
+    '🌍 Nov 27, 2026 🌍\n🔥 5 | Avg. Guesses: 6.0\n🟨🟧🟩 = 3',
+    '2026-11-27',
+    [...games, globleClone],
+    logs,
+    { sameKnownGame: known.sameGame }
+  );
+  assert.ok(hitStyle);
+  assert.equal(hitStyle.game.id, 'globle');
+  assert.equal(hitStyle.reason, 'result-style');
+
+  // 4. Minimal unnamed "Puzzle #N 3/6" matches when puzzle epoch aligns (850 on Nov 27 vs 849 on Nov 26),
+  //    but does NOT match an unrelated 5x6 puzzle on a different puzzle counter (#12 on Nov 27).
+  const anonMirror = { id: 'new-anon', name: 'Mirror Grid', url: 'https://mirrorgrid.example/' };
+  const hitEpoch = core.findDuplicateByResult(
+    anonMirror,
+    'Puzzle #850 3/6\n⬛🟩🟨⬛⬛\n🟩🟩🟩🟩🟩',
+    '2026-11-27',
+    [...games, anonMirror],
+    logs
+  );
+  assert.ok(hitEpoch);
+  assert.equal(hitEpoch.game.id, 'anon-main');
+  assert.equal(hitEpoch.reason, 'result-style');
+
+  const diffEpochGame = { id: 'new-diff-epoch', name: 'Other Five', url: 'https://otherfive.example/' };
+  assert.equal(
+    core.findDuplicateByResult(diffEpochGame, 'Puzzle #12 3/6\n⬛🟩🟨⬛⬛\n🟩🟩🟩🟩🟩', '2026-11-27', [...games, diffEpochGame], logs),
+    null
+  );
+
+  // 5. Distinct games with different grid styles, brands, or mode qualifiers do NOT trigger false positives.
+  const nerdle = { id: 'new-nerdle', name: 'Nerdle', url: 'https://nerdlegame.com/' };
+  assert.equal(
+    core.findDuplicateByResult(nerdle, 'nerdlegame 1050 3/6\n⬛🟪🟩⬛🟪🟩⬛🟩\n🟩🟩🟩🟩🟩🟩🟩🟩', '2026-11-27', [...games, nerdle], logs),
+    null
+  );
+
+  const phrazle = { id: 'new-phrazle', name: 'Phrazle', url: 'https://solitaired.com/phrazle' };
+  assert.equal(
+    core.findDuplicateByResult(phrazle, '#phrazle 980: 4/6\n⬜🟨⬜ 🟪⬜⬜⬜ 🟩🟩\n🟩🟩🟩 🟩🟩🟩🟩 🟩🟩', '2026-11-27', [...games, phrazle], logs),
+    null
+  );
+
+  const connSports = { id: 'new-sports', name: 'Connections: Sports Edition', url: 'https://www.nytimes.com/athletic/connections-sports-edition' };
+  assert.equal(
+    core.findDuplicateByResult(connSports, 'Connections: Sports Edition\nPuzzle #42\n🟡🟡🟡🟡\n🟢🟢🟢🟢\n🔵🔵🔵🔵\n🟣🟣🟣🟣', '2026-11-27', [...games, connSports], logs),
+    null
+  );
+
+  const lolQuote = { id: 'new-lol-quote', name: 'LoLdle - Quote', url: 'https://loldle.net/quote' };
+  assert.equal(
+    core.findDuplicateByResult(lolQuote, "I've guessed the #801 quote on #LoLdle (Quote) mode!", '2026-11-27', [...games, lolQuote], logs),
+    null
+  );
+
+  // 6. Respects `notDuplicateOf` and skips established games that already have >3 scored history rows.
+  const keptSeparate = { id: 'new-sep', name: 'Daily Five', url: 'https://sep.example/', notDuplicateOf: ['w'] };
+  assert.equal(
+    core.findDuplicateByResult(keptSeparate, 'Wordle 1,623 3/6\n⬛🟩🟨⬛⬛\n🟩🟩🟩🟩🟩', '2026-11-27', [...games, keptSeparate], logs),
+    null
+  );
+
+  const establishedLogs = [
+    ...logs,
+    { gameId: 'est', date: '2026-11-23', score: 'Wordle 1,619 4/6\n🟩🟩🟩🟩🟩' },
+    { gameId: 'est', date: '2026-11-24', score: 'Wordle 1,620 3/6\n🟩🟩🟩🟩🟩' },
+    { gameId: 'est', date: '2026-11-25', score: 'Wordle 1,621 5/6\n🟩🟩🟩🟩🟩' },
+    { gameId: 'est', date: '2026-11-26', score: 'Wordle 1,622 4/6\n🟩🟩🟩🟩🟩' }
+  ];
+  const established = { id: 'est', name: 'Established Copy', url: 'https://est.example/' };
+  assert.equal(
+    core.findDuplicateByResult(established, 'Wordle 1,623 3/6\n⬛🟩🟨⬛⬛\n🟩🟩🟩🟩🟩', '2026-11-27', [...games, established], establishedLogs),
+    null
+  );
+});
+
+test('hasLoggedResultForCycle and isCompletedWithLoggedResult distinguish completed-with-result from completed-without-result', () => {
+  const readyGame = { id: 'g-ready', name: 'Wordle', status: 'ready', todayScore: '', lastCycleKey: '2026-11-27', dayHistory: {} };
+  assert.equal(core.hasLoggedResultForCycle(readyGame, '2026-11-27', []), false);
+  assert.equal(core.isCompletedWithLoggedResult(readyGame, '2026-11-27', []), false);
+
+  // Marked completed with NO score text recorded: NOT completed-with-logged-result (player keeps Log button & return prompt).
+  const completedNoScore = {
+    id: 'g-no-score',
+    name: 'Connections',
+    status: 'completed',
+    todayScore: '',
+    lastCycleKey: '2026-11-27',
+    dayHistory: { '2026-11-27': 'completed' }
+  };
+  const noScoreLogs = [{ gameId: 'g-no-score', gameName: 'Connections', date: '2026-11-27', outcome: 'Completed', score: '' }];
+  assert.equal(core.hasLoggedResultForCycle(completedNoScore, '2026-11-27', noScoreLogs), false);
+  assert.equal(core.isCompletedWithLoggedResult(completedNoScore, '2026-11-27', noScoreLogs), false);
+
+  // Marked completed WITH a score recorded: completed-with-logged-result is true.
+  const completedWithScore = {
+    id: 'g-scored',
+    name: 'Globle',
+    status: 'completed',
+    todayScore: '🌍 Nov 27, 2026 🌍\n🟧🟩 = 2',
+    lastCycleKey: '2026-11-27',
+    dayHistory: { '2026-11-27': 'completed' }
+  };
+  const scoredLogs = [{ gameId: 'g-scored', gameName: 'Globle', date: '2026-11-27', outcome: 'Completed', score: '🌍 Nov 27, 2026 🌍\n🟧🟩 = 2' }];
+  assert.equal(core.hasLoggedResultForCycle(completedWithScore, '2026-11-27', scoredLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(completedWithScore, '2026-11-27', scoredLogs), true);
+  // Next day's cycle has no logged result yet.
+  assert.equal(core.hasLoggedResultForCycle(completedWithScore, '2026-11-28', scoredLogs), false);
+  assert.equal(core.isCompletedWithLoggedResult(completedWithScore, '2026-11-28', scoredLogs), false);
+
+  // Missed with a failed share grid vs auto-marked missed placeholder.
+  const missedWithResult = { id: 'g-miss-res', name: 'Wordle', status: 'missed', todayScore: '', lastCycleKey: '2026-11-27', dayHistory: { '2026-11-27': 'missed' } };
+  const missedLogs = [{ gameId: 'g-miss-res', date: '2026-11-27', outcome: 'Missed', score: 'Wordle 1,623 X/6\n⬛⬛⬛⬛⬛' }];
+  assert.equal(core.hasLoggedResultForCycle(missedWithResult, '2026-11-27', missedLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(missedWithResult, '2026-11-27', missedLogs), false);
+
+  const missedPlaceholderLogs = [{ gameId: 'g-miss-res', date: '2026-11-27', outcome: 'Missed', score: 'Auto-marked missed' }];
+  assert.equal(core.hasLoggedResultForCycle(missedWithResult, '2026-11-27', missedPlaceholderLogs), false);
+});
 

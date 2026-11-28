@@ -36,10 +36,21 @@ class WebsiteScraperRobustnessTest {
     }
 
     @Test
-    fun looksLikeBotChallenge_detectsInterstitials() {
+    fun looksLikeBotChallenge_detectsInterstitialsWithoutFlaggingCloudflarePassiveJsd() {
         assertTrue(WebsiteScraper.looksLikeBotChallenge("<html><head><title>Just a moment...</title></head></html>"))
         assertTrue(WebsiteScraper.looksLikeBotChallenge("<script src=\"/cdn-cgi/challenge-platform/h/b/orchestrate\"></script>"))
         assertFalse(WebsiteScraper.looksLikeBotChallenge("<html><head><title>Wordle</title></head></html>"))
+        // Cloudflare's passive JSD telemetry script (used on fe-guess.com and many normal 200 OK sites) is not a block wall.
+        val feGuessHtml = """
+            <!doctype html><html><head>
+            <title>FE Guess — Daily Fire Emblem Character Guessing Game</title>
+            <meta name="description" content="Guess the Fire Emblem character of the day!" />
+            </head><body><div id="root"></div>
+            <script>(function(){var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=abc';})();</script>
+            </body></html>
+        """.trimIndent()
+        assertFalse(WebsiteScraper.looksLikeBotChallenge(feGuessHtml))
+        assertEquals("ok", GameHealth.classify("https://fe-guess.com/", 200, "https://fe-guess.com/", WebsiteScraper.looksLikeBotChallenge(feGuessHtml)).first)
     }
 
     @Test

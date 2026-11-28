@@ -204,7 +204,7 @@
         <h1 class="hub-title-text">Dailies</h1>
       </div>
       <div class="hub-topbar-actions">
-        <button id="btnHeaderReady" type="button" class="hero-pill hero-pill-ready" title="Show ready games"><span class="dot" aria-hidden="true"></span><strong id="kpiReadyCount">0</strong><span class="ready-label">ready</span></button>
+        <button id="btnHeaderReady" type="button" class="hero-pill hero-pill-ready" title="Go to Daily Hub"><span class="dot" aria-hidden="true"></span><strong id="kpiReadyCount">0</strong><span class="ready-label">ready</span></button>
         <button id="btnHeaderStreak" type="button" class="hero-pill hero-pill-streak" title="View My Results"><span aria-hidden="true">🔥</span><span class="sr-only">Top streak</span><strong id="kpiTopStreak">0d</strong></button>
         <button id="btnCopyToday" type="button" class="copy-today hidden shrink-0 icon-label" aria-label="Today's results: copy or share" title="Today's results"><span class="ico ico-paste" aria-hidden="true"></span><span class="copy-label">Results</span></button>
       </div>
@@ -413,7 +413,7 @@
             <button type="button" id="btnOpenTheme" class="set-row set-link">
               <div class="min-w-0 flex-1">
                 <p class="font-bold text-white">Theme</p>
-                <p class="text-[11px] text-slate-400">Dark or light, colors, and pitch-black</p>
+                <p class="text-[11px] text-slate-400">App themes and colors</p>
               </div>
               <span id="themeSummary" class="set-value"></span><span class="set-chevron" aria-hidden="true">›</span>
             </button>
@@ -1228,6 +1228,24 @@
     </div>
   </div>
 
+  <!-- DUPLICATE GAME RESULT DETECTION MODAL -->
+  <div id="modalDuplicateGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalDuplicateTitle">
+    <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <h3 id="modalDuplicateTitle" class="text-base font-bold text-white truncate">Same game?</h3>
+        <button type="button" data-close-modal="modalDuplicateGame" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="space-y-3 text-xs sm:text-sm">
+        <p id="modalDuplicateMessage" class="text-slate-200 leading-relaxed"></p>
+        <pre id="modalDuplicatePreview" class="hidden p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 text-[11px] text-slate-300 font-mono whitespace-pre-wrap break-words max-h-28 overflow-y-auto"></pre>
+        <div class="modal-footer flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button id="btnKeepDuplicateSeparate" type="button" class="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Keep separate</button>
+          <button id="btnMergeDuplicateGame" type="button" class="px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg truncate">Merge</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="modalShareList" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalShareListTitle">
     <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-md border border-slate-700 shadow-2xl">
       <div class="flex items-center justify-between gap-3">
@@ -1264,7 +1282,7 @@
   </div>
 
   <!-- TOAST NOTIFICATION BANNER -->
-  <div id="toastContainer" role="status" aria-live="polite" style="top: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + var(--app-topbar-h, 52px) + 0.5rem);" class="fixed z-50 flex flex-col gap-2 max-w-md pointer-events-none"></div>
+  <div id="toastContainer" role="status" aria-live="polite" style="top: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + var(--app-topbar-h, 52px) + 0.5rem);" class="fixed z-50 max-w-md pointer-events-none"></div>
 
   <!-- "FINISHED PLAYING?" SHEET (shown when returning from a game that isn't logged yet) -->
   <div id="returnPrompt" class="return-sheet hidden" role="dialog" aria-labelledby="returnPromptTitle">
@@ -1599,9 +1617,8 @@
     /** Removed games that could be added back (newest first), not ones already in the hub again. */
     function removedGamesList() {
       const seen = new Set();
-      const inHub = new Set(state.games.map((g) => normalizeUrlKey(g.url)));
       return Object.values(state.retainedGameStats || {})
-        .filter((r) => r && r.id && !seen.has(r.id) && seen.add(r.id) && !inHub.has(normalizeUrlKey(r.url)))
+        .filter((r) => r && r.id && !seen.has(r.id) && seen.add(r.id) && !findGameByUrl(r.url, { name: r.name }))
         .sort((a, b) => retainedRemovedAt(b) - retainedRemovedAt(a))
         .slice(0, MAX_REMOVED_GAMES);
     }
@@ -2005,25 +2022,31 @@
       }
       try {
         if (window.AndroidBridge && typeof window.AndroidBridge.syncGames === 'function') {
-          window.AndroidBridge.syncGames(JSON.stringify(state.games.map((g) => ({
-            id: g.id,
-            name: g.name,
-            icon: g.icon,
-            url: g.url,
-            resetTime: g.resetTime,
-            resetZone: HubCore.normalizeZone(g.resetZone),
-            // Archived games keep their settings but never alert or remind.
-            notifyEnabled: Boolean(g.notifyEnabled) && !g.archived,
-            reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
-            lastCycleKey: g.lastCycleKey || getCycleDateKey(g.resetTime, g.resetZone),
-            lastPlayedCycle: g.status === 'completed' ? getCycleDateKey(g.resetTime, g.resetZone) : '',
-            // Logged anything (solved or missed) for the current puzzle: no streak reminder needed.
-            loggedCycle: (g.status === 'completed' || g.status === 'missed') && g.lastCycleKey === getCycleDateKey(g.resetTime, g.resetZone)
-              ? g.lastCycleKey : '',
-            lastLoggedCycle: latestLoggedCycle(g),
-            status: g.status || 'ready',
-            streak: g.archived ? 0 : (g.streak || 0)
-          }))));
+          window.AndroidBridge.syncGames(JSON.stringify(state.games.map((g) => {
+            const liveKey = getCycleDateKey(g.resetTime, g.resetZone);
+            return {
+              id: g.id,
+              name: g.name,
+              icon: g.icon,
+              url: g.url,
+              resetTime: g.resetTime,
+              resetZone: HubCore.normalizeZone(g.resetZone),
+              // Archived games keep their settings but never alert or remind.
+              archived: Boolean(g.archived),
+              nonDaily: Boolean(g.nonDaily),
+              notifyEnabled: Boolean(g.notifyEnabled) && !g.archived,
+              reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
+              lastCycleKey: g.lastCycleKey || liveKey,
+              lastPlayedCycle: g.status === 'completed' ? liveKey : '',
+              // Logged anything (solved or missed) for the current puzzle: no streak reminder needed.
+              loggedCycle: (g.status === 'completed' || g.status === 'missed') && g.lastCycleKey === liveKey
+                ? g.lastCycleKey : '',
+              loggedResultCycle: HubCore.isCompletedWithLoggedResult(g, liveKey, state.historyLogs) ? liveKey : '',
+              lastLoggedCycle: latestLoggedCycle(g),
+              status: g.status || 'ready',
+              streak: g.archived ? 0 : (g.streak || 0)
+            };
+          })));
         }
       } catch (e) {}
     }
@@ -2533,6 +2556,95 @@
       }
     }
 
+    const TOAST_DURATION_MS = 4500;
+    let toastDeckSeq = 0;
+
+    function scheduleToastExpiry(toast) {
+      if (!toast || toast.dataset.leaving === '1' || toast.dataset.dragging === '1') return;
+      if (toast._timer) { clearTimeout(toast._timer); toast._timer = null; }
+      const remaining = (toast._expiresAt || (Date.now() + TOAST_DURATION_MS)) - Date.now();
+      if (remaining <= 0) {
+        dismissToast(toast);
+        return;
+      }
+      toast._timer = setTimeout(() => dismissToast(toast), remaining);
+    }
+
+    function dismissToast(toast, exitTransform) {
+      if (!toast || toast.dataset.leaving === '1') return;
+      const container = toast.parentNode;
+      toast.dataset.leaving = '1';
+      delete toast.dataset.dragging;
+      if (toast._timer) { clearTimeout(toast._timer); toast._timer = null; }
+      if (container) layoutToastStack(container);
+      if (REDUCED_MOTION || !container) {
+        toast.remove();
+        return;
+      }
+      toast.style.pointerEvents = 'none';
+      toast.style.transition = 'transform 0.2s cubic-bezier(0.4, 0, 1, 1), opacity 0.18s ease-out';
+      toast.style.transform = exitTransform || 'translate3d(0, -18px, 0) scale(0.95)';
+      toast.style.opacity = '0';
+      setTimeout(() => { if (toast.parentNode) toast.remove(); }, 210);
+    }
+
+    function layoutToastStack(container) {
+      if (!container) return;
+      const active = [...container.children].filter((c) => c.dataset.leaving !== '1');
+      const n = active.length;
+      if (!n) return;
+      const front = active[n - 1];
+      front.style.height = '';
+      const frontH = front.offsetHeight || 60;
+
+      active.forEach((toast, idx) => {
+        const depth = (n - 1) - idx;
+        toast.dataset.depth = String(depth);
+        toast.style.zIndex = String(40 - depth);
+        const badge = toast.querySelector('[data-toast-stack]');
+        if (badge) {
+          if (depth === 0 && n > 1) {
+            badge.textContent = `+${n - 1}`;
+            badge.setAttribute('aria-label', `${n - 1} more notifications — tap to cycle`);
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+        }
+        if (depth === 0) {
+          toast.style.height = '';
+          toast.style.pointerEvents = 'auto';
+          if (toast.dataset.dragging !== '1') {
+            toast.style.transition = '';
+            toast.style.transform = 'translate3d(0, 0, 0) scale(1) rotate(0deg) skewX(0deg)';
+            toast.style.opacity = '1';
+            if (!toast._timer) scheduleToastExpiry(toast);
+          }
+        } else {
+          if (toast.dataset.dragging === '1') {
+            delete toast.dataset.dragging;
+            scheduleToastExpiry(toast);
+          }
+          toast.style.height = `${frontH}px`;
+          toast.style.pointerEvents = 'none';
+          toast.style.transition = '';
+          const dir = Number(toast.dataset.dir) || 1;
+          if (depth <= 3) {
+            const y = depth === 1 ? 9 : (depth === 2 ? 17 : 24);
+            const scale = depth === 1 ? 0.968 : (depth === 2 ? 0.936 : 0.904);
+            const rot = (depth === 1 ? 1.8 : (depth === 2 ? 2.5 : 3.1)) * dir;
+            const skew = (depth === 1 ? 0.5 : 0.8) * dir;
+            const shiftX = (depth === 1 ? 3.5 : (depth === 2 ? 6 : 8)) * dir;
+            toast.style.transform = `translate3d(${shiftX}px, ${y}px, 0) scale(${scale}) rotate(${rot}deg) skewX(${skew}deg)`;
+            toast.style.opacity = depth === 1 ? '0.95' : (depth === 2 ? '0.86' : '0.74');
+          } else {
+            toast.style.transform = 'translate3d(0, 26px, 0) scale(0.88)';
+            toast.style.opacity = '0';
+          }
+        }
+      });
+    }
+
     /**
      * opts.actionLabel + opts.onAction: a real button (e.g. Undo) instead of making the whole toast
      * the tap target. onClick (optional) still makes the text area tappable.
@@ -2540,98 +2652,145 @@
     function showToast(title, message, tone, onClick, opts) {
       const container = document.getElementById('toastContainer');
       if (!container) return;
-      while (container.children.length >= 3) {
+      const live = () => [...container.children].filter((c) => c.dataset.leaving !== '1');
+      while (live().length >= 5) {
         // Make room by dropping the oldest plain toast first, so a pending Undo isn't pushed out.
-        const plain = [...container.children].find((c) => !c.querySelector('[data-toast-action]'));
-        (plain || container.firstElementChild).remove();
+        const current = live();
+        const plain = current.find((c) => !c.querySelector('[data-toast-action]'));
+        const victim = plain || current[0];
+        if (victim._timer) clearTimeout(victim._timer);
+        victim.remove();
       }
       const toast = document.createElement('div');
+      toast.dataset.dir = (toastDeckSeq++ % 2 === 0) ? '-1' : '1';
+      toast.dataset.depth = '0';
+      toast._expiresAt = Date.now() + TOAST_DURATION_MS;
+      toast._timer = null;
       // Coloured by the app's theme (wallpaper, preset, custom or gold); a success gets the accent stripe.
       toast.className = `app-toast ${tone === 'emerald' ? 'tone-ok' : 'tone-info'} pointer-events-auto rounded-2xl p-3.5 shadow-2xl flex items-start justify-between gap-2.5`;
       toast.innerHTML = `
-        <div class="min-w-0 flex-1 cursor-pointer">
+        <div class="min-w-0 flex-1 ${typeof onClick === 'function' ? 'cursor-pointer' : ''}">
           <p class="toast-title text-xs font-bold truncate">${escapeHtml(title)}</p>
-          <p class="toast-msg text-[11px] mt-0.5 line-clamp-2">${escapeHtml(message)}</p>
+          <p class="toast-msg text-[11px] mt-0.5 line-clamp-2 ${message ? '' : 'hidden'}">${escapeHtml(message)}</p>
         </div>
         ${opts && opts.actionLabel ? `<button type="button" data-toast-action class="toast-action">${escapeHtml(opts.actionLabel)}</button>` : ''}
+        <button type="button" data-toast-stack class="toast-stack-badge hidden" title="Next notification"></button>
         <button type="button" data-toast-close class="toast-close px-1.5 py-1 rounded-lg inline-flex" aria-label="Dismiss"><span class="ico ico-close" aria-hidden="true"></span></button>
       `;
       const closeBtn = toast.querySelector('[data-toast-close]');
       const actionBtn = toast.querySelector('[data-toast-action]');
+      const stackBtn = toast.querySelector('[data-toast-stack]');
       if (actionBtn) {
         actionBtn.addEventListener('click', (ev) => {
           ev.stopPropagation();
-          toast.remove();
+          dismissToast(toast);
           opts.onAction();
+        });
+      }
+      if (stackBtn) {
+        stackBtn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          const active = live();
+          if (active.length <= 1) return;
+          haptic('tick');
+          container.insertBefore(toast, active[0]);
+          layoutToastStack(container);
         });
       }
       closeBtn.addEventListener('click', (ev) => {
         ev.stopPropagation();
-        toast.remove();
+        dismissToast(toast);
       });
       if (typeof onClick === 'function') {
         toast.firstElementChild.addEventListener('click', () => {
           onClick();
-          toast.remove();
+          dismissToast(toast);
         });
+      }
+      if (!REDUCED_MOTION) {
+        toast.style.transform = 'translate3d(0, -12px, 0) scale(0.97)';
+        toast.style.opacity = '0';
       }
       container.appendChild(toast);
       enableToastSwipe(toast);
-      setTimeout(() => {
-        if (toast.parentNode) toast.remove();
-      }, opts && opts.actionLabel ? 20000 : 4500);
+      // Start every notification's timer immediately so stacked notifications all display for the exact same duration.
+      scheduleToastExpiry(toast);
+      if (REDUCED_MOTION) {
+        layoutToastStack(container);
+      } else {
+        requestAnimationFrame(() => layoutToastStack(container));
+      }
     }
 
-    /** Swipe a notification sideways (or up) to dismiss it; a short drag springs back. */
+    /** Swipe the front notification sideways (or up) to dismiss it; a short drag springs back into the stack. */
     function enableToastSwipe(toast) {
       let start = null;
       let dx = 0;
       let dy = 0;
       let dragging = false;
-      const reset = () => {
-        toast.style.transition = 'transform 0.22s cubic-bezier(0.2, 0, 0, 1), opacity 0.22s';
-        toast.style.transform = '';
-        toast.style.opacity = '';
+      const detachWindowEnd = () => {
+        window.removeEventListener('touchend', end, true);
+        window.removeEventListener('touchcancel', cancel, true);
       };
-      toast.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1) return;
-        start = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now() };
-        dx = 0; dy = 0; dragging = false;
-        toast.style.transition = 'none';
-      }, { passive: true });
-      toast.addEventListener('touchmove', (e) => {
-        if (!start) return;
-        dx = e.touches[0].clientX - start.x;
-        dy = e.touches[0].clientY - start.y;
-        if (!dragging && (Math.abs(dx) > 8 || dy < -8)) dragging = true;
-        if (!dragging) return;
-        if (e.cancelable) e.preventDefault();
-        const up = Math.min(0, dy);
-        const horizontal = Math.abs(dx) >= Math.abs(up);
-        toast.style.transform = horizontal ? `translateX(${dx}px)` : `translateY(${up}px)`;
-        toast.style.opacity = String(Math.max(0.2, 1 - (horizontal ? Math.abs(dx) / toast.offsetWidth : -up / 80)));
-      }, { passive: false });
+      const reset = () => {
+        delete toast.dataset.dragging;
+        scheduleToastExpiry(toast);
+        layoutToastStack(toast.parentNode);
+      };
       const end = () => {
         if (!start) return;
+        detachWindowEnd();
         const dt = Math.max(1, performance.now() - start.t);
         const up = Math.min(0, dy);
         const horizontal = Math.abs(dx) >= Math.abs(up);
         const dist = horizontal ? Math.abs(dx) : -up;
         const fast = dist / dt > 0.5;
         start = null;
+        delete toast.dataset.dragging;
         if (!dragging) { reset(); return; }
         if (dist > (horizontal ? toast.offsetWidth * 0.3 : 36) || (fast && dist > 48)) {
-          toast.style.transition = 'transform 0.18s ease-out, opacity 0.18s ease-out';
-          toast.style.transform = horizontal ? `translateX(${dx > 0 ? '' : '-'}110%)` : 'translateY(-120%)';
-          toast.style.opacity = '0';
           haptic('tick');
-          setTimeout(() => toast.remove(), 180);
+          const exit = horizontal
+            ? `translate3d(${dx > 0 ? '' : '-'}112%, 0, 0) rotate(${dx > 0 ? 5 : -5}deg)`
+            : 'translate3d(0, -120%, 0)';
+          dismissToast(toast, exit);
         } else {
           reset();
         }
       };
+      const cancel = () => {
+        if (!start) return;
+        detachWindowEnd();
+        start = null;
+        reset();
+      };
+      toast.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1 || toast.dataset.depth !== '0') return;
+        start = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now() };
+        dx = 0; dy = 0; dragging = false;
+        window.addEventListener('touchend', end, true);
+        window.addEventListener('touchcancel', cancel, true);
+      }, { passive: true });
+      toast.addEventListener('touchmove', (e) => {
+        if (!start || toast.dataset.depth !== '0') return;
+        dx = e.touches[0].clientX - start.x;
+        dy = e.touches[0].clientY - start.y;
+        if (!dragging && (Math.abs(dx) > 8 || dy < -8)) {
+          dragging = true;
+          toast.dataset.dragging = '1';
+          if (toast._timer) { clearTimeout(toast._timer); toast._timer = null; }
+          toast.style.transition = 'none';
+        }
+        if (!dragging) return;
+        if (e.cancelable) e.preventDefault();
+        const up = Math.min(0, dy);
+        const horizontal = Math.abs(dx) >= Math.abs(up);
+        const tilt = horizontal ? Math.max(-6, Math.min(6, dx * 0.025)) : 0;
+        toast.style.transform = horizontal ? `translate3d(${dx}px, 0, 0) rotate(${tilt}deg)` : `translate3d(0, ${up}px, 0)`;
+        toast.style.opacity = String(Math.max(0.2, 1 - (horizontal ? Math.abs(dx) / toast.offsetWidth : -up / 80)));
+      }, { passive: false });
       toast.addEventListener('touchend', end);
-      toast.addEventListener('touchcancel', () => { start = null; reset(); });
+      toast.addEventListener('touchcancel', cancel);
       // A swipe isn't a tap on the toast's text.
       toast.addEventListener('click', (e) => { if (dragging) { e.stopPropagation(); e.preventDefault(); dragging = false; } }, true);
     }
@@ -2743,23 +2902,15 @@
       return HubUiHelpers.normalizeUrlKey(rawUrl);
     }
 
-    function findGameByUrl(rawUrl) {
-      const key = normalizeUrlKey(rawUrl);
-      if (!key) return null;
-      const exact = state.games.find((g) => normalizeUrlKey(g.url) === key);
-      if (exact) return exact;
-      // One of a game's other links (where its link led, or the link it was added from) (1.8.13).
-      const other = HubCore.findSameGame({ url: rawUrl }, state.games);
-      if (other && other.sure) return other.game;
-      // Two links to the same game's page in the built-in catalogue (nytimes.com/games/wordle and
-      // …/wordle/index.html) are the same game. Not for entries that cover a whole site, where other
-      // pages can be other games (mini.nerdlegame.com, puzzmo.com/play/…).
-      const known = KnownGames.find(rawUrl);
-      if (!known || !(known.path || known.also)) return null;
-      return state.games.find((g) => {
-        const k = KnownGames.find(g.url);
-        return Boolean(k && k.host === known.host && k.path === known.path && k.name === known.name);
-      }) || null;
+    function findGameByUrl(rawUrl, extraInfo) {
+      const cleaned = cleanGameUrl(rawUrl);
+      if (!cleaned) return null;
+      const cand = Object.assign({}, extraInfo || {}, { url: cleaned });
+      const hit = HubCore.findSameGame(cand, state.games, {
+        sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null,
+        includeArchived: true
+      });
+      return hit && hit.sure ? hit.game : null;
     }
 
     function cleanGameUrl(rawUrl) {
@@ -3198,11 +3349,22 @@
 
     /** Native (an opened link / shared message) or a paste hands over a friend's list here. */
     window.onSharedGameList = function (games) {
-      const list = (Array.isArray(games) ? games : []).filter((g) => g && typeof g.url === 'string');
-      if (!list.length) return;
+      const rawList = (Array.isArray(games) ? games : []).filter((g) => g && typeof g.url === 'string');
+      if (!rawList.length) return;
       switchNavigation('dashboard');
-      const have = new Set(state.games.map((g) => normalizeUrlKey(g.url)));
-      importListGames = list.map((g) => ({ g, dup: have.has(normalizeUrlKey(g.url)) }));
+      const seenBatch = [];
+      importListGames = [];
+      rawList.forEach((g) => {
+        const dupInBatch = HubCore.findSameGame({ url: g.url, name: g.name }, seenBatch, {
+          sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null,
+          includeArchived: true
+        });
+        if (dupInBatch && dupInBatch.sure) return;
+        seenBatch.push({ url: g.url, name: g.name });
+        const dup = Boolean(findGameByUrl(g.url, { name: g.name }));
+        importListGames.push({ g, dup });
+      });
+      if (!importListGames.length) return;
       document.getElementById('modalImportListTitle').textContent = 'Add games from a friend';
       document.getElementById('btnImportListAdd').classList.remove('hidden');
       const rows = document.getElementById('importListRows');
@@ -3213,7 +3375,7 @@
         </label>`).join('');
       const fresh = importListGames.filter((x) => !x.dup).length;
       document.getElementById('importListSub').textContent = fresh
-        ? `${plural(list.length, 'game')} in this list${fresh < list.length ? `, ${list.length - fresh} already in your hub` : ''}.`
+        ? `${plural(importListGames.length, 'game')} in this list${fresh < importListGames.length ? `, ${importListGames.length - fresh} already in your hub` : ''}.`
         : 'You already have every game in this list.';
       openModal('modalImportList');
     };
@@ -3224,7 +3386,7 @@
       let added = 0;
       picked.forEach(({ g }) => {
         const norm = normalizeGameObject({ name: g.name, url: g.url, resetTime: g.resetTime, resetZone: g.resetZone, notifyEnabled: true }, state.games.length + added);
-        if (!norm) return;
+        if (!norm || findGameByUrl(norm.url, { name: norm.name })) return;
         norm.id = HubCore.uniqueId(norm.id, seen);
         seen.add(norm.id);
         norm.addedCycleKey = getCycleDateKey(norm.resetTime, norm.resetZone);
@@ -4396,7 +4558,7 @@
       const g = c.game;
       if (!g || !g.id) return false;
       const key = normalizeUrlKey(g.url);
-      if (state.games.some((x) => x.id === g.id || (key && normalizeUrlKey(x.url) === key))) {
+      if (state.games.some((x) => x.id === g.id) || Boolean(findGameByUrl(g.url, { name: g.name }))) {
         showToast(`${c.name} is already back`, 'It is in your hub again.', 'indigo');
         c.undone = Date.now();
         return false;
@@ -4621,8 +4783,9 @@
     // ---- Trash (1.8.0): removed games and forgotten history, kept 30 days ----
     const TRASH_DAYS = 30;
     function gameIsInHub(g) {
-      const key = normalizeUrlKey(g && g.url);
-      return state.games.some((x) => x.id === (g && g.id) || (key && normalizeUrlKey(x.url) === key));
+      if (!g) return false;
+      if (state.games.some((x) => x.id === g.id)) return true;
+      return Boolean(findGameByUrl(g.url, { name: g.name }));
     }
     function addToTrash(item) {
       item.id = `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -5007,7 +5170,7 @@
         const g = state.games.find((x) => x.id === r.id);
         if (!g) return '';
         const moved = r.status === 'moved' && r.finalUrl ? `<button type="button" class="chg-undo" data-health-move="${escapeHtml(g.id)}" data-url="${escapeHtml(r.finalUrl)}">Use new link</button>` : '';
-        return `<div class="chg-row"><div class="min-w-0"><p class="chg-title" dir="auto">${escapeHtml(g.name)}</p><p class="chg-sub">${escapeHtml(LINK_PROBLEMS[r.status] || r.status)}${r.code ? ` (${r.code})` : ''}${r.finalUrl && r.status === 'moved' ? ` → ${escapeHtml(r.finalUrl)}` : ''}</p></div>`
+        return `<div class="chg-row"><div class="min-w-0"><p class="chg-title" dir="auto">${escapeHtml(g.name)}</p><p class="chg-sub">${escapeHtml(LINK_PROBLEMS[r.status] || r.status)}${r.code >= 400 ? ` (${r.code})` : ''}${r.finalUrl && r.status === 'moved' ? ` → ${escapeHtml(r.finalUrl)}` : ''}</p></div>`
           + `<div class="trash-acts">${moved}<button type="button" class="trash-del" data-health-edit="${escapeHtml(g.id)}">Edit</button></div></div>`;
       }).join('');
     };
@@ -5249,13 +5412,23 @@
           const all = hubOrder();
           const at = Math.max(0, all.findIndex((g) => g.id === game.id));
           const from = Math.max(0, Math.min(at - 50, all.length - 100));
-          const lineup = all.slice(from, from + 100)
-            .map((g) => ({ id: g.id, name: String(g.name || '').slice(0, 80), url: String(g.url || '').slice(0, 2000), done: g.status !== 'ready' }));
-          if (!lineup.some((g) => g.id === game.id)) lineup.unshift({ id: game.id, name: game.name, url: game.url, done: game.status !== 'ready' });
+          const toLineupItem = (g) => {
+            const cKey = getCycleDateKey(g.resetTime, g.resetZone);
+            return {
+              id: g.id,
+              name: String(g.name || '').slice(0, 80),
+              url: String(g.url || '').slice(0, 2000),
+              done: g.status !== 'ready',
+              loggedResult: HubCore.isCompletedWithLoggedResult(g, cKey, state.historyLogs)
+            };
+          };
+          const lineup = all.slice(from, from + 100).map(toLineupItem);
+          if (!lineup.some((g) => g.id === game.id)) lineup.unshift(toLineupItem(game));
           bridge.openGameInLineup(game.id, game.name, game.url, JSON.stringify(lineup));
           return;
         }
         if (bridge && typeof bridge.openGame === 'function') {
+          flushSyncNativeNow();
           bridge.openGame(game.id, game.name, game.url);
           return;
         }
@@ -5407,6 +5580,9 @@
       checkResetSuggestion(game);
       checkScoreFormat(game);
       checkNewAchievements();
+      if (hasScoreContent && displayScore && displayScore.trim()) {
+        checkDuplicateResultForNewGame(game, displayScore, todayKey);
+      }
       updateSingleGameCardOrGrid(game.id);
       if (activeTab === 'stats') renderStatsAndCharts();
     }
@@ -7672,8 +7848,10 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalTheme', 'modalAppIcon', 'modalIconEditor', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalTheme', 'modalAppIcon', 'modalIconEditor', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalDuplicateGame', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
+    let pendingDuplicatePrompt = null;
+    let activeDuplicatePrompt = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
       return Boolean(el && !el.classList.contains('hidden'));
@@ -7710,6 +7888,8 @@
         pendingConfirmCancel = null;
         document.getElementById('btnConfirmDeleteModal').textContent = 'Remove';
         document.getElementById('btnConfirmDeleteModal').className = CONFIRM_BTN_DANGER;
+      } else if (id === 'modalDuplicateGame') {
+        activeDuplicatePrompt = null;
       } else if (id === 'modalLogScore') {
         logModalCycleKey = '';
         logOpenedFromPlayer = false;
@@ -7720,9 +7900,15 @@
       syncBackInterceptState();
       if (typeof cancelCb === 'function') { cancelCb(); return; }
       if (reopenAdd) { openModal('modalAddGame'); return; }
-      if (!MODAL_IDS.some(isModalOpen) && modalReturnFocus && modalReturnFocus.isConnected) {
-        try { modalReturnFocus.focus({ preventScroll: true }); } catch (e) {}
-        modalReturnFocus = null;
+      if (!MODAL_IDS.some(isModalOpen)) {
+        if (pendingDuplicatePrompt) {
+          setTimeout(presentPendingDuplicatePrompt, 60);
+          return;
+        }
+        if (modalReturnFocus && modalReturnFocus.isConnected) {
+          try { modalReturnFocus.focus({ preventScroll: true }); } catch (e) {}
+          modalReturnFocus = null;
+        }
       }
     }
     function closeAllModals(except) {
@@ -7816,24 +8002,157 @@
         { actionLabel: 'Undo', onAction: () => undoChange(changeId) });
     }
 
+    // ---- Duplicate detection from a newly added game's logged result ----
+    const DUPLICATE_RESULT_WHY = {
+      'result-url': (other) => `This result links to ${other.name}, which is already in your hub.`,
+      'same-result': (other) => `This exact result was already logged on ${other.name} in your hub.`,
+      'result-brand': (other) => `This result names ${other.name} and matches its score format.`,
+      'result-style': (other) => `This result matches the score format and grid style of ${other.name} in your hub.`
+    };
+
+    function presentPendingDuplicatePrompt() {
+      if (!pendingDuplicatePrompt) return;
+      if (isAnyModalOpen()) return;
+      const { dupId, targetId, reason, preview } = pendingDuplicatePrompt;
+      const dup = state.games.find((g) => g.id === dupId);
+      const target = state.games.find((g) => g.id === targetId);
+      if (!dup || !target || dup.id === target.id) {
+        pendingDuplicatePrompt = null;
+        return;
+      }
+      activeDuplicatePrompt = pendingDuplicatePrompt;
+      pendingDuplicatePrompt = null;
+      const whyFn = DUPLICATE_RESULT_WHY[reason] || DUPLICATE_RESULT_WHY['result-style'];
+      document.getElementById('modalDuplicateTitle').textContent = `Same game as ${target.name}?`;
+      document.getElementById('modalDuplicateMessage').textContent =
+        `${whyFn(target)} Merge "${dup.name}" into "${target.name}" so your streak, history, and links stay together?`;
+      const preEl = document.getElementById('modalDuplicatePreview');
+      const snippet = String(preview || '').trim().split('\n').slice(0, 6).join('\n');
+      if (snippet) {
+        preEl.textContent = snippet;
+        preEl.classList.remove('hidden');
+      } else {
+        preEl.textContent = '';
+        preEl.classList.add('hidden');
+      }
+      document.getElementById('btnMergeDuplicateGame').textContent = `Merge into ${target.name}`;
+      openModal('modalDuplicateGame');
+    }
+
+    function checkDuplicateResultForNewGame(game, displayScore, todayKey) {
+      if (!game || typeof HubCore.findDuplicateByResult !== 'function') return;
+      const hit = HubCore.findDuplicateByResult(game, displayScore, todayKey, state.games, state.historyLogs, {
+        sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null
+      });
+      if (!hit || !hit.game) return;
+      pendingDuplicatePrompt = {
+        dupId: game.id,
+        targetId: hit.game.id,
+        reason: hit.reason,
+        preview: displayScore
+      };
+      setTimeout(presentPendingDuplicatePrompt, 80);
+    }
+
+    function mergeDuplicateGameInto(dupId, targetId) {
+      const dup = state.games.find((g) => g.id === dupId);
+      const target = state.games.find((g) => g.id === targetId);
+      closeModal('modalDuplicateGame');
+      if (!dup || !target || dup.id === target.id) return;
+
+      if (target.archived) delete target.archived;
+
+      const extraUrls = [dup.url, ...(Array.isArray(dup.altUrls) ? dup.altUrls : [])]
+        .filter((u) => u && normalizeUrlKey(u) !== normalizeUrlKey(target.url));
+      if (extraUrls.length) {
+        target.altUrls = [...new Set([...extraUrls, ...(Array.isArray(target.altUrls) ? target.altUrls : [])])].slice(0, 4);
+      }
+      if (Array.isArray(dup.embeds) && dup.embeds.length) {
+        target.embeds = [...new Set([...(Array.isArray(target.embeds) ? target.embeds : []), ...dup.embeds])].slice(0, 8);
+      }
+
+      state.historyLogs.forEach((l) => {
+        if (!l) return;
+        if (l.gameId === dup.id || (!l.gameId && l.gameName === dup.name)) {
+          l.gameId = target.id;
+          l.gameName = target.name;
+          l.icon = target.icon;
+        }
+      });
+      state.historyLogs = HubUiHelpers.dedupeHistoryLogs(state.historyLogs);
+
+      if (!target.dayHistory || typeof target.dayHistory !== 'object') target.dayHistory = {};
+      Object.entries(dup.dayHistory || {}).forEach(([dayKey, status]) => {
+        if (!target.dayHistory[dayKey] || (status === 'completed' && target.dayHistory[dayKey] !== 'completed')) {
+          target.dayHistory[dayKey] = status;
+        }
+      });
+
+      const targetCycleKey = getCycleDateKey(target.resetTime, target.resetZone);
+      const todayRow = state.historyLogs.find((l) => l && l.gameId === target.id && l.date === targetCycleKey);
+      if (target.dayHistory[targetCycleKey] === 'completed' || target.dayHistory[targetCycleKey] === 'missed') {
+        target.status = target.dayHistory[targetCycleKey];
+        target.lastCycleKey = targetCycleKey;
+        if (todayRow && todayRow.score && !target.todayScore) target.todayScore = todayRow.score;
+      }
+      if (!target.playTime && dup.playTime && dup.playTime.key === targetCycleKey) {
+        target.playTime = { key: targetCycleKey, ms: dup.playTime.ms };
+      }
+
+      if (state.retainedGameStats && typeof state.retainedGameStats === 'object') {
+        delete state.retainedGameStats[dup.id];
+        const dupUrlKey = normalizeUrlKey(dup.url);
+        if (dupUrlKey) delete state.retainedGameStats[dupUrlKey];
+      }
+      if (selectedCalendarGameId === dup.id) selectedCalendarGameId = target.id;
+      if (lastOpenedGameId === dup.id) lastOpenedGameId = target.id;
+
+      state.games = state.games.filter((g) => g.id !== dup.id);
+      nativeGameFinished(dup.id);
+
+      recomputeGameStatsFromHistory(target);
+      HubCore.recomputeLogStreaks(target, state.historyLogs);
+      HubCore.sortHistoryLogs(state.historyLogs);
+      invalidateLogIndex();
+      saveState({ syncNow: true });
+      renderAll();
+      showToast(`Merged into ${target.name}`, 'Result and link saved on your existing game.', 'emerald');
+    }
+
+    function keepDuplicateGamesSeparate(dupId, targetId) {
+      const dup = state.games.find((g) => g.id === dupId);
+      const target = state.games.find((g) => g.id === targetId);
+      closeModal('modalDuplicateGame');
+      if (!dup || !target || dup.id === target.id) return;
+      dup.notDuplicateOf = [...new Set([...(Array.isArray(dup.notDuplicateOf) ? dup.notDuplicateOf : []), target.id])].slice(0, 20);
+      target.notDuplicateOf = [...new Set([...(Array.isArray(target.notDuplicateOf) ? target.notDuplicateOf : []), dup.id])].slice(0, 20);
+      saveState({ sync: false });
+      showToast('Kept both games', `${dup.name} and ${target.name} will stay separate.`, 'indigo');
+    }
+
     let lastAutoScrapedUrl = '';
     // ---- The same game behind another link (1.8.13) ----
     // What the page of the link in the Add form showed (where it led, the games inside it, its name).
     let addLinkInfo = null; // { url, typedUrl, finalUrl, embeds, name }
     let sameGameAskedFor = ''; // a link the player chose to add anyway
     const SAME_GAME_WHY = {
+      same: (g) => `${g.name} is already in your hub.`,
+      redirect: (g) => `This link redirects to ${g.name}, which is already in your hub.`,
       embedded: (g) => `This page shows ${g.name} from your hub inside it.`,
       menu: (g) => `This link is on the same site as ${g.name} in your hub, a page above or below it.`,
       name: (g, m) => `${g.name} in your hub has the same name${m.relatedSite ? ' and is on the same site' : ''}.`
     };
-    /** The game already in the hub that the Add form's link probably is, or null. */
+    /** The game already in the hub that the Add form's link matches, or null. */
     function sameGameForAddForm() {
       if (document.getElementById('editGameId').value) return null;
       const url = cleanGameUrl(document.getElementById('inputGameUrl').value);
       if (!url) return null;
       const info = addLinkInfo && (addLinkInfo.url === url || addLinkInfo.typedUrl === url) ? addLinkInfo : { url };
       const name = document.getElementById('inputGameName').value.trim();
-      return HubCore.findSameGame(Object.assign({}, info, { url, name: name || info.name }), state.games);
+      return HubCore.findSameGame(Object.assign({}, info, { url, name: name || info.name }), state.games, {
+        sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null,
+        includeArchived: true
+      });
     }
     function renderSameGameNote() {
       const note = document.getElementById('sameGameNote');
@@ -7841,15 +8160,29 @@
       const m = sameGameForAddForm();
       const url = cleanGameUrl(document.getElementById('inputGameUrl').value);
       if (sameGameAskedFor && sameGameAskedFor !== url) sameGameAskedFor = '';
-      if (sameGameAskedFor) return; // already asked about this link: the note stays as it is
+      if (sameGameAskedFor && !(m && m.sure)) return; // already asked about a soft match: keep as-is
       note.classList.remove('asking');
-      const show = Boolean(m && !m.sure);
+      const show = Boolean(m);
       note.classList.toggle('hidden', !show);
       if (!show) return;
-      document.getElementById('sameGameText').textContent = `Already in your hub? ${SAME_GAME_WHY[m.reason](m.game, m)}`;
+      const whyFn = SAME_GAME_WHY[m.reason] || SAME_GAME_WHY.same;
+      document.getElementById('sameGameText').textContent = m.sure
+        ? (m.game.archived ? `${m.game.name} is archived in your hub.` : whyFn(m.game, m))
+        : `Already in your hub? ${whyFn(m.game, m)}`;
       const btn = document.getElementById('btnOpenSameGame');
-      btn.textContent = `Open ${m.game.name}`;
-      btn.onclick = () => { closeAddModal(); openGameInPlayer(m.game.id); };
+      if (m.game.archived) {
+        btn.textContent = `Unarchive ${m.game.name}`;
+        btn.onclick = () => {
+          delete m.game.archived;
+          closeAddModal();
+          saveState({ syncNow: true });
+          renderVisibleTab();
+          showToast(`${m.game.name} restored`, 'Back on your hub.', 'emerald');
+        };
+      } else {
+        btn.textContent = `Open ${m.game.name}`;
+        btn.onclick = () => { closeAddModal(); openGameInPlayer(m.game.id); };
+      }
     }
     let urlInputDebounceTimer = null;
     let prevUrlInputValue = '';
@@ -8186,10 +8519,14 @@
       }
       document.getElementById('returnPromptTitle').textContent = returnPromptCycles
         ? `Reset while you played: ${game.name}` : `Finished ${game.name}?`;
+      const completedWithoutResult = !returnPromptCycles && game.status === 'completed'
+        && !HubCore.hasLoggedResultForCycle(game, returnPromptCycleKey, state.historyLogs);
       const streakGoal = game.streak > 0 ? `keep your 🔥 ${game.streak}-day streak` : 'start a streak';
-      document.getElementById('returnPromptSub').textContent = elapsedMs > 0
-        ? `Played for ${formatPlayedFor(elapsedMs)} · log it to ${streakGoal}`
-        : `Log today's result to ${streakGoal}`;
+      document.getElementById('returnPromptSub').textContent = completedWithoutResult
+        ? (elapsedMs > 0 ? `Played for ${formatPlayedFor(elapsedMs)} · add today's score to your log` : `Add today's score to your log`)
+        : (elapsedMs > 0
+          ? `Played for ${formatPlayedFor(elapsedMs)} · log it to ${streakGoal}`
+          : `Log today's result to ${streakGoal}`);
       document.getElementById('returnPromptIcon').innerHTML = renderGameIconHtml(game.icon, game.name, 'w-4 h-4');
       el.classList.remove('hidden');
     }
@@ -8397,14 +8734,15 @@
       returnPromptShareText = captured;
       returnPromptOpenedKey = resetWhilePlaying ? openedKey : '';
       const awayEnough = fromWebTab || playedMs >= RETURN_PROMPT_MIN_MS;
-      if (resetWhilePlaying && (captured || awayEnough)) {
+      const openedHasLoggedResult = openedKey ? HubCore.hasLoggedResultForCycle(game, openedKey, state.historyLogs) : false;
+      if (resetWhilePlaying && !openedHasLoggedResult && (captured || awayEnough)) {
         // The puzzle changed mid-game: ask which one the result is for instead of guessing.
         showReturnPrompt(game, playedMs, { opened: openedKey, current: currentKey });
         return;
       }
-      const alreadyLogged = game.status === 'completed' || game.status === 'missed';
+      const hasLoggedResult = HubCore.hasLoggedResultForCycle(game, currentKey, state.historyLogs);
       const askEnabled = !state.settings || state.settings.askToLogOnReturn !== false;
-      if (askEnabled && !alreadyLogged && awayEnough) {
+      if (askEnabled && !hasLoggedResult && awayEnough) {
         showReturnPrompt(game, playedMs);
       }
     };
@@ -8478,6 +8816,17 @@
           const norm = normalizeGameObject(g, idx);
           // One unusable entry (no valid link) is skipped and reported, not a reason to refuse the file.
           if (!norm) { skipped += 1; return; }
+          const dupInBackup = HubCore.findSameGame(
+            { url: norm.url },
+            validatedGames,
+            { sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null, includeArchived: true }
+          );
+          if (dupInBackup && dupInBackup.sure) {
+            if (importedLogs && norm.id && norm.id !== dupInBackup.game.id) {
+              importedLogs.forEach((l) => { if (l && l.gameId === norm.id) l.gameId = dupInBackup.game.id; });
+            }
+            return;
+          }
           norm.id = HubCore.uniqueId(norm.id, seenIds);
           seenIds.add(norm.id);
           if (backupIsLegacy) migrateLegacyFlattenedUtc(norm, importedLogs || []);
@@ -8497,8 +8846,19 @@
         // Current games the backup doesn't have: they leave the hub, but their history is kept (as for
         // a removed game) so re-adding them, or looking them up in Streaks & Log, still works.
         const importedKeys = new Set();
-        validatedGames.forEach((g) => { importedKeys.add(g.id); importedKeys.add(normalizeUrlKey(g.url)); });
-        const dropped = state.games.filter((g) => !importedKeys.has(g.id) && !importedKeys.has(normalizeUrlKey(g.url)));
+        validatedGames.forEach((g) => {
+          importedKeys.add(g.id);
+          importedKeys.add(normalizeUrlKey(g.url));
+          importedKeys.add(HubCore.canonicalUrlKey(g.url));
+        });
+        const dropped = state.games.filter((g) => {
+          if (importedKeys.has(g.id) || importedKeys.has(normalizeUrlKey(g.url)) || importedKeys.has(HubCore.canonicalUrlKey(g.url))) return false;
+          const hit = HubCore.findSameGame({ url: g.url }, validatedGames, {
+            sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null,
+            includeArchived: true
+          });
+          return !(hit && hit.sure);
+        });
 
         const applyImport = () => {
           const before = serializeState();
@@ -9479,6 +9839,16 @@
       document.getElementById('btnCloseDeleteModal').addEventListener('click', closeDeleteConfirmModal);
       document.getElementById('btnCancelDeleteModal').addEventListener('click', closeDeleteConfirmModal);
       document.getElementById('btnConfirmDeleteModal').addEventListener('click', confirmDeleteGame);
+      document.getElementById('btnKeepDuplicateSeparate').addEventListener('click', () => {
+        if (!activeDuplicatePrompt) { closeModal('modalDuplicateGame'); return; }
+        const { dupId, targetId } = activeDuplicatePrompt;
+        keepDuplicateGamesSeparate(dupId, targetId);
+      });
+      document.getElementById('btnMergeDuplicateGame').addEventListener('click', () => {
+        if (!activeDuplicatePrompt) { closeModal('modalDuplicateGame'); return; }
+        const { dupId, targetId } = activeDuplicatePrompt;
+        mergeDuplicateGameInto(dupId, targetId);
+      });
 
       // Add/Edit Modal handlers (closeAddModal is global so Back closes it the same way)
       document.getElementById('btnCloseAddModal').addEventListener('click', closeAddModal);
@@ -9507,16 +9877,8 @@
       if (btnHeaderReady) {
         btnHeaderReady.addEventListener('click', () => {
           if (activeTab !== 'dashboard') {
-            state.activeFilter = 'ready';
-            renderFilterTabs();
-            renderGamesGrid();
             switchNavigation('dashboard');
-            scrollHeaderToTop();
-            return;
           }
-          state.activeFilter = state.activeFilter === 'ready' ? 'all' : 'ready';
-          renderFilterTabs();
-          renderGamesGrid();
           scrollHeaderToTop();
         });
       }
@@ -9811,9 +10173,10 @@
         const localResetStr = formatLocalResetTime(resetTime, resetZone);
         const newCycleKey = getCycleDateKey(resetTime, resetZone);
 
+        const activeLinkInfo = addLinkInfo && (addLinkInfo.url === url || addLinkInfo.typedUrl === url) ? addLinkInfo : null;
         if (editId) {
           const existing = state.games.find((g) => g.id === editId);
-          const clash = findGameByUrl(url);
+          const clash = findGameByUrl(url, activeLinkInfo);
           if (existing && clash && clash.id !== existing.id) {
             showToast('Link already used', `${clash.name} already uses that link.`, 'indigo');
             return;
@@ -9847,17 +10210,23 @@
           renderVisibleTab();
           return;
         } else {
-          const dupGame = findGameByUrl(url);
+          const same = sameGameForAddForm();
+          const dupGame = findGameByUrl(url, Object.assign({}, activeLinkInfo || {}, { name })) || (same && same.sure ? same.game : null);
           if (dupGame) {
             closeAddModal();
-            showToast(`${dupGame.name} is already in your hub`, 'No duplicate was added.', 'indigo');
-            return;
-          }
-          const same = sameGameForAddForm();
-          if (same && same.sure) {
-            closeAddModal();
-            showToast(`${same.game.name} is already in your hub`, 'That link leads to it. No duplicate was added.', 'indigo', null,
-              { actionLabel: 'Play', onAction: () => openGameInPlayer(same.game.id) });
+            if (dupGame.archived) {
+              showToast(`${dupGame.name} is archived in your hub`, 'Unarchive it instead of adding a duplicate.', 'indigo', null, {
+                actionLabel: 'Unarchive',
+                onAction: () => {
+                  delete dupGame.archived;
+                  saveState({ syncNow: true });
+                  renderVisibleTab();
+                }
+              });
+            } else {
+              showToast(`${dupGame.name} is already in your hub`, 'No duplicate was added.', 'indigo', null,
+                { actionLabel: 'Play', onAction: () => openGameInPlayer(dupGame.id) });
+            }
             return;
           }
           if (same && sameGameAskedFor !== url) {
@@ -9874,11 +10243,14 @@
             note.scrollIntoView({ block: 'center', behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
             return;
           }
-          // Restore retained streaks & dayHistory if this game was previously removed
+          // Restore retained streaks & dayHistory if this game was previously removed (even via / vs /game)
           const urlKey = normalizeUrlKey(url);
-          const retained = (state.retainedGameStats && urlKey && state.retainedGameStats[urlKey])
-            ? state.retainedGameStats[urlKey]
-            : null;
+          const canonKey = HubCore.canonicalUrlKey(url);
+          const retainedMap = state.retainedGameStats || {};
+          const retained = (urlKey && retainedMap[urlKey])
+            || (canonKey && retainedMap[canonKey])
+            || Object.values(retainedMap).find((r) => r && r.url && (HubCore.canonicalUrlKey(r.url) === canonKey || (typeof KnownGames !== 'undefined' && KnownGames.sameGame && KnownGames.sameGame(r.url, url))))
+            || null;
           const restoredHistory = (retained && retained.dayHistory) ? HubCore.cleanDayHistory(retained.dayHistory) : {};
           const newGame = {
             id: (retained && retained.id && !state.games.some((g) => g.id === retained.id))
@@ -9905,13 +10277,20 @@
             dayHistory: restoredHistory,
             statsBaseline: retained && retained.statsBaseline ? retained.statsBaseline : { played: 0, won: 0, best: 0 }
           };
-          // Its other links (the one typed when it led elsewhere) and the games shown inside its page,
+          // Its other links (the one typed when it led elsewhere, or canonical catalogue address) and the games shown inside its page,
           // so the same game added later by another link is recognised (1.8.13).
-          if (addLinkInfo && (addLinkInfo.url === url || addLinkInfo.typedUrl === url)) {
-            const alt = [addLinkInfo.typedUrl, addLinkInfo.finalUrl].filter((u) => u && normalizeUrlKey(u) !== normalizeUrlKey(url));
-            if (alt.length) newGame.altUrls = [...new Set(alt)].slice(0, 4);
-            if (addLinkInfo.embeds && addLinkInfo.embeds.length) newGame.embeds = addLinkInfo.embeds.slice(0, 8);
+          const altCandidates = [];
+          if (activeLinkInfo) {
+            if (activeLinkInfo.typedUrl) altCandidates.push(activeLinkInfo.typedUrl);
+            if (activeLinkInfo.finalUrl) altCandidates.push(activeLinkInfo.finalUrl);
+            if (activeLinkInfo.embeds && activeLinkInfo.embeds.length) newGame.embeds = activeLinkInfo.embeds.slice(0, 8);
           }
+          const knownEntry = typeof KnownGames !== 'undefined' ? KnownGames.find(url) : null;
+          if (knownEntry && KnownGames.sameGame && KnownGames.sameGame(url, catalogUrl(knownEntry))) {
+            altCandidates.push(catalogUrl(knownEntry));
+          }
+          const alt = altCandidates.filter((u) => u && normalizeUrlKey(u) !== normalizeUrlKey(url));
+          if (alt.length) newGame.altUrls = [...new Set(alt)].slice(0, 4);
           if (retained) {
             const oldSchedule = { resetTime: retained.resetTime, resetZone: HubCore.normalizeZone(retained.resetZone) };
             if (oldSchedule.resetTime !== resetTime || oldSchedule.resetZone !== resetZone) {
@@ -9923,7 +10302,7 @@
             // The game is back: drop both retained copies (by id and by link).
             Object.keys(state.retainedGameStats || {}).forEach((k) => {
               const r = state.retainedGameStats[k];
-              if (k === urlKey || (r && r.id === retained.id)) delete state.retainedGameStats[k];
+              if (k === urlKey || k === canonKey || (r && r.id === retained.id)) delete state.retainedGameStats[k];
             });
           }
           recomputeGameStatsFromHistory(newGame);

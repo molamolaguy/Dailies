@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
  * - [storageInfo] / [clearStorage]: the caches Dailies keeps, by kind.
  */
 object GameHealth {
-    private const val UA = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36 Dailies"
+    private const val UA = "Mozilla/5.0 (Linux; Android 17) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Mobile Safari/537.36"
 
     data class Game(val id: String, val url: String, val icon: String)
 
@@ -79,7 +79,12 @@ object GameHealth {
     fun checkLinks(json: String): String {
         val games = parseGames(json)
         val results = inParallel(games) { g ->
-            val resp = SafeHttp.get(g.url, mapOf("User-Agent" to UA, "Accept" to "text/html,application/xhtml+xml"), maxBytes = 64 * 1024, deadlineMs = 12_000)
+            val resp = SafeHttp.get(
+                g.url,
+                mapOf("User-Agent" to UA, "Accept" to "text/html,application/xhtml+xml,*/*;q=0.8", "Accept-Language" to "en-US,en;q=0.9"),
+                maxBytes = 64 * 1024,
+                deadlineMs = 12_000
+            )
             val bot = resp != null && resp.code in 200..299 && WebsiteScraper.looksLikeBotChallenge(String(resp.body, Charsets.UTF_8))
             // A 403/503 from a bot wall still means the site is there.
             val wall = resp != null && resp.code in setOf(403, 503) && (resp.headers["server"].orEmpty().contains("cloudflare", true) || resp.headers.containsKey("cf-ray"))
@@ -171,6 +176,7 @@ object GameHealth {
 
     /** Clears the chosen kinds (not "web": the caller clears the WebView cache on the main thread). */
     fun clearFiles(ctx: Context, kinds: Set<String>) {
+        if ("pages" in kinds || "web" in kinds) GamePrewarmer.clearWarmedState()
         if ("pages" in kinds) PageCache.clearAll(ctx)
         if ("icons" in kinds) File(ctx.filesDir, "favicons").listFiles()?.forEach { it.deleteRecursively() }
         if ("updates" in kinds) UpdateInstaller.clearDownloads(ctx)

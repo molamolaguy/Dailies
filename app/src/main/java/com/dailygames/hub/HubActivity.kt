@@ -74,8 +74,12 @@ class HubActivity : ComponentActivity() {
     private val faviconCacheDelegate = lazy { FaviconCache(File(filesDir, "favicons")) }
     private val faviconCache by faviconCacheDelegate
     private var pageRenderer: PageRenderer? = null
+    private var gamePrewarmer: GamePrewarmer? = null
     private val pendingBackupFile = AtomicReference<File?>(null)
     private val pendingCsvFile = AtomicReference<File?>(null)
+
+    private fun prewarmer(): GamePrewarmer =
+        gamePrewarmer ?: GamePrewarmer(scaffoldRoot).also { gamePrewarmer = it }
 
     private class BackupTooLargeException : Exception()
 
@@ -448,6 +452,12 @@ class HubActivity : ComponentActivity() {
         val cover = launchCover ?: return
         launchCover = null
         (cover.parent as? ViewGroup)?.removeView(cover)
+        val appCtx = applicationContext
+        if (GamePrefs.blockAds(appCtx)) AdBlocker.warmUp(appCtx)
+        else Thread { PublicSuffix.ensureLoaded(appCtx) }.start()
+        if (!isFinishing && !isDestroyed && lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+            prewarmer().onHubResumed()
+        }
     }
 
     private fun setBackIntercept(enabled: Boolean) {
@@ -589,6 +599,7 @@ class HubActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
+        gamePrewarmer?.pauseAndStop()
         // The hub writes its state at a quiet moment (1.8.6): leaving the app writes what's waiting now.
         if (::webView.isInitialized) {
             runCatching {
@@ -612,6 +623,7 @@ class HubActivity : ComponentActivity() {
             if (pageReady) {
                 pushEdgeToEdgeAndDynamicThemeToWebView()
                 pushNotificationStatus()
+                if (launchCover == null) prewarmer().onHubResumed()
             }
         }
         if (::scaffoldRoot.isInitialized) {
@@ -755,6 +767,8 @@ class HubActivity : ComponentActivity() {
         pendingCsvFile.getAndSet(null)?.let { runCatching { it.delete() } }
         pageRenderer?.cancel()
         pageRenderer = null
+        gamePrewarmer?.destroy()
+        gamePrewarmer = null
         if (faviconCacheDelegate.isInitialized()) faviconCache.shutdown()
         scrapeExecutor.shutdownNow()
         stateStore.close()
@@ -828,11 +842,22 @@ class HubActivity : ComponentActivity() {
     }
 
     private fun launchGame(gameId: String, name: String, url: String, lineup: String? = null, playAll: Boolean = false) {
+        val loggedFromLineup = lineup?.let { json ->
+            runCatching {
+                val arr = JSONArray(json)
+                (0 until arr.length()).asSequence()
+                    .mapNotNull { arr.optJSONObject(it) }
+                    .firstOrNull { it.optString("id") == gameId }
+                    ?.let { if (it.has("loggedResult")) it.optBoolean("loggedResult", false) else null }
+            }.getOrNull()
+        }
+        val loggedResult = loggedFromLineup ?: GameStore.isCompletedWithLoggedResult(applicationContext, gameId)
         val i = Intent(this, GameActivity::class.java)
             .putExtra(GameActivity.EXTRA_ID, gameId)
             .putExtra(GameActivity.EXTRA_NAME, name)
             .putExtra(GameActivity.EXTRA_URL, url)
             .putExtra(GameActivity.EXTRA_PLAY_ALL, playAll)
+            .putExtra(GameActivity.EXTRA_LOGGED_RESULT, loggedResult)
         if (!lineup.isNullOrEmpty() && lineup.length < 200_000) i.putExtra(GameActivity.EXTRA_LINEUP, lineup)
         gameLauncher.launch(i)
     }
@@ -987,6 +1012,11 @@ class HubActivity : ComponentActivity() {
         fun syncGames(json: String) {
             GameStore.sync(applicationContext, json)
             DailyRefreshWorker.refreshAndSchedule(applicationContext)
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed && pageReady && launchCover == null) {
+                    prewarmer().scheduleWarmup(delayMs = 700L)
+                }
+            }
         }
 
         /** Weekly automatic backups: pick (or change) the folder, which also turns them on. */
@@ -1233,7 +1263,20 @@ class HubActivity : ComponentActivity() {
         /** Settings → Preload Games: fetch a game's page files on Wi-Fi when its puzzle resets. */
         @JavascriptInterface
         fun setPreloadGames(on: Boolean) {
-            PageCache.setEnabled(applicationContext, on)
+            val app = applicationContext
+            val wasEnabled = PageCache.enabled(app)
+            if (on != wasEnabled) {
+                PageCache.setEnabled(app, on)
+                Thread { runCatching { DailyRefreshWorker.refreshAndSchedule(app) } }.start()
+            } else if (!on) {
+                PageCache.setEnabled(app, false)
+            }
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed) {
+                    if (on && pageReady && launchCover == null) prewarmer().scheduleWarmup(delayMs = 300L)
+                    else if (!on) gamePrewarmer?.clearAndStop()
+                }
+            }
         }
 
         /** Settings → Check Game Pages for Changes (1.8.5): a weekly background pass on Wi-Fi. */
@@ -1267,6 +1310,7 @@ class HubActivity : ComponentActivity() {
         fun gameFinished(gameId: String) {
             if (gameId.isBlank() || gameId.length > 200) return
             val app = applicationContext
+            GamePrewarmer.forgetGame(gameId)
             Thread { PageCache.clear(app, gameId) }.start()
         }
 

@@ -97,11 +97,13 @@ object AppIcon {
     private fun customStar(ctx: Context): Int? =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_CUSTOM_STAR, 0).takeIf { it != 0 }
 
+    private const val NAMESPACE = "com.dailygames.hub"
+
     /** Enables the wanted entry first, then disables the rest (so there's always one). Call when leaving the app. */
     fun apply(ctx: Context) {
         val target = chosenEntry(ctx)
         val pm = ctx.packageManager
-        fun component(name: String) = ComponentName(ctx.packageName, ctx.packageName + name)
+        fun component(name: String) = ComponentName(ctx.packageName, NAMESPACE + name)
         fun isOn(name: String): Boolean = when (pm.getComponentEnabledSetting(component(name))) {
             PackageManager.COMPONENT_ENABLED_STATE_ENABLED -> true
             PackageManager.COMPONENT_ENABLED_STATE_DEFAULT -> name == DEFAULT

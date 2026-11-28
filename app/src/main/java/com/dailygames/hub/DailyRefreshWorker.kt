@@ -132,6 +132,7 @@ class DailyRefreshWorker(
                 processor.processRefresh()
                 // New puzzles: fetch their pages' files on Wi-Fi so they open faster.
                 runCatching { PageCache.enqueue(ctx, started) }
+                runCatching { PageCache.ensureReadyGamesCached(ctx) }
             } finally {
                 // Always arm the next reset, even if posting this pass's alert failed: otherwise one
                 // error would silence every later alert until the app was opened again.
@@ -150,8 +151,13 @@ class DailyRefreshWorker(
             // The hub runs this off the main thread at start-up (1.8.0) and again when it syncs games:
             // one at a time, so a missed reset is never announced twice.
             synchronized(REFRESH_LOCK) {
-                if (GameStore.hasUnannouncedReset(ctx)) runRefreshLocked(ctx)
-                else scheduleNextResetLocked(ctx, System.currentTimeMillis())
+                val preloadOn = PageCache.enabled(ctx)
+                if (GameStore.hasUnprocessedReset(ctx, includeMutedPreload = preloadOn)) {
+                    runRefreshLocked(ctx)
+                } else {
+                    scheduleNextResetLocked(ctx, System.currentTimeMillis())
+                    if (preloadOn) runCatching { PageCache.ensureReadyGamesCached(ctx) }
+                }
             }
         }
 
@@ -179,7 +185,11 @@ class DailyRefreshWorker(
             wm.cancelUniqueWork(LEGACY_PERIODIC_WORK_NAME)
 
             val games = GameStore.load(ctx)
-            val minDelayMs = GameStore.nextResetDelayMs(games, nowMs)
+            val minDelayMs = GameStore.nextScheduleDelayMs(
+                games,
+                includeMutedPreload = PageCache.enabled(ctx),
+                nowMs = nowMs
+            )
             if (minDelayMs == null) {
                 wm.cancelUniqueWork(NEXT_RESET_WORK_NAME)
                 ResetAlarms.cancel(ctx)

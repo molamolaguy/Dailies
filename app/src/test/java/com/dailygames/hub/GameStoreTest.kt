@@ -164,4 +164,26 @@ class GameStoreTest {
         assertEquals("2026-03-15", repo.lastNotifiedKey("corrupt"))
         assertFalse(repo.hasUnannouncedReset(nowMs))
     }
+
+    @Test
+    fun preloadSchedule_includesMutedPreloadableGamesAndSkipsArchived() {
+        val day1Ms = 1773489600000L // 2026-03-14 12:00:00 UTC
+        val day2Ms = 1773576000000L // 2026-03-15 12:00:00 UTC
+        val utc = TimeZone.getTimeZone("UTC")
+        val gamesJson = """
+            [
+              {"id": "muted_web", "url": "https://worldle.example/", "resetTime": "14:00", "resetZone": "utc", "notifyEnabled": false},
+              {"id": "archived_web", "url": "https://old.example/", "resetTime": "13:00", "resetZone": "utc", "notifyEnabled": false, "archived": true}
+            ]
+        """.trimIndent()
+        val games = JSONArray(gamesJson)
+        assertNull(GameStore.nextResetDelayMs(games, day1Ms, utc))
+        assertEquals(2L * 3600_000L, GameStore.nextScheduleDelayMs(games, includeMutedPreload = true, nowMs = day1Ms, localTimeZone = utc))
+
+        val storage = InMemoryGameStorage()
+        val repo = GameRepository(storage, { day1Ms }, utc)
+        repo.sync(gamesJson)
+        assertFalse(repo.hasUnannouncedReset(day2Ms))
+        assertTrue(repo.hasUnprocessedReset(includeMutedPreload = true, nowMs = day2Ms))
+    }
 }

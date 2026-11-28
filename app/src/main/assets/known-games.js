@@ -247,6 +247,17 @@
     }
   }
 
+  const ENTRY_SEG_RE = /^(?:game|play|daily|today|app|start|home|main|welcome|menu|index|play-now|daily-game|daily-puzzle|todays-puzzle|todays-game)$/;
+
+  function isOnlyEntryTail(tail) {
+    const clean = String(tail || '')
+      .replace(/\/index\.(?:html?|php|asp|aspx|jsp)$/i, '')
+      .replace(/\/+$/, '')
+      .replace(/^\/en(?:-(?:us|gb))?(?=\/|$)/i, '');
+    if (!clean) return true;
+    return clean.split('/').filter(Boolean).every((seg) => ENTRY_SEG_RE.test(seg));
+  }
+
   /** Best catalogue match for a game URL (longest path prefix wins), or null. */
   function find(url) {
     const p = parse(url);
@@ -267,5 +278,43 @@
     return best ? Object.assign({}, best) : null;
   }
 
-  return { CATALOG, find };
+  /**
+   * Returns the catalogue entry only when `url` points directly to that game itself (its base path,
+   * an `also` alias, or its canonical `url`, plus optional entry segments like `/game` or `/play`) —
+   * never when `url` points to a deeper sibling game on the same host (e.g. `puzzmo.com/play/spelltower`).
+   */
+  function canonicalEntry(url) {
+    const p = parse(url);
+    if (!p) return null;
+    let best = null;
+    let bestLen = -1;
+    CATALOG.forEach((entry) => {
+      const targets = [entry].concat(entry.also || []);
+      if (entry.url) {
+        const eu = parse(entry.url);
+        if (eu) targets.push({ host: eu.host, path: eu.path.replace(/\/+$/, '') });
+      }
+      targets.forEach((at) => {
+        const basePath = (at.path || '').replace(/\/+$/, '');
+        const hostOk = p.host === at.host || (basePath && p.host.endsWith('.' + at.host));
+        if (!hostOk) return;
+        if (basePath && !(p.path === basePath || p.path.startsWith(basePath + '/'))) return;
+        const tail = basePath ? p.path.slice(basePath.length) : p.path;
+        if (!isOnlyEntryTail(tail)) return;
+        const len = basePath.length;
+        if (len > bestLen) { best = entry; bestLen = len; }
+      });
+    });
+    return best;
+  }
+
+  /** True when two URLs definitely refer to the exact same game in the built-in catalogue. */
+  function sameGame(urlA, urlB) {
+    const a = canonicalEntry(urlA);
+    if (!a) return false;
+    const b = canonicalEntry(urlB);
+    return Boolean(b && a === b);
+  }
+
+  return { CATALOG, find, sameGame };
 });
