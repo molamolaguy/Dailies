@@ -1946,7 +1946,11 @@
     };
   }
 
-  // ---- The same game behind a different link (1.8.13) ----
+  // ---- The same game behind a different link (1.8.13, tightened) ----
+  const ENTRY_SEG_RE = /^(?:game|play|daily|today|app|start|home|main|welcome|menu|index|play-now|daily-game|daily-puzzle|todays-puzzle|todays-game)$/;
+  const INDEX_FILE_RE = /\/index\.(?:html?|php|asp|aspx|jsp)$/i;
+  const DEFAULT_EN_PREFIX_RE = /^\/en(?:-(?:us|gb))?(?=\/|$)/;
+
   /** A link as { host, path }: host without "www." / "m.", path without index.html or a trailing "/". */
   function gameLinkKey(rawUrl) {
     try {
@@ -1957,70 +1961,155 @@
       if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
       const host = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
       if (!host.includes('.')) return null;
-      const path = decodeURIComponent(u.pathname).toLowerCase().replace(/\/index\.html?$/, '').replace(/\/+$/, '');
+      const path = decodeURIComponent(u.pathname).toLowerCase().replace(INDEX_FILE_RE, '').replace(/\/+$/, '');
       return { host, path };
     } catch (e) {
       return null;
     }
   }
+
+  /**
+   * Canonical link { host, path } after stripping default `/en` locale prefixes and trailing entry/menu
+   * segments (`/game`, `/play`, `/daily`, `/today`, etc.) so `globle-game.com` and `globle-game.com/game`
+   * resolve to the same key while sibling paths (`nytimes.com/games/wordle` vs `/games/connections`) stay distinct.
+   */
+  function canonicalGameLink(rawUrl) {
+    const k = gameLinkKey(rawUrl);
+    if (!k) return null;
+    const p = k.path.replace(DEFAULT_EN_PREFIX_RE, '');
+    const segs = p.split('/').filter(Boolean);
+    while (segs.length > 0 && ENTRY_SEG_RE.test(segs[segs.length - 1])) {
+      segs.pop();
+    }
+    return { host: k.host, path: segs.length ? '/' + segs.join('/') : '' };
+  }
+
+  function canonicalUrlKey(rawUrl) {
+    const c = canonicalGameLink(rawUrl);
+    return c ? `${c.host}${c.path}` : '';
+  }
+
   const sameLink = (a, b) => Boolean(a && b && a.host === b.host && a.path === b.path);
-  /** One link is a page of the other (site.com and site.com/play, /games and /games/wordle). */
+  /** One link is a page of the other (site.com and site.com/section, /games and /games/wordle). */
   const nestedLink = (a, b) => Boolean(a && b && a.host === b.host && a.path !== b.path
     && (a.path === '' || b.path === '' || b.path.startsWith(a.path + '/') || a.path.startsWith(b.path + '/')));
   /** Same site or one's sub-site (play.site.com, site.com). */
   const relatedHost = (a, b) => Boolean(a && b && (a.host === b.host || a.host.endsWith('.' + b.host) || b.host.endsWith('.' + a.host)));
-  const GENERIC_NAME = /^(daily|game|games|puzzle|puzzles|play|home|menu|today|daily ?game|daily ?puzzle|word ?game|untitled)$/;
-  /** A name reduced to what identifies the game: "The NYT Wordle - Play Online" -> "wordle". */
+  const GENERIC_NAME = /^(daily|game|games|puzzle|puzzles|play|home|menu|today|daily ?game|daily ?puzzle|word ?game|untitled|sudoku|crossword|crosswords|jigsaw|trivia|quiz|solitaire|mahjong|minesweeper|nonogram|kakuro|wordsearch|chess|anagram|bingo)$/;
+  const MODE_QUALIFIER_RE = /\b(quote|classic|artwork|keywords|splash|ability|emoji|episode|oneframe|capitals|mini|maxi|micro|deluxe|sequence|rescue|chill|extreme|instant|speed|bilingual|sports|junior|kids|pro|plus)\b/i;
+
+  /** A name reduced to what identifies the game: "The NYT Wordle - Play Online" -> "wordle", keeping distinct mode suffixes ("LoLdle - Quote" -> "loldlequote"). */
   function gameNameKey(name) {
-    let n = String(name || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    n = n.split(/\s[-–—|:·]\s|\s[|·]|[|·]\s/)[0];
+    let raw = String(name || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const parts = raw.split(/\s[-–—|:·]\s|\s[|·]|[|·]\s/);
+    let n = parts[0] || '';
+    if (parts.length > 1) {
+      const qual = parts[1].trim();
+      if (qual.split(/\s+/).length <= 3 && MODE_QUALIFIER_RE.test(qual)) {
+        n += ' ' + qual;
+      }
+    }
     n = n.replace(/\b(the|nyt|daily|play|online|free|unlimited|game|puzzle|official)\b/g, ' ');
     n = n.replace(/[^a-z0-9]+/g, '');
     return n.length >= 4 && !GENERIC_NAME.test(n) ? n : '';
   }
+
+  function rawGameUrls(g) {
+    return [g && g.url].concat(Array.isArray(g && g.altUrls) ? g.altUrls : []).filter((u) => typeof u === 'string' && u.trim());
+  }
   /** Every link a game is known by: its own, and any it was reached from or found on. */
   function gameLinks(g) {
-    return [g && g.url].concat(Array.isArray(g && g.altUrls) ? g.altUrls : []).map(gameLinkKey).filter(Boolean);
+    return rawGameUrls(g).map(gameLinkKey).filter(Boolean);
+  }
+  function canonicalGameLinks(g) {
+    return rawGameUrls(g).map(canonicalGameLink).filter(Boolean);
+  }
+  function urlMentionsBrand(urls, brandKey) {
+    if (!brandKey || brandKey.length < 4) return false;
+    return urls.some((k) => k && (`${k.host}${k.path}`).replace(/[^a-z0-9]+/g, '').includes(brandKey));
   }
 
   /**
-   * The game in `games` that a new link most likely is, or null. `cand`: { url, typedUrl, finalUrl,
-   * name, embeds: [frame urls on its page] }. `sure` matches are the same page (or a link that leads to
-   * one); the others are a question for the player:
-   *  - 'same'      the same page, or one of the game's other links
-   *  - 'redirect'  the link leads to the game's page
-   *  - 'embedded'  the page shows the game in a frame, or the game's page shows this one
-   *  - 'menu'      a page of the same site above or below the game's (site.com and site.com/play)
-   *  - 'name'      a different site with the same name, on related sites or anywhere
+   * The game in `games` that a new link refers to, or null.
+   * `cand`: { url, typedUrl, finalUrl, name, embeds: [frame urls on its page] }.
+   * `opts`: { sameKnownGame?: (urlA, urlB) => boolean, includeArchived?: boolean }.
+   * `sure: true` matches are definite duplicates (blocked automatically across all entry points);
+   * `sure: false` matches are ambiguous hints (e.g. a portal root page before any title is known).
    */
-  function findSameGame(cand, games) {
-    const list = (Array.isArray(games) ? games : []).filter((g) => g && g.url && !g.archived);
+  function findSameGame(cand, games, opts) {
+    const o = opts || {};
+    const list = (Array.isArray(games) ? games : []).filter((g) => g && g.url && (o.includeArchived || !g.archived));
+    const rawMine = [cand && cand.url, cand && cand.typedUrl, cand && cand.finalUrl].filter((u) => typeof u === 'string' && u.trim());
     const own = gameLinkKey(cand && cand.url);
     const typed = gameLinkKey(cand && cand.typedUrl);
     const final = gameLinkKey(cand && cand.finalUrl);
     const mine = [own, typed, final].filter(Boolean);
     if (!mine.length) return null;
+
+    const ownCanon = canonicalGameLink(cand && cand.url);
+    const typedCanon = canonicalGameLink(cand && cand.typedUrl);
+    const finalCanon = canonicalGameLink(cand && cand.finalUrl);
+    const mineCanon = [ownCanon, typedCanon, finalCanon].filter(Boolean);
+    const embedsCanon = (Array.isArray(cand && cand.embeds) ? cand.embeds : []).map(canonicalGameLink).filter(Boolean);
     const embeds = (Array.isArray(cand && cand.embeds) ? cand.embeds : []).map(gameLinkKey).filter(Boolean);
     const pick = (test) => list.find(test);
-    let g = pick((x) => sameLink(gameLinkKey(x.url), own) || sameLink(gameLinkKey(x.url), typed));
+
+    // 1. Exact or entry-canonical URL match (e.g. globle-game.com vs globle-game.com/game, krillion.io vs krillion.io/play).
+    let g = pick((x) => {
+      const xCanon = canonicalGameLink(x.url);
+      return sameLink(xCanon, ownCanon) || sameLink(xCanon, typedCanon);
+    });
     if (g) return { game: g, reason: 'same', sure: true };
-    g = pick((x) => gameLinks(x).some((k) => mine.some((m) => sameLink(k, m))));
-    if (g) return { game: g, reason: sameLink(gameLinkKey(g.url), final) ? 'redirect' : 'same', sure: true };
-    g = pick((x) => gameLinks(x).some((k) => embeds.some((e) => sameLink(k, e) || nestedLink(k, e)))
-      || (Array.isArray(x.embeds) && x.embeds.map(gameLinkKey).some((e) => mine.some((m) => sameLink(e, m) || nestedLink(e, m)))));
-    if (g) return { game: g, reason: 'embedded', sure: false };
-    g = pick((x) => gameLinks(x).some((k) => mine.some((m) => nestedLink(k, m))));
-    if (g) return { game: g, reason: 'menu', sure: false };
+
+    g = pick((x) => canonicalGameLinks(x).some((k) => mineCanon.some((m) => sameLink(k, m))));
+    if (g) {
+      const viaRedirect = finalCanon && !sameLink(finalCanon, ownCanon) && canonicalGameLinks(g).some((k) => sameLink(k, finalCanon));
+      return { game: g, reason: viaRedirect ? 'redirect' : 'same', sure: true };
+    }
+
+    // 2. Built-in catalogue alias match (e.g. octordle.com vs britannica.com/games/octordle, oec.world vs games.oec.world).
+    if (typeof o.sameKnownGame === 'function') {
+      g = pick((x) => rawGameUrls(x).some((xu) => rawMine.some((mu) => o.sameKnownGame(xu, mu))));
+      if (g) return { game: g, reason: 'same', sure: true };
+    }
+
+    // 3. Wrapper page embedding an existing game in an iframe (or vice versa): definite duplicate.
+    g = pick((x) => canonicalGameLinks(x).some((k) => embedsCanon.some((e) => sameLink(k, e)))
+      || (Array.isArray(x.embeds) && x.embeds.map(canonicalGameLink).some((e) => mineCanon.some((m) => sameLink(e, m)))));
+    if (g) return { game: g, reason: 'embedded', sure: true };
+
+    // 4. Same/related site with the same distinct game name, or a mirror URL carrying the game's brand name.
     const nk = gameNameKey(cand && cand.name);
     if (nk) {
+      g = pick((x) => gameNameKey(x.name) === nk && gameLinks(x).some((k) => mine.some((m) => relatedHost(k, m))));
+      if (g) return { game: g, reason: 'same', sure: true };
+
+      g = pick((x) => gameNameKey(x.name) === nk && (urlMentionsBrand(gameLinks(x), nk) || urlMentionsBrand(mine, nk)));
+      if (g) return { game: g, reason: 'name', sure: true, relatedSite: false };
+    }
+
+    // 5. Soft warnings for ambiguous cases (e.g. iframe parent-site or unscraped subpage where titles differ/unknown).
+    g = pick((x) => gameLinks(x).some((k) => embeds.some((e) => nestedLink(k, e)))
+      || (Array.isArray(x.embeds) && x.embeds.map(gameLinkKey).some((e) => mine.some((m) => nestedLink(e, m)))));
+    if (g) return { game: g, reason: 'embedded', sure: false };
+
+    g = pick((x) => {
+      if (nk && gameNameKey(x.name) && gameNameKey(x.name) !== nk) return false;
+      return gameLinks(x).some((k) => mine.some((m) => nestedLink(k, m)));
+    });
+    if (g) return { game: g, reason: 'menu', sure: false };
+
+    if (nk) {
       g = pick((x) => gameNameKey(x.name) === nk);
-      if (g) return { game: g, reason: 'name', sure: false, relatedSite: gameLinks(g).some((k) => mine.some((m) => relatedHost(k, m))) };
+      if (g) return { game: g, reason: 'name', sure: false, relatedSite: false };
     }
     return null;
   }
 
   return {
     gameLinkKey,
+    canonicalGameLink,
+    canonicalUrlKey,
     gameNameKey,
     findSameGame,
     extractResultText,

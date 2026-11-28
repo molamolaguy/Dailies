@@ -604,36 +604,60 @@ test('isGenericScoreFormat: what the app filled in, not what the user typed', ()
   ['4 mistakes', 'Find all theme words', 'Under 2 minutes', 'Fewest guesses please'].forEach((t) => assert.ok(!H.isGenericScoreFormat(t), t));
 });
 
-test('the same game behind a different link is recognised (1.8.13)', () => {
+test('the same game behind a different link is recognised (1.8.13, tightened)', () => {
+  const known = require(path.join(__dirname, '../../main/assets/known-games.js'));
   const games = [
     { id: 'w', name: 'Wordle', url: 'https://www.nytimes.com/games/wordle/index.html' },
+    { id: 'g', name: 'Globle', url: 'https://globle-game.com/game' },
     { id: 'k', name: 'Krillion', url: 'https://krillion.io/play' },
     { id: 'n', name: 'Noillirk', url: 'https://noillirk.com/' },
     { id: 'c', name: 'Costcodle', url: 'https://costcodle.com', altUrls: ['https://www.costcodle.com/game'] },
-    { id: 'e', name: 'Mini Crossword', url: 'https://puzzles.example/mini', embeds: ['https://minigame.example/play'] },
+    { id: 'o', name: 'Octordle', url: 'https://octordle.com/' },
+    { id: 'mc', name: 'Mini Crossword', url: 'https://www.nytimes.com/crosswords/game/mini' },
+    { id: 's', name: 'NYT Sudoku', url: 'https://www.nytimes.com/puzzles/sudoku' },
+    { id: 'l', name: 'LoLdle - Classic', url: 'https://loldle.net/classic' },
+    { id: 'e', name: 'Mini Game', url: 'https://puzzles.example/mini', embeds: ['https://minigame.example/play'] },
     { id: 'a', name: 'Old One', url: 'https://archived.example/', archived: true }
   ];
-  const find = (c) => { const r = core.findSameGame(c, games); return r ? `${r.game.id} ${r.reason}${r.sure ? '!' : ''}` : 'none'; };
+  const find = (c, opts) => {
+    const r = core.findSameGame(c, games, Object.assign({ sameKnownGame: known.sameGame }, opts || {}));
+    return r ? `${r.game.id} ${r.reason}${r.sure ? '!' : ''}` : 'none';
+  };
   // The same page however it's written: blocked.
   assert.equal(find({ url: 'https://nytimes.com/games/wordle/' }), 'w same!');
   assert.equal(find({ url: 'http://m.nytimes.com/games/wordle?ref=x#top' }), 'w same!');
-  // A link that leads to the game's page, and one of a game's other links.
+  assert.equal(find({ url: 'https://www.nytimes.com/games/wordle/play' }), 'w same!');
+  // Entry/menu pages above or below the game (globle-game.com vs /game, krillion.io vs /play vs /play/today): blocked.
+  assert.equal(find({ url: 'https://globle-game.com' }), 'g same!');
+  assert.equal(find({ url: 'https://www.globle-game.com/' }), 'g same!');
+  assert.equal(find({ url: 'https://krillion.io' }), 'k same!');
+  assert.equal(find({ url: 'https://krillion.io/play/today' }), 'k same!');
+  // Catalogue cross-domain aliases (octordle.com vs britannica.com/games/octordle): blocked.
+  assert.equal(find({ url: 'https://www.britannica.com/games/octordle' }), 'o same!');
+  // A link that leads to the game's page, and one of a game's other links: blocked.
   assert.equal(find({ url: 'https://short.example/abc', finalUrl: 'https://noillirk.com' }), 'n redirect!');
   assert.equal(find({ url: 'https://costcodle.com/game/' }), 'c same!');
-  // A menu page above the game, or a page under it: asked.
-  assert.equal(find({ url: 'https://krillion.io' }), 'k menu');
-  assert.equal(find({ url: 'https://krillion.io/play/today' }), 'k menu');
-  // Another site with the game in a frame, and the game's own page showing this one: asked.
-  assert.equal(find({ url: 'https://other.example/wordle', embeds: ['https://www.nytimes.com/games/wordle/index.html?x=1'] }), 'w embedded');
-  assert.equal(find({ url: 'https://minigame.example/play/' }), 'e embedded');
-  // The same name on another site: asked.
-  assert.equal(find({ url: 'https://wordlegame.example/', name: 'Wordle - The Original Word Game' }), 'w name');
-  // Different games on the same site, a generic name, an archived game: nothing.
-  assert.equal(find({ url: 'https://www.nytimes.com/games/connections', name: 'Connections' }), 'none');
-  assert.equal(find({ url: 'https://other.example/', name: 'Daily Game' }), 'none');
+  // Another site with the game in a frame, and the game's own page showing this one: blocked.
+  assert.equal(find({ url: 'https://other.example/wordle', embeds: ['https://www.nytimes.com/games/wordle/index.html?x=1'] }), 'w embedded!');
+  assert.equal(find({ url: 'https://minigame.example/play/' }), 'e embedded!');
+  // Mirror or portal site carrying the same unique game brand name: blocked.
+  assert.equal(find({ url: 'https://wordlegame.example/', name: 'Wordle - The Original Word Game' }), 'w name!');
+  assert.equal(find({ url: 'https://mystery-portal.example/', name: 'Noillirk' }), 'n name!');
+  // Non-entry subpage without matching title: asked; includeArchived finds archived games.
+  assert.equal(find({ url: 'https://noillirk.com/custom-room' }), 'n menu');
   assert.equal(find({ url: 'https://archived.example/' }), 'none');
+  assert.equal(find({ url: 'https://archived.example/play' }, { includeArchived: true }), 'a same!');
+  // Different games on the same multi-game site (NYT Games, LoLdle modes, Globle Capitals, Daily Crossword vs Mini, another Sudoku site): allowed!
+  assert.equal(find({ url: 'https://www.nytimes.com/games/connections', name: 'Connections' }), 'none');
+  assert.equal(find({ url: 'https://www.nytimes.com/games/strands', name: 'Strands' }), 'none');
+  assert.equal(find({ url: 'https://www.nytimes.com/crosswords/game/daily', name: 'The Crossword' }), 'none');
+  assert.equal(find({ url: 'https://globle-capitals.com/game', name: 'Globle: Capitals' }), 'none');
+  assert.equal(find({ url: 'https://loldle.net/quote', name: 'LoLdle - Quote' }), 'none');
+  assert.equal(find({ url: 'https://sudoku-daily.example/', name: 'Daily Sudoku' }), 'none');
+  assert.equal(find({ url: 'https://other.example/', name: 'Daily Game' }), 'none');
   assert.equal(core.gameNameKey('The NYT Wordle - Play Online'), 'wordle');
   assert.equal(core.gameNameKey('Krillion | The Daily Dive'), 'krillion');
+  assert.equal(core.gameNameKey('LoLdle - Quote'), 'loldlequote');
 });
 
 test('1.9.4: singular swap/click/step share score groups with plural forms', () => {

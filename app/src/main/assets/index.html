@@ -1599,9 +1599,8 @@
     /** Removed games that could be added back (newest first), not ones already in the hub again. */
     function removedGamesList() {
       const seen = new Set();
-      const inHub = new Set(state.games.map((g) => normalizeUrlKey(g.url)));
       return Object.values(state.retainedGameStats || {})
-        .filter((r) => r && r.id && !seen.has(r.id) && seen.add(r.id) && !inHub.has(normalizeUrlKey(r.url)))
+        .filter((r) => r && r.id && !seen.has(r.id) && seen.add(r.id) && !findGameByUrl(r.url, { name: r.name }))
         .sort((a, b) => retainedRemovedAt(b) - retainedRemovedAt(a))
         .slice(0, MAX_REMOVED_GAMES);
     }
@@ -2860,23 +2859,15 @@
       return HubUiHelpers.normalizeUrlKey(rawUrl);
     }
 
-    function findGameByUrl(rawUrl) {
-      const key = normalizeUrlKey(rawUrl);
-      if (!key) return null;
-      const exact = state.games.find((g) => normalizeUrlKey(g.url) === key);
-      if (exact) return exact;
-      // One of a game's other links (where its link led, or the link it was added from) (1.8.13).
-      const other = HubCore.findSameGame({ url: rawUrl }, state.games);
-      if (other && other.sure) return other.game;
-      // Two links to the same game's page in the built-in catalogue (nytimes.com/games/wordle and
-      // …/wordle/index.html) are the same game. Not for entries that cover a whole site, where other
-      // pages can be other games (mini.nerdlegame.com, puzzmo.com/play/…).
-      const known = KnownGames.find(rawUrl);
-      if (!known || !(known.path || known.also)) return null;
-      return state.games.find((g) => {
-        const k = KnownGames.find(g.url);
-        return Boolean(k && k.host === known.host && k.path === known.path && k.name === known.name);
-      }) || null;
+    function findGameByUrl(rawUrl, extraInfo) {
+      const cleaned = cleanGameUrl(rawUrl);
+      if (!cleaned) return null;
+      const cand = Object.assign({}, extraInfo || {}, { url: cleaned });
+      const hit = HubCore.findSameGame(cand, state.games, {
+        sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null,
+        includeArchived: true
+      });
+      return hit && hit.sure ? hit.game : null;
     }
 
     function cleanGameUrl(rawUrl) {
@@ -3315,11 +3306,22 @@
 
     /** Native (an opened link / shared message) or a paste hands over a friend's list here. */
     window.onSharedGameList = function (games) {
-      const list = (Array.isArray(games) ? games : []).filter((g) => g && typeof g.url === 'string');
-      if (!list.length) return;
+      const rawList = (Array.isArray(games) ? games : []).filter((g) => g && typeof g.url === 'string');
+      if (!rawList.length) return;
       switchNavigation('dashboard');
-      const have = new Set(state.games.map((g) => normalizeUrlKey(g.url)));
-      importListGames = list.map((g) => ({ g, dup: have.has(normalizeUrlKey(g.url)) }));
+      const seenBatch = [];
+      importListGames = [];
+      rawList.forEach((g) => {
+        const dupInBatch = HubCore.findSameGame({ url: g.url, name: g.name }, seenBatch, {
+          sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null,
+          includeArchived: true
+        });
+        if (dupInBatch && dupInBatch.sure) return;
+        seenBatch.push({ url: g.url, name: g.name });
+        const dup = Boolean(findGameByUrl(g.url, { name: g.name }));
+        importListGames.push({ g, dup });
+      });
+      if (!importListGames.length) return;
       document.getElementById('modalImportListTitle').textContent = 'Add games from a friend';
       document.getElementById('btnImportListAdd').classList.remove('hidden');
       const rows = document.getElementById('importListRows');
@@ -3330,7 +3332,7 @@
         </label>`).join('');
       const fresh = importListGames.filter((x) => !x.dup).length;
       document.getElementById('importListSub').textContent = fresh
-        ? `${plural(list.length, 'game')} in this list${fresh < list.length ? `, ${list.length - fresh} already in your hub` : ''}.`
+        ? `${plural(importListGames.length, 'game')} in this list${fresh < importListGames.length ? `, ${importListGames.length - fresh} already in your hub` : ''}.`
         : 'You already have every game in this list.';
       openModal('modalImportList');
     };
@@ -3341,7 +3343,7 @@
       let added = 0;
       picked.forEach(({ g }) => {
         const norm = normalizeGameObject({ name: g.name, url: g.url, resetTime: g.resetTime, resetZone: g.resetZone, notifyEnabled: true }, state.games.length + added);
-        if (!norm) return;
+        if (!norm || findGameByUrl(norm.url, { name: norm.name })) return;
         norm.id = HubCore.uniqueId(norm.id, seen);
         seen.add(norm.id);
         norm.addedCycleKey = getCycleDateKey(norm.resetTime, norm.resetZone);
@@ -4513,7 +4515,7 @@
       const g = c.game;
       if (!g || !g.id) return false;
       const key = normalizeUrlKey(g.url);
-      if (state.games.some((x) => x.id === g.id || (key && normalizeUrlKey(x.url) === key))) {
+      if (state.games.some((x) => x.id === g.id) || Boolean(findGameByUrl(g.url, { name: g.name }))) {
         showToast(`${c.name} is already back`, 'It is in your hub again.', 'indigo');
         c.undone = Date.now();
         return false;
@@ -4738,8 +4740,9 @@
     // ---- Trash (1.8.0): removed games and forgotten history, kept 30 days ----
     const TRASH_DAYS = 30;
     function gameIsInHub(g) {
-      const key = normalizeUrlKey(g && g.url);
-      return state.games.some((x) => x.id === (g && g.id) || (key && normalizeUrlKey(x.url) === key));
+      if (!g) return false;
+      if (state.games.some((x) => x.id === g.id)) return true;
+      return Boolean(findGameByUrl(g.url, { name: g.name }));
     }
     function addToTrash(item) {
       item.id = `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -7939,18 +7942,23 @@
     let addLinkInfo = null; // { url, typedUrl, finalUrl, embeds, name }
     let sameGameAskedFor = ''; // a link the player chose to add anyway
     const SAME_GAME_WHY = {
+      same: (g) => `${g.name} is already in your hub.`,
+      redirect: (g) => `This link redirects to ${g.name}, which is already in your hub.`,
       embedded: (g) => `This page shows ${g.name} from your hub inside it.`,
       menu: (g) => `This link is on the same site as ${g.name} in your hub, a page above or below it.`,
       name: (g, m) => `${g.name} in your hub has the same name${m.relatedSite ? ' and is on the same site' : ''}.`
     };
-    /** The game already in the hub that the Add form's link probably is, or null. */
+    /** The game already in the hub that the Add form's link matches, or null. */
     function sameGameForAddForm() {
       if (document.getElementById('editGameId').value) return null;
       const url = cleanGameUrl(document.getElementById('inputGameUrl').value);
       if (!url) return null;
       const info = addLinkInfo && (addLinkInfo.url === url || addLinkInfo.typedUrl === url) ? addLinkInfo : { url };
       const name = document.getElementById('inputGameName').value.trim();
-      return HubCore.findSameGame(Object.assign({}, info, { url, name: name || info.name }), state.games);
+      return HubCore.findSameGame(Object.assign({}, info, { url, name: name || info.name }), state.games, {
+        sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null,
+        includeArchived: true
+      });
     }
     function renderSameGameNote() {
       const note = document.getElementById('sameGameNote');
@@ -7958,15 +7966,29 @@
       const m = sameGameForAddForm();
       const url = cleanGameUrl(document.getElementById('inputGameUrl').value);
       if (sameGameAskedFor && sameGameAskedFor !== url) sameGameAskedFor = '';
-      if (sameGameAskedFor) return; // already asked about this link: the note stays as it is
+      if (sameGameAskedFor && !(m && m.sure)) return; // already asked about a soft match: keep as-is
       note.classList.remove('asking');
-      const show = Boolean(m && !m.sure);
+      const show = Boolean(m);
       note.classList.toggle('hidden', !show);
       if (!show) return;
-      document.getElementById('sameGameText').textContent = `Already in your hub? ${SAME_GAME_WHY[m.reason](m.game, m)}`;
+      const whyFn = SAME_GAME_WHY[m.reason] || SAME_GAME_WHY.same;
+      document.getElementById('sameGameText').textContent = m.sure
+        ? (m.game.archived ? `${m.game.name} is archived in your hub.` : whyFn(m.game, m))
+        : `Already in your hub? ${whyFn(m.game, m)}`;
       const btn = document.getElementById('btnOpenSameGame');
-      btn.textContent = `Open ${m.game.name}`;
-      btn.onclick = () => { closeAddModal(); openGameInPlayer(m.game.id); };
+      if (m.game.archived) {
+        btn.textContent = `Unarchive ${m.game.name}`;
+        btn.onclick = () => {
+          delete m.game.archived;
+          closeAddModal();
+          saveState({ syncNow: true });
+          renderVisibleTab();
+          showToast(`${m.game.name} restored`, 'Back on your hub.', 'emerald');
+        };
+      } else {
+        btn.textContent = `Open ${m.game.name}`;
+        btn.onclick = () => { closeAddModal(); openGameInPlayer(m.game.id); };
+      }
     }
     let urlInputDebounceTimer = null;
     let prevUrlInputValue = '';
@@ -8595,6 +8617,17 @@
           const norm = normalizeGameObject(g, idx);
           // One unusable entry (no valid link) is skipped and reported, not a reason to refuse the file.
           if (!norm) { skipped += 1; return; }
+          const dupInBackup = HubCore.findSameGame(
+            { url: norm.url },
+            validatedGames,
+            { sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null, includeArchived: true }
+          );
+          if (dupInBackup && dupInBackup.sure) {
+            if (importedLogs && norm.id && norm.id !== dupInBackup.game.id) {
+              importedLogs.forEach((l) => { if (l && l.gameId === norm.id) l.gameId = dupInBackup.game.id; });
+            }
+            return;
+          }
           norm.id = HubCore.uniqueId(norm.id, seenIds);
           seenIds.add(norm.id);
           if (backupIsLegacy) migrateLegacyFlattenedUtc(norm, importedLogs || []);
@@ -8614,8 +8647,19 @@
         // Current games the backup doesn't have: they leave the hub, but their history is kept (as for
         // a removed game) so re-adding them, or looking them up in Streaks & Log, still works.
         const importedKeys = new Set();
-        validatedGames.forEach((g) => { importedKeys.add(g.id); importedKeys.add(normalizeUrlKey(g.url)); });
-        const dropped = state.games.filter((g) => !importedKeys.has(g.id) && !importedKeys.has(normalizeUrlKey(g.url)));
+        validatedGames.forEach((g) => {
+          importedKeys.add(g.id);
+          importedKeys.add(normalizeUrlKey(g.url));
+          importedKeys.add(HubCore.canonicalUrlKey(g.url));
+        });
+        const dropped = state.games.filter((g) => {
+          if (importedKeys.has(g.id) || importedKeys.has(normalizeUrlKey(g.url)) || importedKeys.has(HubCore.canonicalUrlKey(g.url))) return false;
+          const hit = HubCore.findSameGame({ url: g.url }, validatedGames, {
+            sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null,
+            includeArchived: true
+          });
+          return !(hit && hit.sure);
+        });
 
         const applyImport = () => {
           const before = serializeState();
@@ -9920,9 +9964,10 @@
         const localResetStr = formatLocalResetTime(resetTime, resetZone);
         const newCycleKey = getCycleDateKey(resetTime, resetZone);
 
+        const activeLinkInfo = addLinkInfo && (addLinkInfo.url === url || addLinkInfo.typedUrl === url) ? addLinkInfo : null;
         if (editId) {
           const existing = state.games.find((g) => g.id === editId);
-          const clash = findGameByUrl(url);
+          const clash = findGameByUrl(url, activeLinkInfo);
           if (existing && clash && clash.id !== existing.id) {
             showToast('Link already used', `${clash.name} already uses that link.`, 'indigo');
             return;
@@ -9956,17 +10001,23 @@
           renderVisibleTab();
           return;
         } else {
-          const dupGame = findGameByUrl(url);
+          const same = sameGameForAddForm();
+          const dupGame = findGameByUrl(url, Object.assign({}, activeLinkInfo || {}, { name })) || (same && same.sure ? same.game : null);
           if (dupGame) {
             closeAddModal();
-            showToast(`${dupGame.name} is already in your hub`, 'No duplicate was added.', 'indigo');
-            return;
-          }
-          const same = sameGameForAddForm();
-          if (same && same.sure) {
-            closeAddModal();
-            showToast(`${same.game.name} is already in your hub`, 'That link leads to it. No duplicate was added.', 'indigo', null,
-              { actionLabel: 'Play', onAction: () => openGameInPlayer(same.game.id) });
+            if (dupGame.archived) {
+              showToast(`${dupGame.name} is archived in your hub`, 'Unarchive it instead of adding a duplicate.', 'indigo', null, {
+                actionLabel: 'Unarchive',
+                onAction: () => {
+                  delete dupGame.archived;
+                  saveState({ syncNow: true });
+                  renderVisibleTab();
+                }
+              });
+            } else {
+              showToast(`${dupGame.name} is already in your hub`, 'No duplicate was added.', 'indigo', null,
+                { actionLabel: 'Play', onAction: () => openGameInPlayer(dupGame.id) });
+            }
             return;
           }
           if (same && sameGameAskedFor !== url) {
@@ -9983,11 +10034,14 @@
             note.scrollIntoView({ block: 'center', behavior: REDUCED_MOTION ? 'auto' : 'smooth' });
             return;
           }
-          // Restore retained streaks & dayHistory if this game was previously removed
+          // Restore retained streaks & dayHistory if this game was previously removed (even via / vs /game)
           const urlKey = normalizeUrlKey(url);
-          const retained = (state.retainedGameStats && urlKey && state.retainedGameStats[urlKey])
-            ? state.retainedGameStats[urlKey]
-            : null;
+          const canonKey = HubCore.canonicalUrlKey(url);
+          const retainedMap = state.retainedGameStats || {};
+          const retained = (urlKey && retainedMap[urlKey])
+            || (canonKey && retainedMap[canonKey])
+            || Object.values(retainedMap).find((r) => r && r.url && (HubCore.canonicalUrlKey(r.url) === canonKey || (typeof KnownGames !== 'undefined' && KnownGames.sameGame && KnownGames.sameGame(r.url, url))))
+            || null;
           const restoredHistory = (retained && retained.dayHistory) ? HubCore.cleanDayHistory(retained.dayHistory) : {};
           const newGame = {
             id: (retained && retained.id && !state.games.some((g) => g.id === retained.id))
@@ -10014,13 +10068,20 @@
             dayHistory: restoredHistory,
             statsBaseline: retained && retained.statsBaseline ? retained.statsBaseline : { played: 0, won: 0, best: 0 }
           };
-          // Its other links (the one typed when it led elsewhere) and the games shown inside its page,
+          // Its other links (the one typed when it led elsewhere, or canonical catalogue address) and the games shown inside its page,
           // so the same game added later by another link is recognised (1.8.13).
-          if (addLinkInfo && (addLinkInfo.url === url || addLinkInfo.typedUrl === url)) {
-            const alt = [addLinkInfo.typedUrl, addLinkInfo.finalUrl].filter((u) => u && normalizeUrlKey(u) !== normalizeUrlKey(url));
-            if (alt.length) newGame.altUrls = [...new Set(alt)].slice(0, 4);
-            if (addLinkInfo.embeds && addLinkInfo.embeds.length) newGame.embeds = addLinkInfo.embeds.slice(0, 8);
+          const altCandidates = [];
+          if (activeLinkInfo) {
+            if (activeLinkInfo.typedUrl) altCandidates.push(activeLinkInfo.typedUrl);
+            if (activeLinkInfo.finalUrl) altCandidates.push(activeLinkInfo.finalUrl);
+            if (activeLinkInfo.embeds && activeLinkInfo.embeds.length) newGame.embeds = activeLinkInfo.embeds.slice(0, 8);
           }
+          const knownEntry = typeof KnownGames !== 'undefined' ? KnownGames.find(url) : null;
+          if (knownEntry && KnownGames.sameGame && KnownGames.sameGame(url, catalogUrl(knownEntry))) {
+            altCandidates.push(catalogUrl(knownEntry));
+          }
+          const alt = altCandidates.filter((u) => u && normalizeUrlKey(u) !== normalizeUrlKey(url));
+          if (alt.length) newGame.altUrls = [...new Set(alt)].slice(0, 4);
           if (retained) {
             const oldSchedule = { resetTime: retained.resetTime, resetZone: HubCore.normalizeZone(retained.resetZone) };
             if (oldSchedule.resetTime !== resetTime || oldSchedule.resetZone !== resetZone) {
@@ -10032,7 +10093,7 @@
             // The game is back: drop both retained copies (by id and by link).
             Object.keys(state.retainedGameStats || {}).forEach((k) => {
               const r = state.retainedGameStats[k];
-              if (k === urlKey || (r && r.id === retained.id)) delete state.retainedGameStats[k];
+              if (k === urlKey || k === canonKey || (r && r.id === retained.id)) delete state.retainedGameStats[k];
             });
           }
           recomputeGameStatsFromHistory(newGame);

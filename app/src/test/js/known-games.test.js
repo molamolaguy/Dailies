@@ -74,3 +74,17 @@ test('1.9.7: mobile m. URLs match catalogue entries alongside www.', () => {
   assert.equal(known.find('https://www.n-puzzle.com/de/nintendoku').name, 'Nintendoku');
 });
 
+test('sameGame matches entry aliases and also-links while keeping sibling games separate', () => {
+  assert.equal(known.sameGame('https://globle-game.com', 'https://globle-game.com/game'), true);
+  assert.equal(known.sameGame('https://octordle.com/', 'https://www.britannica.com/games/octordle'), true);
+  assert.equal(known.sameGame('https://n-puzzle.com/nintendoku', 'https://www.n-puzzle.com/de/nintendoku'), true);
+  assert.equal(known.sameGame('https://oec.world/en/tradle', 'https://games.oec.world/en/tradle/'), true);
+  assert.equal(known.sameGame('https://www.nytimes.com/games/wordle', 'https://www.nytimes.com/games/wordle/index.html'), true);
+  // Sibling games on multi-game sites or distinct mode subpaths must NOT match.
+  assert.equal(known.sameGame('https://www.nytimes.com/games/wordle', 'https://www.nytimes.com/games/connections'), false);
+  assert.equal(known.sameGame('https://www.linkedin.com/games/queens', 'https://www.linkedin.com/games/tango'), false);
+  assert.equal(known.sameGame('https://www.puzzmo.com/today', 'https://www.puzzmo.com/play/spelltower'), false);
+  assert.equal(known.sameGame('https://framed.wtf/', 'https://framed.wtf/episode'), false);
+  assert.equal(known.sameGame('https://octordle.com/', 'https://octordle.com/daily-sequence'), false);
+});
+
