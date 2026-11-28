@@ -1432,7 +1432,7 @@
     // State schema 4: resetZone 'utc' is kept as UTC (v3 and earlier flattened it to a local time,
     // which drifted by an hour at every DST change). State is stored natively without size caps.
     const STATE_SCHEMA_VERSION = 4;
-    const APP_VERSION = '1.10.3';
+    const APP_VERSION = '1.11.0';
     const HISTORY_PAGE_SIZE = 8; // entries per page in the Score History block (compact rows, grouped by day)
 
     const TIME_FMT_12 = (() => {
@@ -4910,6 +4910,12 @@
 
     // ---- What's new (1.8.0): shown once after an update ----
     const WHATS_NEW = {
+      '1.11.0': [
+        ['rocket', 'Faster game preloading & idle cache warming', 'Preloaded ES module bundles load straight from cache, assets download in parallel after reset (even for muted games), and an idle background warmer primes connections ahead of time.'],
+        ['bullseye', 'Failed vs. Missed tracking & smarter capture', 'Attempted losses (such as X/6 or 4 Connections mistakes) are now tracked separately from unattempted or unfinished Missed days, while below-the-fold and transition Share / Copy buttons (such as Globle and Krillion) capture reliably.'],
+        ['link', 'Duplicate game & result detection', 'Catches duplicate games across entry subpaths (/game, /play), cross-domain aliases, imports, and matching logged result formats — while keeping multi-game sites like NYT Games separate.'],
+        ['layers', 'Quiet re-entry & stacked notifications', 'Re-entering a Completed (with result) or Failed game hides the player\'s Log pill and skips repeat prompts, while multiple in-app notifications stack cleanly with uniform timing.']
+      ],
       '1.10.3': [
         ['bullseye', 'Smarter automatic result logging', 'Catches results after long finish animations, stops live gameplay counters (such as 0/9) and Practice or Unlimited rounds from logging early, and reads aria-labelled, pre-populated, and two-step Share / Copy menus.'],
         ['search', 'Upgraded URL site scraping', 'Finds more reset times, international time zones, UTC offsets, target formats / pars, short how-to-play descriptions, and Gaming & RPG or Custom Daily categories when adding a link.'],

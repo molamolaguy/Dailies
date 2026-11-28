@@ -1,0 +1,4 @@
+- Faster game preloading: fixed ES module caching, parallelized asset downloads, and added an idle HTTP/TLS cache warmer.
+- Distinct Failed vs. Missed tracking across Hub cards, Calendar, Score History, and digests (unfinished starts roll over to Missed).
+- Tightened duplicate detection across entry URLs, aliases, imports, and logged result signatures.
+- Improved below-the-fold/scroll Share capture (Globle, Krillion), quiet re-entry on logged/failed games, and uniform stacked toasts.

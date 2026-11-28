@@ -14,7 +14,7 @@ REPO_NAME="${REPO_NAME:-Dailies}"
 DESCRIPTION="One home for every daily web puzzle: reset alerts, streaks, auto-logged results and an ad-blocking game player for Android."
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 VERSION="${VERSION:-$(sed -nE 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$ROOT/app/build.gradle.kts" | head -1)}"
-[ -n "$VERSION" ] || VERSION="1.10.1"
+[ -n "$VERSION" ] || VERSION="1.11.0"
 APK="${1:-$ROOT/../Dailies-$VERSION.apk}"
 SIGNING_DIR="${2:-}"
 

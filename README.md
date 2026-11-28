@@ -67,7 +67,7 @@ Dailies also runs in any browser as an installable, offline-capable PWA at **[mo
 - **iPhone / iPad (Safari)**: Tap **Share → Add to Home Screen**, then launch Dailies from your Home Screen for a full-screen standalone app.
 - **Desktop & Android browsers**: Use your browser's **Install Dailies** prompt, or bookmark the page.
 
-The web app shares the exact same Daily Hub, **My Results** calendar, stats, recaps, achievements, and themes. Games open in a new tab; when you switch back, Dailies prompts **Finished?** with **Solved / Missed / Paste**. Move data freely between Android and the web app via **Settings → Data & Backup → Save Backup / Import Backup**. Details in [web/README.md](web/README.md).
+The web app shares the exact same Daily Hub, **My Results** calendar, stats, recaps, achievements, and themes. Games open in a new tab; when you switch back, Dailies prompts **Finished?** with **Solved / Failed / Missed / Paste**. Move data freely between Android and the web app via **Settings → Data & Backup → Save Backup / Import Backup**. Details in [web/README.md](web/README.md).
 
 ---
 

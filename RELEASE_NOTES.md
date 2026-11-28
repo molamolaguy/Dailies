@@ -1,3 +1,20 @@
+# Dailies 1.11.0
+
+Faster game preloading, distinct **Failed** vs. **Missed** outcome tracking, smarter duplicate game prevention across URLs and logged results, and more reliable automatic result capture & player polish. It installs over 1.10.3 and keeps everything, every setting included. If you're on 1.10.3, you can install it from **Settings → About → Check now**.
+
+## Changes
+- **Faster game preloading & idle cache warming.** Fixed same-origin ES `<script type="module">` CORS handling in `PageCache` so preloaded Vite, Webpack, and Next.js bundles load directly from cache; expanded subresource discovery (`import`/`export ... from`, Next.js `_buildManifest.js`, `modulepreload`, and CSS `url(...)`) across a parallel worker pool with raised cache budgets (`96` files / `18 MB` per game); scheduled reset preloading even for muted games; and added a detached, script-disabled Chromium HTTP/TLS cache warmer (`GamePrewarmer`) while the hub is idle.
+- **Distinct Failed vs. Missed outcome tracking.** Separated attempted losses (**Failed** — such as `X/6`, 4 Connections mistakes, `"Next time"`, or selecting **Failed** in `#returnPrompt` / `#modalLogScore`) from unattempted or unfinished days (**Missed**). Both break the active streak (`0d`) and count against win rate without incrementing wins, while surfacing distinct amber **Failed** and rose **Missed** states across Daily Hub cards, the 4-tile Completion Calendar, day detail sheets, Score History filter chips, and shared digests; starting a game without finishing keeps it **Ready** while live and rolls over to **Missed** at reset.
+- **Smarter duplicate game prevention (URLs & logged results).** Canonicalized entry subpaths (`/game`, `/play`, `/daily`, `/today`, etc.), wired cross-domain `KnownGames` aliases, and enforced duplicate checks across Add/Edit, Popular Games, Share → Dailies, shared friend lists, Trash restore, and JSON backup imports while keeping multi-game portals (`nytimes.com/games/wordle` + `/connections`, LinkedIn, Puzzmo, LoLdle modes) separate — plus added result-signature duplicate detection (`shareResultSignature` / `findDuplicateByResult`) offering to **Merge** or **Keep separate** when a newly added game's logged result matches an existing game's format, style, and puzzle epoch.
+- **Below-the-fold result capture & quiet player re-entry.** Added unclipped below-the-fold button probing, debounced touch-scroll scanning, split-node completion header recognition (`"KRILLION Dive # 102 complete"`, `"The Mystery Country is ..."`), `Today's guesses` stat-pair matching, and `disabled`/`opacity` container transition watching so games like **Globle** and **Krillion** auto-capture reliably; re-entering a game already marked **Completed** (with a logged result) or **Failed** for the active cycle now hides the player's top-bar **Log** pill, disables the auto-logger and clipboard watcher, and skips the **Finished?** prompt on exit.
+- **Stacked toast deck, Cloudflare scraper fix & UI polish.** Stacked simultaneous in-app notifications into a skewed card deck (`+N` badge + swipe-to-dismiss) where every toast runs an independent `4.5s` timer; stopped passive Cloudflare JSD telemetry scripts (`fe-guess.com`) from triggering false `"blocked (200)"` health alerts; kept the active filter unchanged when tapping the header **Ready** pill back to the Daily Hub; softened bottom dock backdrop blur by 20%; updated **Settings → Display → Theme** subtext; and configured side-by-side `Dailies Debug` (`.debug`) development builds.
+
+## Requirements
+- Android 7.0 or newer.
+- Signing certificate SHA-256: `5F:1C:D5:43:10:F2:A0:B3:10:13:39:7B:C3:2E:34:C2:B4:02:80:10:FF:C3:2E:F9:F9:1F:17:7E:68:B9:1A:BF`
+
+---
+
 # Dailies 1.10.3
 
 Smarter automatic result logging, upgraded URL site scraping for custom daily games, and the **My Results** tab update. It installs over 1.10.2 and keeps everything, every setting included. If you're on 1.10.2, you can install it from **Settings → About → Check now**.

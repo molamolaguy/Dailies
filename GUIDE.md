@@ -1,8 +1,8 @@
-# Dailies 1.10.3: How the App Works
+# Dailies 1.11.0: How the App Works
 
 - **App name**: Dailies
 - **Package ID**: `com.dailygames.hub`
-- **Version**: `1.10.3` (`versionCode = 38`)
+- **Version**: `1.11.0` (`versionCode = 39`)
 - **Android**: 7.0 (API 24) or newer; built for Android 17 (API 37)
 - **Layout target**: large phones such as the Pixel XL line (about 448 CSS px wide), checked down to 360 px
 - **License**: GPL-3.0 (see [LICENSE](LICENSE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md))
@@ -695,4 +695,13 @@ Measured in the real WebView on the CI emulator (`SwipeTimingDeviceTest`, logcat
 - **Automatic result logging overhaul (`share-hook.js`, `GameActivity`, `ShareResultDetector`, `hub-core.js`)**: extended post-input watch windows (`90s`) for long finish animations, added DOM visibility/attribute `MutationObserver` watching, matched word countdowns (`"opens in 9 h 12 m"`), filtered below-the-fold FAQ/SEO prose and live gameplay progress counters (`0/9 Fields`, remaining guesses), blocked non-daily rounds (`Unlimited`, `Practice`, `Replay`, `Archive`, `∞`), and added `aria-label` / icon-only Share probing, `localStorage` completion cues, `window.prompt` & readonly share boxes, and two-step Share → Copy menus.
 - **URL site scraping overhaul (`WebsiteScraper`, `PageRenderer`, `index.html`, `hub-core.js`)**: fixed bare-origin relative URL resolution (`resolveUrl`), prioritized app bundles over vendor scripts, expanded reset time & time zone detection (`German time`, `Berlin`, `Toronto`, `Brazil`, Asian/Oceania zones, `"in your local time"`, `UTC±offset`, Luxon/Day.js hints), added `targetFormat` extraction (`37 guesses`, written numbers, `50,000 points`, `Fastest time`, `Most points`, `Fewest guesses`, `Fewest strokes`), improved concise how-to-play descriptions, and added weighted **Gaming & RPG** / **Custom Daily** category scoring.
 - **My Results tab**: renamed the middle bottom navigation tab from **Streaks & Log** to **My Results**.
+
+## 45. New in 1.11.0
+
+- **Game preloading overhaul (`PageCache`, `GamePrewarmer`, `NotificationScheduler`, `HubActivity`)**: allowed same-origin ES module requests carrying an `Origin` header when `Access-Control-Allow-Origin` is omitted, expanded recursive JS/Next.js/CSS subresource discovery across a parallel worker pool (`96` files / `18 MB` per game), scheduled reset preloading even for muted games, and added a detached script-disabled WebView HTTP/TLS cache warmer while the Hub is idle.
+- **Failed vs. Missed outcome separation (`hub-core.js`, `hub-ui-helpers.js`, `index.html`, `app.css`)**: added `'failed'` / `'Failed'` alongside `'completed'` and `'missed'` so attempted losses (`isFailedShareResult` or manual **Failed** selection) break streaks (`streak = 0`) and count against win rate without incrementing `totalWon`, while started-but-unfinished games remain `'ready'` during the live cycle and roll over to `'missed'` at reset.
+- **Duplicate game & result detection (`hub-core.js`, `known-games.js`, `index.html`)**: canonicalized entry subpaths (`/game`, `/play`, `/daily`, `/today`), wired cross-domain `KnownGames.sameGame` aliases across all add/import/restore flows while preserving multi-game portals, and added `shareResultSignature` / `findDuplicateByResult` (`#modalDuplicateGame`) to offer merging or keeping games separate when logged results match.
+- **Auto-logger & quiet player re-entry (`share-hook.js`, `GameActivity`, `GameStore`, `HubActivity`)**: added unclipped below-the-fold button probing (`pressableBelowFold`), debounced `scroll` scanning, split-node completion header matching, `Today's guesses` stat-pair recognition, and `disabled`/container opacity transition watching for Globle and Krillion; re-entering a Completed-with-result or Failed game hides the player's `Log` pill, disables the auto-logger/clipboard listener, and skips `#returnPrompt` on exit.
+- **Toast stack, scraper & debug build polish (`WebsiteScraper`, `index.html`, `app.css`, `app/build.gradle.kts`)**: stacked multiple simultaneous toasts into a skewed card deck with independent `4500ms` timers, exempted passive Cloudflare JSD scripts on `200 OK` pages (`fe-guess.com`) from bot-challenge errors, and added `.debug` (`Dailies Debug`) side-by-side debug APK configuration.
+
 
