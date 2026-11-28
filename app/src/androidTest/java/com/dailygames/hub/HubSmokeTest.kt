@@ -297,4 +297,51 @@ class HubSmokeTest {
         assertNotNull(qr)
         assertTrue(qr!!.startsWith("data:image/png;base64,"))
     }
+
+    @Test
+    fun failedShareLogsAsFailedWhileUnfinishedGameRollsOverAsMissed() {
+        ActivityScenario.launch(HubActivity::class.java).use { s ->
+            s.waitForJs("String(typeof window.onReturnFromGame === 'function' && typeof checkDailyRollovers === 'function')", "\"true\"")
+            val res = s.js(
+                "(function(){" +
+                    "const today = getCycleDateKey('00:00', 'utc');" +
+                    "const yday = HubCore.addDaysToCycleKey(today, -1);" +
+                    "const twoAgo = HubCore.addDaysToCycleKey(today, -2);" +
+                    "state.games = [" +
+                    "  {id:'w-fail',name:'Wordle',url:'https://www.nytimes.com/games/wordle',resetTime:'00:00',resetZone:'utc',status:'ready',streak:1,bestStreak:1,totalPlayed:1,totalWon:1,lastCycleKey:today,dayHistory:{[yday]:'completed'}}," +
+                    "  {id:'g-unfin',name:'Globle',url:'https://globle-game.com/game',resetTime:'00:00',resetZone:'utc',status:'ready',streak:1,bestStreak:1,totalPlayed:1,totalWon:1,lastCycleKey:yday,dayHistory:{[twoAgo]:'completed'}}" +
+                    "];" +
+                    "state.historyLogs = [];" +
+                    // 1) Wordle attempted & lost -> auto-logged as 'failed', streak broken to 0, totalWon stays 1.
+                    "window.onReturnFromGame('w-fail', false, 45000, 'Wordle 1,623 X/6\\n⬛⬛⬛⬛⬛', Date.now(), {});" +
+                    "const wf = state.games.find(g => g.id === 'w-fail');" +
+                    "const wfRow = state.historyLogs.find(l => l.gameId === 'w-fail' && l.date === today);" +
+                    // 2) Globle started yesterday (playTime > 0) without finishing -> rolls over to 'missed', NOT 'failed'.
+                    "const gu = state.games.find(g => g.id === 'g-unfin');" +
+                    "addPlayTime(gu, yday, 35000);" +
+                    "checkDailyRollovers({ silent: true });" +
+                    "const guRow = state.historyLogs.find(l => l.gameId === 'g-unfin' && l.date === yday);" +
+                    "return JSON.stringify({" +
+                    "  wfStatus: wf.status, wfStreak: wf.streak, wfWon: wf.totalWon, wfPlayed: wf.totalPlayed, wfOutcome: wfRow && wfRow.outcome," +
+                    "  guYday: gu.dayHistory[yday], guStatus: gu.status, guStreak: gu.streak, guWon: gu.totalWon, guOutcome: guRow && guRow.outcome" +
+                    "});" +
+                "})()"
+            )
+            val parsed = org.json.JSONObject(org.json.JSONTokener(res).nextValue() as String)
+            assertEquals("failed", parsed.getString("wfStatus"))
+            assertEquals(0, parsed.getInt("wfStreak"))
+            assertEquals(1, parsed.getInt("wfWon"))
+            assertEquals(2, parsed.getInt("wfPlayed"))
+            assertEquals("Failed", parsed.getString("wfOutcome"))
+
+            assertEquals("missed", parsed.getString("guYday"))
+            assertEquals("ready", parsed.getString("guStatus"))
+            assertEquals(0, parsed.getInt("guStreak"))
+            assertEquals(1, parsed.getInt("guWon"))
+            assertEquals("Missed", parsed.getString("guOutcome"))
+
+            s.js("state.games=[]; state.historyLogs=[]; saveState(); flushSyncNativeNow(); 'ok'")
+        }
+    }
 }
+
