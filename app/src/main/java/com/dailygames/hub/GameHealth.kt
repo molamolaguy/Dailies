@@ -171,6 +171,7 @@ object GameHealth {
 
     /** Clears the chosen kinds (not "web": the caller clears the WebView cache on the main thread). */
     fun clearFiles(ctx: Context, kinds: Set<String>) {
+        if ("pages" in kinds || "web" in kinds) GamePrewarmer.clearWarmedState()
         if ("pages" in kinds) PageCache.clearAll(ctx)
         if ("icons" in kinds) File(ctx.filesDir, "favicons").listFiles()?.forEach { it.deleteRecursively() }
         if ("updates" in kinds) UpdateInstaller.clearDownloads(ctx)

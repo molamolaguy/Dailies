@@ -545,7 +545,7 @@ class GameActivity : ComponentActivity() {
                         if (!req.isForMainFrame && preloaded == null) {
                             preloadLatch?.let { latch -> runCatching { latch.await(100, TimeUnit.MILLISECONDS) } }
                         }
-                        PageCache.respond(preloaded, req)
+                        PageCache.respond(preloaded, req, nativelyWarmed = GamePrewarmer.isNativelyWarmed(gameId))
                     }
                 }
 

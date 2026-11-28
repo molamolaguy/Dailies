@@ -2013,6 +2013,8 @@
             resetTime: g.resetTime,
             resetZone: HubCore.normalizeZone(g.resetZone),
             // Archived games keep their settings but never alert or remind.
+            archived: Boolean(g.archived),
+            nonDaily: Boolean(g.nonDaily),
             notifyEnabled: Boolean(g.notifyEnabled) && !g.archived,
             reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
             lastCycleKey: g.lastCycleKey || getCycleDateKey(g.resetTime, g.resetZone),

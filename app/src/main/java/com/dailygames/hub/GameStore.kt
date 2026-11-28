@@ -163,12 +163,22 @@ class GameRepository(
         storage.getString(GameStore.NOTIFIED_PREFIX + id)
 
     /** Whether a game with alerts on has reached a newer cycle than the one last announced. */
-    fun hasUnannouncedReset(nowMs: Long = clock()): Boolean {
+    fun hasUnannouncedReset(nowMs: Long = clock()): Boolean =
+        hasUnprocessedReset(includeMutedPreload = false, nowMs = nowMs)
+
+    /**
+     * Whether a tracked game has reached a newer cycle than [lastNotifiedKey]. When [includeMutedPreload]
+     * is true, active games with alerts muted still count if they have a web URL to preload.
+     */
+    fun hasUnprocessedReset(includeMutedPreload: Boolean = false, nowMs: Long = clock()): Boolean {
         val games = load()
         for (i in 0 until games.length()) {
             val g = games.optJSONObject(i) ?: continue
             val id = g.optString("id")
-            if (id.isEmpty() || !g.optBoolean("notifyEnabled", true)) continue
+            if (id.isEmpty() || g.optBoolean("archived", false)) continue
+            val eligible = g.optBoolean("notifyEnabled", true) ||
+                (includeMutedPreload && GameStore.hasPreloadableUrl(g))
+            if (!eligible) continue
             val last = lastNotifiedKey(id) ?: continue
             if (!CYCLE_KEY_RE.matches(last)) continue
             val current = GameStore.cycleKey(g.optString("resetTime", "00:00"), g.optString("resetZone", "local"), nowMs, localTimeZone)
@@ -225,7 +235,16 @@ object GameStore {
     fun lastNotifiedKey(ctx: Context, id: String): String? =
         synchronized(ScheduleLock) { repository(ctx).lastNotifiedKey(id) }
 
+    fun hasPreloadableUrl(g: org.json.JSONObject): Boolean {
+        if (g.optBoolean("archived", false) || g.optBoolean("nonDaily", false)) return false
+        val u = g.optString("url").trim()
+        return u.startsWith("https://", ignoreCase = true) || u.startsWith("http://", ignoreCase = true)
+    }
+
     fun hasUnannouncedReset(ctx: Context): Boolean = synchronized(ScheduleLock) { repository(ctx).hasUnannouncedReset() }
+
+    fun hasUnprocessedReset(ctx: Context, includeMutedPreload: Boolean = false): Boolean =
+        synchronized(ScheduleLock) { repository(ctx).hasUnprocessedReset(includeMutedPreload = includeMutedPreload) }
 
     fun setNotifiedKey(ctx: Context, id: String, key: String) {
         synchronized(ScheduleLock) { repository(ctx).setNotifiedKey(id, key) }
@@ -299,12 +318,26 @@ object GameStore {
         games: JSONArray,
         nowMs: Long = System.currentTimeMillis(),
         localTimeZone: TimeZone = TimeZone.getDefault()
+    ): Long? = nextScheduleDelayMs(games, includeMutedPreload = false, nowMs = nowMs, localTimeZone = localTimeZone)
+
+    /**
+     * Shortest delay (in ms) until the next reset across alert-enabled games, plus active preloadable
+     * games when [includeMutedPreload] is true (so Preload Games After Reset runs even with alerts off).
+     */
+    fun nextScheduleDelayMs(
+        games: JSONArray,
+        includeMutedPreload: Boolean = false,
+        nowMs: Long = System.currentTimeMillis(),
+        localTimeZone: TimeZone = TimeZone.getDefault()
     ): Long? {
         var minDelay: Long? = null
         for (i in 0 until games.length()) {
             val g = games.optJSONObject(i) ?: continue
             val id = g.optString("id")
-            if (id.isEmpty() || !g.optBoolean("notifyEnabled", true)) continue
+            if (id.isEmpty() || g.optBoolean("archived", false)) continue
+            val eligible = g.optBoolean("notifyEnabled", true) ||
+                (includeMutedPreload && hasPreloadableUrl(g))
+            if (!eligible) continue
             val delay = msUntilNextReset(
                 g.optString("resetTime", "00:00"),
                 g.optString("resetZone", "local"),
