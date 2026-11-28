@@ -324,6 +324,7 @@
           <div id="calendarDaysGrid" class="cal-grid"></div>
           <div class="cal-legend pt-3">
             <span><span class="status-dot status-ready legend-done"></span>Completed</span>
+            <span><span class="status-dot status-failed"></span>Failed</span>
             <span><span class="status-dot status-missed"></span>Missed</span>
             <span><span class="status-dot" style="box-shadow: inset 0 0 0 2px var(--md-primary);"></span>Today</span>
           </div>
@@ -339,12 +340,12 @@
           <div class="stat-tile">
             <p class="k">Current</p>
             <p id="calSummaryCurrentStreak" class="v text-indigo-300">0d</p>
-            <p id="calSummaryMonthCounts" class="s">0 <span class="ico ico-check" aria-hidden="true"></span> 0 <span class="ico ico-close" aria-hidden="true"></span></p>
+            <p id="calSummaryMonthCounts" class="s">0 <span class="ico ico-check" aria-hidden="true"></span> 0 <span class="ico ico-failed" aria-hidden="true"></span> 0 <span class="ico ico-close" aria-hidden="true"></span></p>
           </div>
           <div class="stat-tile">
             <p class="k">Plays</p>
             <p id="calSummaryTotalPlays" class="v text-emerald-300">0</p>
-            <p id="calSummarySubPlays" class="s">0 won · 0 missed</p>
+            <p id="calSummarySubPlays" class="s">0 won · 0 failed · 0 missed</p>
           </div>
         </div>
 
@@ -369,6 +370,7 @@
           <div class="hist-chips" role="group" aria-label="Outcome">
             <button type="button" class="hist-chip on" data-hist-outcome="all" aria-pressed="true">All</button>
             <button type="button" class="hist-chip" data-hist-outcome="Completed" aria-pressed="false" aria-label="Solved only">Solved</button>
+            <button type="button" class="hist-chip" data-hist-outcome="Failed" aria-pressed="false" aria-label="Failed only">Failed</button>
             <button type="button" class="hist-chip" data-hist-outcome="Missed" aria-pressed="false" aria-label="Missed only">Missed</button>
           </div>
         </div>
@@ -865,9 +867,10 @@
         <input type="hidden" id="logGameId" value="" />
         <div>
           <p id="logOutcomeLabel" class="block text-xs font-semibold text-slate-300 mb-1.5">Outcome</p>
-          <div class="grid grid-cols-2 gap-2.5" role="group" aria-labelledby="logOutcomeLabel">
-            <button type="button" data-status-pick="completed" class="status-pick-btn py-2.5 px-3 rounded-full border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs icon-label w-full"><span class="ico ico-solved ico-lg" aria-hidden="true"></span>Solved / Won</button>
-            <button type="button" data-status-pick="missed" class="status-pick-btn py-2.5 px-3 rounded-full border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs icon-label w-full"><span class="ico ico-missed ico-lg" aria-hidden="true"></span>Missed</button>
+          <div class="grid grid-cols-3 gap-2" role="group" aria-labelledby="logOutcomeLabel">
+            <button type="button" data-status-pick="completed" class="status-pick-btn py-2.5 px-2.5 rounded-full border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs icon-label w-full"><span class="ico ico-solved ico-lg" aria-hidden="true"></span>Solved</button>
+            <button type="button" data-status-pick="failed" title="Tried the puzzle and lost" class="status-pick-btn py-2.5 px-2.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs icon-label w-full"><span class="ico ico-failed ico-lg" aria-hidden="true"></span>Failed</button>
+            <button type="button" data-status-pick="missed" title="Didn't play or didn't finish" class="status-pick-btn py-2.5 px-2.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs icon-label w-full"><span class="ico ico-missed ico-lg" aria-hidden="true"></span>Missed</button>
           </div>
         </div>
         <div>
@@ -1301,7 +1304,8 @@
       </div>
       <div class="return-actions">
         <button type="button" data-return-action="solved" class="return-btn primary icon-label"><span class="ico ico-solved ico-lg" aria-hidden="true"></span>Solved</button>
-        <button type="button" data-return-action="missed" class="return-btn icon-label"><span class="ico ico-missed ico-lg" aria-hidden="true"></span>Missed</button>
+        <button type="button" data-return-action="failed" title="Tried the puzzle and lost" class="return-btn icon-label"><span class="ico ico-failed ico-lg" aria-hidden="true"></span>Failed</button>
+        <button type="button" data-return-action="missed" title="Didn't finish or skipped" class="return-btn icon-label"><span class="ico ico-missed ico-lg" aria-hidden="true"></span>Missed</button>
         <button type="button" data-return-action="details" class="return-btn icon-label android-only"><span class="ico ico-paste ico-lg" aria-hidden="true"></span>Score</button>
         <button type="button" data-return-action="paste" class="return-btn icon-label web-only"><span class="ico ico-paste ico-lg" aria-hidden="true"></span>Paste</button>
       </div>
@@ -2010,7 +2014,7 @@
       for (let i = 0; i < keys.length; i++) {
         const k = keys[i];
         const v = h[k];
-        if ((v === 'completed' || v === 'missed') && HubCore.DATE_KEY_RE.test(k) && k > best) best = k;
+        if ((v === 'completed' || v === 'failed' || v === 'missed') && HubCore.DATE_KEY_RE.test(k) && k > best) best = k;
       }
       return best;
     }
@@ -2038,8 +2042,8 @@
               reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
               lastCycleKey: g.lastCycleKey || liveKey,
               lastPlayedCycle: g.status === 'completed' ? liveKey : '',
-              // Logged anything (solved or missed) for the current puzzle: no streak reminder needed.
-              loggedCycle: (g.status === 'completed' || g.status === 'missed') && g.lastCycleKey === liveKey
+              // Logged anything (solved, failed, or missed) for the current puzzle: no streak reminder needed.
+              loggedCycle: (g.status === 'completed' || g.status === 'failed' || g.status === 'missed') && g.lastCycleKey === liveKey
                 ? g.lastCycleKey : '',
               loggedResultCycle: HubCore.isCompletedWithLoggedResult(g, liveKey, state.historyLogs) ? liveKey : '',
               lastLoggedCycle: latestLoggedCycle(g),
@@ -2511,9 +2515,11 @@
 
         // The outcome of the cycle that just ended comes from its own history entry; `status` only
         // counts if it was set for exactly that cycle (lastCycleKey === prevCycleKey here).
-        const prevOutcome = g.dayHistory[prevCycleKey] || (g.status === 'completed' ? 'completed' : '');
-        if (prevOutcome === 'completed') {
-          g.dayHistory[prevCycleKey] = 'completed';
+        // Starting a game without finishing it leaves status === 'ready', so it rolls over as 'missed'.
+        const prevOutcome = g.dayHistory[prevCycleKey]
+          || ((g.status === 'completed' || g.status === 'failed') ? g.status : '');
+        if (prevOutcome === 'completed' || prevOutcome === 'failed') {
+          g.dayHistory[prevCycleKey] = prevOutcome;
         } else if (prevCycleKey === g.addedCycleKey) {
           // The day a game was added isn't tracked unless it was played: adding a game at 11:58 PM
           // must not start its stats with a "Missed".
@@ -3149,7 +3155,7 @@
       document.getElementById('kpiTopStreak').textContent = `${topStreak}d`;
     }
 
-    const STATUS_LABELS = { ready: 'Ready', completed: 'Done', missed: 'Missed' };
+    const STATUS_LABELS = { ready: 'Ready', completed: 'Done', failed: 'Failed', missed: 'Missed' };
 
     /** True when the game's current puzzle already has a row in the score log. */
     function hasTodayEntry(g) {
@@ -3157,7 +3163,7 @@
     }
 
     function buildGameCardHtml(g, idx, totalVisible, isCompact) {
-      const status = (g.status === 'completed' || g.status === 'missed') ? g.status : 'ready';
+      const status = (g.status === 'completed' || g.status === 'failed' || g.status === 'missed') ? g.status : 'ready';
       const statusLabel = STATUS_LABELS[status];
       const id = escapeHtml(g.id);
       const isFirst = idx === 0;
@@ -3170,7 +3176,7 @@
         </div>`;
       // A finished game with today's entry logged hides ✓; the entry is edited from the game's settings.
       const todayRow = findLogRow(g, getCycleDateKey(g.resetTime, g.resetZone));
-      const loggedToday = status === 'completed' && Boolean(todayRow);
+      const loggedToday = (status === 'completed' || status === 'failed') && Boolean(todayRow);
       const logBtn = loggedToday ? '' : `<button type="button" data-action="log" data-id="${id}" class="icon-btn" aria-label="Log result" title="Log result">${img('check', '')}</button>`;
       const playBtn = `<button type="button" data-action="play" data-id="${id}" class="play-btn m4-primary-fab">Play</button>`;
 
@@ -3278,7 +3284,11 @@
     /** The hub's cards in order, for the current filter and search. */
     function hubList() {
       return hubOrder().filter((g) => {
-        if (state.activeFilter !== 'all' && g.status !== state.activeFilter) return false;
+        if (state.activeFilter === 'completed') {
+          if (g.status !== 'completed' && g.status !== 'failed' && g.status !== 'missed') return false;
+        } else if (state.activeFilter !== 'all' && g.status !== state.activeFilter) {
+          return false;
+        }
         return hubSearchMatches(g);
       });
     }
@@ -3442,8 +3452,7 @@
       const box = document.getElementById('inputLogScoreText');
       if (!box) return;
       box.value = result;
-      const sc = HubCore.parseScore(result);
-      selectedLogStatus = sc && sc.fail ? 'missed' : 'completed';
+      selectedLogStatus = HubCore.isFailedShareResult(result) ? 'failed' : 'completed';
       updateStatusPickButtons();
       showToast('Result read from the screenshot', 'Check it, then save.', 'emerald');
     }
@@ -3516,8 +3525,9 @@
     function gameSections(list) {
       const grouped = Boolean(state.settings && state.settings.groupDone !== false) && state.activeFilter === 'all';
       if (!grouped) return { grouped: false, open: list, done: [] };
-      const done = list.filter((g) => g.status === 'completed');
-      const open = list.filter((g) => g.status !== 'completed');
+      const isDone = (g) => g.status === 'completed' || g.status === 'failed' || g.status === 'missed';
+      const done = list.filter(isDone);
+      const open = list.filter((g) => !isDone(g));
       if (!done.length || !open.length) return { grouped: false, open: list, done: [] };
       return { grouped: true, open, done };
     }
@@ -4437,7 +4447,7 @@
     const TODAY_RESULTS_DIVIDER = '\n\n— — —\n\n';
     /** Today's solved results as logged (formatting kept), in the hub's order. */
     function todaysResultTexts() {
-      return hubOrder().filter((g) => g.status === 'completed').map((g) => {
+      return hubOrder().filter((g) => g.status === 'completed' || g.status === 'failed').map((g) => {
         const row = findLogRow(g, getCycleDateKey(g.resetTime, g.resetZone));
         return String((row && row.score) || g.todayScore || '').replace(/\r\n/g, '\n').trim();
       }).filter(Boolean);
@@ -4497,9 +4507,9 @@
 
     // ---- Today's results in one message (1.6.0) ----
     function todaysResultEntries() {
-      return hubOrder().filter((g) => g.status === 'completed' || g.status === 'missed').map((g) => {
+      return hubOrder().filter((g) => g.status === 'completed' || g.status === 'failed' || g.status === 'missed').map((g) => {
         const row = findLogRow(g, getCycleDateKey(g.resetTime, g.resetZone));
-        const text = String((row && row.score) || (g.status === 'completed' ? g.todayScore : '') || '');
+        const text = String((row && row.score) || ((g.status === 'completed' || g.status === 'failed') ? g.todayScore : '') || '');
         return { name: g.name, url: g.url, outcome: g.status, text };
       });
     }
@@ -4599,6 +4609,7 @@
       if (c.kind === 'remove') return `Removed ${c.name}`;
       if (c.kind === 'archive') return `${c.archived ? 'Archived' : 'Restored'} ${c.name}`;
       const had = c.snap && c.snap.dayValue;
+      if (c.outcome === 'failed') return had ? `Changed ${c.name} to failed` : `Marked ${c.name} failed`;
       if (c.outcome === 'missed') return had ? `Changed ${c.name} to missed` : `Marked ${c.name} missed`;
       return had ? `Updated ${c.name}` : `Logged ${c.name}`;
     }
@@ -5458,7 +5469,7 @@
       const game = state.games.find((g) => g.id === gameId);
       if (!game) return;
 
-      const validStatus = newStatus === 'missed' ? 'missed' : 'completed';
+      const validStatus = (newStatus === 'failed' || newStatus === 'missed') ? newStatus : 'completed';
       const prevStatus = game.status;
       const rawFormattedScore = (typeof scoreText === 'string')
         ? scoreText.replace(/\r\n/g, '\n').replace(/\s+$/, '')
@@ -5495,7 +5506,7 @@
       if (isCurrentCycle) {
         if (hasScoreContent) {
           game.todayScore = rawFormattedScore;
-        } else if (validStatus === 'missed' && !hasScoreContent) {
+        } else if ((validStatus === 'missed' || validStatus === 'failed') && !hasScoreContent) {
           game.todayScore = '';
         }
         rowScore = game.todayScore;
@@ -5505,8 +5516,8 @@
       const rowStreak = isCurrentCycle ? game.streak : HubUiHelpers.streakAsOfDate(game.dayHistory, todayKey);
 
       const existingRow = findLogRow(game, todayKey);
-      const outcomeLabel = validStatus === 'completed' ? 'Completed' : 'Missed';
-      // No placeholder text: the row's Completed / Missed badge already says it.
+      const outcomeLabel = validStatus === 'completed' ? 'Completed' : (validStatus === 'failed' ? 'Failed' : 'Missed');
+      // No placeholder text: the row's Completed / Failed / Missed badge already says it.
       const displayScore = validStatus === 'completed'
         ? (rowScore || '')
         : (hasScoreContent ? rawFormattedScore : '');
@@ -5566,6 +5577,10 @@
         );
       } else if (validStatus === 'completed') {
         showToast(`${game.name} Updated`, 'Formatted score snippet saved.', 'indigo', null, undoOpts);
+      } else if (validStatus === 'failed') {
+        showToast(`${game.name} Marked Failed`, alertsWillReach(game)
+          ? `Streak reset to 0 days. We will alert you when the next puzzle resets at ${localResetLabel}.`
+          : `Streak reset to 0 days. The next puzzle resets at ${localResetLabel}.`, 'indigo', null, undoOpts);
       } else {
         showToast(`${game.name} Marked Missed`, alertsWillReach(game)
           ? `We will alert you when the next puzzle resets at ${localResetLabel}.`
@@ -6118,16 +6133,18 @@
 
     function getGameDayOutcome(game, dateKey, logIndex) {
       if (!game || !dateKey) return null;
-      if (game.dayHistory && (game.dayHistory[dateKey] === 'completed' || game.dayHistory[dateKey] === 'missed')) {
+      if (game.dayHistory && (game.dayHistory[dateKey] === 'completed' || game.dayHistory[dateKey] === 'failed' || game.dayHistory[dateKey] === 'missed')) {
         return game.dayHistory[dateKey];
       }
       const idx = logIndex || getLogIndex();
       const logMatch = idx.get(`${game.id}|${dateKey}`) || idx.get(`name:${game.name}|${dateKey}`);
       if (logMatch) {
-        return logMatch.outcome === 'Completed' ? 'completed' : 'missed';
+        if (logMatch.outcome === 'Completed') return 'completed';
+        if (logMatch.outcome === 'Failed') return 'failed';
+        return 'missed';
       }
       const todayKey = getCycleDateKey(game.resetTime, game.resetZone);
-      if (dateKey === todayKey && (game.status === 'completed' || game.status === 'missed')) {
+      if (dateKey === todayKey && (game.status === 'completed' || game.status === 'failed' || game.status === 'missed')) {
         return game.status;
       }
       return null;
@@ -6198,9 +6215,9 @@
         if (summaryNameEl) summaryNameEl.textContent = 'No games';
         if (longestEl) longestEl.innerHTML = '<span class="v-emoji" aria-hidden="true">🔥</span>0d';
         if (totalPlaysEl) totalPlaysEl.textContent = '0';
-        if (subPlaysEl) subPlaysEl.textContent = '0 won · 0 missed';
+        if (subPlaysEl) subPlaysEl.textContent = '0 won · 0 failed · 0 missed';
         if (currentStreakEl) currentStreakEl.textContent = '0d';
-        if (monthCountsEl) monthCountsEl.innerHTML = '0 <span class="ico ico-check" aria-hidden="true"></span> 0 <span class="ico ico-close" aria-hidden="true"></span>';
+        if (monthCountsEl) monthCountsEl.innerHTML = '0 <span class="ico ico-check" aria-hidden="true"></span> 0 <span class="ico ico-failed" aria-hidden="true"></span> 0 <span class="ico ico-close" aria-hidden="true"></span>';
         return;
       }
 
@@ -6241,6 +6258,7 @@
       }
 
       let monthCompletedCount = 0;
+      let monthFailedCount = 0;
       let monthMissedCount = 0;
       const logIndex = getLogIndex();
       for (let d = 1; d <= daysInMonth; d++) {
@@ -6254,6 +6272,10 @@
           monthCompletedCount += 1;
           cls += ' done';
           mark = '<span class="mark"><span class="ico ico-check" aria-hidden="true"></span></span>';
+        } else if (outcome === 'failed') {
+          monthFailedCount += 1;
+          cls += ' failed';
+          mark = '<span class="mark"><span class="ico ico-failed" aria-hidden="true"></span></span>';
         } else if (outcome === 'missed') {
           monthMissedCount += 1;
           cls += ' missed';
@@ -6291,15 +6313,18 @@
       forgetBtn.classList.toggle('hidden', isActiveGame);
 
       const bestStreak = Math.max(game.bestStreak || 0, game.streak || 0);
-      const totalPlays = Math.max(game.totalPlayed || 0, monthCompletedCount + monthMissedCount);
+      const totalPlays = Math.max(game.totalPlayed || 0, monthCompletedCount + monthFailedCount + monthMissedCount);
       const totalWon = game.totalWon || 0;
+      const histCounts = HubCore.historyCounts(game.dayHistory);
+      const totalFailed = histCounts.failed || 0;
+      const totalMissed = Math.max(0, totalPlays - totalWon - totalFailed);
 
       if (summaryNameEl) summaryNameEl.textContent = game.name;
       if (longestEl) longestEl.innerHTML = `<span class="v-emoji" aria-hidden="true">🔥</span>${Number(bestStreak) || 0}d`;
       if (totalPlaysEl) totalPlaysEl.textContent = String(totalPlays);
-      if (subPlaysEl) subPlaysEl.innerHTML = `${totalWon} <span class="ico ico-check" aria-hidden="true"></span> ${Math.max(0, totalPlays - totalWon)} <span class="ico ico-close" aria-hidden="true"></span>`;
+      if (subPlaysEl) subPlaysEl.innerHTML = `${totalWon} <span class="ico ico-check" aria-hidden="true"></span> ${totalFailed} <span class="ico ico-failed" aria-hidden="true"></span> ${totalMissed} <span class="ico ico-close" aria-hidden="true"></span>`;
       if (currentStreakEl) currentStreakEl.textContent = `${game.streak || 0}d`;
-      if (monthCountsEl) monthCountsEl.innerHTML = `${escapeHtml(formatCalendarMonthShort(calendarYear, calendarMonth))}: ${monthCompletedCount} <span class="ico ico-check" aria-hidden="true"></span> ${monthMissedCount} <span class="ico ico-close" aria-hidden="true"></span>`;
+      if (monthCountsEl) monthCountsEl.innerHTML = `${escapeHtml(formatCalendarMonthShort(calendarYear, calendarMonth))}: ${monthCompletedCount} <span class="ico ico-check" aria-hidden="true"></span> ${monthFailedCount} <span class="ico ico-failed" aria-hidden="true"></span> ${monthMissedCount} <span class="ico ico-close" aria-hidden="true"></span>`;
       renderScoreStats(game);
     }
 
@@ -6659,8 +6684,9 @@
       document.getElementById('dayEntryTitle').textContent = game.name;
       document.getElementById('dayEntryDate').textContent = formatCycleDateLabel(date);
       const chips = [];
-      if (outcome === 'completed') chips.push('<span class="day-chip ok">✓ Completed</span>');
-      else if (outcome === 'missed') chips.push('<span class="day-chip bad">✗ Missed</span>');
+      if (outcome === 'completed') chips.push('<span class="day-chip ok"><span class="ico ico-check" aria-hidden="true"></span>Completed</span>');
+      else if (outcome === 'failed') chips.push('<span class="day-chip fail"><span class="ico ico-failed" aria-hidden="true"></span>Failed</span>');
+      else if (outcome === 'missed') chips.push('<span class="day-chip bad"><span class="ico ico-close" aria-hidden="true"></span>Missed</span>');
       else chips.push('<span class="day-chip">Not played</span>');
       if (row) {
         const time = normalizeLogTimeLabel(row.localTime);
@@ -6669,7 +6695,8 @@
         if (row.streak !== undefined && row.streak !== null && row.streak !== '') chips.push(`<span class="day-chip streak">🔥 ${escapeHtml(plural(row.streak, 'day'))}</span>`);
       }
       document.getElementById('dayEntryChips').innerHTML = chips.join('');
-      const score = row ? String(row.score || '').trim() : '';
+      const rawDayScore = row ? String(row.score || '').trim() : '';
+      const score = /^auto-marked missed\b/i.test(rawDayScore) ? '' : rawDayScore;
       const pre = document.getElementById('dayEntryScore');
       pre.textContent = score;
       pre.classList.toggle('hidden', !score);
@@ -6896,6 +6923,7 @@
     /** One Score History result: a compact row that opens to the full result text. */
     function historyRowHtml(item, qWords) {
       const ok = item.outcome === 'Completed';
+      const isFailed = item.outcome === 'Failed';
       const rawScore = String(item.score || '').trim();
       const autoMissed = !ok && /^Auto-marked missed/i.test(rawScore);
       const score = autoMissed ? '' : rawScore;
@@ -6903,14 +6931,17 @@
       const name = String(item.gameName || '').trim();
       const line = score ? historyPreviewLine(score) : '';
       const trimmed = name && line.toLowerCase().startsWith(name.toLowerCase()) ? line.slice(name.length).replace(/^[\s:#·\-–—|]+/, '') : line;
-      const preview = autoMissed ? 'Not played before reset' : (score ? (trimmed || line) : (ok ? 'Solved' : 'Missed'));
+      const outcomeWord = ok ? 'Solved' : (isFailed ? 'Failed' : 'Missed');
+      const preview = autoMissed ? 'Not played before reset' : (score ? (trimmed || line) : outcomeWord);
       const time = normalizeLogTimeLabel(item.localTime);
       const streak = Number(item.streak) || 0;
       const meta = [
         streak > 0 ? `<span class="hist-streak" title="Streak after this result"><span class="hist-fire" aria-hidden="true">🔥</span><span>${escapeHtml(streak)}</span></span>` : '',
         Number(item.timeMs) > 0 ? `<span class="hist-time" title="Time played">${escapeHtml(HubCore.formatDuration(item.timeMs))}</span>` : ''
       ].filter(Boolean).join('');
-      const label = `${item.gameName}, ${ok ? 'solved' : 'missed'}${streak > 0 ? `, streak ${plural(streak, 'day')}` : ''}`;
+      const label = `${item.gameName}, ${outcomeWord.toLowerCase()}${streak > 0 ? `, streak ${plural(streak, 'day')}` : ''}`;
+      const statusCls = ok ? 'ok' : (isFailed ? 'fail' : 'bad');
+      const statusIco = ok ? 'ico-check' : (isFailed ? 'ico-failed' : 'ico-close');
       const head = `
         <span class="hist-icon">${renderGameIconHtml(item.icon, item.gameName, 'w-4 h-4')}</span>
         <span class="hist-main">
@@ -6918,7 +6949,7 @@
           ${autoMissed ? `<span class="sr-only">${escapeHtml(preview)}</span>` : ''}
         </span>
         <span class="hist-side">
-          <span class="hist-status ${ok ? 'ok' : 'bad'}"><span class="ico ${ok ? 'ico-check' : 'ico-close'}" aria-hidden="true"></span><span class="sr-only">${ok ? 'Solved' : 'Missed'}</span></span>
+          <span class="hist-status ${statusCls}"><span class="ico ${statusIco}" aria-hidden="true"></span><span class="sr-only">${outcomeWord}</span></span>
           ${meta ? `<span class="hist-meta">${meta}</span>` : ''}
         </span>`;
       if (!score) return `<div class="hist-row" aria-label="${escapeHtml(label)}"><div class="hist-sum">${head}</div></div>`;
@@ -8082,15 +8113,16 @@
       state.historyLogs = HubUiHelpers.dedupeHistoryLogs(state.historyLogs);
 
       if (!target.dayHistory || typeof target.dayHistory !== 'object') target.dayHistory = {};
+      const dayRank = (s) => (s === 'completed' ? 3 : (s === 'failed' ? 2 : (s === 'missed' ? 1 : 0)));
       Object.entries(dup.dayHistory || {}).forEach(([dayKey, status]) => {
-        if (!target.dayHistory[dayKey] || (status === 'completed' && target.dayHistory[dayKey] !== 'completed')) {
+        if (dayRank(status) > dayRank(target.dayHistory[dayKey])) {
           target.dayHistory[dayKey] = status;
         }
       });
 
       const targetCycleKey = getCycleDateKey(target.resetTime, target.resetZone);
       const todayRow = state.historyLogs.find((l) => l && l.gameId === target.id && l.date === targetCycleKey);
-      if (target.dayHistory[targetCycleKey] === 'completed' || target.dayHistory[targetCycleKey] === 'missed') {
+      if (target.dayHistory[targetCycleKey] === 'completed' || target.dayHistory[targetCycleKey] === 'failed' || target.dayHistory[targetCycleKey] === 'missed') {
         target.status = target.dayHistory[targetCycleKey];
         target.lastCycleKey = targetCycleKey;
         if (todayRow && todayRow.score && !target.todayScore) target.todayScore = todayRow.score;
@@ -8240,7 +8272,7 @@
         const row = existingGame ? findLogRow(existingGame, getCycleDateKey(existingGame.resetTime, existingGame.resetZone)) : null;
         todayBox.classList.toggle('hidden', !row);
         if (row) {
-          const bits = [row.outcome === 'Completed' ? '✓ Solved' : (row.outcome === 'Missed' ? '✗ Missed' : String(row.outcome || ''))];
+          const bits = [row.outcome === 'Completed' ? '✓ Solved' : (row.outcome === 'Failed' ? '✗ Failed' : (row.outcome === 'Missed' ? '✗ Missed' : String(row.outcome || '')))];
           if (Number(row.timeMs) > 0) bits.push(`${HubCore.formatDuration(row.timeMs)}`);
           const first = String(row.score || '').split('\n')[0].trim();
           if (first) bits.push(first.slice(0, 40));
@@ -8355,13 +8387,14 @@
         : `Log Result — ${game.name}`;
       if (isPast) {
         const row = findLogRow(game, logModalCycleKey);
-        document.getElementById('inputLogScoreText').value = row && row.outcome === 'Completed' ? String(row.score || '') : '';
+        document.getElementById('inputLogScoreText').value = row && !/^auto-marked missed\b/i.test(String(row.score || ''))
+          ? String(row.score || '') : '';
         // Editing a past day from the calendar starts from what is recorded for it.
-        selectedLogStatus = (opts && opts.useRecordedStatus && game.dayHistory && game.dayHistory[wanted] === 'missed')
-          ? 'missed' : 'completed';
+        const recorded = opts && opts.useRecordedStatus && game.dayHistory ? game.dayHistory[wanted] : '';
+        selectedLogStatus = (recorded === 'failed' || recorded === 'missed') ? recorded : 'completed';
       } else {
         document.getElementById('inputLogScoreText').value = game.todayScore || '';
-        selectedLogStatus = game.status === 'missed' ? 'missed' : 'completed';
+        selectedLogStatus = (game.status === 'failed' || game.status === 'missed') ? game.status : 'completed';
       }
       updateStatusPickButtons();
       openModal('modalLogScore');
@@ -8373,10 +8406,12 @@
         btn.setAttribute('aria-pressed', pick === selectedLogStatus ? 'true' : 'false');
         if (pick === selectedLogStatus) {
           btn.className = pick === 'missed'
-            ? 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-full border border-rose-500 bg-rose-500/20 text-rose-300 font-bold text-xs'
-            : 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-full border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs';
+            ? 'status-pick-btn icon-label w-full py-2.5 px-2.5 rounded-full border border-rose-500 bg-rose-500/20 text-rose-300 font-bold text-xs'
+            : (pick === 'failed'
+              ? 'status-pick-btn icon-label w-full py-2.5 px-2.5 rounded-full border border-amber-500 bg-amber-500/20 text-amber-300 font-bold text-xs'
+              : 'status-pick-btn icon-label w-full py-2.5 px-2.5 rounded-full border border-emerald-500 bg-emerald-500/20 text-emerald-300 font-bold text-xs');
         } else {
-          btn.className = 'status-pick-btn icon-label w-full py-2.5 px-3 rounded-full border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs';
+          btn.className = 'status-pick-btn icon-label w-full py-2.5 px-2.5 rounded-full border border-slate-700 bg-slate-800 text-slate-300 font-semibold text-xs';
         }
       });
     }
@@ -8408,7 +8443,11 @@
         if (state.settings && state.settings.autoLogFromShare === false) {
           openLogModal(resultGame.id);
           const box = document.getElementById('inputLogScoreText');
-          if (box && !box.value.trim()) box.value = text;
+          if (box && !box.value.trim()) {
+            box.value = text;
+            selectedLogStatus = HubCore.isFailedShareResult(text) ? 'failed' : 'completed';
+            updateStatusPickButtons();
+          }
           return;
         }
         if (!autoLogShareResult(resultGame, text, getCycleDateKey(resultGame.resetTime, resultGame.resetZone))) {
@@ -8549,11 +8588,16 @@
         }
         openLogModal(game.id, opts);
         const box = document.getElementById('inputLogScoreText');
-        if (box && clip && HubCore.looksLikeShareResult(clip, game)) box.value = clip;
+        if (box && clip && HubCore.looksLikeShareResult(clip, game)) {
+          box.value = clip;
+          selectedLogStatus = HubCore.isFailedShareResult(clip) ? 'failed' : 'completed';
+          updateStatusPickButtons();
+        }
         if (!clip) showToast('Nothing to paste', `Copy your result in ${game.name} first, or type it here.`, 'indigo');
         return;
       }
       if (action === 'solved') { recordGameOutcome(game.id, 'completed', captured, opts); setTimeout(() => offerNextGame(game.id), 250); }
+      else if (action === 'failed') { recordGameOutcome(game.id, 'failed', captured, opts); setTimeout(() => offerNextGame(game.id), 250); }
       else if (action === 'missed') { recordGameOutcome(game.id, 'missed', '', opts); setTimeout(() => offerNextGame(game.id), 250); }
       else if (action === 'details') {
         openLogModal(game.id, opts);
@@ -8564,7 +8608,10 @@
         const stillSameGame = document.getElementById('logGameId').value === game.id
           && !document.getElementById('modalLogScore').classList.contains('hidden');
         if (box && stillSameGame && !box.value.trim() && HubCore.looksLikeShareResult(clip, game)) {
-          box.value = clip.replace(/\r\n/g, '\n');
+          const normalizedClip = clip.replace(/\r\n/g, '\n');
+          box.value = normalizedClip;
+          selectedLogStatus = HubCore.isFailedShareResult(normalizedClip) ? 'failed' : 'completed';
+          updateStatusPickButtons();
           showToast('Pasted your result', 'Copied share text added — check it and tap Save.', 'emerald');
         }
       }
@@ -8622,11 +8669,11 @@
 
     /**
      * Logs a captured share result for `cycleKey` with an Undo toast. A result that says the puzzle
-     * wasn't solved ("X/6", "Next time", four Connections mistakes) is logged as Missed, with its text.
+     * wasn't solved ("X/6", "Next time", four Connections mistakes) is logged as Failed, with its text.
      * Returns false if exactly this result is already logged.
      */
     function autoLogShareResult(game, text, cycleKey, opts) {
-      const outcome = HubCore.isFailedShareResult(text) ? 'missed' : 'completed';
+      const outcome = HubCore.isFailedShareResult(text) ? 'failed' : 'completed';
       const row = findLogRow(game, cycleKey);
       const alreadySame = game.dayHistory && game.dayHistory[cycleKey] === outcome
         && (cycleKey === getCycleDateKey(game.resetTime, game.resetZone) ? game.todayScore === text : Boolean(row && row.score === text));
@@ -8636,8 +8683,8 @@
       // Earlier games of one player session are reported together (see onReturnFromEarlierGames).
       if (opts && opts.batch) { opts.batch.push({ game, snap, outcome }); return true; }
       const firstLine = text.split('\n')[0].slice(0, 60);
-      showToast(outcome === 'missed' ? `${game.name} logged as missed` : `${game.name} logged automatically`,
-        firstLine, outcome === 'missed' ? 'indigo' : 'emerald', null,
+      showToast(outcome === 'failed' ? `${game.name} logged as failed` : `${game.name} logged automatically`,
+        firstLine, outcome === 'failed' ? 'indigo' : 'emerald', null,
         { actionLabel: 'Undo', onAction: () => restoreUndo(snap) });
       return true;
     }
@@ -8653,7 +8700,7 @@
       game.playTime.ms = Math.min(game.playTime.ms + ms, 6 * 3600000);
       // Already logged this puzzle (e.g. auto-logged before playing on): keep its row's time current.
       const row = findLogRow(game, cycleKey);
-      if (row && row.outcome === 'Completed') row.timeMs = game.playTime.ms;
+      if (row && (row.outcome === 'Completed' || row.outcome === 'Failed')) row.timeMs = game.playTime.ms;
       saveState({ sync: false });
     }
 
@@ -8671,7 +8718,9 @@
       // One toast with one Undo for all of them (the toast area only holds three).
       const names = batch.map((b) => b.game.name);
       const title = batch.length === 1
-        ? (batch[0].outcome === 'missed' ? `${names[0]} logged as missed` : `${names[0]} logged automatically`)
+        ? (batch[0].outcome === 'failed'
+          ? `${names[0]} logged as failed`
+          : (batch[0].outcome === 'missed' ? `${names[0]} logged as missed` : `${names[0]} logged automatically`))
         : `${batch.length} earlier games logged`;
       showToast(title, batch.length === 1 ? '' : names.join(', '), 'emerald', null,
         { actionLabel: 'Undo', onAction: () => batch.slice().reverse().forEach((b) => restoreUndo(b.snap)) });
@@ -8714,7 +8763,7 @@
         const box = document.getElementById('inputLogScoreText');
         if (captured && box && !box.value.trim()) {
           box.value = captured;
-          selectedLogStatus = 'completed';
+          selectedLogStatus = HubCore.isFailedShareResult(captured) ? 'failed' : 'completed';
           updateStatusPickButtons();
         }
         return;
@@ -8836,7 +8885,7 @@
           const anchor = HubCore.DATE_KEY_RE.test(String(norm.lastCycleKey || '')) && cycleKeyToDay(norm.lastCycleKey) <= cycleKeyToDay(todayKey)
             ? norm.lastCycleKey : todayKey;
           norm.lastCycleKey = anchor;
-          if (anchor !== todayKey && norm.status === 'completed' && norm.dayHistory[anchor] !== 'completed') norm.status = 'ready';
+          if (anchor !== todayKey && (norm.status === 'completed' || norm.status === 'failed') && norm.dayHistory[anchor] !== norm.status) norm.status = 'ready';
           recomputeGameStatsFromHistory(norm);
           validatedGames.push(norm);
         });
@@ -10339,13 +10388,28 @@
           return;
         }
         box.value = box.value.trim() ? `${box.value.replace(/\s+$/, '')}\n${clip}` : clip;
+        if (selectedLogStatus === 'completed' && HubCore.isFailedShareResult(box.value)) {
+          selectedLogStatus = 'failed';
+          updateStatusPickButtons();
+        }
         box.focus();
+      });
+
+      document.getElementById('inputLogScoreText').addEventListener('paste', () => {
+        setTimeout(() => {
+          const box = document.getElementById('inputLogScoreText');
+          if (box && selectedLogStatus === 'completed' && HubCore.isFailedShareResult(box.value)) {
+            selectedLogStatus = 'failed';
+            updateStatusPickButtons();
+          }
+        }, 0);
       });
 
       // Log Score Modal handlers
       document.querySelectorAll('.status-pick-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
-          selectedLogStatus = btn.getAttribute('data-status-pick') === 'missed' ? 'missed' : 'completed';
+          const pick = btn.getAttribute('data-status-pick');
+          selectedLogStatus = (pick === 'failed' || pick === 'missed') ? pick : 'completed';
           updateStatusPickButtons();
         });
       });

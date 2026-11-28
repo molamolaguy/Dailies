@@ -650,9 +650,10 @@ object PageCache {
                 nowMs,
                 localTimeZone
             )
+            val status = g.optString("status")
             val doneForCycle = g.optString("loggedCycle") == cycle ||
                 g.optString("lastPlayedCycle") == cycle ||
-                ((g.optString("status") == "completed" || g.optString("status") == "missed") && g.optString("lastCycleKey") == cycle)
+                ((status == "completed" || status == "failed" || status == "missed") && g.optString("lastCycleKey") == cycle)
             if (doneForCycle) continue
             if (isCached(id) || recentlyAttempted(id)) continue
             out += id

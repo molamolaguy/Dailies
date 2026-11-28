@@ -1634,6 +1634,18 @@
       "name": "MyGame",
       "url": "https://mygame.example/",
       "strict": true
+    },
+    {
+      "text": "🌎 Nov 27, 2026 🌍\n🔥 5 | Avg. Guesses: 4.5\n🟩 = 1\n\nhttps://globle-game.com\n#globle",
+      "name": "Globle",
+      "url": "https://globle-game.com/",
+      "strict": true
+    },
+    {
+      "text": "Krillion #102 🦐\n60\n\n🟡🟠🔵🟣🟢⚫⚪",
+      "name": "Krillion",
+      "url": "https://krillion.io/",
+      "strict": true
     }
   ]
 }

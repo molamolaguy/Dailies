@@ -366,7 +366,9 @@
   // Words a game's end screen shows (a result, the answer, when the next puzzle comes). Matched per
   // short visible UI line (never across multi-sentence rules/FAQ prose), and never words that sit on
   // a game's screen while playing ("Statistics", "Streak", "Score").
-  var FINISHED_RE = /(next (puzzle|game|word|challenge|dive|round|grid|board|level|expedition) (in|at|tomorrow|available|opens|is)|the next [a-z]+ is|next [a-z]+ (in|at|tomorrow|opens)|new [a-z]+ (in|at|opens)|come back tomorrow|see you tomorrow|you('ve| have)? (won|solved|got it|found it|did it|completed|finished|crushed)|puzzle (complete|solved|done)(?![ \t]+(by|when|once|if|after|with)\b)|expedition (complete|finished|done)|(solved|completed)!|game over|out of (guesses|lives|tries)|better luck|the answer was|final score|you scored)/i;
+  var FINISHED_RE = /(next (puzzle|game|word|challenge|dive|round|grid|board|level|expedition) (in|at|tomorrow|available|opens|is)|the next [a-z]+ is|next [a-z]+ (in|at|tomorrow|opens)|new [a-z]+ (in|at|opens)|come back tomorrow|see you tomorrow|you('ve| have)? (won|solved|got it|found it|did it|completed|finished|crushed)|you (win|lost|lose)!|(?:puzzle|dive|game|round|challenge|expedition|daily|level|mission)\s+(?:#\s*[0-9]+\s+)?(complete|completed|solved|finished|done)(?![ \t]+(by|when|once|if|after|with)\b)|(solved|completed)!|game over|out of (guesses|lives|tries)|better luck|the answer was|(?:^|[.!?]\s+)the mystery (country|capital|city|state|place|island|flag|word|answer|animal|person|movie|song|game) is\b|final score|you scored)/i;
+  var TODAY_STAT_LABEL_RE = /^(?:today'?s|daily)\s+(?:guesses|tries|attempts|score|time|moves)$/i;
+  var TODAY_STAT_VALUE_RE = /^[1-9][0-9]{0,4}(?::[0-5][0-9])?$/;
   // Standalone praise callouts ("Splendid!", "Flawless!", "Well done") only count on short heading
   // lines, never as mid-sentence adjectives in rules prose ("A flawless grid leaves three...").
   var FINISHED_CALLOUT_RE = /^(?:[^a-z0-9à-ÿ]{0,4}\s*)?(well done|great job|congratulations|congrats|splendid|magnificent|phew|nice work|flawless|bravo|enhorabuena|felicidades|parabéns|félicitations|glückwunsch|gut gemacht|complimenti|gefeliciteerd|goed gedaan)(?:[!.\s]|[^a-z0-9à-ÿ]{1,4})*$/i;
@@ -593,7 +595,39 @@
       return Boolean(hit && (hit === el || el.contains(hit)));
     } catch (e) { return false; }
   }
-  function candidates(re) {
+  // Below-the-fold result button in normal scrollable document layout (e.g. Krillion's "Copy result"
+  // below its 7-row dive breakdown): visible, enabled, unclipped by overflow:hidden ancestors, and
+  // horizontally within the viewport.
+  function pressableBelowFold(el) {
+    try {
+      if (el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
+      if (el.closest && el.closest('[aria-hidden="true"], [inert], [hidden]')) return false;
+      if (typeof el.checkVisibility === 'function' && !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) return false;
+      var r = el.getBoundingClientRect();
+      if (r.width < 8 || r.height < 8) return false;
+      var w = window.innerWidth || 0;
+      var h = window.innerHeight || 0;
+      if (w <= 0 || h <= 0) return false;
+      var cx = r.left + r.width / 2;
+      var cy = r.top + r.height / 2;
+      if (cx < 0 || cx > w || cy <= h || r.top > Math.max(h * 5, 4000)) return false;
+      var cs = window.getComputedStyle(el);
+      if (cs.visibility === 'hidden' || cs.display === 'none' || cs.pointerEvents === 'none' || Number(cs.opacity) <= 0.05) return false;
+      var modal = findEndContainer(el);
+      for (var p = el.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement) {
+        if (!modal && PROSE_BLOCK_RE.test(classAndId(p))) return false;
+        var pcs = window.getComputedStyle(p);
+        if (pcs.display === 'none' || pcs.visibility === 'hidden' || Number(pcs.opacity) <= 0.05) return false;
+        var ov = (pcs.overflow || '') + ' ' + (pcs.overflowX || '') + ' ' + (pcs.overflowY || '');
+        if (/(hidden|clip)/.test(ov)) {
+          var pr = p.getBoundingClientRect();
+          if (cx < pr.left - 1 || cx > pr.right + 1 || cy < pr.top - 1 || cy > pr.bottom + 1) return false;
+        }
+      }
+      return true;
+    } catch (e) { return false; }
+  }
+  function candidates(re, allowBelowFold) {
     var out = [];
     var test = re || BUTTON_RE;
     var allowIconAttr = (test === BUTTON_RE || test === COPY_ONLY_RE);
@@ -621,7 +655,8 @@
         var hint = buttonAttrHint(el);
         if (hint && !AVOID_RE.test(hint) && iconRe.test(hint)) matched = true;
       }
-      if (!matched || !pressable(el)) continue;
+      if (!matched) continue;
+      if (!pressable(el) && !(allowBelowFold && pressableBelowFold(el))) continue;
       out.push(el);
     }
     return out;
@@ -639,6 +674,12 @@
     if (FINISHED_RE.test(l) || FINISHED_INTL_RE.test(l)) return true;
     return l.length <= 45 && FINISHED_CALLOUT_RE.test(l);
   }
+  function hasFinishedStatPair(lines) {
+    for (var i = 0; i + 1 < lines.length; i++) {
+      if (TODAY_STAT_LABEL_RE.test(lines[i]) && TODAY_STAT_VALUE_RE.test(lines[i + 1])) return true;
+    }
+    return false;
+  }
   function looksFinished(linesOpt) {
     try {
       var lines = linesOpt || visibleLines(20000);
@@ -648,7 +689,7 @@
         var l = lines[i];
         if (lineIndicatesFinished(l) || hasCountdown(l)) return true;
       }
-      return false;
+      return hasFinishedStatPair(lines);
     } catch (e) { return false; }
   }
   // End-screen words, not only a countdown: some games show "Next puzzle in 05:12:44" all the time,
@@ -663,7 +704,7 @@
         if (NEXT_LINE_RE.test(l) || hasCountdown(l)) continue;
         if (lineIndicatesFinished(l)) return true;
       }
-      return false;
+      return hasFinishedStatPair(lines);
     } catch (e) { return false; }
   }
 
@@ -835,6 +876,8 @@
   }
   var openedResults = false;
   var screenTimer = null;
+  var scrollTimer = null;
+  var loadedAt = Date.now();
   function scan() {
     // Stop once a result went out (found, or shared by the player) or after a few presses.
     if (sentAny || document.hidden) return;
@@ -843,13 +886,21 @@
     var list = presses < MAX_PRESSES ? candidates() : [];
     var finished = looksFinished(lines);
     if (list.length) {
-      var strong = list.filter(function (el) {
-        return isStrongResultButton(el) && (finished || inModalContainer(el));
-      });
+      // Explicit result buttons ("Copy result", "Share score", "Copy dive") only exist on end screens,
+      // even when the top heading scrolled out of view or the container isn't a modal (e.g. Krillion).
+      var strong = list.filter(isStrongResultButton);
       if (strong.length) { press(strong[0]); return; }
-      if (!finished) return;
-      press(list[0]);
-      return;
+      if (finished) { press(list[0]); return; }
+    }
+    // Check below-the-fold explicit result buttons (e.g. Krillion's "Copy result" below 7 prompt cards)
+    // and, on finished pages, below-the-fold Share / Copy buttons before opening a secondary Stats sheet.
+    if (presses < MAX_PRESSES) {
+      var belowStrong = candidates(RESULT_BUTTON_RE, true).filter(isStrongResultButton);
+      if (belowStrong.length) { press(belowStrong[0]); return; }
+      if (finished) {
+        var belowShare = candidates(BUTTON_RE, true);
+        if (belowShare.length) { press(belowShare[0]); return; }
+      }
     }
     // No Share / Copy button on screen. A finished game may keep it behind "See results" / "Stats"
     // (1.8.3): press that once, then look again. Never during play: only on an end screen.
@@ -885,14 +936,23 @@
     timers = delays.map(function (d) { return setTimeout(scan, d); });
   }
 
-  // A game that's already finished shows its end screen soon after loading.
-  function onReady() { schedule([2500, 6000]); }
+  // A game that's already finished shows its end screen soon after loading (Globle opens Stats at ~3.5s).
+  function onReady() { loadedAt = Date.now(); schedule([2500, 4200, 6500]); }
   if (document.readyState === 'complete') onReady(); else window.addEventListener('load', onReady);
   // After each move: end screens may animate in quickly or after a 30–45s finish sequence (Farflung).
   function onInput() {
     lastInputAt = Date.now();
     schedule([1500, 4000, 8000, 18000, 32000, 46000]);
   }
+  // Touch-scrolling on Android fires pointercancel + scroll (no pointerup): scan once scrolling settles
+  // so scrolling a below-the-fold Share / Copy button into view also triggers detection.
+  window.addEventListener('scroll', function () {
+    if (sentAny || document.hidden || presses >= MAX_PRESSES) return;
+    var now = Date.now();
+    if (now - loadedAt > 180000 && now - lastInputAt > POST_INPUT_WATCH_MS) return;
+    if (scrollTimer) clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function () { scrollTimer = null; scan(); }, 300);
+  }, { passive: true, capture: true });
   // A real touch or key ends probe mode at once (so the player's own tap copies / shares normally),
   // and a button the player pressed themselves is never pressed again. Synthetic probe events
   // (e.isTrusted === false) are ignored here so dispatchTouchClick doesn't cancel its own probe!
@@ -917,7 +977,7 @@
     onInput();
   }, true);
   // Late-appearing end screens (including 30–60s finish animations and pre-rendered modals revealed via
-  // class/style/hidden changes).
+  // class/style/hidden/disabled changes).
   try {
     var pending = false;
     new MutationObserver(function (records) {
@@ -934,8 +994,12 @@
           var t = rec.target;
           if (t && t.nodeType === 1) {
             var attr = rec.attributeName;
-            if (attr === 'hidden' || attr === 'open' || t.tagName === 'DIALOG' || t.tagName === 'BUTTON' ||
+            if (attr === 'hidden' || attr === 'open' || attr === 'disabled' || attr === 'aria-disabled' ||
+                t.tagName === 'DIALOG' || t.tagName === 'BUTTON' ||
                 (t.getAttribute && t.getAttribute('role') === 'dialog') || REVEAL_ATTR_TARGET_RE.test(classAndId(t))) {
+              relevant = true;
+            } else if ((attr === 'class' || attr === 'style') && t.querySelector && t.querySelector('button, [role="button"]') &&
+                       (t.textContent || '').length <= 600 && BUTTON_RE.test(t.textContent || '')) {
               relevant = true;
             }
           }
@@ -954,7 +1018,7 @@
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['class', 'style', 'hidden', 'open', 'aria-hidden']
+      attributeFilter: ['class', 'style', 'hidden', 'open', 'aria-hidden', 'disabled', 'aria-disabled']
     });
   } catch (e) {}
 })();

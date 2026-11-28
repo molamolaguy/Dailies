@@ -192,7 +192,7 @@
       desc: String(g.desc || ''),
       notifyEnabled: g.notifyEnabled !== false,
       reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
-      status: (g.status === 'completed' || g.status === 'missed') ? g.status : 'ready',
+      status: (g.status === 'completed' || g.status === 'failed' || g.status === 'missed') ? g.status : 'ready',
       todayScore: typeof g.todayScore === 'string' ? g.todayScore : '',
       streak: Math.max(0, parseInt(g.streak, 10) || 0),
       bestStreak: Math.max(0, parseInt(g.bestStreak, 10) || 0),
@@ -228,14 +228,14 @@
   }
 
   function rowPriority(r) {
-    const completed = r && r.outcome === 'Completed' ? 2 : 0;
-    const hasScore = r && String(r.score || '').trim().length > 0 ? 1 : 0;
-    return completed + hasScore;
+    const outcomeRank = r && r.outcome === 'Completed' ? 4 : (r && r.outcome === 'Failed' ? 2 : 0);
+    const hasScore = r && String(r.score || '').trim().length > 0 && !/^auto-marked missed\b/i.test(String(r.score || '').trim()) ? 1 : 0;
+    return outcomeRank + hasScore;
   }
 
   /**
    * Deduplicates history log rows by (gameId || gameName, date), preferring 'Completed' over
-   * 'Missed' and rows with score text over empty ones.
+   * 'Failed' over 'Missed' and rows with score text over empty ones.
    */
   function dedupeHistoryLogs(logs) {
     if (!Array.isArray(logs)) return [];
@@ -307,7 +307,7 @@
     }
     const todayRow = nextLogs.find((l) => l && (l.gameId ? l.gameId === g.id : l.gameName === g.name) && l.date === todayKey);
     const todayOutcome = g.dayHistory && g.dayHistory[todayKey];
-    if ((todayOutcome === 'completed' || todayOutcome === 'missed') && todayRow && typeof todayRow.score === 'string') {
+    if ((todayOutcome === 'completed' || todayOutcome === 'failed' || todayOutcome === 'missed') && todayRow && typeof todayRow.score === 'string') {
       g.todayScore = todayRow.score;
     } else {
       g.todayScore = '';
