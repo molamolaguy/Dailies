@@ -453,5 +453,33 @@ class GamePlayerTest {
             assertTrue("Share button after ~35s animation is auto-captured; shown: $shown", shown.contains("Game A result saved"))
         }
     }
-}
 
+    @Test
+    fun completedGameWithLoggedResultHidesLogButtonAndSkipsAutoLogger() {
+        val lineup = JSONArray()
+            .put(JSONObject().put("id", "a").put("name", "Game A").put("url", "https://example.com/a").put("done", true).put("loggedResult", true))
+            .put(JSONObject().put("id", "b").put("name", "Game B").put("url", "https://example.com/b").put("done", false).put("loggedResult", false))
+        val intent = Intent(ctx, GameActivity::class.java)
+            .putExtra(GameActivity.EXTRA_ID, "a")
+            .putExtra(GameActivity.EXTRA_NAME, "Game A")
+            .putExtra(GameActivity.EXTRA_URL, "https://example.com/a")
+            .putExtra(GameActivity.EXTRA_LOGGED_RESULT, true)
+            .putExtra(GameActivity.EXTRA_LINEUP, lineup.toString())
+        ActivityScenario.launchActivityForResult<GameActivity>(intent).use { s ->
+            s.onActivity { a ->
+                val logBtn = findByDescription(a.window.decorView, "Log today's result")
+                assertEquals(View.GONE, logBtn?.visibility)
+                offer(a, "Game A #12 3/6\n🟩🟩🟩")
+                assertEquals(null, findByDescription(a.window.decorView, "Copy result"))
+                // Switching to unlogged Game B restores the Log button.
+                findByDescription(a.window.decorView, "Next game")!!.performClick()
+                assertEquals(View.VISIBLE, logBtn?.visibility)
+                a.finish()
+            }
+            val data = s.result.resultData
+            assertEquals("b", data.getStringExtra(GameActivity.EXTRA_ID))
+            val earlier = JSONArray(data.getStringExtra(GameActivity.EXTRA_EARLIER) ?: "[]")
+            assertEquals(false, earlier.getJSONObject(0).has("share"))
+        }
+    }
+}

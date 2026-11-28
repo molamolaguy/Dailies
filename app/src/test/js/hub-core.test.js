@@ -1147,3 +1147,48 @@ test('shareResultSignature & findDuplicateByResult detect duplicate games from r
     null
   );
 });
+
+test('hasLoggedResultForCycle and isCompletedWithLoggedResult distinguish completed-with-result from completed-without-result', () => {
+  const readyGame = { id: 'g-ready', name: 'Wordle', status: 'ready', todayScore: '', lastCycleKey: '2026-11-27', dayHistory: {} };
+  assert.equal(core.hasLoggedResultForCycle(readyGame, '2026-11-27', []), false);
+  assert.equal(core.isCompletedWithLoggedResult(readyGame, '2026-11-27', []), false);
+
+  // Marked completed with NO score text recorded: NOT completed-with-logged-result (player keeps Log button & return prompt).
+  const completedNoScore = {
+    id: 'g-no-score',
+    name: 'Connections',
+    status: 'completed',
+    todayScore: '',
+    lastCycleKey: '2026-11-27',
+    dayHistory: { '2026-11-27': 'completed' }
+  };
+  const noScoreLogs = [{ gameId: 'g-no-score', gameName: 'Connections', date: '2026-11-27', outcome: 'Completed', score: '' }];
+  assert.equal(core.hasLoggedResultForCycle(completedNoScore, '2026-11-27', noScoreLogs), false);
+  assert.equal(core.isCompletedWithLoggedResult(completedNoScore, '2026-11-27', noScoreLogs), false);
+
+  // Marked completed WITH a score recorded: completed-with-logged-result is true.
+  const completedWithScore = {
+    id: 'g-scored',
+    name: 'Globle',
+    status: 'completed',
+    todayScore: '🌍 Nov 27, 2026 🌍\n🟧🟩 = 2',
+    lastCycleKey: '2026-11-27',
+    dayHistory: { '2026-11-27': 'completed' }
+  };
+  const scoredLogs = [{ gameId: 'g-scored', gameName: 'Globle', date: '2026-11-27', outcome: 'Completed', score: '🌍 Nov 27, 2026 🌍\n🟧🟩 = 2' }];
+  assert.equal(core.hasLoggedResultForCycle(completedWithScore, '2026-11-27', scoredLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(completedWithScore, '2026-11-27', scoredLogs), true);
+  // Next day's cycle has no logged result yet.
+  assert.equal(core.hasLoggedResultForCycle(completedWithScore, '2026-11-28', scoredLogs), false);
+  assert.equal(core.isCompletedWithLoggedResult(completedWithScore, '2026-11-28', scoredLogs), false);
+
+  // Missed with a failed share grid vs auto-marked missed placeholder.
+  const missedWithResult = { id: 'g-miss-res', name: 'Wordle', status: 'missed', todayScore: '', lastCycleKey: '2026-11-27', dayHistory: { '2026-11-27': 'missed' } };
+  const missedLogs = [{ gameId: 'g-miss-res', date: '2026-11-27', outcome: 'Missed', score: 'Wordle 1,623 X/6\n⬛⬛⬛⬛⬛' }];
+  assert.equal(core.hasLoggedResultForCycle(missedWithResult, '2026-11-27', missedLogs), true);
+  assert.equal(core.isCompletedWithLoggedResult(missedWithResult, '2026-11-27', missedLogs), false);
+
+  const missedPlaceholderLogs = [{ gameId: 'g-miss-res', date: '2026-11-27', outcome: 'Missed', score: 'Auto-marked missed' }];
+  assert.equal(core.hasLoggedResultForCycle(missedWithResult, '2026-11-27', missedPlaceholderLogs), false);
+});
+

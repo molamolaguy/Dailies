@@ -2022,27 +2022,31 @@
       }
       try {
         if (window.AndroidBridge && typeof window.AndroidBridge.syncGames === 'function') {
-          window.AndroidBridge.syncGames(JSON.stringify(state.games.map((g) => ({
-            id: g.id,
-            name: g.name,
-            icon: g.icon,
-            url: g.url,
-            resetTime: g.resetTime,
-            resetZone: HubCore.normalizeZone(g.resetZone),
-            // Archived games keep their settings but never alert or remind.
-            archived: Boolean(g.archived),
-            nonDaily: Boolean(g.nonDaily),
-            notifyEnabled: Boolean(g.notifyEnabled) && !g.archived,
-            reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
-            lastCycleKey: g.lastCycleKey || getCycleDateKey(g.resetTime, g.resetZone),
-            lastPlayedCycle: g.status === 'completed' ? getCycleDateKey(g.resetTime, g.resetZone) : '',
-            // Logged anything (solved or missed) for the current puzzle: no streak reminder needed.
-            loggedCycle: (g.status === 'completed' || g.status === 'missed') && g.lastCycleKey === getCycleDateKey(g.resetTime, g.resetZone)
-              ? g.lastCycleKey : '',
-            lastLoggedCycle: latestLoggedCycle(g),
-            status: g.status || 'ready',
-            streak: g.archived ? 0 : (g.streak || 0)
-          }))));
+          window.AndroidBridge.syncGames(JSON.stringify(state.games.map((g) => {
+            const liveKey = getCycleDateKey(g.resetTime, g.resetZone);
+            return {
+              id: g.id,
+              name: g.name,
+              icon: g.icon,
+              url: g.url,
+              resetTime: g.resetTime,
+              resetZone: HubCore.normalizeZone(g.resetZone),
+              // Archived games keep their settings but never alert or remind.
+              archived: Boolean(g.archived),
+              nonDaily: Boolean(g.nonDaily),
+              notifyEnabled: Boolean(g.notifyEnabled) && !g.archived,
+              reminderMinutes: normalizeReminderMinutes(g.reminderMinutes),
+              lastCycleKey: g.lastCycleKey || liveKey,
+              lastPlayedCycle: g.status === 'completed' ? liveKey : '',
+              // Logged anything (solved or missed) for the current puzzle: no streak reminder needed.
+              loggedCycle: (g.status === 'completed' || g.status === 'missed') && g.lastCycleKey === liveKey
+                ? g.lastCycleKey : '',
+              loggedResultCycle: HubCore.isCompletedWithLoggedResult(g, liveKey, state.historyLogs) ? liveKey : '',
+              lastLoggedCycle: latestLoggedCycle(g),
+              status: g.status || 'ready',
+              streak: g.archived ? 0 : (g.streak || 0)
+            };
+          })));
         }
       } catch (e) {}
     }
@@ -2552,20 +2556,25 @@
       }
     }
 
+    const TOAST_DURATION_MS = 4500;
     let toastDeckSeq = 0;
 
-    function pauseToastTimer(toast) {
-      if (!toast || !toast._timer) return;
-      clearTimeout(toast._timer);
-      toast._timer = null;
-      const elapsed = Math.max(0, performance.now() - (toast._startedAt || performance.now()));
-      toast._remainingMs = Math.max(1800, (toast._remainingMs || 4500) - elapsed);
+    function scheduleToastExpiry(toast) {
+      if (!toast || toast.dataset.leaving === '1' || toast.dataset.dragging === '1') return;
+      if (toast._timer) { clearTimeout(toast._timer); toast._timer = null; }
+      const remaining = (toast._expiresAt || (Date.now() + TOAST_DURATION_MS)) - Date.now();
+      if (remaining <= 0) {
+        dismissToast(toast);
+        return;
+      }
+      toast._timer = setTimeout(() => dismissToast(toast), remaining);
     }
 
     function dismissToast(toast, exitTransform) {
       if (!toast || toast.dataset.leaving === '1') return;
       const container = toast.parentNode;
       toast.dataset.leaving = '1';
+      delete toast.dataset.dragging;
       if (toast._timer) { clearTimeout(toast._timer); toast._timer = null; }
       if (container) layoutToastStack(container);
       if (REDUCED_MOTION || !container) {
@@ -2609,13 +2618,13 @@
             toast.style.transition = '';
             toast.style.transform = 'translate3d(0, 0, 0) scale(1) rotate(0deg) skewX(0deg)';
             toast.style.opacity = '1';
-            if (!toast._timer && (toast._remainingMs || 0) > 0) {
-              toast._startedAt = performance.now();
-              toast._timer = setTimeout(() => dismissToast(toast), toast._remainingMs);
-            }
+            if (!toast._timer) scheduleToastExpiry(toast);
           }
         } else {
-          pauseToastTimer(toast);
+          if (toast.dataset.dragging === '1') {
+            delete toast.dataset.dragging;
+            scheduleToastExpiry(toast);
+          }
           toast.style.height = `${frontH}px`;
           toast.style.pointerEvents = 'none';
           toast.style.transition = '';
@@ -2655,8 +2664,7 @@
       const toast = document.createElement('div');
       toast.dataset.dir = (toastDeckSeq++ % 2 === 0) ? '-1' : '1';
       toast.dataset.depth = '0';
-      toast._remainingMs = opts && opts.actionLabel ? 20000 : 4500;
-      toast._startedAt = 0;
+      toast._expiresAt = Date.now() + TOAST_DURATION_MS;
       toast._timer = null;
       // Coloured by the app's theme (wallpaper, preset, custom or gold); a success gets the accent stripe.
       toast.className = `app-toast ${tone === 'emerald' ? 'tone-ok' : 'tone-info'} pointer-events-auto rounded-2xl p-3.5 shadow-2xl flex items-start justify-between gap-2.5`;
@@ -2684,7 +2692,6 @@
           ev.stopPropagation();
           const active = live();
           if (active.length <= 1) return;
-          pauseToastTimer(toast);
           haptic('tick');
           container.insertBefore(toast, active[0]);
           layoutToastStack(container);
@@ -2706,6 +2713,8 @@
       }
       container.appendChild(toast);
       enableToastSwipe(toast);
+      // Start every notification's timer immediately so stacked notifications all display for the exact same duration.
+      scheduleToastExpiry(toast);
       if (REDUCED_MOTION) {
         layoutToastStack(container);
       } else {
@@ -2719,33 +2728,18 @@
       let dx = 0;
       let dy = 0;
       let dragging = false;
+      const detachWindowEnd = () => {
+        window.removeEventListener('touchend', end, true);
+        window.removeEventListener('touchcancel', cancel, true);
+      };
       const reset = () => {
         delete toast.dataset.dragging;
+        scheduleToastExpiry(toast);
         layoutToastStack(toast.parentNode);
       };
-      toast.addEventListener('touchstart', (e) => {
-        if (e.touches.length !== 1 || toast.dataset.depth !== '0') return;
-        start = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now() };
-        dx = 0; dy = 0; dragging = false;
-        toast.dataset.dragging = '1';
-        pauseToastTimer(toast);
-        toast.style.transition = 'none';
-      }, { passive: true });
-      toast.addEventListener('touchmove', (e) => {
-        if (!start) return;
-        dx = e.touches[0].clientX - start.x;
-        dy = e.touches[0].clientY - start.y;
-        if (!dragging && (Math.abs(dx) > 8 || dy < -8)) dragging = true;
-        if (!dragging) return;
-        if (e.cancelable) e.preventDefault();
-        const up = Math.min(0, dy);
-        const horizontal = Math.abs(dx) >= Math.abs(up);
-        const tilt = horizontal ? Math.max(-6, Math.min(6, dx * 0.025)) : 0;
-        toast.style.transform = horizontal ? `translate3d(${dx}px, 0, 0) rotate(${tilt}deg)` : `translate3d(0, ${up}px, 0)`;
-        toast.style.opacity = String(Math.max(0.2, 1 - (horizontal ? Math.abs(dx) / toast.offsetWidth : -up / 80)));
-      }, { passive: false });
       const end = () => {
         if (!start) return;
+        detachWindowEnd();
         const dt = Math.max(1, performance.now() - start.t);
         const up = Math.min(0, dy);
         const horizontal = Math.abs(dx) >= Math.abs(up);
@@ -2764,8 +2758,39 @@
           reset();
         }
       };
+      const cancel = () => {
+        if (!start) return;
+        detachWindowEnd();
+        start = null;
+        reset();
+      };
+      toast.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1 || toast.dataset.depth !== '0') return;
+        start = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now() };
+        dx = 0; dy = 0; dragging = false;
+        window.addEventListener('touchend', end, true);
+        window.addEventListener('touchcancel', cancel, true);
+      }, { passive: true });
+      toast.addEventListener('touchmove', (e) => {
+        if (!start || toast.dataset.depth !== '0') return;
+        dx = e.touches[0].clientX - start.x;
+        dy = e.touches[0].clientY - start.y;
+        if (!dragging && (Math.abs(dx) > 8 || dy < -8)) {
+          dragging = true;
+          toast.dataset.dragging = '1';
+          if (toast._timer) { clearTimeout(toast._timer); toast._timer = null; }
+          toast.style.transition = 'none';
+        }
+        if (!dragging) return;
+        if (e.cancelable) e.preventDefault();
+        const up = Math.min(0, dy);
+        const horizontal = Math.abs(dx) >= Math.abs(up);
+        const tilt = horizontal ? Math.max(-6, Math.min(6, dx * 0.025)) : 0;
+        toast.style.transform = horizontal ? `translate3d(${dx}px, 0, 0) rotate(${tilt}deg)` : `translate3d(0, ${up}px, 0)`;
+        toast.style.opacity = String(Math.max(0.2, 1 - (horizontal ? Math.abs(dx) / toast.offsetWidth : -up / 80)));
+      }, { passive: false });
       toast.addEventListener('touchend', end);
-      toast.addEventListener('touchcancel', () => { start = null; reset(); });
+      toast.addEventListener('touchcancel', cancel);
       // A swipe isn't a tap on the toast's text.
       toast.addEventListener('click', (e) => { if (dragging) { e.stopPropagation(); e.preventDefault(); dragging = false; } }, true);
     }
@@ -5387,13 +5412,23 @@
           const all = hubOrder();
           const at = Math.max(0, all.findIndex((g) => g.id === game.id));
           const from = Math.max(0, Math.min(at - 50, all.length - 100));
-          const lineup = all.slice(from, from + 100)
-            .map((g) => ({ id: g.id, name: String(g.name || '').slice(0, 80), url: String(g.url || '').slice(0, 2000), done: g.status !== 'ready' }));
-          if (!lineup.some((g) => g.id === game.id)) lineup.unshift({ id: game.id, name: game.name, url: game.url, done: game.status !== 'ready' });
+          const toLineupItem = (g) => {
+            const cKey = getCycleDateKey(g.resetTime, g.resetZone);
+            return {
+              id: g.id,
+              name: String(g.name || '').slice(0, 80),
+              url: String(g.url || '').slice(0, 2000),
+              done: g.status !== 'ready',
+              loggedResult: HubCore.isCompletedWithLoggedResult(g, cKey, state.historyLogs)
+            };
+          };
+          const lineup = all.slice(from, from + 100).map(toLineupItem);
+          if (!lineup.some((g) => g.id === game.id)) lineup.unshift(toLineupItem(game));
           bridge.openGameInLineup(game.id, game.name, game.url, JSON.stringify(lineup));
           return;
         }
         if (bridge && typeof bridge.openGame === 'function') {
+          flushSyncNativeNow();
           bridge.openGame(game.id, game.name, game.url);
           return;
         }
@@ -8484,10 +8519,14 @@
       }
       document.getElementById('returnPromptTitle').textContent = returnPromptCycles
         ? `Reset while you played: ${game.name}` : `Finished ${game.name}?`;
+      const completedWithoutResult = !returnPromptCycles && game.status === 'completed'
+        && !HubCore.hasLoggedResultForCycle(game, returnPromptCycleKey, state.historyLogs);
       const streakGoal = game.streak > 0 ? `keep your 🔥 ${game.streak}-day streak` : 'start a streak';
-      document.getElementById('returnPromptSub').textContent = elapsedMs > 0
-        ? `Played for ${formatPlayedFor(elapsedMs)} · log it to ${streakGoal}`
-        : `Log today's result to ${streakGoal}`;
+      document.getElementById('returnPromptSub').textContent = completedWithoutResult
+        ? (elapsedMs > 0 ? `Played for ${formatPlayedFor(elapsedMs)} · add today's score to your log` : `Add today's score to your log`)
+        : (elapsedMs > 0
+          ? `Played for ${formatPlayedFor(elapsedMs)} · log it to ${streakGoal}`
+          : `Log today's result to ${streakGoal}`);
       document.getElementById('returnPromptIcon').innerHTML = renderGameIconHtml(game.icon, game.name, 'w-4 h-4');
       el.classList.remove('hidden');
     }
@@ -8695,14 +8734,15 @@
       returnPromptShareText = captured;
       returnPromptOpenedKey = resetWhilePlaying ? openedKey : '';
       const awayEnough = fromWebTab || playedMs >= RETURN_PROMPT_MIN_MS;
-      if (resetWhilePlaying && (captured || awayEnough)) {
+      const openedHasLoggedResult = openedKey ? HubCore.hasLoggedResultForCycle(game, openedKey, state.historyLogs) : false;
+      if (resetWhilePlaying && !openedHasLoggedResult && (captured || awayEnough)) {
         // The puzzle changed mid-game: ask which one the result is for instead of guessing.
         showReturnPrompt(game, playedMs, { opened: openedKey, current: currentKey });
         return;
       }
-      const alreadyLogged = game.status === 'completed' || game.status === 'missed';
+      const hasLoggedResult = HubCore.hasLoggedResultForCycle(game, currentKey, state.historyLogs);
       const askEnabled = !state.settings || state.settings.askToLogOnReturn !== false;
-      if (askEnabled && !alreadyLogged && awayEnough) {
+      if (askEnabled && !hasLoggedResult && awayEnough) {
         showReturnPrompt(game, playedMs);
       }
     };

@@ -842,11 +842,22 @@ class HubActivity : ComponentActivity() {
     }
 
     private fun launchGame(gameId: String, name: String, url: String, lineup: String? = null, playAll: Boolean = false) {
+        val loggedFromLineup = lineup?.let { json ->
+            runCatching {
+                val arr = JSONArray(json)
+                (0 until arr.length()).asSequence()
+                    .mapNotNull { arr.optJSONObject(it) }
+                    .firstOrNull { it.optString("id") == gameId }
+                    ?.let { if (it.has("loggedResult")) it.optBoolean("loggedResult", false) else null }
+            }.getOrNull()
+        }
+        val loggedResult = loggedFromLineup ?: GameStore.isCompletedWithLoggedResult(applicationContext, gameId)
         val i = Intent(this, GameActivity::class.java)
             .putExtra(GameActivity.EXTRA_ID, gameId)
             .putExtra(GameActivity.EXTRA_NAME, name)
             .putExtra(GameActivity.EXTRA_URL, url)
             .putExtra(GameActivity.EXTRA_PLAY_ALL, playAll)
+            .putExtra(GameActivity.EXTRA_LOGGED_RESULT, loggedResult)
         if (!lineup.isNullOrEmpty() && lineup.length < 200_000) i.putExtra(GameActivity.EXTRA_LINEUP, lineup)
         gameLauncher.launch(i)
     }

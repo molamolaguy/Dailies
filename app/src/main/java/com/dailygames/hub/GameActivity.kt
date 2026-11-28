@@ -120,7 +120,13 @@ class GameActivity : ComponentActivity() {
     private var openedAt = System.currentTimeMillis()
 
     // ---- Today's games (switch between them without going back to the hub) ----
-    private class LineupGame(val id: String, val name: String, val url: String, var done: Boolean)
+    private class LineupGame(
+        val id: String,
+        val name: String,
+        val url: String,
+        var done: Boolean,
+        var loggedResult: Boolean = false
+    )
     private val lineup = ArrayList<LineupGame>()
     /** This game's files preloaded after its reset (PageCache), or null. */
     @Volatile private var preloaded: PageCache.Index? = null
@@ -149,6 +155,7 @@ class GameActivity : ComponentActivity() {
     /** Results of games played earlier in this player session, handed to the hub on return. */
     private var earlierResults = JSONArray()
     private var titleView: TextView? = null
+    private var logPill: TextView? = null
     private var clearHistoryOnLoad = false
     /** History is cleared again once the new game's page has finished loading (see [switchToGame]). */
     private var clearHistoryAtFinish = false
@@ -157,6 +164,9 @@ class GameActivity : ComponentActivity() {
     private val endSwitch = Runnable { switching = false }
     private var inFinish = false
     private var findResults = true
+    /** True when the active game was already completed with a logged result before entering. */
+    private var currentGameLoggedResult = false
+    private var shareHookScriptHandler: androidx.webkit.ScriptHandler? = null
     /** Marks the page hook's messages as the app's own; the page can't read it (see share-hook.js). */
     private val pageKey: String = UUID.randomUUID().toString().replace("-", "")
     /** After the hook says it pressed a Share button: windows, other apps and downloads stay shut. */
@@ -179,6 +189,8 @@ class GameActivity : ComponentActivity() {
     private val clipListener = ClipboardManager.OnPrimaryClipChangedListener { onClipboardChanged() }
     private lateinit var banner: TextView
     private val hideBanner = Runnable { if (::banner.isInitialized) banner.animate().alpha(0f).setDuration(220).withEndAction { banner.visibility = View.GONE } }
+
+    private fun isAutoLogActive(): Boolean = autoLogEnabled && !currentGameLoggedResult
 
     // ---- Ad blocking ----
     private var blockAdsSetting = true
@@ -230,6 +242,10 @@ class GameActivity : ComponentActivity() {
         }
         effectiveGameUrl = gameUrl
         readLineup(savedInstanceState?.getString(STATE_LINEUP) ?: intent.getStringExtra(EXTRA_LINEUP))
+        currentGameLoggedResult = savedInstanceState?.takeIf { it.containsKey(STATE_LOGGED_RESULT) }
+            ?.getBoolean(STATE_LOGGED_RESULT)
+            ?: lineup.firstOrNull { it.id == gameId }?.loggedResult
+            ?: intent.getBooleanExtra(EXTRA_LOGGED_RESULT, false)
         loadPreloaded(gameId)
         playAll = savedInstanceState?.getBoolean(STATE_PLAY_ALL) ?: intent.getBooleanExtra(EXTRA_PLAY_ALL, false)
         savedInstanceState?.getString(STATE_EARLIER)?.let { earlierResults = runCatching { JSONArray(it) }.getOrDefault(JSONArray()) }
@@ -368,10 +384,13 @@ class GameActivity : ComponentActivity() {
         }
         // Reload, Open in browser and Zoom live in a menu so the bar has room for Next.
         bar.addView(pill("", "More options", primaryContainerColor, onPrimaryContainerColor, R.drawable.ic_bar_more) { v -> showMoreMenu(v) })
-        bar.addView(pill("Log", "Log today's result", primaryColor, onPrimaryColor, R.drawable.ic_bar_check) {
+        logPill = pill("Log", "Log today's result", primaryColor, onPrimaryColor, R.drawable.ic_bar_check) {
             setResultWithLog(true)
             finish()
-        })
+        }.apply {
+            visibility = if (currentGameLoggedResult) View.GONE else View.VISIBLE
+        }
+        bar.addView(logPill)
 
         progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
@@ -964,11 +983,13 @@ class GameActivity : ComponentActivity() {
     /** Layer 2: page scripts (document start) + origin-scoped message channels (androidx.webkit). */
     private fun setUpPageHooks() {
         documentStartScriptsSupported = false
+        shareHookScriptHandler = null
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) return
         val anyOrigin = setOf("*")
         try {
             if (autoLogEnabled) {
                 WebViewCompat.addWebMessageListener(webView, "DailesShare", anyOrigin) { _, message, sourceOrigin, isMainFrame, _ ->
+                    if (!isAutoLogActive()) return@addWebMessageListener
                     val scheme = sourceOrigin.scheme?.lowercase(Locale.US)
                     if (scheme != "http" && scheme != "https") return@addWebMessageListener
                     // Only the game's own site: its page or a frame from the same site (some games run
@@ -1008,7 +1029,7 @@ class GameActivity : ComponentActivity() {
                 onDownloadChannelMessage(message.data, sourceOrigin, reply)
             }
             if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
-                if (autoLogEnabled) WebViewCompat.addDocumentStartJavaScript(webView, shareHookScript(), anyOrigin)
+                syncShareHookRegistration()
                 if (blockAdsSetting) WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/cosmetic.js"), anyOrigin)
                 WebViewCompat.addDocumentStartJavaScript(webView, pageScript("game/download-hook.js"), anyOrigin)
                 WebViewCompat.addDocumentStartJavaScript(webView, selectMenuScript(), anyOrigin)
@@ -1018,6 +1039,20 @@ class GameActivity : ComponentActivity() {
             }
         } catch (e: Exception) {
             // Older WebView: the clipboard listener (layer 1) still captures results.
+        }
+    }
+
+    private fun syncShareHookRegistration() {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER) ||
+            !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT) ||
+            !::webView.isInitialized
+        ) return
+        runCatching {
+            shareHookScriptHandler?.remove()
+            shareHookScriptHandler = null
+            if (isAutoLogActive()) {
+                shareHookScriptHandler = WebViewCompat.addDocumentStartJavaScript(webView, shareHookScript(), setOf("*"))
+            }
         }
     }
 
@@ -1056,7 +1091,7 @@ class GameActivity : ComponentActivity() {
     /** Fallback for WebViews without document-start scripts: inject as early as onPageStarted. */
     private fun injectPageScriptsFallback() {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
-            if (autoLogEnabled) webView.evaluateJavascript(shareHookScript(), null)
+            if (isAutoLogActive()) webView.evaluateJavascript(shareHookScript(), null)
             if (blockAdsSetting && adBlockActive) webView.evaluateJavascript(pageScript("game/cosmetic.js"), null)
             webView.evaluateJavascript(pageScript("game/download-hook.js"), null)
         }
@@ -1095,7 +1130,7 @@ class GameActivity : ComponentActivity() {
         val allowNonDaily = ShareResultDetector.configuredGameAllowsNonDaily(gameName, effectiveGameUrl)
         return pageScript("game/share-hook.js")
             .replace("__DAILIES_NONCE__", pageKey)
-            .replace("__DAILIES_FIND__", (autoLogEnabled && findResults).toString())
+            .replace("__DAILIES_FIND__", (isAutoLogActive() && findResults).toString())
             .replace("__DAILIES_NON_DAILY__", allowNonDaily.toString())
     }
 
@@ -1107,7 +1142,7 @@ class GameActivity : ComponentActivity() {
 
     /** Layer 1: anything copied while the game is on screen (Android only reports it to the foreground app). */
     private fun onClipboardChanged() {
-        if (!autoLogEnabled) return
+        if (!isAutoLogActive()) return
         // Off the game's own site (a sign-in page, an article it linked to), copies aren't results.
         val here = pageHost
         if (here != null && gameHost.isNotEmpty() && !AdBlockEngine.sameSite(here, gameHost)) return
@@ -1127,7 +1162,7 @@ class GameActivity : ComponentActivity() {
      * "pasted from your clipboard" notice doesn't show for nothing. Android 8+ (needs the timestamp).
      */
     private fun checkClipboardSinceOpen(ignoreFocus: Boolean = false) {
-        if (!autoLogEnabled || Build.VERSION.SDK_INT < Build.VERSION_CODES.O || (!ignoreFocus && !hasWindowFocus())) return
+        if (!isAutoLogActive() || Build.VERSION.SDK_INT < Build.VERSION_CODES.O || (!ignoreFocus && !hasWindowFocus())) return
         val cm = clipboardManager ?: return
         val stamp = runCatching { cm.primaryClipDescription?.timestamp }.getOrNull() ?: return
         if (!clipNewSinceOpen(stamp) || stamp == lastClipStampChecked) return
@@ -1158,7 +1193,7 @@ class GameActivity : ComponentActivity() {
     /** Keeps the latest text that passes the strict share-result check; it is logged back in the hub. */
     private fun offerShare(text: String?, via: String): Boolean {
         // While switching games the old page is still alive: whatever it reports isn't the new game's.
-        if (!autoLogEnabled || text.isNullOrBlank() || switching) return false
+        if (!isAutoLogActive() || text.isNullOrBlank() || switching) return false
         val clean = text.replace("\r\n", "\n").trim()
         if (clean == capturedShare) return false
         if (!ShareResultDetector.isStrictShareResult(clean, gameName, effectiveGameUrl)) return false
@@ -1192,7 +1227,7 @@ class GameActivity : ComponentActivity() {
      * or right after the hook pressed the game's Share button (once per page).
      */
     private fun captureShareLink(link: String, gesture: Boolean) {
-        if (!autoLogEnabled) return
+        if (!isAutoLogActive()) return
         val text = ShareLinkText.extract(link) ?: return
         val now = SystemClock.elapsedRealtime()
         if (gesture || userActedWithin(SHARE_GESTURE_WINDOW_MS)) {
@@ -1208,6 +1243,7 @@ class GameActivity : ComponentActivity() {
      * not when a result was already found.
      */
     private fun offerScreenResult(raw: String?) {
+        if (!isAutoLogActive()) return
         val line = raw?.replace(Regex("\\s+"), " ")?.trim()?.take(80).orEmpty()
         if (line.length < 3 || switching || capturedShare != null || screenOfferedThisPage || donePrompt != null) return
         if (lineup.firstOrNull { it.id == gameId }?.done == true) return
@@ -1690,6 +1726,7 @@ class GameActivity : ComponentActivity() {
         outState.putBoolean(STATE_USER_INTERACTED, hasUserInteracted)
         outState.putString(STATE_LINEUP, lineupJson())
         outState.putBoolean(STATE_PLAY_ALL, playAll)
+        outState.putBoolean(STATE_LOGGED_RESULT, currentGameLoggedResult)
         outState.putString(STATE_EARLIER, earlierResults.toString())
         outState.putLong(STATE_CLIP_STAMP, lastClipStampChecked)
         outState.putBoolean(STATE_CLEAR_HISTORY, clearHistoryOnLoad || clearHistoryAtFinish)
@@ -1709,14 +1746,23 @@ class GameActivity : ComponentActivity() {
         runCatching { CookieManager.getInstance().flush() }
     }
 
+    private fun syncClipboardListener() {
+        if (isAutoLogActive()) {
+            if (clipboardManager == null) {
+                clipboardManager = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
+            }
+            runCatching { clipboardManager?.removePrimaryClipChangedListener(clipListener) }
+            runCatching { clipboardManager?.addPrimaryClipChangedListener(clipListener) }
+        } else {
+            runCatching { clipboardManager?.removePrimaryClipChangedListener(clipListener) }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         resumedAt = SystemClock.elapsedRealtime()
         activeFilter = WeakReference(this)
-        if (autoLogEnabled) {
-            clipboardManager = getSystemService(CLIPBOARD_SERVICE) as? ClipboardManager
-            runCatching { clipboardManager?.addPrimaryClipChangedListener(clipListener) }
-        }
+        syncClipboardListener()
         if (::webView.isInitialized) webView.onResume()
     }
 
@@ -1786,13 +1832,28 @@ class GameActivity : ComponentActivity() {
             val url = o.optString("url")
             if (!url.startsWith("https://", true) && !url.startsWith("http://", true)) continue
             val id = o.optString("id").ifEmpty { continue }
-            lineup += LineupGame(id, o.optString("name").ifBlank { "Daily Game" }, url, o.optBoolean("done"))
+            lineup += LineupGame(
+                id,
+                o.optString("name").ifBlank { "Daily Game" },
+                url,
+                o.optBoolean("done"),
+                o.optBoolean("loggedResult", false)
+            )
         }
         if (lineup.none { it.id == gameId }) lineup.clear()
     }
 
     private fun lineupJson(): String = JSONArray().also { arr ->
-        lineup.forEach { arr.put(JSONObject().put("id", it.id).put("name", it.name).put("url", it.url).put("done", it.done)) }
+        lineup.forEach {
+            arr.put(
+                JSONObject()
+                    .put("id", it.id)
+                    .put("name", it.name)
+                    .put("url", it.url)
+                    .put("done", it.done)
+                    .put("loggedResult", it.loggedResult)
+            )
+        }
     }.toString()
 
     /** The next game not done yet after the current one (in the hub's order, wrapping), or null. */
@@ -2070,6 +2131,9 @@ class GameActivity : ComponentActivity() {
         dismissTransientPopups()
         hideDonePrompt()
         checkClipboardSinceOpen()
+        if (!capturedShare.isNullOrBlank()) {
+            lineup.firstOrNull { it.id == gameId }?.loggedResult = true
+        }
         val now = SystemClock.elapsedRealtime()
         val played = foregroundMs + if (resumedAt > 0) now - resumedAt else 0L
         addEarlierResult(gameId, played, openedAt, capturedShare, capturedConfirmed)
@@ -2094,6 +2158,7 @@ class GameActivity : ComponentActivity() {
         gameName = target.name
         gameUrl = target.url
         effectiveGameUrl = gameUrl
+        currentGameLoggedResult = target.loggedResult
         initialHost = gameUrl.toUri().host?.lowercase(Locale.US).orEmpty()
         gameHost = initialHost
         pageHost = gameHost.ifEmpty { null }
@@ -2112,6 +2177,9 @@ class GameActivity : ComponentActivity() {
         blockedCount.set(0)
         helloAnswered.clear()
         blobFrames.clear()
+        logPill?.visibility = if (currentGameLoggedResult) View.GONE else View.VISIBLE
+        syncShareHookRegistration()
+        if (resumedAt > 0) syncClipboardListener()
         shieldPill?.let { p ->
             val icon = androidx.core.content.ContextCompat.getDrawable(
                 this, if (adBlockActive) R.drawable.ic_bar_shield else R.drawable.ic_bar_shield_off
@@ -2588,10 +2656,12 @@ class GameActivity : ComponentActivity() {
         const val EXTRA_SHARE_TEXT = "share_text"
         /** The result was confirmed by the player (an on-screen result they chose to log). */
         const val EXTRA_SHARE_CONFIRMED = "share_confirmed"
-        /** Today's games in the hub's order: [{id, name, url, done}]. */
+        /** Today's games in the hub's order: [{id, name, url, done, loggedResult}]. */
         const val EXTRA_LINEUP = "lineup"
         const val EXTRA_PLAY_ALL = "play_all"
+        const val EXTRA_LOGGED_RESULT = "logged_result"
         private const val STATE_PLAY_ALL = "state_play_all"
+        private const val STATE_LOGGED_RESULT = "state_logged_result"
         private const val AUTO_NEXT_SECONDS = 4
         /** Games played earlier in this player session: [{id, elapsedMs, openedAt, share}]. */
         const val EXTRA_EARLIER = "earlier_results"

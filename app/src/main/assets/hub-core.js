@@ -2366,6 +2366,36 @@
     return null;
   }
 
+  /**
+   * True when a non-placeholder result snippet is already recorded for `game` on `cycleKey`.
+   */
+  function hasLoggedResultForCycle(game, cycleKey, historyLogs) {
+    if (!game || !cycleKey) return false;
+    const isPlaceholder = (s) => /^auto-marked missed$/i.test(s);
+    const logs = Array.isArray(historyLogs) ? historyLogs : [];
+    const row = logs.find((l) => l && l.date === cycleKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
+    const rowScore = row && typeof row.score === 'string' ? row.score.trim() : '';
+    if (rowScore && !isPlaceholder(rowScore)) return true;
+    if (game.lastCycleKey === cycleKey && game.status === 'completed') {
+      const todayScore = typeof game.todayScore === 'string' ? game.todayScore.trim() : '';
+      if (todayScore && !isPlaceholder(todayScore)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * True when `game` is marked completed for `cycleKey` AND already has a logged result recorded.
+   */
+  function isCompletedWithLoggedResult(game, cycleKey, historyLogs) {
+    if (!game || !cycleKey) return false;
+    const logs = Array.isArray(historyLogs) ? historyLogs : [];
+    const row = logs.find((l) => l && l.date === cycleKey && (l.gameId ? l.gameId === game.id : l.gameName === game.name));
+    const completed = (game.dayHistory && game.dayHistory[cycleKey] === 'completed')
+      || (game.lastCycleKey === cycleKey && game.status === 'completed')
+      || Boolean(row && row.outcome === 'Completed');
+    return Boolean(completed && hasLoggedResultForCycle(game, cycleKey, logs));
+  }
+
   return {
     gameLinkKey,
     canonicalGameLink,
@@ -2374,6 +2404,8 @@
     findSameGame,
     shareResultSignature,
     findDuplicateByResult,
+    hasLoggedResultForCycle,
+    isCompletedWithLoggedResult,
     extractResultText,
     weekBounds,
     periodRecap,

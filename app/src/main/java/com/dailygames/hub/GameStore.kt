@@ -251,6 +251,33 @@ object GameStore {
     }
 
     /**
+     * True when the synced game entry is marked completed for its current cycle AND already has a
+     * logged result recorded in the hub (`loggedResultCycle == currentCycle`).
+     */
+    fun isCompletedWithLoggedResult(
+        ctx: Context,
+        gameId: String,
+        nowMs: Long = System.currentTimeMillis(),
+        localTimeZone: TimeZone = TimeZone.getDefault()
+    ): Boolean = synchronized(ScheduleLock) {
+        if (gameId.isEmpty()) return false
+        val games = repository(ctx).load()
+        for (i in 0 until games.length()) {
+            val g = games.optJSONObject(i) ?: continue
+            if (g.optString("id") != gameId) continue
+            val currentCycle = cycleKey(
+                g.optString("resetTime", "00:00"),
+                g.optString("resetZone", "local"),
+                nowMs,
+                localTimeZone
+            )
+            return g.optString("status") == "completed" &&
+                g.optString("loggedResultCycle") == currentCycle
+        }
+        false
+    }
+
+    /**
      * Same definition of "which daily cycle are we in" as the JS side (getCycleDateKey):
      * uses calendar math in UTC or local time so DST transitions never shift the cycle date.
      */
