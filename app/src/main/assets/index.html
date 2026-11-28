@@ -1228,6 +1228,24 @@
     </div>
   </div>
 
+  <!-- DUPLICATE GAME RESULT DETECTION MODAL -->
+  <div id="modalDuplicateGame" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalDuplicateTitle">
+    <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-md border border-slate-700 shadow-2xl">
+      <div class="flex items-center justify-between gap-3">
+        <h3 id="modalDuplicateTitle" class="text-base font-bold text-white truncate">Same game?</h3>
+        <button type="button" data-close-modal="modalDuplicateGame" class="icon-btn shrink-0" aria-label="Close"><span class="ico ico-close" aria-hidden="true"></span></button>
+      </div>
+      <div class="space-y-3 text-xs sm:text-sm">
+        <p id="modalDuplicateMessage" class="text-slate-200 leading-relaxed"></p>
+        <pre id="modalDuplicatePreview" class="hidden p-2.5 rounded-xl bg-slate-900/70 border border-slate-800 text-[11px] text-slate-300 font-mono whitespace-pre-wrap break-words max-h-28 overflow-y-auto"></pre>
+        <div class="modal-footer flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+          <button id="btnKeepDuplicateSeparate" type="button" class="px-4 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold">Keep separate</button>
+          <button id="btnMergeDuplicateGame" type="button" class="px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg truncate">Merge</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="modalShareList" class="fixed inset-0 z-50 hidden bg-black/80 flex items-center justify-center p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modalShareListTitle">
     <div tabindex="-1" class="modal-panel glass-card modal-sheet-panel w-full max-w-md border border-slate-700 shadow-2xl">
       <div class="flex items-center justify-between gap-3">
@@ -5527,6 +5545,9 @@
       checkResetSuggestion(game);
       checkScoreFormat(game);
       checkNewAchievements();
+      if (hasScoreContent && displayScore && displayScore.trim()) {
+        checkDuplicateResultForNewGame(game, displayScore, todayKey);
+      }
       updateSingleGameCardOrGrid(game.id);
       if (activeTab === 'stats') renderStatsAndCharts();
     }
@@ -7792,8 +7813,10 @@
     // ---- Modals: one open at a time, Back/tap-outside close the top one, focus is moved in and back.
     const CONFIRM_BTN_DANGER = 'px-5 py-2 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg';
     const CONFIRM_BTN_PRIMARY = 'px-5 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg';
-    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalTheme', 'modalAppIcon', 'modalIconEditor', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalShareList', 'modalImportList'];
+    const MODAL_IDS = ['modalGameActions', 'modalTrash', 'modalRecheck', 'modalWhatsNew', 'modalErrorLog', 'modalGameHealth', 'modalStorage', 'modalTheme', 'modalAppIcon', 'modalIconEditor', 'modalTodayResults', 'modalChanges', 'modalAddGame', 'modalBrowseGames', 'modalNextGame', 'modalAchievement', 'modalLogScore', 'modalDayEntry', 'modalDeleteGame', 'modalDuplicateGame', 'modalShareList', 'modalImportList'];
     let modalReturnFocus = null;
+    let pendingDuplicatePrompt = null;
+    let activeDuplicatePrompt = null;
     function isModalOpen(id) {
       const el = document.getElementById(id);
       return Boolean(el && !el.classList.contains('hidden'));
@@ -7830,6 +7853,8 @@
         pendingConfirmCancel = null;
         document.getElementById('btnConfirmDeleteModal').textContent = 'Remove';
         document.getElementById('btnConfirmDeleteModal').className = CONFIRM_BTN_DANGER;
+      } else if (id === 'modalDuplicateGame') {
+        activeDuplicatePrompt = null;
       } else if (id === 'modalLogScore') {
         logModalCycleKey = '';
         logOpenedFromPlayer = false;
@@ -7840,9 +7865,15 @@
       syncBackInterceptState();
       if (typeof cancelCb === 'function') { cancelCb(); return; }
       if (reopenAdd) { openModal('modalAddGame'); return; }
-      if (!MODAL_IDS.some(isModalOpen) && modalReturnFocus && modalReturnFocus.isConnected) {
-        try { modalReturnFocus.focus({ preventScroll: true }); } catch (e) {}
-        modalReturnFocus = null;
+      if (!MODAL_IDS.some(isModalOpen)) {
+        if (pendingDuplicatePrompt) {
+          setTimeout(presentPendingDuplicatePrompt, 60);
+          return;
+        }
+        if (modalReturnFocus && modalReturnFocus.isConnected) {
+          try { modalReturnFocus.focus({ preventScroll: true }); } catch (e) {}
+          modalReturnFocus = null;
+        }
       }
     }
     function closeAllModals(except) {
@@ -7934,6 +7965,134 @@
       renderVisibleTab();
       showToast('Game Removed', `${game.name} is in the Trash for 30 days, with its streaks and history.`, 'indigo', null,
         { actionLabel: 'Undo', onAction: () => undoChange(changeId) });
+    }
+
+    // ---- Duplicate detection from a newly added game's logged result ----
+    const DUPLICATE_RESULT_WHY = {
+      'result-url': (other) => `This result links to ${other.name}, which is already in your hub.`,
+      'same-result': (other) => `This exact result was already logged on ${other.name} in your hub.`,
+      'result-brand': (other) => `This result names ${other.name} and matches its score format.`,
+      'result-style': (other) => `This result matches the score format and grid style of ${other.name} in your hub.`
+    };
+
+    function presentPendingDuplicatePrompt() {
+      if (!pendingDuplicatePrompt) return;
+      if (isAnyModalOpen()) return;
+      const { dupId, targetId, reason, preview } = pendingDuplicatePrompt;
+      const dup = state.games.find((g) => g.id === dupId);
+      const target = state.games.find((g) => g.id === targetId);
+      if (!dup || !target || dup.id === target.id) {
+        pendingDuplicatePrompt = null;
+        return;
+      }
+      activeDuplicatePrompt = pendingDuplicatePrompt;
+      pendingDuplicatePrompt = null;
+      const whyFn = DUPLICATE_RESULT_WHY[reason] || DUPLICATE_RESULT_WHY['result-style'];
+      document.getElementById('modalDuplicateTitle').textContent = `Same game as ${target.name}?`;
+      document.getElementById('modalDuplicateMessage').textContent =
+        `${whyFn(target)} Merge "${dup.name}" into "${target.name}" so your streak, history, and links stay together?`;
+      const preEl = document.getElementById('modalDuplicatePreview');
+      const snippet = String(preview || '').trim().split('\n').slice(0, 6).join('\n');
+      if (snippet) {
+        preEl.textContent = snippet;
+        preEl.classList.remove('hidden');
+      } else {
+        preEl.textContent = '';
+        preEl.classList.add('hidden');
+      }
+      document.getElementById('btnMergeDuplicateGame').textContent = `Merge into ${target.name}`;
+      openModal('modalDuplicateGame');
+    }
+
+    function checkDuplicateResultForNewGame(game, displayScore, todayKey) {
+      if (!game || typeof HubCore.findDuplicateByResult !== 'function') return;
+      const hit = HubCore.findDuplicateByResult(game, displayScore, todayKey, state.games, state.historyLogs, {
+        sameKnownGame: (typeof KnownGames !== 'undefined' && KnownGames.sameGame) ? KnownGames.sameGame : null
+      });
+      if (!hit || !hit.game) return;
+      pendingDuplicatePrompt = {
+        dupId: game.id,
+        targetId: hit.game.id,
+        reason: hit.reason,
+        preview: displayScore
+      };
+      setTimeout(presentPendingDuplicatePrompt, 80);
+    }
+
+    function mergeDuplicateGameInto(dupId, targetId) {
+      const dup = state.games.find((g) => g.id === dupId);
+      const target = state.games.find((g) => g.id === targetId);
+      closeModal('modalDuplicateGame');
+      if (!dup || !target || dup.id === target.id) return;
+
+      if (target.archived) delete target.archived;
+
+      const extraUrls = [dup.url, ...(Array.isArray(dup.altUrls) ? dup.altUrls : [])]
+        .filter((u) => u && normalizeUrlKey(u) !== normalizeUrlKey(target.url));
+      if (extraUrls.length) {
+        target.altUrls = [...new Set([...extraUrls, ...(Array.isArray(target.altUrls) ? target.altUrls : [])])].slice(0, 4);
+      }
+      if (Array.isArray(dup.embeds) && dup.embeds.length) {
+        target.embeds = [...new Set([...(Array.isArray(target.embeds) ? target.embeds : []), ...dup.embeds])].slice(0, 8);
+      }
+
+      state.historyLogs.forEach((l) => {
+        if (!l) return;
+        if (l.gameId === dup.id || (!l.gameId && l.gameName === dup.name)) {
+          l.gameId = target.id;
+          l.gameName = target.name;
+          l.icon = target.icon;
+        }
+      });
+      state.historyLogs = HubUiHelpers.dedupeHistoryLogs(state.historyLogs);
+
+      if (!target.dayHistory || typeof target.dayHistory !== 'object') target.dayHistory = {};
+      Object.entries(dup.dayHistory || {}).forEach(([dayKey, status]) => {
+        if (!target.dayHistory[dayKey] || (status === 'completed' && target.dayHistory[dayKey] !== 'completed')) {
+          target.dayHistory[dayKey] = status;
+        }
+      });
+
+      const targetCycleKey = getCycleDateKey(target.resetTime, target.resetZone);
+      const todayRow = state.historyLogs.find((l) => l && l.gameId === target.id && l.date === targetCycleKey);
+      if (target.dayHistory[targetCycleKey] === 'completed' || target.dayHistory[targetCycleKey] === 'missed') {
+        target.status = target.dayHistory[targetCycleKey];
+        target.lastCycleKey = targetCycleKey;
+        if (todayRow && todayRow.score && !target.todayScore) target.todayScore = todayRow.score;
+      }
+      if (!target.playTime && dup.playTime && dup.playTime.key === targetCycleKey) {
+        target.playTime = { key: targetCycleKey, ms: dup.playTime.ms };
+      }
+
+      if (state.retainedGameStats && typeof state.retainedGameStats === 'object') {
+        delete state.retainedGameStats[dup.id];
+        const dupUrlKey = normalizeUrlKey(dup.url);
+        if (dupUrlKey) delete state.retainedGameStats[dupUrlKey];
+      }
+      if (selectedCalendarGameId === dup.id) selectedCalendarGameId = target.id;
+      if (lastOpenedGameId === dup.id) lastOpenedGameId = target.id;
+
+      state.games = state.games.filter((g) => g.id !== dup.id);
+      nativeGameFinished(dup.id);
+
+      recomputeGameStatsFromHistory(target);
+      HubCore.recomputeLogStreaks(target, state.historyLogs);
+      HubCore.sortHistoryLogs(state.historyLogs);
+      invalidateLogIndex();
+      saveState({ syncNow: true });
+      renderAll();
+      showToast(`Merged into ${target.name}`, 'Result and link saved on your existing game.', 'emerald');
+    }
+
+    function keepDuplicateGamesSeparate(dupId, targetId) {
+      const dup = state.games.find((g) => g.id === dupId);
+      const target = state.games.find((g) => g.id === targetId);
+      closeModal('modalDuplicateGame');
+      if (!dup || !target || dup.id === target.id) return;
+      dup.notDuplicateOf = [...new Set([...(Array.isArray(dup.notDuplicateOf) ? dup.notDuplicateOf : []), target.id])].slice(0, 20);
+      target.notDuplicateOf = [...new Set([...(Array.isArray(target.notDuplicateOf) ? target.notDuplicateOf : []), dup.id])].slice(0, 20);
+      saveState({ sync: false });
+      showToast('Kept both games', `${dup.name} and ${target.name} will stay separate.`, 'indigo');
     }
 
     let lastAutoScrapedUrl = '';
@@ -9640,6 +9799,16 @@
       document.getElementById('btnCloseDeleteModal').addEventListener('click', closeDeleteConfirmModal);
       document.getElementById('btnCancelDeleteModal').addEventListener('click', closeDeleteConfirmModal);
       document.getElementById('btnConfirmDeleteModal').addEventListener('click', confirmDeleteGame);
+      document.getElementById('btnKeepDuplicateSeparate').addEventListener('click', () => {
+        if (!activeDuplicatePrompt) { closeModal('modalDuplicateGame'); return; }
+        const { dupId, targetId } = activeDuplicatePrompt;
+        keepDuplicateGamesSeparate(dupId, targetId);
+      });
+      document.getElementById('btnMergeDuplicateGame').addEventListener('click', () => {
+        if (!activeDuplicatePrompt) { closeModal('modalDuplicateGame'); return; }
+        const { dupId, targetId } = activeDuplicatePrompt;
+        mergeDuplicateGameInto(dupId, targetId);
+      });
 
       // Add/Edit Modal handlers (closeAddModal is global so Back closes it the same way)
       document.getElementById('btnCloseAddModal').addEventListener('click', closeAddModal);

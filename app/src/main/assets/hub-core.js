@@ -2106,12 +2106,274 @@
     return null;
   }
 
+  // ---- Duplicate detection from a newly added game's result format & style ----
+  const RESULT_URL_RE = /https?:\/\/[^\s"'<>)]+|\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:com|org|net|io|app|game|games|earth|wtf|me|world|day|fr|uk|de|ca|au|co|gg|xyz|tv|us|info|fun)(?:\/[^\s"'<>)]*)?/gi;
+  const RESULT_HASHTAG_RE = /(?:^|\s)#([a-z][a-z0-9_]{2,30})\b/gi;
+  const RESULT_DATE_TEXT_RE = /\b(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+\d{1,2}(?:st|nd|rd|th)?(?:,?\s+\d{4})?|\d{1,2}\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?(?:,?\s+\d{4})?|\d{4}-\d{2}-\d{2}|\d{1,2}[\/.]\d{1,2}[\/.]\d{2,4})\b/gi;
+  const RESULT_QUOTE_RE = /(?:"[^"\n]{1,60}"|“[^”\n]{1,60}”|'[^'\n]{2,60}'|‘[^’\n]{2,60}’)/g;
+  const RESULT_TILE_RE = /[0-9#*]️?⃣|[⬛⬜⚫⚪✅❌⭐❤💡🎥🎬🎞️🔊🎵🔇🎧⬆️⬇️⬅️➡️↗️↘️↙️↖️\u{1F7E0}-\u{1F7EB}\u{1F534}\u{1F535}\u{1F499}-\u{1F49C}\u{1F5A4}\u{1F90D}\u{1F90E}\u{1F31F}]/gu;
+  const RESULT_TRIVIAL_SKELETON_RE = /^(?:(?:puzzle|day|daily|game|score|solved|result|#|<n>|<frac>|<time>|<date>|[:\-–—|·()/\s])+)$/i;
+
+  function classifyTilePalette(sample) {
+    if (/[🎥🎬🎞️🔊🎵🔇🎧]/u.test(sample)) return 'media';
+    if (/[⬆️⬇️⬅️➡️↗️↘️↙️↖️]/u.test(sample)) return 'squares-dir';
+    if (/[🟦🟪]/u.test(sample) && !/[🔵🟣]/u.test(sample)) return 'squares-rainbow';
+    if (/[🔴🟠🟡🟢🔵🟣⚫⚪💡]/u.test(sample) && !/[🟩🟨⬛⬜]/u.test(sample)) return 'circles';
+    if (/[🟥🟧]/u.test(sample)) return 'heat';
+    if (/[0-9#*]️?⃣/u.test(sample)) return 'keycaps';
+    return 'squares-bwg';
+  }
+
+  function isTileRowLine(line) {
+    if (isGridLine(line)) return true;
+    const cells = String(line || '').match(RESULT_TILE_RE);
+    if (!cells || cells.length < 2) return false;
+    // Hybrid rows like `🟨🟧🟥🟩 = 4` or `🟩🟩🟩🟩🟨⬅️ 85%`
+    const rest = String(line || '').replace(RESULT_TILE_RE, '').replace(/[\s️‍=0-9+%().,/-]/g, '');
+    return rest.length === 0;
+  }
+
+  /**
+   * Extracts a structural & visual fingerprint from a game's share text:
+   * `{ raw, urls, canonUrls, hashtags, brandKey, modeKey, scoreGroup, gridStyle, puzzleNum, puzzleEpoch, skeleton, distinctive }`
+   */
+  function shareResultSignature(text, cycleDateKey) {
+    const raw = String(text || '').replace(/\r\n/g, '\n').trim();
+    if (raw.length < 6 || /^auto-marked missed$/i.test(raw)) return null;
+
+    const urls = [];
+    let um;
+    RESULT_URL_RE.lastIndex = 0;
+    while ((um = RESULT_URL_RE.exec(raw)) !== null) {
+      const cleaned = um[0].replace(/[.,;:!?)'"\]]+$/, '');
+      if (cleaned) urls.push(cleaned);
+    }
+    const canonUrls = urls.map(canonicalGameLink).filter(Boolean);
+
+    const hashtags = [];
+    let hm;
+    RESULT_HASHTAG_RE.lastIndex = 0;
+    while ((hm = RESULT_HASHTAG_RE.exec(raw)) !== null) {
+      const hk = gameNameKey(hm[1]);
+      if (hk && !hashtags.includes(hk)) hashtags.push(hk);
+    }
+
+    const pv = parseResultValue(raw);
+    const sc = parseScore(raw);
+    const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
+
+    const tileRows = [];
+    const textLines = [];
+    lines.forEach((l) => {
+      if (isTileRowLine(l)) {
+        const cells = l.match(RESULT_TILE_RE) || [];
+        tileRows.push({ line: l, pure: isGridLine(l), count: cells.length });
+      } else {
+        textLines.push(l);
+      }
+    });
+
+    let gridStyle = '';
+    if (tileRows.length > 0) {
+      const allTileSample = tileRows.map((r) => r.line).join('');
+      const palette = classifyTilePalette(allTileSample);
+      const pureCounts = tileRows.filter((r) => r.pure).map((r) => r.count);
+      const uniformWidth = pureCounts.length >= 2 && pureCounts.every((c) => c === pureCounts[0])
+        ? String(pureCounts[0])
+        : (pureCounts.length === 1 && tileRows.length === 1 && pureCounts[0] >= 4 ? String(pureCounts[0]) : 'var');
+      gridStyle = `${palette}:${uniformWidth}`;
+    }
+
+    const scoreGroup = (pv && pv.group)
+      || (sc && Number(sc.max) > 0 ? `f:${sc.max}` : '')
+      || (tileRows.length >= 2 ? 'grid-only' : '');
+
+    const puzzleNum = puzzleNumber(raw);
+    const puzzleEpoch = (puzzleNum !== null && DATE_KEY_RE.test(String(cycleDateKey || '')))
+      ? (puzzleNum - cycleKeyToDay(cycleDateKey))
+      : null;
+
+    if (!scoreGroup && !gridStyle && !canonUrls.length && puzzleNum === null) return null;
+
+    // Mode qualifier across text lines (so `#LoLdle (Classic)` and `#LoLdle (Quote)` never merge).
+    const textJoined = textLines.join(' ');
+    const modeMatch = textJoined.match(MODE_QUALIFIER_RE);
+    const modeKey = modeMatch ? modeMatch[1].toLowerCase() : '';
+
+    // Header brand from the first 1–2 text lines after removing dates, numbers, scores, and URLs.
+    let brandKey = '';
+    for (let i = 0; i < Math.min(2, textLines.length) && !brandKey; i++) {
+      let h = textLines[i]
+        .replace(RESULT_URL_RE, ' ')
+        .replace(RESULT_QUOTE_RE, ' ')
+        .replace(RESULT_DATE_TEXT_RE, ' ')
+        .replace(/\b(?:puzzle|day|no\.?|streak|avg\.?\s*guesses?|guesses?|tries|moves|swaps|score|points|pts|time|mistakes|hints?)\b[:\s]*[0-9.,/%+-]*/gi, ' ')
+        .replace(/(?:[0-9xX]+\s*\/\s*[0-9,]+|#\s*[0-9,]+|\([0-9.,%+-]+\)|[+-][0-9]+|\b[0-9]{1,2}:[0-9]{2}\b|\b[0-9][0-9,.]*\b)/g, ' ')
+        .trim();
+      if (modeKey && !new RegExp(`\\b${modeKey}\\b`, 'i').test(h)) h = `${h} ${modeKey}`;
+      brandKey = gameNameKey(h);
+    }
+    if (!brandKey && hashtags.length === 1) {
+      brandKey = modeKey && !hashtags[0].includes(modeKey) ? `${hashtags[0]}${modeKey}` : hashtags[0];
+    }
+
+    // Build normalized structural template skeleton across the whole share snippet.
+    const skelParts = [];
+    let inGrid = false;
+    lines.forEach((l) => {
+      if (isTileRowLine(l)) {
+        if (!inGrid) {
+          skelParts.push(`<grid:${gridStyle || 'tiles'}>`);
+          inGrid = true;
+        }
+        return;
+      }
+      inGrid = false;
+      const normLine = l
+        .toLowerCase()
+        .replace(RESULT_URL_RE, '<url>')
+        .replace(RESULT_QUOTE_RE, '<quote>')
+        .replace(RESULT_DATE_TEXT_RE, '<date>')
+        .replace(/\b[0-9]{1,2}:[0-9]{2}(?::[0-9]{2})?\b/g, '<time>')
+        .replace(/\b(?:[0-9]{1,3}(?:,[0-9]{3})*|[xX])\s*\/\s*[0-9]{1,3}(?:,[0-9]{3})*\b/g, '<frac>')
+        .replace(/[+-]?\b[0-9]{1,3}(?:,[0-9]{3})+(?:\.[0-9]+)?%?|[+-]?\b[0-9]+(?:\.[0-9]+)?%?/g, '<n>')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (normLine) skelParts.push(normLine);
+    });
+    const skeleton = skelParts.join(' | ');
+    const textSkeletonOnly = skelParts.filter((p) => !p.startsWith('<grid:')).join(' ');
+    const distinctive = Boolean(textSkeletonOnly && !RESULT_TRIVIAL_SKELETON_RE.test(textSkeletonOnly) && textSkeletonOnly.length >= 6);
+
+    return {
+      raw,
+      urls,
+      canonUrls,
+      hashtags,
+      brandKey,
+      modeKey,
+      scoreGroup,
+      gridStyle,
+      puzzleNum,
+      puzzleEpoch,
+      skeleton,
+      distinctive
+    };
+  }
+
+  function sameResultFormatAndStyle(a, b) {
+    if (!a || !b) return false;
+    if (a.modeKey && b.modeKey && a.modeKey !== b.modeKey) return false;
+    if (a.puzzleEpoch !== null && b.puzzleEpoch !== null && Math.abs(a.puzzleEpoch - b.puzzleEpoch) > 2) return false;
+    if (a.gridStyle && b.gridStyle && a.gridStyle !== b.gridStyle) return false;
+    if (a.scoreGroup && b.scoreGroup && a.scoreGroup !== b.scoreGroup) {
+      // Allow e.g. solved `45 guesses` vs failed message only if one has no numeric group; otherwise groups must match.
+      return false;
+    }
+    return Boolean(a.scoreGroup || a.gridStyle);
+  }
+
+  function compatibleMaxTries(maxTries, sig) {
+    const m = String(maxTries || '').trim().toLowerCase();
+    if (!m || m === 'daily puzzle') return true;
+    const numMatch = m.match(/^(\d+)\s+(?:guesses|tries|equations|frames|shots|chances|attempts)\b/);
+    if (numMatch && sig.scoreGroup && sig.scoreGroup.startsWith('f:')) {
+      return sig.scoreGroup === `f:${numMatch[1]}`;
+    }
+    if (m === 'fastest time' && sig.scoreGroup && sig.scoreGroup.startsWith('f:')) return false;
+    return true;
+  }
+
+  /**
+   * Checks whether a newly added game's logged share result (`scoreText`) matches the format and
+   * style of another game already in `games` (`historyLogs`).
+   * Returns `{ game, reason }` (`'result-url' | 'result-brand' | 'result-style' | 'same-result'`) or `null`.
+   */
+  function findDuplicateByResult(game, scoreText, cycleDateKey, games, historyLogs, opts) {
+    const o = opts || {};
+    if (!game || !game.id) return null;
+    const sig = shareResultSignature(scoreText, cycleDateKey);
+    if (!sig) return null;
+
+    const logs = Array.isArray(historyLogs) ? historyLogs : [];
+    const maxScoredLogs = Number.isFinite(o.maxScoredLogs) ? o.maxScoredLogs : 3;
+    const ownScoredCount = logs.filter((l) => l && l.gameId === game.id && String(l.score || '').trim().length >= 6).length;
+    if (ownScoredCount > maxScoredLogs) return null;
+
+    const excluded = new Set(Array.isArray(game.notDuplicateOf) ? game.notDuplicateOf : []);
+    const candidates = (Array.isArray(games) ? games : []).filter((g) => {
+      if (!g || !g.id || g.id === game.id) return false;
+      if (excluded.has(g.id)) return false;
+      if (Array.isArray(g.notDuplicateOf) && g.notDuplicateOf.includes(game.id)) return false;
+      return true;
+    });
+    if (!candidates.length) return null;
+
+    // Prefer matching against more established games first.
+    const ordered = candidates.slice().sort((a, b) => (Number(b.totalPlayed) || 0) - (Number(a.totalPlayed) || 0));
+
+    for (const other of ordered) {
+      const otherNameKey = gameNameKey(other.name);
+      const otherModeMatch = String(other.name || '').match(MODE_QUALIFIER_RE);
+      const otherMode = otherModeMatch ? otherModeMatch[1].toLowerCase() : '';
+      if (sig.modeKey && otherMode && sig.modeKey !== otherMode) continue;
+
+      const otherRows = logs
+        .filter((l) => l && (l.gameId ? l.gameId === other.id : l.gameName === other.name) && String(l.score || '').trim())
+        .slice(0, 6);
+      const otherSigs = otherRows.map((r) => shareResultSignature(r.score, r.date)).filter(Boolean);
+
+      // 1. Embedded URL inside the result matches `other` or one of `other`'s logged results.
+      if (sig.canonUrls.length) {
+        const otherCanon = canonicalGameLinks(other);
+        const urlMatchesGame = otherCanon.some((ok) => sig.canonUrls.some(( cu ) => sameLink(ok, cu)))
+          || (typeof o.sameKnownGame === 'function' && rawGameUrls(other).some((ou) => sig.urls.some((su) => o.sameKnownGame(ou, su))));
+        const urlMatchesLogs = otherSigs.some((os) => os.canonUrls.some((oc) => sig.canonUrls.some((cu) => sameLink(oc, cu))));
+        if (urlMatchesGame || urlMatchesLogs) return { game: other, reason: 'result-url' };
+      }
+
+      // 2. Exact non-trivial result snippet already logged on `other`.
+      if (sig.raw.length >= 16 && otherSigs.some((os) => os.raw === sig.raw && (!sig.modeKey || !os.modeKey || sig.modeKey === os.modeKey))) {
+        return { game: other, reason: 'same-result' };
+      }
+
+      // 3. Header brand / hashtag in the result matches `other`'s logged results (with matching style) or `other`'s game card.
+      if (sig.brandKey) {
+        const brandInOtherLogs = otherSigs.some((os) =>
+          (os.brandKey === sig.brandKey || os.hashtags.includes(sig.brandKey)) && sameResultFormatAndStyle(sig, os)
+        );
+        if (brandInOtherLogs) return { game: other, reason: 'result-brand' };
+
+        if (otherNameKey && sig.brandKey === otherNameKey && compatibleMaxTries(other.maxTries, sig)) {
+          const epochConflict = otherSigs.some((os) => sig.puzzleEpoch !== null && os.puzzleEpoch !== null && Math.abs(sig.puzzleEpoch - os.puzzleEpoch) > 2);
+          const styleConflict = otherSigs.length > 0 && otherSigs.every((os) => !sameResultFormatAndStyle(sig, os));
+          if (!epochConflict && !styleConflict) return { game: other, reason: 'result-brand' };
+        }
+      }
+
+      // 4. Format + visual style + structural template skeleton match against `other`'s logged results.
+      const styleHit = otherSigs.some((os) => {
+        if (sig.brandKey && os.brandKey && sig.brandKey !== os.brandKey) return false;
+        if (otherNameKey && sig.brandKey && sig.brandKey !== otherNameKey) return false;
+        if (!sameResultFormatAndStyle(sig, os)) return false;
+        if (!sig.skeleton || sig.skeleton !== os.skeleton) return false;
+        // Either a distinctive template (beyond bare "Puzzle #N 3/6") OR matching daily puzzle-number epoch (±1 day).
+        if (sig.distinctive) return true;
+        return sig.puzzleEpoch !== null && os.puzzleEpoch !== null && Math.abs(sig.puzzleEpoch - os.puzzleEpoch) <= 1;
+      });
+      if (styleHit) return { game: other, reason: 'result-style' };
+    }
+    return null;
+  }
+
   return {
     gameLinkKey,
     canonicalGameLink,
     canonicalUrlKey,
     gameNameKey,
     findSameGame,
+    shareResultSignature,
+    findDuplicateByResult,
     extractResultText,
     weekBounds,
     periodRecap,

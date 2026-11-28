@@ -1023,5 +1023,127 @@ test('recheckChanges prefers scraped targetFormat over generic metricType/par', 
   assert.equal(out[0].changes.find((c) => c.field === 'category').to, 'Gaming & RPG');
 });
 
+test('shareResultSignature & findDuplicateByResult detect duplicate games from result format and style without false positives', () => {
+  const known = require(path.join(__dirname, '../../main/assets/known-games.js'));
+  const games = [
+    { id: 'w', name: 'Wordle', url: 'https://www.nytimes.com/games/wordle/index.html', maxTries: '6 guesses', totalPlayed: 40 },
+    { id: 'conn', name: 'Connections', url: 'https://www.nytimes.com/games/connections', maxTries: '4 mistakes', totalPlayed: 25 },
+    { id: 'globle', name: 'Globle', url: 'https://globle-game.com/game', maxTries: 'Daily Puzzle', totalPlayed: 18 },
+    { id: 'lol-classic', name: 'LoLdle - Classic', url: 'https://loldle.net/classic', maxTries: 'Daily Puzzle', totalPlayed: 12 },
+    { id: 'anon-main', name: 'Secret Grid', url: 'https://secretgrid.example/', maxTries: '6 guesses', totalPlayed: 10 }
+  ];
+  const logs = [
+    { gameId: 'w', gameName: 'Wordle', date: '2026-11-26', outcome: 'Completed', score: 'Wordle 1,622 4/6\n⬛🟨⬛⬛🟩\n🟩🟩🟩🟩🟩' },
+    { gameId: 'conn', gameName: 'Connections', date: '2026-11-26', outcome: 'Completed', score: 'Connections\nPuzzle #899\n🟨🟨🟨🟨\n🟩🟩🟩🟩\n🟦🟦🟦🟦\n🟪🟪🟪🟪' },
+    { gameId: 'globle', gameName: 'Globle', date: '2026-11-26', outcome: 'Completed', score: '🌍 Nov 26, 2026 🌍\n🔥 4 | Avg. Guesses: 6.2\n🟨🟧🟥🟩 = 4' },
+    { gameId: 'lol-classic', gameName: 'LoLdle - Classic', date: '2026-11-26', outcome: 'Completed', score: "I've guessed the #800 champion on #LoLdle (Classic) mode!\n🟩🟥🟩🟨🟩" },
+    { gameId: 'anon-main', gameName: 'Secret Grid', date: '2026-11-26', outcome: 'Completed', score: 'Puzzle #849 4/6\n⬛🟨⬛⬛🟩\n🟩🟩🟩🟩🟩' }
+  ];
 
+  // 1. Embedded URL inside the result matches an existing game (including catalogue cross-domain aliases).
+  const urlMirror = { id: 'new-url', name: 'Mystery Geo', url: 'https://custom-mirror.example/' };
+  const hitUrl = core.findDuplicateByResult(
+    urlMirror,
+    '🌍 Nov 27, 2026 🌍\n🟧🟩 = 2\nhttps://globle-game.com',
+    '2026-11-27',
+    [...games, urlMirror],
+    logs,
+    { sameKnownGame: known.sameGame }
+  );
+  assert.ok(hitUrl);
+  assert.equal(hitUrl.game.id, 'globle');
+  assert.equal(hitUrl.reason, 'result-url');
 
+  // 2. Brand / header + matching 5-wide BWG style catches a mirror with a completely different card title & URL.
+  const wordleMirror = { id: 'new-w', name: 'Daily Five', url: 'https://dailyfive-mirror.example/' };
+  const hitBrand = core.findDuplicateByResult(
+    wordleMirror,
+    'Wordle 1,623 3/6\n⬛🟩🟨⬛⬛\n🟩🟩🟩🟩🟩',
+    '2026-11-27',
+    [...games, wordleMirror],
+    logs,
+    { sameKnownGame: known.sameGame }
+  );
+  assert.ok(hitBrand);
+  assert.equal(hitBrand.game.id, 'w');
+  assert.equal(hitBrand.reason, 'result-brand');
+
+  // 3. Pure format + visual style + distinctive skeleton matches even with no brand name or URL in the snippet.
+  const globleClone = { id: 'new-g', name: 'World Map', url: 'https://map-mirror.example/' };
+  const hitStyle = core.findDuplicateByResult(
+    globleClone,
+    '🌍 Nov 27, 2026 🌍\n🔥 5 | Avg. Guesses: 6.0\n🟨🟧🟩 = 3',
+    '2026-11-27',
+    [...games, globleClone],
+    logs,
+    { sameKnownGame: known.sameGame }
+  );
+  assert.ok(hitStyle);
+  assert.equal(hitStyle.game.id, 'globle');
+  assert.equal(hitStyle.reason, 'result-style');
+
+  // 4. Minimal unnamed "Puzzle #N 3/6" matches when puzzle epoch aligns (850 on Nov 27 vs 849 on Nov 26),
+  //    but does NOT match an unrelated 5x6 puzzle on a different puzzle counter (#12 on Nov 27).
+  const anonMirror = { id: 'new-anon', name: 'Mirror Grid', url: 'https://mirrorgrid.example/' };
+  const hitEpoch = core.findDuplicateByResult(
+    anonMirror,
+    'Puzzle #850 3/6\n⬛🟩🟨⬛⬛\n🟩🟩🟩🟩🟩',
+    '2026-11-27',
+    [...games, anonMirror],
+    logs
+  );
+  assert.ok(hitEpoch);
+  assert.equal(hitEpoch.game.id, 'anon-main');
+  assert.equal(hitEpoch.reason, 'result-style');
+
+  const diffEpochGame = { id: 'new-diff-epoch', name: 'Other Five', url: 'https://otherfive.example/' };
+  assert.equal(
+    core.findDuplicateByResult(diffEpochGame, 'Puzzle #12 3/6\n⬛🟩🟨⬛⬛\n🟩🟩🟩🟩🟩', '2026-11-27', [...games, diffEpochGame], logs),
+    null
+  );
+
+  // 5. Distinct games with different grid styles, brands, or mode qualifiers do NOT trigger false positives.
+  const nerdle = { id: 'new-nerdle', name: 'Nerdle', url: 'https://nerdlegame.com/' };
+  assert.equal(
+    core.findDuplicateByResult(nerdle, 'nerdlegame 1050 3/6\n⬛🟪🟩⬛🟪🟩⬛🟩\n🟩🟩🟩🟩🟩🟩🟩🟩', '2026-11-27', [...games, nerdle], logs),
+    null
+  );
+
+  const phrazle = { id: 'new-phrazle', name: 'Phrazle', url: 'https://solitaired.com/phrazle' };
+  assert.equal(
+    core.findDuplicateByResult(phrazle, '#phrazle 980: 4/6\n⬜🟨⬜ 🟪⬜⬜⬜ 🟩🟩\n🟩🟩🟩 🟩🟩🟩🟩 🟩🟩', '2026-11-27', [...games, phrazle], logs),
+    null
+  );
+
+  const connSports = { id: 'new-sports', name: 'Connections: Sports Edition', url: 'https://www.nytimes.com/athletic/connections-sports-edition' };
+  assert.equal(
+    core.findDuplicateByResult(connSports, 'Connections: Sports Edition\nPuzzle #42\n🟡🟡🟡🟡\n🟢🟢🟢🟢\n🔵🔵🔵🔵\n🟣🟣🟣🟣', '2026-11-27', [...games, connSports], logs),
+    null
+  );
+
+  const lolQuote = { id: 'new-lol-quote', name: 'LoLdle - Quote', url: 'https://loldle.net/quote' };
+  assert.equal(
+    core.findDuplicateByResult(lolQuote, "I've guessed the #801 quote on #LoLdle (Quote) mode!", '2026-11-27', [...games, lolQuote], logs),
+    null
+  );
+
+  // 6. Respects `notDuplicateOf` and skips established games that already have >3 scored history rows.
+  const keptSeparate = { id: 'new-sep', name: 'Daily Five', url: 'https://sep.example/', notDuplicateOf: ['w'] };
+  assert.equal(
+    core.findDuplicateByResult(keptSeparate, 'Wordle 1,623 3/6\n⬛🟩🟨⬛⬛\n🟩🟩🟩🟩🟩', '2026-11-27', [...games, keptSeparate], logs),
+    null
+  );
+
+  const establishedLogs = [
+    ...logs,
+    { gameId: 'est', date: '2026-11-23', score: 'Wordle 1,619 4/6\n🟩🟩🟩🟩🟩' },
+    { gameId: 'est', date: '2026-11-24', score: 'Wordle 1,620 3/6\n🟩🟩🟩🟩🟩' },
+    { gameId: 'est', date: '2026-11-25', score: 'Wordle 1,621 5/6\n🟩🟩🟩🟩🟩' },
+    { gameId: 'est', date: '2026-11-26', score: 'Wordle 1,622 4/6\n🟩🟩🟩🟩🟩' }
+  ];
+  const established = { id: 'est', name: 'Established Copy', url: 'https://est.example/' };
+  assert.equal(
+    core.findDuplicateByResult(established, 'Wordle 1,623 3/6\n⬛🟩🟨⬛⬛\n🟩🟩🟩🟩🟩', '2026-11-27', [...games, established], establishedLogs),
+    null
+  );
+});

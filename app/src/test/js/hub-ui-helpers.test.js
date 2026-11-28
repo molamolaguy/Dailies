@@ -210,4 +210,21 @@ test('1.10.1: paginateHistoryByDay keeps all entries of a day on the same page e
   assert.equal(pages2[1].rows.length, 3);
 });
 
+test('normalizeGameObject preserves and deduplicates notDuplicateOf while omitting empty lists', () => {
+  const now = new Date('2026-11-27T12:00:00Z');
+  const g1 = H.normalizeGameObject({
+    id: 'g-1',
+    name: 'Game One',
+    url: 'https://example.com/one',
+    notDuplicateOf: [' g-2 ', 'g-3', 'g-2', '', null, 42]
+  }, 0, now);
+  assert.deepEqual(g1.notDuplicateOf, ['g-2', 'g-3']);
 
+  const g2 = H.normalizeGameObject({
+    id: 'g-2',
+    name: 'Game Two',
+    url: 'https://example.com/two',
+    notDuplicateOf: []
+  }, 1, now);
+  assert.equal('notDuplicateOf' in g2, false);
+});

@@ -175,6 +175,9 @@
     const cleanHistory = HubCore.cleanDayHistory(g.dayHistory);
     const altUrls = cleanUrlList(g.altUrls, 4);
     const embeds = cleanUrlList(g.embeds, 8);
+    const notDuplicateOf = Array.isArray(g.notDuplicateOf)
+      ? [...new Set(g.notDuplicateOf.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim().slice(0, 120)))].slice(0, 20)
+      : undefined;
 
     const norm = {
       id: String(g.id || ('game-' + idx + '-' + Date.now().toString(36))).trim(),
@@ -207,7 +210,8 @@
       playTime: (g.playTime && HubCore.DATE_KEY_RE.test(String(g.playTime.key || '')) && Number(g.playTime.ms) > 0)
         ? { key: String(g.playTime.key), ms: Math.min(Number(g.playTime.ms), 6 * 3600000) } : undefined,
       altUrls,
-      embeds
+      embeds,
+      notDuplicateOf: notDuplicateOf && notDuplicateOf.length ? notDuplicateOf : undefined
     };
     if (!norm.archived) delete norm.archived;
     if (!norm.dismissedResetSuggestion) delete norm.dismissedResetSuggestion;
@@ -217,6 +221,7 @@
     if (!norm.addedCycleKey) delete norm.addedCycleKey;
     if (!norm.altUrls) delete norm.altUrls;
     if (!norm.embeds) delete norm.embeds;
+    if (!norm.notDuplicateOf) delete norm.notDuplicateOf;
     HubCore.ensureStatsBaseline(norm);
     HubCore.recomputeGameStatsFromHistory(norm, refDate);
     return norm;
