@@ -13,7 +13,6 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.FrameLayout
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,8 +36,8 @@ import kotlin.coroutines.resume
  *   recursively preloads `<link rel="modulepreload">` / `<link rel="preload">` / `<link rel="stylesheet">`
  *   resources over HTTP/2 + Brotli **without** executing any game JavaScript, starting in-game timers,
  *   writing to `localStorage`/`IndexedDB`, or playing audio.
- * - Immediately stops and destroys its hidden 1×1 `WebView` once the pass finishes or the user leaves
- *   the Hub (including the moment they tap Play), keeping steady-state RAM overhead at zero.
+ * - Keeps its `WebView` completely detached from the Activity view hierarchy and destroys it as soon as
+ *   the pass finishes or the user leaves the Hub, keeping steady-state RAM overhead at zero.
  */
 class GamePrewarmer(private val host: ViewGroup) {
     private val appCtx: Context = host.context.applicationContext
@@ -57,7 +56,7 @@ class GamePrewarmer(private val host: ViewGroup) {
         val expiresAt: Long
     )
 
-    fun scheduleWarmup(delayMs: Long = 500L) {
+    fun scheduleWarmup(delayMs: Long = 1500L) {
         if (paused) return
         main.removeCallbacks(scheduleRunnable)
         main.postDelayed(scheduleRunnable, delayMs.coerceAtLeast(0L))
@@ -65,7 +64,7 @@ class GamePrewarmer(private val host: ViewGroup) {
 
     fun onHubResumed() {
         paused = false
-        scheduleWarmup(delayMs = 450L)
+        scheduleWarmup(delayMs = 2500L)
     }
 
     /** Halts any background warming immediately (e.g. when tapping Play or leaving the Hub). */
@@ -249,18 +248,11 @@ class GamePrewarmer(private val host: ViewGroup) {
     }
 
     private fun ensureWebView(): WebView? {
-        webView?.let { existing ->
-            if (existing.parent !== host) {
-                runCatching {
-                    (existing.parent as? ViewGroup)?.removeView(existing)
-                    host.addView(existing, 0, FrameLayout.LayoutParams(1, 1))
-                }
-            }
-            return existing
-        }
+        webView?.let { return it }
+        // Keep completely detached from the Activity view tree so view traversal, insets, and input never see it.
         val created = runCatching { WebView(host.context) }.getOrNull() ?: return null
         created.apply {
-            visibility = View.INVISIBLE
+            visibility = View.GONE
             isFocusable = false
             isClickable = false
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
@@ -279,7 +271,6 @@ class GamePrewarmer(private val host: ViewGroup) {
                 userAgentString = userAgentString.replace("; wv", "")
             }
         }
-        runCatching { host.addView(created, 0, FrameLayout.LayoutParams(1, 1)) }
         webView = created
         return created
     }
