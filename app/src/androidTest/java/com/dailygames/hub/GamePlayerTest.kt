@@ -479,7 +479,7 @@ class GamePlayerTest {
             val data = s.result.resultData
             assertEquals("b", data.getStringExtra(GameActivity.EXTRA_ID))
             val earlier = JSONArray(data.getStringExtra(GameActivity.EXTRA_EARLIER) ?: "[]")
-            assertEquals(false, earlier.getJSONObject(0).has("share"))
+            assertEquals("", earlier.getJSONObject(0).getString("share"))
         }
     }
 }
